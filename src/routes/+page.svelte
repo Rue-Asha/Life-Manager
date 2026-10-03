@@ -2,7 +2,9 @@
 	import AspectIcon from '$lib/components/ui/AspectIcon.svelte';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import QuickAdd from '$lib/components/todo/QuickAdd.svelte';
+	import SprintPrompt from '$lib/components/todo/SprintPrompt.svelte';
 	import TodoRow from '$lib/components/todo/TodoRow.svelte';
+	import { UI_ICONS } from '$lib/components/ui/icons';
 	import type { Id } from '$lib/types';
 
 	let { data } = $props();
@@ -26,10 +28,20 @@
 <PageHeader title="Today" icon="sun" />
 <p class="date">{longDate.format(new Date(`${data.today}T00:00:00Z`))}</p>
 
+{#if data.phase !== 'running'}
+	<div class="prompt"><SprintPrompt phase={data.phase} /></div>
+{/if}
+
 {#if inSprint}
 	<div class="quick">
 		<QuickAdd aspects={data.aspects} target={{ kind: 'day', day: data.today }} />
 	</div>
+	{#if groups.length === 0 && data.overdue.length === 0}
+		<p class="empty" data-testid="empty-state">
+			<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.sun} /></svg>
+			<span>Nothing planned for today. The <a href="/sprint?view=week">week view</a> has the rest of your sprint.</span>
+		</p>
+	{/if}
 {/if}
 
 {#if data.overdue.length}
@@ -63,8 +75,39 @@
 		color: var(--ink-3);
 	}
 
+	.prompt,
 	.quick {
 		margin-bottom: var(--space-7);
+	}
+
+	.empty {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		padding: var(--space-4);
+		border-radius: var(--radius-md);
+		background: var(--paper-sunk);
+		color: var(--ink-2);
+	}
+
+	.empty svg {
+		width: var(--icon-md);
+		height: var(--icon-md);
+		flex: none;
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 2;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+
+	.empty a {
+		font-weight: var(--weight-medium);
+		text-decoration: none;
+	}
+
+	.empty a:hover {
+		text-decoration: underline;
 	}
 
 	.group + .group {

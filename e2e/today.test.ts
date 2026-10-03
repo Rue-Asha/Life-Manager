@@ -101,3 +101,69 @@ test('Scenario: Quick add on Today adds to the sprint on today', async ({ page, 
 	await page.goto('/backlog');
 	await expect(row(page, 'Stretch for ten minutes')).toHaveCount(0);
 });
+
+test('Scenario: Today without an active sprint prompts to plan', async ({ page, request }) => {
+	await seed(request, { aspects: [...ASPECTS], todos: [{ title: 'Send tax receipts', dueDate: '2026-10-06' }] });
+	await page.goto('/');
+
+	const prompt = page.getByTestId('sprint-prompt');
+	await expect(prompt).toHaveAttribute('data-phase', 'none');
+	await expect(prompt.getByRole('link', { name: 'Plan your week' })).toHaveAttribute('href', '/sprint/plan');
+	await expect(row(page, 'Send tax receipts')).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Add a todo' })).toHaveCount(0);
+	await expect(page.getByTestId('empty-state')).toHaveCount(0);
+});
+
+test('Scenario: Today with a pending review prompts to review', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [...ASPECTS],
+		sprint: ACTIVE,
+		todos: [{ title: 'Weekly reset', inSprint: true, day: '2026-10-11' }]
+	});
+
+	// Sunday of the sprint's week: the review is available and the day is still the sprint's.
+	await setClock(request, '2026-10-11T10:00:00Z');
+	await page.goto('/');
+	let prompt = page.getByTestId('sprint-prompt');
+	await expect(prompt).toHaveAttribute('data-phase', 'review-available');
+	await expect(prompt.getByRole('link', { name: 'Review it' })).toHaveAttribute('href', '/sprint/review');
+	await expect(row(page, 'Weekly reset')).toBeVisible();
+
+	// The Monday after: the review is required and blocks adding to the old sprint.
+	await setClock(request, '2026-10-12T10:00:00Z');
+	await page.goto('/');
+	prompt = page.getByTestId('sprint-prompt');
+	await expect(prompt).toHaveAttribute('data-phase', 'review-required');
+	await expect(prompt.getByRole('link', { name: 'Review the sprint' })).toHaveAttribute('href', '/sprint/review');
+	await expect(page.getByRole('button', { name: 'Add a todo' })).toHaveCount(0);
+});
+
+test('Scenario: Nothing today shows a calm empty state', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [...ASPECTS],
+		sprint: ACTIVE,
+		todos: [
+			{ title: 'Book a physio appointment', inSprint: true, day: '2026-10-08' },
+			{ title: 'Paid the rent', dueDate: '2026-10-01', status: 'done' }
+		]
+	});
+	await page.goto('/');
+
+	const empty = page.getByTestId('empty-state');
+	await expect(empty).toContainText('Nothing planned for today.');
+	await expect(empty.getByRole('link', { name: 'week view' })).toHaveAttribute('href', '/sprint?view=week');
+	await expect(page.getByTestId('todo-row')).toHaveCount(0);
+	await expect(page.getByTestId('sprint-prompt')).toHaveCount(0);
+});
+
+test('Scenario: Sunday after the review prompts to plan next week', async ({ page, request }) => {
+	// Closing the review leaves the next sprint as a planning draft.
+	await seed(request, { aspects: [...ASPECTS], sprint: { state: 'planning' } });
+	await setClock(request, '2026-10-11T18:00:00Z');
+	await page.goto('/');
+
+	const prompt = page.getByTestId('sprint-prompt');
+	await expect(prompt).toHaveAttribute('data-phase', 'planning');
+	await expect(prompt.getByRole('link')).toHaveAttribute('href', '/sprint/plan');
+	await expect(page.getByTestId('empty-state')).toHaveCount(0);
+});
