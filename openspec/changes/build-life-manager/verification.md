@@ -1,32 +1,32 @@
-verified-at: 4ebe184
+verified-at: 93a87b4
 
 ## Layer 1 — `PORT=4700 npm run proof:full` (green, exit 0)
 
 - `npm run check`: svelte-check 433 files, 0 errors, 0 warnings (svelte-kit sync prints a `config_option_deprecated_alias` notice for `alias: { $lib }` in `vite.config.ts`)
 - `npm run build`: ok
-- `npm run test:unit`: 8 files, 68 tests passed
+- `npm run test:unit`: 8 files, 71 tests passed
 - `npm run test:e2e`: 89 passed
 
 ```
-  ✓  71 e2e/today.test.ts:27:1 › Scenario: Today shows today's sprint todos and overdue todos (118ms)
-  ✓  72 e2e/today.test.ts:55:1 › An overdue todo planned for today is listed once, under Overdue (118ms)
-  ✓  73 e2e/today.test.ts:67:1 › Scenario: Status toggle on Today (253ms)
-  ✓  74 e2e/today.test.ts:94:1 › Scenario: Overdue todos outside the sprint offer the sprint instead of a checkbox (188ms)
-  ✓  75 e2e/today.test.ts:114:1 › Scenario: Quick add on Today adds to the sprint on today (483ms)
-  ✓  76 e2e/today.test.ts:134:1 › No quick add on the Sunday before next week's sprint starts (92ms)
-  ✓  77 e2e/today.test.ts:143:1 › Scenario: Today without an active sprint prompts to plan (112ms)
-  ✓  78 e2e/today.test.ts:155:1 › Scenario: Today with a pending review prompts to review (137ms)
-  ✓  79 e2e/today.test.ts:179:1 › Scenario: Nothing today shows a calm empty state (104ms)
-  ✓  80 e2e/today.test.ts:197:1 › Scenario: Sunday after the review prompts to plan next week (253ms)
-  ✓  81 e2e/todos.test.ts:28:1 › GET /todos redirects to the backlog (105ms)
-  ✓  82 e2e/todos.test.ts:34:1 › Scenario: Quick add creates a todo in the backlog (451ms)
-  ✓  83 e2e/todos.test.ts:53:1 › Quick add rejects an empty title inline (403ms)
+  ✓  71 e2e/today.test.ts:27:1 › Scenario: Today shows today's sprint todos and overdue todos (120ms)
+  ✓  72 e2e/today.test.ts:55:1 › An overdue todo planned for today is listed once, under Overdue (128ms)
+  ✓  73 e2e/today.test.ts:67:1 › Scenario: Status toggle on Today (279ms)
+  ✓  74 e2e/today.test.ts:94:1 › Scenario: Overdue todos outside the sprint offer the sprint instead of a checkbox (211ms)
+  ✓  75 e2e/today.test.ts:114:1 › Scenario: Quick add on Today adds to the sprint on today (504ms)
+  ✓  76 e2e/today.test.ts:134:1 › No quick add on the Sunday before next week's sprint starts (119ms)
+  ✓  77 e2e/today.test.ts:143:1 › Scenario: Today without an active sprint prompts to plan (115ms)
+  ✓  78 e2e/today.test.ts:155:1 › Scenario: Today with a pending review prompts to review (165ms)
+  ✓  79 e2e/today.test.ts:179:1 › Scenario: Nothing today shows a calm empty state (119ms)
+  ✓  80 e2e/today.test.ts:197:1 › Scenario: Sunday after the review prompts to plan next week (264ms)
+  ✓  81 e2e/todos.test.ts:28:1 › GET /todos redirects to the backlog (112ms)
+  ✓  82 e2e/todos.test.ts:34:1 › Scenario: Quick add creates a todo in the backlog (470ms)
+  ✓  83 e2e/todos.test.ts:53:1 › Quick add rejects an empty title inline (421ms)
   ✓  84 e2e/todos.test.ts:63:1 › Scenario: Past due date is allowed and shown overdue (427ms)
-  ✓  85 e2e/todos.test.ts:74:1 › Quick add on phone opens a sheet (573ms)
-  ✓  86 e2e/todos.test.ts:92:1 › Scenario: Edit every field of a todo (663ms)
-  ✓  87 e2e/todos.test.ts:127:1 › Scenario: Checklist items are added, renamed, toggled and deleted (823ms)
+  ✓  85 e2e/todos.test.ts:74:1 › Quick add on phone opens a sheet (538ms)
+  ✓  86 e2e/todos.test.ts:92:1 › Scenario: Edit every field of a todo (662ms)
+  ✓  87 e2e/todos.test.ts:127:1 › Scenario: Checklist items are added, renamed, toggled and deleted (819ms)
   ✓  88 e2e/todos.test.ts:163:1 › Scenario: Deleting a todo asks for confirmation (1.6s)
-  ✓  89 e2e/todos.test.ts:184:1 › Editing on phone uses a sheet (580ms)
+  ✓  89 e2e/todos.test.ts:184:1 › Editing on phone uses a sheet (583ms)
 
   89 passed (33.2s)
 ```
@@ -152,18 +152,18 @@ Start: `npm run dev` → http://localhost:5173 (empty DB redirects to `/welcome`
 - [ ] Brief cites a reference for every decision — skim `design/brief.md`: each decision (colour, type, spacing, row layout, navigation, empty states, motion) has a Mobbin URL; no dark mode, shortcuts or NL parsing.
 - [ ] Style tile renders from the tokens — open `design/style-tile.html` in a browser: palette, type scale, aspect colours/icons, sample components.
 - [ ] Feature UI waits for the approved style tile — confirm the style-tile approval was recorded before feature units started (orchestrator record, `flow.yaml` gate1 2026-10-03).
-- [ ] README documents setup, scripts and env vars — read `README.md`: setup, `dev`/`build`/`check`/`proof`/`proof:full`, `node build`, `PORT`/`DATABASE_PATH`/`LM_TEST` with defaults.
+- [ ] README documents setup, scripts and env vars — read `README.md`: setup, `dev`/`build`/`check`/`proof`/`proof:full`, `node build`, `PORT`/`DATABASE_PATH`/`LM_TEST` with defaults, and the `PROTOCOL_HEADER` note for plain-http forms.
 
 ## Diffstat
 
-`git diff --stat 4b825dc642cb6eb9a060e54bf8d69288fbee4904 flow/build-life-manager` (at 4ebe184, before this commit):
+`git diff --stat 4b825dc642cb6eb9a060e54bf8d69288fbee4904 flow/build-life-manager` (at 93a87b4, before this commit):
 
-- total: 224 files changed, 20316 insertions(+)
-- src/: 77 files changed, 8270 insertions(+)
-- e2e/: 14 files changed, 2069 insertions(+)
+- total: 224 files changed, 20380 insertions(+)
+- src/: 77 files changed, 8314 insertions(+)
+- e2e/: 14 files changed, 2081 insertions(+)
 - design/: 76 files changed, 4851 insertions(+)
-- openspec/: 39 files changed, 1765 insertions(+)
-- other (root config, README, lockfile): 18 files changed, 3361 insertions(+)
+- openspec/: 39 files changed, 1769 insertions(+)
+- other (root config, README, lockfile): 18 files changed, 3365 insertions(+)
 
 ## Screenshots
 
