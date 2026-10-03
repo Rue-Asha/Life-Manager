@@ -12,7 +12,8 @@
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"test:unit": "vitest run --reporter=verbose"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-node": "^6.0.0",
@@ -22,6 +23,7 @@
 		"svelte": "^5.57.1",
 		"svelte-check": "^4.7.6",
 		"typescript": "^6.0.3",
-		"vite": "^8.3.2"
+		"vite": "^8.3.2",
+		"vitest": "^5.0.3"
 	}
 }
