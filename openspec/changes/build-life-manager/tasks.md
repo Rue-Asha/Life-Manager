@@ -65,25 +65,25 @@ Tests create aspects and todos with plain SQL (unit 5 runs in parallel).
 
 > unit: depends=4,5 · scope=S3,S4,S5 · files=src/routes/+layout.server.ts, src/routes/welcome/+page.svelte, src/routes/welcome/+page.server.ts, src/routes/aspects/+page.svelte, src/routes/aspects/+page.server.ts, src/lib/components/aspects/AspectForm.svelte, src/lib/components/aspects/DeleteAspectDialog.svelte, e2e/aspects.test.ts
 
-- [ ] 7.1 Write `Scenario: First run shows onboarding` and `Scenario: Onboarding creates the chosen aspects`, then the first-run redirect in `+layout.server.ts` and `/welcome` (Finch-style toggle rows + add custom; redirect to `/backlog`)
-- [ ] 7.2 Write `Scenario: Create an aspect with colour and icon`, `Scenario: Edit an aspect`, `Scenario: Empty aspect name is rejected inline`, then `/aspects` (list with todo counts) and `AspectForm` (name field with icon button, colour dots, icon grid — Linear/ChatGPT pattern)
-- [ ] 7.3 Write `Scenario: Delete confirmation asks for a target aspect`, `Scenario: Aspect without todos is deleted with a simple confirm`, `Scenario: Only aspect with todos cannot be deleted`, `Scenario: Deleting the last aspect returns to first run`, then `DeleteAspectDialog` and `?/delete`
+- [x] 7.1 Write `Scenario: First run shows onboarding` and `Scenario: Onboarding creates the chosen aspects`, then the first-run redirect in `+layout.server.ts` and `/welcome` (Finch-style toggle rows + add custom; redirect to `/backlog`)
+- [x] 7.2 Write `Scenario: Create an aspect with colour and icon`, `Scenario: Edit an aspect`, `Scenario: Empty aspect name is rejected inline`, then `/aspects` (list with todo counts) and `AspectForm` (name field with icon button, colour dots, icon grid — Linear/ChatGPT pattern)
+- [x] 7.3 Write `Scenario: Delete confirmation asks for a target aspect`, `Scenario: Aspect without todos is deleted with a simple confirm`, `Scenario: Only aspect with todos cannot be deleted`, `Scenario: Deleting the last aspect returns to first run`, then `DeleteAspectDialog` and `?/delete`
 
 ## 8. Todo UI and backlog
 
 > unit: depends=4,5,6 · scope=S6,S7,S8,S9,S12 · files=src/routes/todos/+page.server.ts, src/routes/todos/+page.svelte, src/routes/backlog/+page.svelte, src/routes/backlog/+page.server.ts, src/lib/components/todo/TodoRow.svelte, src/lib/components/todo/StatusControl.svelte, src/lib/components/todo/DayPicker.svelte, src/lib/components/todo/QuickAdd.svelte, src/lib/components/todo/TodoEditor.svelte, src/lib/components/todo/SprintPrompt.svelte, e2e/todos.test.ts, e2e/backlog.test.ts
 
-- [ ] 8.1 `/todos` form actions per design.md Contracts (validation via the services, `fail(400, { error, field, values })`); `/todos` GET redirects to `/backlog`
-- [ ] 8.2 `TodoRow` (Things two-line row: aspect as grey second line, tiny metadata icons, priority, due date with "Nd left" / red overdue marker at the right edge, done struck through, test ids from Contracts), `StatusControl`, `DayPicker`, `SprintPrompt`
-- [ ] 8.3 Write `Scenario: Quick add creates a todo in the backlog` and `Scenario: Past due date is allowed and shown overdue`, then `QuickAdd` (title field + aspect/priority/due chips, no parsing) and `/backlog`
-- [ ] 8.4 Write `Scenario: Edit every field of a todo`, `Scenario: Checklist items are added, renamed, toggled and deleted`, `Scenario: Deleting a todo asks for confirmation`, then `TodoEditor` (expand-in-place card on desktop, sheet on phone; delete via `ConfirmDialog`)
-- [ ] 8.5 Write `Scenario: Backlog is grouped by aspect`, `Scenario: Filter the backlog to one aspect`, `Scenario: Empty backlog shows an empty state`, `Scenario: Overdue todos are marked in the backlog`, `Scenario: Add a backlog todo to the active sprint`, then finish `/backlog` (groups, `?aspect=` filter, empty state, "Add to sprint" row action during an active sprint)
+- [x] 8.1 `/todos` form actions per design.md Contracts (validation via the services, `fail(400, { error, field, values })`); `/todos` GET redirects to `/backlog`
+- [x] 8.2 `TodoRow` (Things two-line row: aspect as grey second line, tiny metadata icons, priority, due date with "Nd left" / red overdue marker at the right edge, done struck through, test ids from Contracts), `StatusControl`, `DayPicker`, `SprintPrompt`
+- [x] 8.3 Write `Scenario: Quick add creates a todo in the backlog` and `Scenario: Past due date is allowed and shown overdue`, then `QuickAdd` (title field + aspect/priority/due chips, no parsing) and `/backlog`
+- [x] 8.4 Write `Scenario: Edit every field of a todo`, `Scenario: Checklist items are added, renamed, toggled and deleted`, `Scenario: Deleting a todo asks for confirmation`, then `TodoEditor` (expand-in-place card on desktop, sheet on phone; delete via `ConfirmDialog`)
+- [x] 8.5 Write `Scenario: Backlog is grouped by aspect`, `Scenario: Filter the backlog to one aspect`, `Scenario: Empty backlog shows an empty state`, `Scenario: Overdue todos are marked in the backlog`, `Scenario: Add a backlog todo to the active sprint`, then finish `/backlog` (groups, `?aspect=` filter, empty state, "Add to sprint" row action during an active sprint)
 
 ## 9. Recurring rules UI
 
 > unit: depends=4,6 · scope=S18 · files=src/routes/recurring/+page.svelte, src/routes/recurring/+page.server.ts, src/lib/components/recurring/RuleForm.svelte, e2e/recurring.test.ts
 
-- [ ] 9.1 Write `Scenario: Create and list a recurring rule`, then `/recurring` (list with aspect + weekday chips) and `RuleForm` (title, aspect, weekday toggles, notes, priority, checklist template; inline `weekdays-required` error), edit and delete with confirm
+- [x] 9.1 Write `Scenario: Create and list a recurring rule`, then `/recurring` (list with aspect + weekday chips) and `RuleForm` (title, aspect, weekday toggles, notes, priority, checklist template; inline `weekdays-required` error), edit and delete with confirm
 
 ## 10. Planning and review UI
 
