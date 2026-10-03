@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { deserialize } from '$app/forms';
+	import { invalidateAll } from '$app/navigation';
 	import BacklogRail from '$lib/components/rail/BacklogRail.svelte';
 	import RailLayout from '$lib/components/shell/RailLayout.svelte';
 	import AspectView from '$lib/components/sprint/AspectView.svelte';
@@ -10,12 +12,44 @@
 	import SprintPrompt from '$lib/components/todo/SprintPrompt.svelte';
 	import { dateLabel, dayLabel } from '$lib/components/todo/format';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
+	import type { Id, Todo } from '$lib/types';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 
-	const VIEWS = { aspect: AspectView, board: BoardView, week: WeekView };
-	const View = $derived(VIEWS[data.view]);
+	const VIEWS = { board: BoardView, week: WeekView };
+
+	// A move shows at once, so the todo travels before the reload confirms it; a refused move
+	// drops out of here and travels back.
+	let moves = $state<Record<Id, 'sprint' | 'backlog'>>({});
+	let failure = $state<string | null>(null);
+
+	const unplaced = (t: Todo): Todo => ({ ...t, status: 'todo', day: null });
+	const todos = $derived([
+		...data.todos.filter((t) => moves[t.id] !== 'backlog'),
+		...data.backlog.filter((t) => moves[t.id] === 'sprint').map(unplaced)
+	]);
+	const backlog = $derived([
+		...data.backlog.filter((t) => moves[t.id] !== 'sprint'),
+		...data.todos.filter((t) => moves[t.id] === 'backlog').map(unplaced)
+	]);
+
+	async function move(id: Id, to: 'sprint' | 'backlog') {
+		moves[id] = to;
+		failure = null;
+		const body = new FormData();
+		body.set('id', String(id));
+		const response = await fetch(to === 'sprint' ? '/todos?/addToSprint' : '/todos?/moveToBacklog', {
+			method: 'POST',
+			body,
+			headers: { 'x-sveltekit-action': 'true' }
+		});
+		const result = deserialize(await response.text());
+		// A todo another tab already moved isn't worth a message: the reload shows where it went.
+		if (result.type === 'failure' && result.data?.error !== 'not-found') failure = String(result.data?.error);
+		else await invalidateAll();
+		delete moves[id];
+	}
 </script>
 
 <svelte:head>
@@ -24,9 +58,16 @@
 
 {#snippet rail()}
 	{#if data.view === 'week'}
-		<UnscheduledList todos={data.todos} sprintDays={data.sprintDays!} today={data.today} />
+		<UnscheduledList {todos} sprintDays={data.sprintDays!} today={data.today} />
 	{/if}
-	<BacklogRail backlog={data.backlog} aspects={data.aspects} canAdd addAction="/todos?/addToSprint" />
+	<BacklogRail
+		{backlog}
+		aspects={data.aspects}
+		canAdd
+		addAction="/todos?/addToSprint"
+		onadd={(id) => move(id, 'sprint')}
+		onreturn={(id) => move(id, 'backlog')}
+	/>
 {/snippet}
 
 <RailLayout railTitle="Backlog" wide={data.view !== 'aspect'} rail={data.sprintDays ? rail : undefined}>
@@ -48,7 +89,28 @@
 				<div class="quick"><QuickAdd aspects={data.aspects} target={{ kind: 'sprint' }} /></div>
 			{/if}
 
-			<View todos={data.todos} aspects={data.aspects} today={data.today} sprintDays={data.sprintDays} />
+			{#if failure}
+				<p class="error" role="alert">
+					{#if failure === 'review-required'}
+						The sprint needs its review first. <a href="/sprint/review">Review</a>
+					{:else}
+						That didn’t work. Reload and try again.
+					{/if}
+				</p>
+			{/if}
+
+			{#if data.view === 'aspect'}
+				<AspectView
+					{todos}
+					aspects={data.aspects}
+					today={data.today}
+					sprintDays={data.sprintDays}
+					onadd={(id) => move(id, 'sprint')}
+				/>
+			{:else}
+				{@const View = VIEWS[data.view]}
+				<View {todos} aspects={data.aspects} today={data.today} sprintDays={data.sprintDays} />
+			{/if}
 		{/if}
 	</div>
 </RailLayout>
@@ -74,5 +136,21 @@
 
 	.quick {
 		margin-bottom: var(--space-6);
+	}
+
+	.error {
+		margin-bottom: var(--space-5);
+		color: var(--ink);
+		font-size: var(--text-sm);
+	}
+
+	.error a {
+		color: var(--accent);
+		font-weight: var(--weight-medium);
+		text-decoration: none;
+	}
+
+	.error a:hover {
+		text-decoration: underline;
 	}
 </style>

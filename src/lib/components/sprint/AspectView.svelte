@@ -1,5 +1,8 @@
 <script lang="ts">
-	import type { Aspect, IsoDate, Todo } from '$lib/types';
+	import { flip } from 'svelte/animate';
+	import { canDrag, draggableTodo, dropZone } from '$lib/dnd';
+	import { flipOpts, receive, send } from '$lib/motion';
+	import type { Aspect, Id, IsoDate, Todo } from '$lib/types';
 	import TodoRow from '../todo/TodoRow.svelte';
 	import AspectIcon from '../ui/AspectIcon.svelte';
 
@@ -7,8 +10,18 @@
 		todos,
 		aspects,
 		today,
-		sprintDays
-	}: { todos: Todo[]; aspects: Aspect[]; today: IsoDate; sprintDays: IsoDate[] } = $props();
+		sprintDays,
+		onadd
+	}: {
+		todos: Todo[];
+		aspects: Aspect[];
+		today: IsoDate;
+		sprintDays: IsoDate[];
+		onadd?: (id: Id) => void;
+	} = $props();
+
+	// Inside a draggable element a mouse selection in the editor's fields would start a drag.
+	let typing = $state<Id | null>(null);
 
 	const groups = $derived(
 		aspects
@@ -17,7 +30,11 @@
 	);
 </script>
 
-<div class="list" data-testid="sprint-list">
+<div
+	class="list"
+	data-testid="sprint-list"
+	use:dropZone={{ accepts: (p) => !!onadd && p.from === 'backlog', ondrop: (p) => onadd?.(p.id) }}
+>
 	{#each groups as { aspect, todos } (aspect.id)}
 		{@const open = todos.filter((t) => t.status !== 'done').length}
 		<section class="group" data-testid="aspect-group-{aspect.id}" aria-labelledby="group-{aspect.id}">
@@ -25,11 +42,22 @@
 				<AspectIcon icon={aspect.icon} color={aspect.color} />{aspect.name}
 				<span class="count num" aria-label="{open} open">{open}</span>
 			</h2>
-			<ul>
-				{#each todos as todo (todo.id)}
-					<TodoRow {todo} {aspect} {today} context="sprint" {sprintDays} />
-				{/each}
-			</ul>
+			<!-- Global: the first todo of an aspect arrives with its group and should still travel in. -->
+			{#each todos as todo (todo.id)}
+				<div
+					class="item"
+					role="presentation"
+					in:receive|global={{ key: todo.id }}
+					out:send|global={{ key: todo.id }}
+					animate:flip={flipOpts()}
+					use:draggableTodo={{ id: todo.id, from: 'sprint', recurring: todo.recurring }}
+					draggable={canDrag.current && typing !== todo.id}
+					onfocusin={(e) => (typing = (e.target as Element).matches('input, textarea') ? todo.id : null)}
+					onfocusout={() => (typing = null)}
+				>
+					<ul><TodoRow {todo} {aspect} {today} context="sprint" {sprintDays} /></ul>
+				</div>
+			{/each}
 		</section>
 	{:else}
 		<p class="empty" data-testid="empty-state">
@@ -59,6 +87,33 @@
 		color: var(--ink-3);
 		font-size: var(--text-sm);
 		font-weight: var(--weight-regular);
+	}
+
+	.list {
+		min-height: 120px;
+		border-radius: var(--radius-md);
+		transition:
+			background-color var(--dur-fast) var(--ease-out),
+			box-shadow var(--dur-fast) var(--ease-out);
+	}
+
+	/* The drop slot is a hairline, not a filled target. */
+	.list:global([data-over]) {
+		background: var(--accent-soft);
+		box-shadow: inset 0 0 0 1px var(--accent);
+	}
+
+	.item {
+		border-radius: var(--radius-md);
+	}
+
+	.item[draggable='true'] {
+		cursor: grab;
+	}
+
+	.item:global([data-dragging]) {
+		background: var(--paper);
+		box-shadow: var(--shadow-float);
 	}
 
 	ul {

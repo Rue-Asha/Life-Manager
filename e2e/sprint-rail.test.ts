@@ -222,3 +222,65 @@ test('Scenario: Collapsed rail groups are remembered', async ({ page, request })
 	await expect(uni).toHaveAttribute('data-collapsed', 'false');
 	await expect(row(uni, 'Email the tutor')).toBeVisible();
 });
+
+test('Scenario: Add to sprint from the rail', async ({ page, request }) => {
+	await seedRunning(request, [{ title: 'Morning run', inSprint: true }, { title: 'Book a physio appointment' }]);
+	await page.goto('/sprint');
+	await page.evaluate(() => ((window as unknown as { __stay: boolean }).__stay = true));
+
+	await page.getByRole('button', { name: 'Add to sprint: Book a physio appointment' }).click();
+	await expect(row(rail(page), 'Book a physio appointment')).toHaveCount(0);
+	const added = row(sprintList(page), 'Book a physio appointment');
+	await expect(added).toHaveAttribute('data-status', 'todo');
+	await expect(added).toHaveAttribute('data-day', '');
+	await expect(page).toHaveURL(/\/sprint$/);
+	expect(await page.evaluate(() => (window as unknown as { __stay?: boolean }).__stay)).toBe(true);
+
+	await page.reload();
+	await expect(row(sprintList(page), 'Book a physio appointment')).toHaveAttribute('data-status', 'todo');
+	await expect(row(rail(page), 'Book a physio appointment')).toHaveCount(0);
+});
+
+test('Scenario: Drag a rail todo onto the sprint list', async ({ page, request }) => {
+	await seedRunning(request, [{ title: 'Morning run', inSprint: true }, { title: 'Book a physio appointment' }]);
+	await page.goto('/sprint');
+
+	await row(rail(page), 'Book a physio appointment').dragTo(sprintList(page));
+	await expect(row(sprintList(page), 'Book a physio appointment')).toBeVisible();
+
+	await page.reload();
+	await expect(row(sprintList(page), 'Book a physio appointment')).toHaveAttribute('data-status', 'todo');
+	await expect(row(rail(page), 'Book a physio appointment')).toHaveCount(0);
+});
+
+test('Scenario: Todo already moved elsewhere is refused quietly', async ({ page, context, request }) => {
+	await seedRunning(request, [{ title: 'Morning run', inSprint: true }, { title: 'Book a physio appointment' }]);
+	await page.goto('/sprint');
+
+	const other = await context.newPage();
+	await other.goto('/sprint');
+	await other.getByRole('button', { name: 'Add to sprint: Book a physio appointment' }).click();
+	await expect(row(sprintList(other), 'Book a physio appointment')).toBeVisible();
+	await other.close();
+
+	await page.getByRole('button', { name: 'Add to sprint: Book a physio appointment' }).click();
+	await expect(row(sprintList(page), 'Book a physio appointment')).toHaveCount(1);
+	await expect(row(rail(page), 'Book a physio appointment')).toHaveCount(0);
+	await expect(page.getByRole('alert')).toHaveCount(0);
+});
+
+test('Scenario: Drag a sprint todo onto the rail', async ({ page, request }) => {
+	await seedRunning(request, [
+		{ title: 'Morning run', inSprint: true },
+		{ title: 'Book a physio appointment', inSprint: true, status: 'doing', day: '2026-10-08' }
+	]);
+	await page.goto('/sprint');
+
+	await row(sprintList(page), 'Book a physio appointment').dragTo(rail(page), { sourcePosition: { x: 8, y: 8 } });
+	await expect(row(rail(page), 'Book a physio appointment')).toBeVisible();
+
+	await page.reload();
+	await expect(row(rail(page), 'Book a physio appointment')).toBeVisible();
+	await expect(row(sprintList(page), 'Book a physio appointment')).toHaveCount(0);
+	await expect(row(sprintList(page), 'Morning run')).toBeVisible();
+});
