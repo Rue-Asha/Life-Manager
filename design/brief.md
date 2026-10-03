@@ -1,7 +1,7 @@
 # Design brief — Life Manager
 
 A calm, high-end personal planner for a handful of life aspects and one weekly sprint.
-The feel is Things 3: a white page, quiet rows, big titles, and colour that belongs only
+The feel is Things 3: a quiet page, quiet rows, big titles, and colour that belongs only
 to the aspects. Mobbin has no Sunsama, Akiflow or Things for web/Mac
 (see `openspec/changes/build-life-manager/design-refs.md`), so the desktop and
 planning patterns come from Linear, Amie, Todoist and Motion on web.
@@ -15,13 +15,22 @@ Applied: `design/style-tile.html` (screenshots in `design/shots/`).
 
 ## 1. Colour
 
-- **White page, cool greys, no cream.** `--paper` is pure white; the sidebar,
-  quick-add field and empty-state boxes sit on `--paper-sunk` (a cool `#f4f5f7`).
+**Chosen palette: C — Forest and stone** (taste gate 2.5, 2026-10-03; scope.md Decisions).
+A botanical journal: cream page, stone-beige sunk surfaces, green-black ink, a deep
+forest-green accent `#1f5a44` and moss-and-clay aspects. Its values live in
+`src/lib/styles/tokens.css`; A, B, D and E were considered and are kept as the record
+under "Palette options" below.
+— Lifesum diary on beige with forest-green brand, https://mobbin.com/screens/7f1180e8-1839-4859-90cc-96b966c08c77;
+Lifesum cream cards, https://mobbin.com/screens/47f02898-978e-4ff9-a9d0-7d6b32a39a3f;
+Lifesum calendar with green-ringed today, https://mobbin.com/screens/3a530be6-95f5-4a70-8eb1-155b5da7275b
+
+- **Cream page, stone surfaces.** `--paper` is cream `#fbf9f4`; the sidebar,
+  quick-add field and empty-state boxes sit on `--paper-sunk` (stone `#f0ece2`).
   Dividers are single hairlines (`--line`), never boxes around rows.
   — Things 3 Anytime, https://mobbin.com/screens/9f0d2a69-0445-4c6d-a4ab-94275b5be1b7;
-  Linear sidebar on a barely-grey surface, https://mobbin.com/screens/610d34b6-6ad8-45ab-80fb-2107b31ed01e
+  Lifesum beige sunk surface, https://mobbin.com/screens/7f1180e8-1839-4859-90cc-96b966c08c77
 - **Aspects carry the only saturation.** Eight fixed colours (sage, sky, lavender, ochre,
-  berry, lagoon, tangerine, slate), each with an 11 % tint. The colour shows up as the
+  berry, lagoon, tangerine, slate), each with a 16 % tint mixed `in oklab`. The colour shows up as the
   aspect icon, the aspect dot on a row, the tag chip tint, and the fill of a checked
   checkbox. Everything else is greyscale.
   — Things 3 area page with tinted icon, https://mobbin.com/screens/f16197bf-3c84-4272-8f80-fa8c7c03a2aa;
@@ -29,11 +38,12 @@ Applied: `design/style-tile.html` (screenshots in `design/shots/`).
   Linear icon/colour popover, https://mobbin.com/screens/a86f5e89-4f58-4e0f-94a5-c2687116c75e
 - **Eight colours, not a colour wheel.** A curated set with the selected swatch ringed.
   — ChatGPT project picker (8 colours), https://mobbin.com/screens/cbb0211c-cd4c-4af7-81af-3e37991645ca
-- **One accent, muted indigo (`--accent`).** It marks the primary button, focus rings, the
+- **One accent, forest green (`--accent`).** It marks the primary button, focus rings, the
   selected sidebar item's icon and "today" in the week view. It is deliberately dark and
   low-chroma so it reads as "ink with intent", not as another aspect colour. Todoist uses a
   loud red for the same jobs; we keep the job and drop the loudness.
-  — Todoist sidebar + "Add task" primary, https://mobbin.com/screens/9a3efd63-6ad3-48a4-a655-2c5e6c4a8bbe;
+  — Lifesum forest-green brand on stone, https://mobbin.com/screens/7f1180e8-1839-4859-90cc-96b966c08c77;
+  Todoist sidebar + "Add task" primary, https://mobbin.com/screens/9a3efd63-6ad3-48a4-a655-2c5e6c4a8bbe;
   Motion "today" as a solid square date badge, https://mobbin.com/screens/28001df3-b3ba-4ed4-854c-cea779f7ec2f
 - **Red means overdue, nothing else.** Overdue due dates are red text at the row's right
   edge. The Today view's overdue section gets a red count in its header. Delete buttons
@@ -83,7 +93,7 @@ Applied: `design/style-tile.html` (screenshots in `design/shots/`).
   — Things 3 two-line row, https://mobbin.com/screens/29f65b3c-d42a-4873-a072-ff9de00f0121;
   Amie right-aligned date chips, https://mobbin.com/screens/1ad438ff-b489-41ba-aa9d-01d7c8b8317d
 - **Checkbox: a rounded square that takes the aspect's colour when done.** Unchecked is a
-  1.5 px `--line-strong` outline. Checked fills with the aspect colour and shows a white tick.
+  1.5 px `--line-strong` outline, at least 3:1 on `--paper` and `--paper-hover` (WCAG 1.4.11). Checked fills with the aspect colour and shows a white tick.
   Done rows stay in the list with the title struck through in `--ink-3` until the sprint
   closes. Completing a todo is where the aspect colour appears.
   — Rox filled checkbox + struck-through completed task, https://mobbin.com/screens/9afac370-aa6f-4ff5-9679-9d9d4c02cf3d;
@@ -131,7 +141,7 @@ Applied: `design/style-tile.html` (screenshots in `design/shots/`).
 ## 5. Views
 
 - **Board (To do / Doing / Done)** has three columns on `--paper-sunk` with the column name
-  and count on top. Cards are white with the aspect tag chip, without shadow until lifted
+  and count on top. Cards are `--paper` with the aspect tag chip, without shadow until lifted
   for a drag. An empty column shows a dashed hairline placeholder.
   — Linear grouped-by-status with counts, https://mobbin.com/screens/10d46768-7ef5-4140-9f5f-22a97a207759
 - **Week by day** has seven day columns plus Unscheduled, each with "Mon 6" as the header in
@@ -158,7 +168,7 @@ Applied: `design/style-tile.html` (screenshots in `design/shots/`).
   overdue on Today). Rows drill down, and every page has a back chevron to the list.
   — Things 3 home list, https://mobbin.com/screens/70077bc2-0d33-4247-845d-3b656f8fb324
 - **Desktop: a 248 px sidebar on `--paper-sunk`.** It holds the same items with grey counts.
-  The selected item gets a white rounded fill and an accent-tinted icon, with no border and
+  The selected item gets a `--paper` rounded fill and an accent-tinted icon, with no border and
   no left bar. Aspects are listed under a small sentence-case "Aspects" label.
   — Todoist web sidebar, https://mobbin.com/screens/9a3efd63-6ad3-48a4-a655-2c5e6c4a8bbe;
   Linear sidebar, https://mobbin.com/screens/610d34b6-6ad8-45ab-80fb-2107b31ed01e
@@ -202,6 +212,9 @@ Applied: `design/style-tile.html` (screenshots in `design/shots/`).
 
 ## Palette options
 
+**Resolved: C was chosen** (see the top of section 1). A, B, D and E are considered options,
+kept with their files as the record. The text below describes the options as they were offered.
+
 Taste-gate revision: Rue asked for alternative palettes. Five options sit side by side in
 `design/palettes/index.html` (screenshot `design/shots/palettes-index.png`), each with a full
 style tile (`design/palettes/<letter>-<slug>.html`, shots `design/shots/palettes-*.png`). Each
@@ -212,33 +225,36 @@ theme only, aspects carry the saturation, red only for overdue. New palettes mix
 
 `node design/palettes/check-contrast.mjs` checks 67 pairs per palette (ink levels on every
 paper, accent and overdue text, white on accent, ink on each aspect tint at 4.5:1; aspect icons on
-paper, sunk and tint, and the white tick on each aspect at 3:1). B–E pass. **A, as shipped in
+paper, sunk and tint, and the white tick on each aspect at 3:1). B–E pass. **A, as first shipped in
 tokens.css, fails 8**: `--ink-3` is 2.8–3.1:1 on the papers (metadata text needs 4.5),
 `--overdue` is 4.2–4.4:1 on sunk and overdue-soft, ochre and tangerine sit just under 3:1 on
 their tints. If A is kept, these values pass (checked): `--ink-3` `#686e79`, `--overdue` `#c4342a`,
 `--aspect-ochre` `#a87712`, `--aspect-tangerine` `#cc6a1a`.
 Unchecked checkbox outlines (`--line-strong`) are 1.4–1.6:1 in every palette, a Things-like
-choice that falls short of WCAG 1.4.11's 3:1.
+choice that falls short of WCAG 1.4.11's 3:1. Folding C into tokens.css raised it from
+`#d0c8b8` (1.58:1) to `#948c7d` (3.16:1 on paper, 3.00:1 on paper-hover), the lightest stone of
+the same hue that passes; `node design/palettes/check-contrast.mjs --tokens` checks tokens.css
+with those two outline pairs added.
 
-- **A — Cool indigo** (`#3a4699`, cool neutrals). The current palette: white, cool greys, muted
+- **A — Cool indigo** (considered; `#3a4699`, cool neutrals). The first U2 palette: white, cool greys, muted
   indigo. — Things 3 Anytime, https://mobbin.com/screens/9f0d2a69-0445-4c6d-a4ab-94275b5be1b7;
   Linear sidebar, https://mobbin.com/screens/610d34b6-6ad8-45ab-80fb-2107b31ed01e
-- **B — Warm paper** (`#7a4a2b` umber, warm neutrals). A writing desk: warm off-white `#fdfcfa`,
+- **B — Warm paper** (considered; `#7a4a2b` umber, warm neutrals). A writing desk: warm off-white `#fdfcfa`,
   greige sunk surfaces, graphite ink with a brown undertone, earthy dusty aspects.
   — Notion web warm-grey sidebar and earthy swatch set, https://mobbin.com/screens/f9ac8f67-4813-4e30-9a68-88bbceee49c8;
   Notion muted tinted select chips, https://mobbin.com/screens/fffb95e6-b486-471e-936a-fdfec96f1039;
   Bear Red Graphite theme, https://mobbin.com/screens/eb0ecb23-69b4-4edb-aa50-2057f0fb9567
-- **C — Forest and stone** (`#1f5a44` forest green, warm cream neutrals). A botanical journal:
+- **C — Forest and stone** (**chosen**; `#1f5a44` forest green, warm cream neutrals). A botanical journal:
   cream page `#fbf9f4`, stone-beige sunk, green-black ink, moss-and-clay aspects.
   — Lifesum diary on beige with forest-green brand, https://mobbin.com/screens/7f1180e8-1839-4859-90cc-96b966c08c77;
   Lifesum cream cards, https://mobbin.com/screens/47f02898-978e-4ff9-a9d0-7d6b32a39a3f;
   Lifesum calendar with green-ringed today, https://mobbin.com/screens/3a530be6-95f5-4a70-8eb1-155b5da7275b
-- **D — Lilac and ink** (`#1d1b26` near-black ink, lilac-tinted neutrals). Soft and kind: white
+- **D — Lilac and ink** (considered; `#1d1b26` near-black ink, lilac-tinted neutrals). Soft and kind: white
   page, lilac-grey surfaces, black primary buttons, pastel-leaning aspects with fuller 18 % tints.
   — Tiimo Today with time-of-day pills, https://mobbin.com/screens/f6a61b24-612d-4536-8ca0-375231808968;
   Tiimo remaining tasks, lilac date pill and black counted CTA, https://mobbin.com/screens/f7678d38-0b0e-4451-a6fa-9b1952438e77;
   Tiimo assistant on lilac haze, https://mobbin.com/screens/ed164b6c-6952-48e5-b56b-32a747e08c73
-- **E — Clear and vivid** (`#0b63d1` azure, true-neutral greys). Bright daylight: pure white,
+- **E — Clear and vivid** (considered; `#0b63d1` azure, true-neutral greys). Bright daylight: pure white,
   no colour cast in the greys, saturated aspects carried by their tints.
   — Amie web week view with pastel blocks and azure Share, https://mobbin.com/screens/ff9b0ff4-cdf3-465c-9959-eba67c46fa3f;
   Amie event popover, https://mobbin.com/screens/e0aa2b7a-da53-4755-a486-887651fc5e54;

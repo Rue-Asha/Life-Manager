@@ -1,7 +1,9 @@
-// WCAG AA check for every text/background pair the style tile uses, per palette file.
-// Usage: node design/palettes/check-contrast.mjs   (exit 1 on any failure)
+// WCAG AA check for every text/background pair the style tile uses, per palette file and for
+// the shipped src/lib/styles/tokens.css (which must also give the unchecked checkbox outline 3:1).
+// Usage: node design/palettes/check-contrast.mjs [--tokens]   (exit 1 on any failure;
+// --tokens checks only tokens.css, since palette A is kept failing as the record)
 import { readFileSync, readdirSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const dir = dirname(fileURLToPath(import.meta.url));
@@ -76,8 +78,9 @@ function load(file) {
 }
 
 const TEXT = 4.5, UI = 3;
-function pairs() {
+function pairs(outline) {
 	const p = [];
+	if (outline) for (const bg of ['paper', 'paper-hover']) p.push(['line-strong', bg, UI]);
 	for (const fg of ['ink', 'ink-2', 'ink-3']) for (const bg of ['paper', 'paper-sunk', 'paper-hover']) p.push([fg, bg, TEXT]);
 	p.push(['ink', 'line', TEXT], ['paper', 'ink', TEXT]);
 	for (const bg of ['accent', 'accent-hover']) p.push(['ink-on-accent', bg, TEXT]);
@@ -91,18 +94,23 @@ function pairs() {
 	return p;
 }
 
+const TOKENS = join(dir, '../../src/lib/styles/tokens.css');
+const files = readdirSync(dir).filter((n) => n.endsWith('.css')).sort().map((n) => join(dir, n));
+
 let failed = 0;
-for (const f of readdirSync(dir).filter((n) => n.endsWith('.css')).sort()) {
-	const get = load(join(dir, f));
+for (const file of process.argv.includes('--tokens') ? [TOKENS] : [...files, TOKENS]) {
+	const f = relative(join(dir, '../..'), file);
+	const get = load(file);
+	const checked = pairs(file === TOKENS);
 	const bad = [];
 	let worst = Infinity;
-	for (const [fg, bg, min] of pairs()) {
+	for (const [fg, bg, min] of checked) {
 		const r = ratio(get(fg), get(bg));
 		worst = Math.min(worst, r / min);
 		if (r < min) bad.push(`  FAIL --${fg} on --${bg}: ${r.toFixed(2)} < ${min}`);
 	}
 	const cb = ratio(get('line-strong'), get('paper')).toFixed(2);
-	console.log(`${f}: ${bad.length ? `${bad.length} failing` : 'all pass'} (${pairs().length} pairs; tightest at ${worst.toFixed(2)}× its minimum; unchecked-checkbox outline ${cb}:1)`);
+	console.log(`${f}: ${bad.length ? `${bad.length} failing` : 'all pass'} (${checked.length} pairs; tightest at ${worst.toFixed(2)}× its minimum; unchecked-checkbox outline ${cb}:1)`);
 	bad.forEach((l) => console.log(l));
 	failed += bad.length;
 }
