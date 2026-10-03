@@ -10,7 +10,14 @@ import {
 	toggleChecklistItem,
 	updateTodo
 } from '$lib/server/todos';
-import { addToActiveSprint, moveToBacklog, setDay, setStatus, toggleDone } from '$lib/server/sprints';
+import {
+	addToActiveSprint,
+	moveToBacklog,
+	removeFromSprint,
+	setDay,
+	setStatus,
+	toggleDone
+} from '$lib/server/sprints';
 import type { Priority, Result, Status, Target, TodoPatch } from '$lib/types';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -92,7 +99,13 @@ export const actions: Actions = {
 	},
 	addToSprint: async ({ request }) => {
 		const data = await request.formData();
-		return respond(addToActiveSprint(getDb(), num(data, 'id'), today()), data);
+		const status = data.has('status') ? (text(data, 'status') as Status) : undefined;
+		const placement = { day: optionalDate(data, 'day'), status };
+		return respond(addToActiveSprint(getDb(), num(data, 'id'), today(), placement), data);
+	},
+	removeFromSprint: async ({ request }) => {
+		const data = await request.formData();
+		return respond(removeFromSprint(getDb(), num(data, 'id')), data);
 	},
 	moveToBacklog: async ({ request }) => {
 		const data = await request.formData();
