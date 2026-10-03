@@ -54,7 +54,11 @@
 		<ul aria-label="Aspects">
 			{#each nav.aspects as aspect (aspect.id)}
 				<li>
-					<a class="item" href="/backlog?aspect={aspect.id}">
+					<a
+						class="item"
+						href="/aspects/{aspect.id}"
+						aria-current={page.url.pathname === `/aspects/${aspect.id}` ? 'page' : undefined}
+					>
 						<AspectIcon icon={aspect.icon} color={aspect.color} />
 						<span class="name">{aspect.name}</span>
 						{#if aspect.backlog > 0}<span class="count num" aria-hidden="true">{aspect.backlog}</span>{/if}

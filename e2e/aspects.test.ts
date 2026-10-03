@@ -13,7 +13,13 @@ async function expectStyle(page: Page, name: string, color: string, icon: keyof 
 }
 
 function sidebarAspects(page: Page) {
-	return page.getByRole('navigation', { name: 'Main' }).locator('a[href^="/backlog?aspect="]');
+	return page.getByRole('navigation', { name: 'Main' }).locator('a[href^="/aspects/"]');
+}
+
+async function openEdit(page: Page, name: string) {
+	await aspectRow(page, name).getByRole('button', { name: `Actions for ${name}` }).click();
+	await page.getByRole('menu').getByRole('menuitem', { name: 'Edit' }).click();
+	return page.getByRole('dialog', { name: 'Edit aspect' });
 }
 
 test.beforeEach(async ({ request }) => {
@@ -87,8 +93,7 @@ test('Scenario: Edit an aspect', async ({ page, request }) => {
 	await seed(request, { aspects: [{ name: 'Health' }, { name: 'Sport', color: 'tangerine', icon: 'dumbbell' }] });
 	await page.goto('/aspects');
 
-	await aspectRow(page, 'Sport').getByRole('button', { name: /Sport/ }).click();
-	const sheet = page.getByRole('dialog', { name: 'Edit aspect' });
+	const sheet = await openEdit(page, 'Sport');
 	await sheet.getByRole('textbox', { name: 'Name' }).fill('Fitness');
 	await sheet.getByRole('radio', { name: 'Lagoon' }).check();
 	await sheet.getByRole('radio', { name: 'Leaf' }).check();
@@ -121,8 +126,7 @@ test('renaming to an existing name is rejected inline', async ({ page, request }
 	await seed(request, { aspects: [{ name: 'Health' }, { name: 'Sport' }] });
 	await page.goto('/aspects');
 
-	await aspectRow(page, 'Sport').getByRole('button', { name: /Sport/ }).click();
-	const sheet = page.getByRole('dialog', { name: 'Edit aspect' });
+	const sheet = await openEdit(page, 'Sport');
 	await sheet.getByRole('textbox', { name: 'Name' }).fill('health');
 	await sheet.getByRole('button', { name: 'Save' }).click();
 
@@ -141,8 +145,7 @@ test('aspect list shows each todo count', async ({ page, request }) => {
 });
 
 async function openDelete(page: Page, name: string) {
-	await aspectRow(page, name).getByRole('button', { name: new RegExp(name) }).click();
-	await page.getByRole('dialog', { name: 'Edit aspect' }).getByRole('button', { name: 'Delete aspect' }).click();
+	await (await openEdit(page, name)).getByRole('button', { name: 'Delete aspect' }).click();
 	return page.getByRole('dialog', { name: `Delete ${name}?` });
 }
 
@@ -181,8 +184,7 @@ test('Scenario: Only aspect with todos cannot be deleted', async ({ page, reques
 	const ids = await seed(request, { aspects: [{ name: 'Health' }], todos: [{ title: 'Run' }] });
 	await page.goto('/aspects');
 
-	await aspectRow(page, 'Health').getByRole('button', { name: /Health/ }).click();
-	const sheet = page.getByRole('dialog', { name: 'Edit aspect' });
+	const sheet = await openEdit(page, 'Health');
 	const remove = sheet.getByRole('button', { name: 'Delete aspect' });
 	await expect(remove).toBeDisabled();
 	await expect(remove).toHaveAccessibleDescription(/only aspect/);
@@ -205,4 +207,19 @@ test('Scenario: Deleting the last aspect returns to first run', async ({ page, r
 
 	await expect(page).toHaveURL(/\/welcome$/);
 	await expect(page.getByRole('checkbox', { name: 'Health', exact: true })).toBeVisible();
+});
+
+test('Scenario: Sidebar and Aspects rows open the aspect page', async ({ page, request }) => {
+	await page.setViewportSize({ width: 1280, height: 900 });
+	const ids = await seed(request, { aspects: [{ name: 'Health' }, { name: 'Uni' }] });
+	await page.goto('/');
+
+	await sidebarAspects(page).filter({ hasText: 'Uni' }).click();
+	await expect(page).toHaveURL(new RegExp(`/aspects/${ids.aspects[1]}$`));
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Uni');
+
+	await page.goto('/aspects');
+	await page.getByRole('main').getByRole('link', { name: 'Health', exact: true }).click();
+	await expect(page).toHaveURL(new RegExp(`/aspects/${ids.aspects[0]}$`));
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Health');
 });
