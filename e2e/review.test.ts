@@ -106,3 +106,22 @@ test('Review waits for the sprint’s Sunday', async ({ page, request }) => {
 	await page.goto('/sprint/review');
 	await expect(page).toHaveURL(/\/sprint$/);
 });
+
+test('Scenario: Start sprint shows a carried recurring todo once', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [...ASPECTS],
+		sprint: SPRINT,
+		rules: [{ title: 'Laundry', weekdays: [2] }],
+		todos: [{ title: 'Laundry', inSprint: true, rule: 0, day: '2026-10-06' }]
+	});
+	await page.goto('/sprint/review');
+	await page.getByRole('button', { name: 'Carry 1 and close' }).click();
+	await expect(page).toHaveURL(/\/sprint\/plan$/);
+
+	await page.getByRole('button', { name: 'Start sprint with 1 todo' }).click();
+	await expect(page).toHaveURL(/\/sprint$/);
+	await page.goto('/sprint?view=week');
+	await expect(page.getByTestId('day-column-2026-10-13')).toBeVisible();
+	await expect(row(page, 'Laundry')).toHaveCount(1);
+	await expect(page.getByTestId('day-column-2026-10-13').getByTestId('todo-row')).toHaveText([/Laundry/]);
+});
