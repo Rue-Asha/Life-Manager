@@ -356,6 +356,27 @@
 		stroke-linecap: round;
 	}
 
+	/* With a mouse the row action waits for hover, laid over the row's end so it takes no room. */
+	@media (hover: hover) and (pointer: fine) {
+		.row {
+			position: relative;
+		}
+
+		.add {
+			position: absolute;
+			top: 9px;
+			right: var(--space-2);
+			margin: 0;
+			opacity: 0;
+			transition: opacity var(--dur-fast) var(--ease-out);
+		}
+
+		.row:hover .add,
+		.add:focus-visible {
+			opacity: 1;
+		}
+	}
+
 	@media (max-width: 767px) {
 		.add-label {
 			display: none;
