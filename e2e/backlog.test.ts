@@ -100,8 +100,8 @@ test('Scenario: Overdue todos are marked in the backlog', async ({ page, request
 	await expect(onTime).toContainText('2d left');
 });
 
-test('Scenario: Add a backlog todo to the active sprint', async ({ page, request, baseURL }) => {
-	const { todos } = await seed(request, {
+test('Scenario: Add a backlog todo to the active sprint', async ({ page, request }) => {
+	await seed(request, {
 		aspects: [...ASPECTS],
 		sprint: { state: 'active', weekStart: '2026-10-05' },
 		todos: [{ title: 'Clean the fridge' }, { title: 'Water the plants' }]
@@ -112,13 +112,11 @@ test('Scenario: Add a backlog todo to the active sprint', async ({ page, request
 	await expect(page.getByTestId('todo-row').filter({ hasText: 'Clean the fridge' })).toHaveCount(0);
 	await expect(page.getByTestId('todo-row').filter({ hasText: 'Water the plants' })).toBeVisible();
 
-	// The sprint views come with U11; until then, membership shows in the one action that only
-	// accepts active-sprint todos.
-	const moved = await request.post('/todos?/moveToBacklog', {
-		form: { id: String(todos[0]) },
-		headers: { origin: baseURL!, 'x-sveltekit-action': 'true' }
-	});
-	expect((await moved.json()).type).toBe('success');
+	await page.goto('/sprint');
+	const added = page.getByTestId('todo-row').filter({ hasText: 'Clean the fridge' });
+	await expect(added).toHaveAttribute('data-status', 'todo');
+	await expect(added.getByLabel('Status')).toHaveValue('todo');
+	await expect(page.getByTestId('todo-row').filter({ hasText: 'Water the plants' })).toHaveCount(0);
 });
 
 test('No "Add to sprint" without an active sprint', async ({ page, request }) => {
