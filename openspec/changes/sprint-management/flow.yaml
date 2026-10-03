@@ -23,3 +23,5 @@ gate2_notes:
   - "U6: Week at 1280 cannot fit Mon–Sun at ≥120 px (sidebar 248 + rail 340 + gutters leave ~628 px); built one row with in-week horizontal scroll, Mon–Fri visible at 1280, full week from ~1540 px — Rue decides"
   - "U6: row menu in a scrolling week column is position:fixed — may not follow if the column scrolls while open"
   - "U6: motion.ts crossfade NaN guard missing for AspectView/BacklogRail — candidate for verify/fixer"
+  - "U9: brief §9 Week overlay paragraph = taste check for Rue; board and week cards keep a ~40 px blank band under the meta line (row-menu button on its own line) — see shots/sprint-board-1280.png"
+  - "U9: style fixes outside unit files — AspectTag ellipsis (long names spilled at 1280), BoardView meta wraps under the line at ≥768; responsive no-h-scroll test also checks inner scrollers (Backlog filter chip strip exempt)"
