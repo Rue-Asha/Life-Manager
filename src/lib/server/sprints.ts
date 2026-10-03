@@ -185,11 +185,22 @@ export function listToday(db: DatabaseSync, today: IsoDate): Todo[] {
 export function addToActiveSprint(db: DatabaseSync, todoId: Id, today: IsoDate, placement?: Placement): Result<Todo> {
 	const active = getActiveSprint(db);
 	if (!active) return { ok: false, error: 'no-active-sprint' };
+	if (reviewState(active.weekStart!, today) === 'review-required') return { ok: false, error: 'review-required' };
 	const todo = getTodo(db, todoId);
 	if (!todo || todo.sprintId !== null) return { ok: false, error: 'not-found' };
-	db.prepare(
-		"UPDATE todos SET sprint_id = ?, day = NULL, status = 'todo', completed_at = NULL WHERE id = ?"
-	).run(active.id, todoId);
+	const day = placement?.day ?? null;
+	if (day !== null && (day < active.weekStart! || day > addDays(active.weekStart!, 6))) {
+		return { ok: false, error: 'day-outside-sprint', field: 'day' };
+	}
+	const status = placement?.status ?? 'todo';
+	if (!STATUSES.includes(status)) return { ok: false, error: 'required', field: 'status' };
+	db.prepare('UPDATE todos SET sprint_id = ?, day = ?, status = ?, completed_at = ? WHERE id = ?').run(
+		active.id,
+		day,
+		status,
+		status === 'done' ? now().toISOString() : null,
+		todoId
+	);
 	return { ok: true, value: getTodo(db, todoId)! };
 }
 
