@@ -229,3 +229,10 @@ None blocking. The visual direction is settled at U2's taste gate.
 - TodoRow reads the aspect list from `page.data.aspects`: every page that renders TodoRow must return `aspects` from its load. Context `sprint` shows StatusControl (+ DayPicker when `sprintDays` given) and "Move to backlog"; the done checkbox shows only in `sprint` and `today`; the aspect dot/name only in `today`. Test attributes: `data-overdue` on rows, `data-testid="sprint-prompt"`, `data-testid="empty-state"`. QuickAdd has `bind:open`; TodoEditor has `actions?: Snippet`.
 - Coverage debt for U11: "Add a backlog todo to the active sprint" didn't visually assert status To do in a sprint view — cover it there.
 - Sidebar (from U7): counts come from root `+layout.server.ts` (`page.data.nav`); aspect entries link to `/backlog?aspect=<id>`.
+- Polish list for U13 (from U10–U12 reports; U13 owns style fixes in any .svelte file):
+  1. TodoRow in context `today` repeats the aspect dot+name inside an aspect group — show it only where aspects are mixed (Overdue group), per brief.
+  2. Week-label code ("Mon 5 – Sun 11 Oct") is duplicated in sprint/plan and sprint/review pages — move it into `format.ts`.
+  3. Narrow week columns: status + day pills stack and the DayPicker pill is as wide as "Unscheduled" — make rows compact in week columns.
+  4. Desktop sidebar background stops partway down long pages (shell layout) — make it full height.
+  5. planning e2e confirms start via sidebar count; "Recurring instances appear in the week view" seeds the instance — rewrite both to go through /sprint/plan → /sprint now that all routes exist.
+- Sprint (from U11): `/sprint?view=aspect|board|week`; on the sprint's Sunday the review prompt sits above the views (todos stay workable); required review / planning / no sprint replace the views. `SprintCard.svelte` + `dropTarget` action are shared by board and week. /sprint/plan doesn't create a draft on GET (first pull or start does).

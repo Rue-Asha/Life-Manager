@@ -89,25 +89,25 @@ Tests create aspects and todos with plain SQL (unit 5 runs in parallel).
 
 > unit: depends=4,6,8 · scope=S10,S11,S12,S17 · files=src/routes/sprint/plan/+page.svelte, src/routes/sprint/plan/+page.server.ts, src/routes/sprint/review/+page.svelte, src/routes/sprint/review/+page.server.ts, e2e/planning.test.ts, e2e/review.test.ts
 
-- [ ] 10.1 Write `Scenario: First run can plan immediately`, `Scenario: Pull todos by drag and start the sprint`, `Scenario: Pull todos with the picker on touch`, then `/sprint/plan` (desktop two-pane: backlog rail ↔ sprint grouped by aspect with native drag; picker on touch; week date range in the header; start button)
-- [ ] 10.2 Write `Scenario: Due-this-week todos are suggested pre-marked`, `Scenario: Unmarked suggestion stays in the backlog`, `Scenario: No suggestion section when nothing is due`, then the suggestion section and `?/start` with `suggested`
-- [ ] 10.3 Write `Scenario: Review carries over and returns open todos` and `Scenario: All-done review closes in one tap`, then `/sprint/review` (done struck through and collapsible above open rows; per-row carry/backlog or carry/drop toggle defaulting to carry; counted CTA, e.g. "Carry 4 · return 2"); closing redirects to `/sprint/plan`
+- [x] 10.1 Write `Scenario: First run can plan immediately`, `Scenario: Pull todos by drag and start the sprint`, `Scenario: Pull todos with the picker on touch`, then `/sprint/plan` (desktop two-pane: backlog rail ↔ sprint grouped by aspect with native drag; picker on touch; week date range in the header; start button)
+- [x] 10.2 Write `Scenario: Due-this-week todos are suggested pre-marked`, `Scenario: Unmarked suggestion stays in the backlog`, `Scenario: No suggestion section when nothing is due`, then the suggestion section and `?/start` with `suggested`
+- [x] 10.3 Write `Scenario: Review carries over and returns open todos` and `Scenario: All-done review closes in one tap`, then `/sprint/review` (done struck through and collapsible above open rows; per-row carry/backlog or carry/drop toggle defaulting to carry; counted CTA, e.g. "Carry 4 · return 2"); closing redirects to `/sprint/plan`
 
 ## 11. Sprint views
 
 > unit: depends=4,6,8 · scope=S6,S12,S13,S14,S15,S16,S17,S18 · files=src/routes/sprint/+page.svelte, src/routes/sprint/+page.server.ts, src/lib/components/sprint/AspectView.svelte, src/lib/components/sprint/BoardView.svelte, src/lib/components/sprint/WeekView.svelte, src/lib/components/sprint/ViewSwitch.svelte, e2e/sprint-views.test.ts
 
-- [ ] 11.1 Write `Scenario: Sprint screens prompt to review when pending`, `Scenario: Sprint by aspect groups todos with status`, `Scenario: Aspects without sprint todos are hidden`, `Scenario: Empty sprint points to the backlog`, `Scenario: Todo created from a sprint view joins the active sprint`, then `/sprint` load (phase → `SprintPrompt`), `ViewSwitch` and `AspectView` with `QuickAdd` target sprint
-- [ ] 11.2 Write `Scenario: Change status from every sprint view` and `Scenario: Checkbox toggles done`, then wire `StatusControl` and the checkbox into all three views
-- [ ] 11.3 Write `Scenario: Move a todo between board columns by drag`, `Scenario: Move a todo between board columns with the status menu on touch`, `Scenario: Empty board column shows a placeholder`, then `BoardView` (aspect colour/icon tag per card; drag only under `(hover: hover) and (pointer: fine)`)
-- [ ] 11.4 Write `Scenario: Assign a todo to a day by drag`, `Scenario: Assign a todo to a day with the day picker on touch`, `Scenario: Day picker offers only days of the active sprint`, `Scenario: Today is highlighted in the week view`, `Scenario: Phone shows one day at a time`, `Scenario: Done todos stay on their day`, `Scenario: Todo created in a day column is assigned to that day`, `Scenario: Recurring instances appear in the week view`, then `WeekView` (Mon–Sun + Unscheduled, per-column `QuickAdd` target day, one day at a time on phone)
+- [x] 11.1 Write `Scenario: Sprint screens prompt to review when pending`, `Scenario: Sprint by aspect groups todos with status`, `Scenario: Aspects without sprint todos are hidden`, `Scenario: Empty sprint points to the backlog`, `Scenario: Todo created from a sprint view joins the active sprint`, then `/sprint` load (phase → `SprintPrompt`), `ViewSwitch` and `AspectView` with `QuickAdd` target sprint
+- [x] 11.2 Write `Scenario: Change status from every sprint view` and `Scenario: Checkbox toggles done`, then wire `StatusControl` and the checkbox into all three views
+- [x] 11.3 Write `Scenario: Move a todo between board columns by drag`, `Scenario: Move a todo between board columns with the status menu on touch`, `Scenario: Empty board column shows a placeholder`, then `BoardView` (aspect colour/icon tag per card; drag only under `(hover: hover) and (pointer: fine)`)
+- [x] 11.4 Write `Scenario: Assign a todo to a day by drag`, `Scenario: Assign a todo to a day with the day picker on touch`, `Scenario: Day picker offers only days of the active sprint`, `Scenario: Today is highlighted in the week view`, `Scenario: Phone shows one day at a time`, `Scenario: Done todos stay on their day`, `Scenario: Todo created in a day column is assigned to that day`, `Scenario: Recurring instances appear in the week view`, then `WeekView` (Mon–Sun + Unscheduled, per-column `QuickAdd` target day, one day at a time on phone)
 
 ## 12. Today view
 
 > unit: depends=4,6,8 · scope=S21 · files=src/routes/+page.svelte, src/routes/+page.server.ts, e2e/today.test.ts
 
-- [ ] 12.1 Write `Scenario: Today shows today's sprint todos and overdue todos`, `Scenario: Status toggle on Today`, `Scenario: Quick add on Today adds to the sprint on today`, then `/` (replaces the placeholder; groups by aspect, `QuickAdd` target day = today)
-- [ ] 12.2 Write `Scenario: Today without an active sprint prompts to plan`, `Scenario: Today with a pending review prompts to review`, `Scenario: Nothing today shows a calm empty state`, `Scenario: Sunday after the review prompts to plan next week`, then the phase prompts and the empty state linking to `/sprint?view=week`
+- [x] 12.1 Write `Scenario: Today shows today's sprint todos and overdue todos`, `Scenario: Status toggle on Today`, `Scenario: Quick add on Today adds to the sprint on today`, then `/` (replaces the placeholder; groups by aspect, `QuickAdd` target day = today)
+- [x] 12.2 Write `Scenario: Today without an active sprint prompts to plan`, `Scenario: Today with a pending review prompts to review`, `Scenario: Nothing today shows a calm empty state`, `Scenario: Sunday after the review prompts to plan next week`, then the phase prompts and the empty state linking to `/sprint?view=week`
 
 ## 13. Responsive pass and end-to-end journey
 
