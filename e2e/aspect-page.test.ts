@@ -148,3 +148,15 @@ test('Scenario: Quick add on the aspect page defaults to the aspect', async ({ p
 	await page.goto('/backlog');
 	await expect(row(page.getByTestId(`aspect-group-${ids.aspects[1]}`), 'Email the tutor')).toBeVisible();
 });
+
+test('Scenario: Aspect page during a required review points to Review', async ({ page, request }) => {
+	// Monday 12 October: the sprint of 5–11 October is over and its review is required.
+	await setClock(request, '2026-10-12T10:00:00Z');
+	const ids = await seed(request, RUNNING);
+	await page.goto(`/aspects/${ids.aspects[0]}`);
+
+	await expect(row(backlogSection(page), 'Buy running shoes')).toBeVisible();
+	await expect(page.getByRole('button', { name: /Add to sprint/ })).toHaveCount(0);
+	await page.getByTestId('review-note').getByRole('link', { name: /review/i }).click();
+	await expect(page).toHaveURL(/\/sprint\/review$/);
+});

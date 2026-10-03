@@ -126,3 +126,40 @@ test('No "Add to sprint" without an active sprint', async ({ page, request }) =>
 	await expect(page.getByTestId('todo-row')).toBeVisible();
 	await expect(page.getByRole('button', { name: /^Add to sprint/ })).toHaveCount(0);
 });
+
+// Monday 12 October: the sprint of 5–11 October is over and its review is required.
+const REVIEW_DUE = '2026-10-12T10:00:00Z';
+
+test('Scenario: Backlog page points to Review instead of adding', async ({ page, request }) => {
+	await setClock(request, REVIEW_DUE);
+	await seed(request, {
+		aspects: [...ASPECTS],
+		sprint: { state: 'active', weekStart: '2026-10-05' },
+		todos: [{ title: 'Clean the fridge' }]
+	});
+	await page.goto('/backlog');
+
+	await expect(page.getByTestId('todo-row')).toBeVisible();
+	await expect(page.getByRole('button', { name: /Add to sprint/ })).toHaveCount(0);
+	await page.getByTestId('review-note').getByRole('link', { name: /review/i }).click();
+	await expect(page).toHaveURL(/\/sprint\/review$/);
+});
+
+test('Scenario: Review becoming required after page load refuses the add', async ({ page, request }) => {
+	await setClock(request, '2026-10-11T10:00:00Z');
+	await seed(request, {
+		aspects: [...ASPECTS],
+		sprint: { state: 'active', weekStart: '2026-10-05' },
+		todos: [{ title: 'Clean the fridge' }]
+	});
+	await page.goto('/backlog');
+	await setClock(request, REVIEW_DUE);
+
+	await page.getByRole('button', { name: 'Add to sprint: Clean the fridge' }).click();
+	const message = page.getByRole('alert');
+	await expect(message).toContainText('The sprint needs its review first.');
+	await expect(message.getByRole('link', { name: 'Review' })).toHaveAttribute('href', '/sprint/review');
+
+	await page.reload();
+	await expect(page.getByTestId('todo-row').filter({ hasText: 'Clean the fridge' })).toBeVisible();
+});

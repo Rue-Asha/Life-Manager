@@ -75,6 +75,8 @@
 			<dd>
 				{#if progress}
 					<ProgressBar done={progress.done} total={progress.total} color={aspect.color} />
+				{:else if data.phase === 'review-required'}
+					Waiting for its review
 				{:else}
 					No sprint running
 				{/if}
@@ -109,6 +111,10 @@
 		</h2>
 		{#if noSprint}
 			<p class="note">No sprint running. <a href="/sprint/plan">Plan the next sprint</a></p>
+		{:else if data.phase === 'review-required'}
+			<p class="note" data-testid="review-note">
+				This week’s sprint is over, so nothing can join it. <a href="/sprint/review">Review the sprint</a>
+			</p>
 		{/if}
 		{#if moveError}
 			<p class="error" role="alert">
@@ -119,7 +125,7 @@
 				{/if}
 			</p>
 		{/if}
-		{#if !noSprint && sprintList.length === 0}
+		{#if sprintDays && sprintList.length === 0}
 			<p class="note">Nothing from {aspect.name} in this sprint yet.</p>
 		{/if}
 		<div class="list">
