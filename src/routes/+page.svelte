@@ -49,7 +49,7 @@
 		<h2 id="group-overdue" class="late">Overdue<span class="count num">{data.overdue.length}</span></h2>
 		<ul>
 			{#each data.overdue as todo (todo.id)}
-				<TodoRow {todo} aspect={aspectOf(todo.aspectId)} today={data.today} context="today" />
+				<TodoRow {todo} aspect={aspectOf(todo.aspectId)} today={data.today} context="today" mixed />
 			{/each}
 		</ul>
 	</section>

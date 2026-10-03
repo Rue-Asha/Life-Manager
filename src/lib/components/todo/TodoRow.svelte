@@ -18,13 +18,15 @@
 		aspect,
 		today,
 		context,
-		sprintDays
+		sprintDays,
+		mixed = false
 	}: {
 		todo: Todo;
 		aspect: Aspect;
 		today: IsoDate;
 		context: 'backlog' | 'sprint' | 'today' | 'planning';
 		sprintDays?: IsoDate[];
+		mixed?: boolean;
 	} = $props();
 
 	// Ticking a backlog or draft todo done would strand it there: done belongs to a running sprint.
@@ -87,7 +89,7 @@
 		<div class="main">
 			<button type="button" class="title" onclick={() => (editing = true)}>{todo.title}</button>
 			<div class="meta">
-				{#if context === 'today'}
+				{#if mixed}
 					<span><i class="dot"></i>{aspect.name}</span>
 				{/if}
 				{#if context === 'sprint'}
