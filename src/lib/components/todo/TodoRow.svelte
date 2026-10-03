@@ -13,7 +13,7 @@
 	import DayPicker from './DayPicker.svelte';
 	import StatusControl from './StatusControl.svelte';
 	import TodoEditor from './TodoEditor.svelte';
-	import { submit } from './form';
+	import { submit, type ActionError } from './form';
 	import { dueLabel } from './format';
 
 	let {
@@ -82,13 +82,20 @@
 		if (refresh) await invalidateAll();
 	}
 
+	// A todo another tab already moved isn't worth a message: the reload shows where it went.
+	let addError = $state<string | null>(null);
+	function addFailed(e: ActionError) {
+		if (e.error === 'not-found') invalidateAll();
+		else addError = e.error;
+	}
+
 	beforeNavigate(() => postRemoval(false));
 	onDestroy(() => postRemoval(false));
 </script>
 
 {#snippet moves()}
 	{#if context === 'backlog' && sprintDays}
-		<form method="POST" action="/todos?/addToSprint" use:enhance={submit({ onsuccess: close })}>
+		<form method="POST" action="/todos?/addToSprint" use:enhance={submit({ onerror: addFailed, onsuccess: close })}>
 			<input type="hidden" name="id" value={todo.id} />
 			<Button variant="secondary">Add to sprint</Button>
 		</form>
@@ -166,6 +173,15 @@
 				{/if}
 				{#if todo.notes}<span>Notes</span>{/if}
 			</div>
+			{#if addError}
+				<p class="add-error" role="alert">
+					{#if addError === 'review-required'}
+						The sprint needs its review first. <a href="/sprint/review">Review</a>
+					{:else}
+						That didn’t work. Reload and try again.
+					{/if}
+				</p>
+			{/if}
 		</div>
 
 		<div class="end">
@@ -210,7 +226,7 @@
 				</div>
 			{/if}
 			{#if context === 'backlog' && sprintDays}
-				<form method="POST" action="/todos?/addToSprint" use:enhance={submit()}>
+				<form method="POST" action="/todos?/addToSprint" use:enhance={submit({ onerror: addFailed })}>
 					<input type="hidden" name="id" value={todo.id} />
 					<button class="add" aria-label="Add to sprint: {todo.title}" title="Add to sprint">
 						<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.plus} /></svg>
@@ -382,6 +398,22 @@
 		padding-top: 1px;
 		color: var(--ink-2);
 		font-size: var(--text-sm);
+	}
+
+	.add-error {
+		margin-top: var(--space-1);
+		color: var(--ink);
+		font-size: var(--text-sm);
+	}
+
+	.add-error a {
+		color: var(--accent);
+		font-weight: var(--weight-medium);
+		text-decoration: none;
+	}
+
+	.add-error a:hover {
+		text-decoration: underline;
 	}
 
 	.late {
