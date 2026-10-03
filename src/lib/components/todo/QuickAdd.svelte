@@ -47,11 +47,9 @@
 		error = null;
 	}
 
-	async function start() {
-		open = true;
-		await tick();
-		titleInput?.focus();
-	}
+	$effect(() => {
+		if (open) titleInput?.focus();
+	});
 
 	function close() {
 		open = false;
@@ -136,7 +134,7 @@
 	{#if open && desktop.current}
 		<div class="card">{@render form()}</div>
 	{:else}
-		<button type="button" class="field" onclick={start}>
+		<button type="button" class="field" onclick={() => (open = true)}>
 			<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.plus} /></svg>Add a todo
 		</button>
 	{/if}

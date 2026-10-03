@@ -15,7 +15,7 @@ test.afterAll(async ({ request }) => {
 });
 
 async function quickAdd(page: Page, fields: { title: string; aspect?: string; due?: string }) {
-	await page.getByRole('button', { name: 'Add a todo' }).click();
+	await page.getByRole('button', { name: 'Add a todo' }).first().click();
 	const form = page.getByRole('form', { name: 'New todo' });
 	await form.getByLabel('Title').fill(fields.title);
 	if (fields.aspect) await form.getByLabel('Aspect').selectOption({ label: fields.aspect });
