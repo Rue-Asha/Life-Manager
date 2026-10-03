@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { onDestroy, tick } from 'svelte';
 	import { enhance } from '$app/forms';
+	import { beforeNavigate, invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import { MediaQuery } from 'svelte/reactivity';
 	import { ASPECT_COLORS } from '$lib/aspect-style';
@@ -7,10 +9,11 @@
 	import type { Aspect, IsoDate, Todo } from '$lib/types';
 	import { UI_ICONS } from '../ui/icons';
 	import Button from '../ui/Button.svelte';
+	import Toast from '../ui/Toast.svelte';
 	import DayPicker from './DayPicker.svelte';
 	import StatusControl from './StatusControl.svelte';
 	import TodoEditor from './TodoEditor.svelte';
-	import { submit } from './form';
+	import { submit, type ActionError } from './form';
 	import { dueLabel } from './format';
 
 	let {
@@ -41,14 +44,63 @@
 	let editing = $state(false);
 	const expanded = $derived(editing && desktop.current);
 	const close = () => (editing = false);
+
+	let menuOpen = $state(false);
+	let actionsEl = $state<HTMLElement>();
+
+	async function openMenu() {
+		menuOpen = !menuOpen;
+		await tick();
+		if (menuOpen) actionsEl?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+	}
+
+	function closeMenu(e: PointerEvent | KeyboardEvent) {
+		if (!menuOpen) return;
+		if (e instanceof KeyboardEvent ? e.key === 'Escape' : !actionsEl?.contains(e.target as Node)) menuOpen = false;
+	}
+
+	// A recurring instance has no backlog, so removing it deletes it. The delete waits behind the
+	// undo toast and is posted when the toast expires or Rue leaves the page.
+	let removal = $state<'none' | 'pending' | 'posted'>('none');
+
+	function remove() {
+		menuOpen = editing = false;
+		removal = 'pending';
+	}
+
+	async function postRemoval(refresh = true) {
+		if (removal !== 'pending') return;
+		removal = 'posted';
+		const body = new FormData();
+		body.set('id', String(todo.id));
+		await fetch('/todos?/removeFromSprint', {
+			method: 'POST',
+			body,
+			headers: { 'x-sveltekit-action': 'true' },
+			keepalive: true
+		});
+		if (refresh) await invalidateAll();
+	}
+
+	// A todo another tab already moved isn't worth a message: the reload shows where it went.
+	let addError = $state<string | null>(null);
+	function addFailed(e: ActionError) {
+		if (e.error === 'not-found') invalidateAll();
+		else addError = e.error;
+	}
+
+	beforeNavigate(() => postRemoval(false));
+	onDestroy(() => postRemoval(false));
 </script>
 
 {#snippet moves()}
 	{#if context === 'backlog' && sprintDays}
-		<form method="POST" action="/todos?/addToSprint" use:enhance={submit({ onsuccess: close })}>
+		<form method="POST" action="/todos?/addToSprint" use:enhance={submit({ onerror: addFailed, onsuccess: close })}>
 			<input type="hidden" name="id" value={todo.id} />
 			<Button variant="secondary">Add to sprint</Button>
 		</form>
+	{:else if context === 'sprint' && todo.recurring}
+		<Button variant="secondary" onclick={remove}>Remove from sprint</Button>
 	{:else if context === 'sprint'}
 		<form method="POST" action="/todos?/moveToBacklog" use:enhance={submit({ onsuccess: close })}>
 			<input type="hidden" name="id" value={todo.id} />
@@ -57,6 +109,20 @@
 	{/if}
 {/snippet}
 
+<svelte:window onpointerdown={closeMenu} onkeydown={closeMenu} />
+
+{#if removal !== 'none'}
+	<li class="removed">
+		{#if removal === 'pending'}
+			<Toast
+				message="Removed “{todo.title}” from the sprint"
+				actionLabel="Undo"
+				onaction={() => (removal = 'none')}
+				ontimeout={postRemoval}
+			/>
+		{/if}
+	</li>
+{:else}
 <li
 	class="row"
 	class:checkable
@@ -107,6 +173,15 @@
 				{/if}
 				{#if todo.notes}<span>Notes</span>{/if}
 			</div>
+			{#if addError}
+				<p class="add-error" role="alert">
+					{#if addError === 'review-required'}
+						The sprint needs its review first. <a href="/sprint/review">Review</a>
+					{:else}
+						That didn’t work. Reload and try again.
+					{/if}
+				</p>
+			{/if}
 		</div>
 
 		<div class="end">
@@ -121,8 +196,37 @@
 					{dueLabel(todo.dueDate, today)}
 				</span>
 			{/if}
+			{#if context === 'sprint'}
+				<div class="actions" bind:this={actionsEl}>
+					<button
+						type="button"
+						class="more"
+						data-testid="row-actions"
+						aria-label="More actions"
+						aria-haspopup="menu"
+						aria-expanded={menuOpen}
+						onclick={openMenu}
+					>
+						<svg viewBox="0 0 24 24" aria-hidden="true">
+							<circle cx="5" cy="12" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="19" cy="12" r="1.5" />
+						</svg>
+					</button>
+					{#if menuOpen}
+						<div class="menu" role="menu" aria-label="Actions for {todo.title}">
+							{#if todo.recurring}
+								<button type="button" role="menuitem" onclick={remove}>Remove from sprint</button>
+							{:else}
+								<form method="POST" action="/todos?/moveToBacklog" use:enhance={submit()}>
+									<input type="hidden" name="id" value={todo.id} />
+									<button role="menuitem">Move to backlog</button>
+								</form>
+							{/if}
+						</div>
+					{/if}
+				</div>
+			{/if}
 			{#if context === 'backlog' && sprintDays}
-				<form method="POST" action="/todos?/addToSprint" use:enhance={submit()}>
+				<form method="POST" action="/todos?/addToSprint" use:enhance={submit({ onerror: addFailed })}>
 					<input type="hidden" name="id" value={todo.id} />
 					<button class="add" aria-label="Add to sprint: {todo.title}" title="Add to sprint">
 						<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.plus} /></svg>
@@ -133,6 +237,7 @@
 		</div>
 	{/if}
 </li>
+{/if}
 
 <style>
 	.row {
@@ -145,6 +250,10 @@
 		margin: 0 calc(-1 * var(--space-2));
 		border-radius: var(--radius-md);
 		transition: background-color var(--dur-fast) var(--ease-out);
+	}
+
+	.removed {
+		display: contents;
 	}
 
 	.expanded {
@@ -291,6 +400,22 @@
 		font-size: var(--text-sm);
 	}
 
+	.add-error {
+		margin-top: var(--space-1);
+		color: var(--ink);
+		font-size: var(--text-sm);
+	}
+
+	.add-error a {
+		color: var(--accent);
+		font-weight: var(--weight-medium);
+		text-decoration: none;
+	}
+
+	.add-error a:hover {
+		text-decoration: underline;
+	}
+
 	.late {
 		color: var(--overdue);
 		font-weight: var(--weight-medium);
@@ -377,6 +502,81 @@
 		.add:focus-visible {
 			opacity: 1;
 		}
+
+		.more {
+			opacity: 0;
+			transition: opacity var(--dur-fast) var(--ease-out);
+		}
+
+		.row:hover .more,
+		.more:focus-visible,
+		.more[aria-expanded='true'] {
+			opacity: 1;
+		}
+	}
+
+	.actions {
+		position: relative;
+		margin: -5px 0;
+	}
+
+	.more {
+		display: grid;
+		place-items: center;
+		width: 28px;
+		height: 28px;
+		padding: 0;
+		border: 0;
+		border-radius: var(--radius-sm);
+		background: none;
+		color: var(--ink-3);
+		cursor: pointer;
+	}
+
+	.more:hover,
+	.more[aria-expanded='true'] {
+		background: var(--paper-sunk);
+		color: var(--ink);
+	}
+
+	.more svg {
+		width: 16px;
+		height: 16px;
+		fill: currentColor;
+	}
+
+	.menu {
+		position: absolute;
+		top: calc(100% + var(--space-1));
+		right: 0;
+		z-index: 2;
+		min-width: 190px;
+		padding: var(--space-1);
+		border: 1px solid var(--line);
+		border-radius: var(--radius-md);
+		background: var(--paper);
+		box-shadow: var(--shadow-float);
+	}
+
+	.menu [role='menuitem'] {
+		display: block;
+		width: 100%;
+		padding: var(--space-2) var(--space-3);
+		border: 0;
+		border-radius: var(--radius-sm);
+		background: none;
+		color: var(--ink);
+		font: inherit;
+		font-size: var(--text-sm);
+		text-align: left;
+		white-space: nowrap;
+		cursor: pointer;
+	}
+
+	.menu [role='menuitem']:hover,
+	.menu [role='menuitem']:focus-visible {
+		background: var(--paper-hover);
+		outline: none;
 	}
 
 	@media (max-width: 767px) {
