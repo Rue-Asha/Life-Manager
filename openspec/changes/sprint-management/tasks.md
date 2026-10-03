@@ -12,7 +12,7 @@ No task in this change is irreversible (no schema change, no migration, nothing 
 - [x] 1.2 Write `Scenario: Removing a recurring instance deletes only that instance` in `src/lib/server/sprints.test.ts`, then implement `removeFromSprint` (recurring → `deleteTodo`, else `moveToBacklog`)
 - [x] 1.3 `/todos` actions per Contracts: `?/addToSprint` reads optional `day` / `status` and passes `today()`; new `?/removeFromSprint`
 - [x] 1.4 Implement `src/lib/dnd.ts` and `src/lib/motion.ts` per Contracts (reduced motion → 0 ms); add `--rail-width` and `--day-col-min` to `tokens.css`; implement `ui/ProgressBar.svelte`
-- [ ] 1.5 Stubs with the exact props from Contracts: `ui/Toast.svelte`, `rail/BacklogRail.svelte` (plain title list), `shell/RailLayout.svelte` (children then rail), `sprint/UnscheduledList.svelte` (renders nothing, no test id); `npm run proof` green
+- [x] 1.5 Stubs with the exact props from Contracts: `ui/Toast.svelte`, `rail/BacklogRail.svelte` (plain title list), `shell/RailLayout.svelte` (children then rail), `sprint/UnscheduledList.svelte` (renders nothing, no test id); `npm run proof` green
 
 ## 2. Lifecycle rules and progress queries
 
