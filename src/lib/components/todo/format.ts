@@ -1,4 +1,5 @@
 import type { IsoDate } from '$lib/types';
+import { addDays } from '$lib/week';
 
 const DAY_MS = 86_400_000;
 
@@ -20,6 +21,13 @@ export function dayLabel(d: IsoDate): string {
 // "Fri 9 Oct"
 export function dateLabel(d: IsoDate): string {
 	return dayMonth.format(utc(d));
+}
+
+// "Mon 5 – Sun 11 Oct", or "Mon 28 Sep – Sun 4 Oct" across a month boundary
+export function weekLabel(weekStart: IsoDate): string {
+	const weekEnd = addDays(weekStart, 6);
+	const start = weekStart.slice(5, 7) === weekEnd.slice(5, 7) ? dayLabel(weekStart) : dateLabel(weekStart);
+	return `${start} – ${dateLabel(weekEnd)}`;
 }
 
 // "Today", "Tomorrow", "4d left", "2d late"

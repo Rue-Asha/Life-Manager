@@ -7,9 +7,8 @@
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import { UI_ICONS } from '$lib/components/ui/icons';
 	import TodoRow from '$lib/components/todo/TodoRow.svelte';
-	import { dateLabel, dayLabel } from '$lib/components/todo/format';
+	import { weekLabel } from '$lib/components/todo/format';
 	import type { Id, Todo } from '$lib/types';
-	import { addDays } from '$lib/week';
 
 	let { data, form } = $props();
 
@@ -24,11 +23,6 @@
 		'review-pending': 'The last sprint needs a review first.',
 		'sprint-active': 'A sprint is already running.'
 	};
-
-	const weekEnd = $derived(addDays(data.weekStart, 6));
-	const weekLabel = $derived(
-		`${data.weekStart.slice(5, 7) === weekEnd.slice(5, 7) ? dayLabel(data.weekStart) : dateLabel(data.weekStart)} – ${dateLabel(weekEnd)}`
-	);
 
 	// Suggestions are pulled when the sprint starts, unless unmarked by then.
 	let unmarked = $state<Id[]>([]);
@@ -69,7 +63,7 @@
 </svelte:head>
 
 <PageHeader title="Plan your week" icon="calendar">
-	<span class="week num" data-testid="plan-week">{weekLabel}</span>
+	<span class="week num" data-testid="plan-week">{weekLabel(data.weekStart)}</span>
 </PageHeader>
 
 <form bind:this={dropForm} method="POST" action={drop.action} use:enhance hidden>

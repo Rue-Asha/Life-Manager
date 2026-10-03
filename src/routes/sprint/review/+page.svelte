@@ -5,17 +5,10 @@
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import { UI_ICONS } from '$lib/components/ui/icons';
 	import TodoRow from '$lib/components/todo/TodoRow.svelte';
-	import { dateLabel, dayLabel } from '$lib/components/todo/format';
+	import { weekLabel } from '$lib/components/todo/format';
 	import type { Id, ReviewDecision, Todo } from '$lib/types';
-	import { addDays } from '$lib/week';
 
 	let { data, form } = $props();
-
-	const weekStart = $derived(data.sprint.weekStart!);
-	const weekEnd = $derived(addDays(weekStart, 6));
-	const weekLabel = $derived(
-		`${weekStart.slice(5, 7) === weekEnd.slice(5, 7) ? dayLabel(weekStart) : dateLabel(weekStart)} – ${dateLabel(weekEnd)}`
-	);
 
 	const LABELS: Record<ReviewDecision, string> = { carry: 'Carry over', backlog: 'Back to backlog', drop: 'Drop' };
 	const VERBS: Record<ReviewDecision, string> = { carry: 'Carry', backlog: 'return', drop: 'drop' };
@@ -48,7 +41,7 @@
 </svelte:head>
 
 <PageHeader title="Review your sprint" icon="flag">
-	<span class="week num">{weekLabel}</span>
+	<span class="week num">{weekLabel(data.sprint.weekStart!)}</span>
 </PageHeader>
 
 {#if data.open.length === 0}
