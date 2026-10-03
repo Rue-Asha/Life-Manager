@@ -267,3 +267,37 @@ test('Scenario: Deleting a project asks for confirmation', async ({ page, reques
 	await page.goto('/backlog');
 	await expect(page.getByText('Deploy it')).toBeVisible();
 });
+
+const LINKED: NonNullable<SeedInput['todos']> = [
+	{ title: 'Pick a parser', aspect: 1, project: 0 },
+	{ title: 'Build the overview', aspect: 1, project: 0, inSprint: true },
+	{ title: 'Design the mockup', aspect: 1, project: 0, inSprint: true, status: 'done', completedAt: '2026-10-05T09:00:00Z' },
+	{ title: 'Write migration', aspect: 1, project: 0, inSprint: true, status: 'done', completedAt: '2026-10-06T09:00:00Z' }
+];
+
+test('Scenario: Done group starts collapsed', async ({ page, request }) => {
+	const id = await seedProject(request, { sprint: { state: 'active', weekStart: WEEK }, todos: LINKED });
+	await page.goto(`/projects/${id}`);
+
+	const rows = (group: string) => page.getByTestId(`project-todos-${group}`).getByTestId('todo-row');
+	await expect(rows('open')).toHaveText([/Pick a parser/]);
+	await expect(rows('planned')).toHaveText([/Build the overview/]);
+
+	const done = page.getByTestId('project-todos-done');
+	const toggle = done.getByRole('button', { name: /Done/ });
+	await expect(toggle).toContainText('2');
+	await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+	await expect(rows('done')).toHaveCount(0);
+
+	await toggle.click();
+	await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+	await expect(rows('done')).toHaveText([/Write migration/, /Design the mockup/]);
+});
+
+test('Scenario: Project without linked todos explains linking', async ({ page, request }) => {
+	const id = await seedProject(request);
+	await page.goto(`/projects/${id}`);
+
+	await expect(page.getByTestId('empty-state')).toContainText('Project field');
+	await expect(page.getByTestId('todo-row')).toHaveCount(0);
+});

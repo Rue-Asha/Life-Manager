@@ -4,6 +4,7 @@
 	import RailLayout from '$lib/components/shell/RailLayout.svelte';
 	import ProjectMeta from '$lib/components/projects/ProjectMeta.svelte';
 	import StatusPill from '$lib/components/projects/StatusPill.svelte';
+	import LinkedTodos from '$lib/components/projects/LinkedTodos.svelte';
 	import ProjectNotes from '$lib/components/projects/ProjectNotes.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
@@ -49,6 +50,8 @@
 		<ProjectMeta {project} todos={data.todos} mode="row" onedit={edit} />
 	{/if}
 	<ProjectNotes html={data.notesHtml} notes={project.notes} />
+
+	<LinkedTodos todos={data.todos} today={data.today} sprintDays={data.sprintDays ?? undefined} />
 
 	<div class="danger">
 		<button type="button" onclick={() => (deleting = true)}>
