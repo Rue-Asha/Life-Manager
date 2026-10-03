@@ -8,13 +8,22 @@ import {
 	listAspects,
 	updateAspect
 } from '$lib/server/aspects';
+import { today } from '$lib/server/clock';
 import { getDb } from '$lib/server/db';
+import { aspectProgress, sprintPhase } from '$lib/server/sprints';
+import { backlogCounts } from '$lib/server/todos';
 import type { AspectInput } from '$lib/types';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = () => {
 	const db = getDb();
-	return { aspects: listAspects(db).map((a) => ({ ...a, usage: aspectUsage(db, a.id) })) };
+	const { phase, sprint } = sprintPhase(db, today());
+	const showSprint = sprint !== null && (phase === 'running' || phase === 'review-available');
+	return {
+		aspects: listAspects(db).map((a) => ({ ...a, usage: aspectUsage(db, a.id) })),
+		progress: showSprint ? aspectProgress(db, sprint.id) : null,
+		backlogCounts: backlogCounts(db)
+	};
 };
 
 function aspectInput(form: FormData): AspectInput {

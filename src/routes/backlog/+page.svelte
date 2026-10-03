@@ -21,6 +21,12 @@
 
 <PageHeader title="Backlog" icon="inbox" />
 
+{#if data.phase === 'review-required'}
+	<p class="review" data-testid="review-note">
+		This week’s sprint is over, so nothing can join it. <a href="/sprint/review">Review the sprint</a>
+	</p>
+{/if}
+
 <div class="quick">
 	<QuickAdd
 		aspects={data.aspects}
@@ -67,6 +73,25 @@
 <style>
 	.quick {
 		margin-bottom: var(--space-5);
+	}
+
+	.review {
+		margin-bottom: var(--space-5);
+		padding: var(--space-3) var(--space-4);
+		border-radius: var(--radius-md);
+		background: var(--paper-sunk);
+		color: var(--ink-2);
+		font-size: var(--text-sm);
+	}
+
+	.review a {
+		color: var(--accent);
+		font-weight: var(--weight-medium);
+		text-decoration: none;
+	}
+
+	.review a:hover {
+		text-decoration: underline;
 	}
 
 	.filter {
