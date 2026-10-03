@@ -1,23 +1,19 @@
 <script lang="ts">
 	import { tick } from 'svelte';
-	import { MediaQuery } from 'svelte/reactivity';
+	import { flip } from 'svelte/animate';
 	import { enhance } from '$app/forms';
+	import BacklogRail from '$lib/components/rail/BacklogRail.svelte';
 	import AspectIcon from '$lib/components/ui/AspectIcon.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import { UI_ICONS } from '$lib/components/ui/icons';
 	import TodoRow from '$lib/components/todo/TodoRow.svelte';
 	import { weekLabel } from '$lib/components/todo/format';
+	import { canDrag, draggableTodo, dropZone } from '$lib/dnd';
+	import { flipOpts, receive, send } from '$lib/motion';
 	import type { Id, Todo } from '$lib/types';
 
 	let { data, form } = $props();
-
-	type Pane = 'sprint' | 'backlog';
-
-	const MOVES: Record<Pane, { action: string; label: string; icon: 'plus' | 'x' }> = {
-		backlog: { action: '?/pull', label: 'Add to sprint', icon: 'plus' },
-		sprint: { action: '?/unpull', label: 'Remove from sprint', icon: 'x' }
-	};
 
 	const ERRORS: Record<string, string> = {
 		'review-pending': 'The last sprint needs a review first.',
@@ -36,23 +32,11 @@
 			.filter((g) => g.todos.length > 0);
 
 	// Drag is a mouse nicety; every move also has a button, which is the only path on touch.
-	const drag = new MediaQuery('(hover: hover) and (pointer: fine)');
-	let dragging = $state<{ id: Id; from: Pane } | null>(null);
-	let over = $state<Pane | null>(null);
 	let dropForm: HTMLFormElement;
 	let drop = $state<{ id: Id; action: string }>({ id: 0, action: '' });
 
-	function dragover(e: DragEvent, pane: Pane) {
-		if (!dragging || dragging.from === pane) return;
-		e.preventDefault();
-		over = pane;
-	}
-
-	async function dropped(e: DragEvent, pane: Pane) {
-		if (!dragging || dragging.from === pane) return;
-		e.preventDefault();
-		drop = { id: dragging.id, action: MOVES[dragging.from].action };
-		dragging = over = null;
+	async function move(id: Id, action: '?/pull' | '?/unpull') {
+		drop = { id, action };
 		await tick();
 		dropForm.requestSubmit();
 	}
@@ -70,10 +54,10 @@
 	<input type="hidden" name="id" value={drop.id} />
 </form>
 
-{#snippet list(pane: Pane, items: Todo[])}
-	{#each byAspect(items) as { aspect, todos } (aspect.id)}
-		<section class="group" aria-labelledby="{pane}-{aspect.id}">
-			<h3 id="{pane}-{aspect.id}">
+{#snippet planned()}
+	{#each byAspect(data.planned) as { aspect, todos } (aspect.id)}
+		<section class="group" aria-labelledby="sprint-{aspect.id}">
+			<h3 id="sprint-{aspect.id}">
 				<AspectIcon icon={aspect.icon} color={aspect.color} size="sm" />{aspect.name}
 				<span class="count num">{todos.length}</span>
 			</h3>
@@ -81,18 +65,16 @@
 				<div
 					class="item"
 					role="presentation"
-					draggable={drag.current}
-					ondragstart={(e) => {
-						e.dataTransfer?.setData('text/plain', String(todo.id));
-						dragging = { id: todo.id, from: pane };
-					}}
-					ondragend={() => (dragging = over = null)}
+					in:receive={{ key: todo.id }}
+					out:send={{ key: todo.id }}
+					animate:flip={flipOpts()}
+					use:draggableTodo={{ id: todo.id, from: 'sprint', recurring: todo.recurring }}
 				>
 					<ul><TodoRow {todo} {aspect} today={data.today} context="planning" /></ul>
-					<form method="POST" action={MOVES[pane].action} use:enhance>
+					<form method="POST" action="?/unpull" use:enhance>
 						<input type="hidden" name="id" value={todo.id} />
-						<button class="move" aria-label="{MOVES[pane].label}: {todo.title}" title={MOVES[pane].label}>
-							<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS[MOVES[pane].icon]} /></svg>
+						<button class="move" aria-label="Remove from sprint: {todo.title}" title="Remove from sprint">
+							<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.x} /></svg>
 						</button>
 					</form>
 				</div>
@@ -104,12 +86,9 @@
 <div class="panes">
 	<section
 		class="pane sprint"
-		class:over={over === 'sprint'}
 		data-testid="plan-sprint"
 		aria-labelledby="sprint-heading"
-		ondragover={(e) => dragover(e, 'sprint')}
-		ondragleave={() => (over = null)}
-		ondrop={(e) => dropped(e, 'sprint')}
+		use:dropZone={{ accepts: (p) => p.from === 'backlog', ondrop: (p) => move(p.id, '?/pull') }}
 	>
 		<h2 id="sprint-heading">This sprint <span class="count num">{count}</span></h2>
 		{#if data.suggested.length > 0}
@@ -141,26 +120,22 @@
 		{/if}
 		{#if data.planned.length === 0 && data.suggested.length === 0}
 			<p class="placeholder">
-				{drag.current ? 'Drag todos here from the backlog.' : 'Add todos from the backlog below.'}
+				{canDrag.current ? 'Drag todos here from the backlog.' : 'Add todos from the backlog below.'}
 			</p>
 		{/if}
-		{@render list('sprint', data.planned)}
+		{@render planned()}
 	</section>
 
-	<section
-		class="pane backlog"
-		class:over={over === 'backlog'}
-		data-testid="plan-backlog"
-		aria-labelledby="backlog-heading"
-		ondragover={(e) => dragover(e, 'backlog')}
-		ondragleave={() => (over = null)}
-		ondrop={(e) => dropped(e, 'backlog')}
-	>
+	<section class="pane backlog" aria-labelledby="backlog-heading">
 		<h2 id="backlog-heading">Backlog <span class="count num">{data.backlog.length}</span></h2>
-		{#if data.backlog.length === 0}
-			<p class="placeholder">Nothing left in the backlog.</p>
-		{/if}
-		{@render list('backlog', data.backlog)}
+		<BacklogRail
+			backlog={data.backlog}
+			aspects={data.aspects}
+			canAdd
+			addAction="?/pull"
+			onreturn={(id) => move(id, '?/unpull')}
+			testid="plan-backlog"
+		/>
 	</section>
 </div>
 
@@ -192,9 +167,10 @@
 			box-shadow var(--dur-fast) var(--ease-out);
 	}
 
-	.pane.over {
+	/* The drop slot is a hairline, not a filled target. */
+	.pane:global([data-over]) {
 		background: var(--accent-soft);
-		box-shadow: 0 0 0 2px var(--accent);
+		box-shadow: inset 0 0 0 1px var(--accent);
 	}
 
 	h2 {
@@ -294,10 +270,16 @@
 		grid-template-columns: minmax(0, 1fr) auto;
 		align-items: start;
 		gap: var(--space-2);
+		border-radius: var(--radius-md);
 	}
 
-	.item[draggable='true'] {
+	.item:global([draggable='true']) {
 		cursor: grab;
+	}
+
+	.item:global([data-dragging]) {
+		background: var(--paper);
+		box-shadow: var(--shadow-float);
 	}
 
 	ul {
@@ -386,10 +368,6 @@
 		.backlog {
 			margin: 0;
 			background: var(--paper-sunk);
-		}
-
-		.backlog.over {
-			background: var(--accent-soft);
 		}
 
 		.sprint {
