@@ -170,6 +170,10 @@
 		grid-template-columns: var(--checkbox-size) minmax(0, 1fr);
 	}
 
+	.column :global(.row .meta) {
+		column-gap: var(--space-2);
+	}
+
 	.column :global(.row .end) {
 		grid-column: 2;
 	}
