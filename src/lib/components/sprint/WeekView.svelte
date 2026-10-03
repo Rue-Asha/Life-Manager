@@ -1,12 +1,42 @@
+<script lang="ts" module>
+	import { deserialize } from '$app/forms';
+	import { invalidateAll } from '$app/navigation';
+	import { MediaQuery } from 'svelte/reactivity';
+	import type { Id, IsoDate, Todo } from '$lib/types';
+
+	// From 1280 the week is one row and its Unscheduled column lives in the rail (UnscheduledList).
+	export const wideWeek = new MediaQuery('min-width: 1280px');
+
+	// A dropped card sits on its new day while the move saves, instead of springing back. Shared
+	// with UnscheduledList so a card leaves one component as it lands in the other.
+	const moved = $state<Record<Id, IsoDate | null>>({});
+	export const dayOf = (todo: Todo) => (todo.id in moved ? moved[todo.id] : todo.day);
+
+	export async function moveToDay(todo: Todo | undefined, day: IsoDate | null) {
+		if (!todo || dayOf(todo) === day) return;
+		moved[todo.id] = day;
+		const body = new FormData();
+		body.set('id', String(todo.id));
+		body.set('day', day ?? '');
+		const response = await fetch('/todos?/setDay', {
+			method: 'POST',
+			body,
+			headers: { 'x-sveltekit-action': 'true' }
+		});
+		if (deserialize(await response.text()).type === 'success') await invalidateAll();
+		delete moved[todo.id];
+	}
+</script>
+
 <script lang="ts">
-	import { enhance } from '$app/forms';
-	import { tick } from 'svelte';
+	import { flip } from 'svelte/animate';
 	import { dropZone } from '$lib/dnd';
-	import type { Aspect, Id, IsoDate, Placement, Target, Todo } from '$lib/types';
+	import { flipOpts, receive, send } from '$lib/motion';
+	import type { Aspect, Placement, Target } from '$lib/types';
 	import QuickAdd from '../todo/QuickAdd.svelte';
-	import { submit } from '../todo/form';
 	import { dayLabel } from '../todo/format';
 	import { UI_ICONS } from '../ui/icons';
+	import { viewportTop } from './BoardView.svelte';
 	import SprintCard from './SprintCard.svelte';
 
 	let {
@@ -28,7 +58,7 @@
 
 	const columns = $derived([
 		...sprintDays.map((day) => ({ key: day, day, target: { kind: 'day', day } as Target })),
-		{ key: 'unscheduled', day: null, target: { kind: 'sprint' } as Target }
+		...(wideWeek.current ? [] : [{ key: 'unscheduled', day: null, target: { kind: 'sprint' } as Target }])
 	]);
 
 	const aspectOf = (todo: Todo) => aspects.find((a) => a.id === todo.aspectId)!;
@@ -37,31 +67,12 @@
 	let chosen = $state<string | null>(null);
 	const shown = $derived(chosen ?? (sprintDays.includes(today) ? today : sprintDays[0]));
 
-	// A dropped card sits on its new day while the move saves, instead of springing back.
-	let moved = $state<{ id: Id; day: IsoDate | null } | null>(null);
-	let moveForm = $state<HTMLFormElement>();
-	const dayOf = (todo: Todo) => (moved?.id === todo.id ? moved.day : todo.day);
-
-	async function drop(id: Id, day: IsoDate | null) {
-		if (todos.find((t) => t.id === id)?.day === day) return;
-		moved = { id, day };
-		await tick();
-		moveForm?.requestSubmit();
-	}
-
-	const settle = () => (moved = null);
+	// On the phone the other days are hidden; a card has no box to travel from or to there, and
+	// crossfade would scale by width / 0.
+	const rendered = (node: Element) => node.getClientRects().length > 0;
+	const arrive: typeof receive = (node, params) => (rendered(node) ? receive(node, params) : () => ({}));
+	const leave: typeof send = (node, params) => (rendered(node) ? send(node, params) : () => ({}));
 </script>
-
-<form
-	bind:this={moveForm}
-	method="POST"
-	action="/todos?/setDay"
-	hidden
-	use:enhance={submit({ onsuccess: settle, onerror: settle })}
->
-	<input type="hidden" name="id" value={moved?.id} />
-	<input type="hidden" name="day" value={moved?.day ?? ''} />
-</form>
 
 <nav class="strip" aria-label="Days">
 	{#each columns as { key, day } (key)}
@@ -84,15 +95,17 @@
 	{/each}
 </nav>
 
-<div class="week">
+<div class="week" use:viewportTop>
 	{#each columns as { key, day, target } (key)}
 		{@const cards = todos.filter((t) => dayOf(t) === day)}
 		<section
 			class="column"
+			class:unscheduled={!day}
 			class:away={shown !== key}
 			use:dropZone={{
 				accepts: (p) => p.from === 'sprint' || !!onadd,
-				ondrop: (p) => (p.from === 'sprint' ? drop(p.id, day) : onadd?.(p.id, { day }))
+				ondrop: (p) =>
+					p.from === 'sprint' ? moveToDay(todos.find((t) => t.id === p.id), day) : onadd?.(p.id, { day })
 			}}
 			data-testid="day-column-{key}"
 			aria-labelledby="day-{key}"
@@ -107,7 +120,9 @@
 				<span class="count num">{cards.length || ''}</span>
 			</h2>
 			{#each cards as todo (todo.id)}
-				<SprintCard {todo} aspect={aspectOf(todo)} {today} {sprintDays} />
+				<div in:arrive={{ key: todo.id }} out:leave={{ key: todo.id }} animate:flip={flipOpts()}>
+					<SprintCard {todo} aspect={aspectOf(todo)} {today} {sprintDays} />
+				</div>
 			{/each}
 			<div class="add"><QuickAdd {aspects} {target} /></div>
 		</section>
@@ -192,6 +207,53 @@
 
 		.column :global(.row .end:has(*)) {
 			margin-top: var(--space-2);
+		}
+	}
+
+	/* Wide desktop: Monday–Sunday in one row. Where seven columns don't fit next to the rail the
+	   week scrolls sideways inside itself, never the page; a busy day scrolls inside its column. */
+	@media (min-width: 1280px) {
+		.week {
+			grid-template-columns: repeat(7, minmax(var(--day-col-min), 1fr));
+			gap: var(--space-2);
+			align-items: stretch;
+			overflow-x: auto;
+		}
+
+		/* Narrow columns: tighter insets leave the card's chips room. */
+		.column {
+			height: calc(100dvh - var(--top, 0px) - var(--space-9));
+			overflow-y: auto;
+			padding: var(--space-2);
+		}
+
+		.column :global(.card) {
+			padding-inline: var(--space-2);
+		}
+
+		h2 {
+			position: sticky;
+			top: calc(-1 * var(--space-2));
+			z-index: 1;
+			height: auto;
+			margin: calc(-1 * var(--space-2)) calc(-1 * var(--space-2)) 0;
+			padding: var(--space-2) var(--space-2) var(--space-1);
+			background: var(--paper-sunk);
+		}
+
+		/* The server renders Unscheduled before the width is known; from 1280 it is in the rail. */
+		.unscheduled {
+			display: none;
+		}
+
+		/* A scrolling column would cut off the row menu; fixed at its static place it escapes the
+		   clip, shifted left to line up with its trigger. */
+		.column :global(.menu) {
+			position: fixed;
+			top: auto;
+			right: auto;
+			margin-top: var(--space-1);
+			transform: translateX(calc(-100% + 28px));
 		}
 	}
 

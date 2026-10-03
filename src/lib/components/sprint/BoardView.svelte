@@ -1,3 +1,14 @@
+<script lang="ts" module>
+	// From 1280 the columns run down to the viewport bottom; how far down they start depends on
+	// the header and bar above them.
+	export function viewportTop(node: HTMLElement) {
+		const measure = () => node.style.setProperty('--top', `${node.getBoundingClientRect().top + scrollY}px`);
+		measure();
+		addEventListener('resize', measure);
+		return { destroy: () => removeEventListener('resize', measure) };
+	}
+</script>
+
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { tick } from 'svelte';
@@ -56,7 +67,7 @@
 	<input type="hidden" name="status" value={moved?.status} />
 </form>
 
-<div class="board">
+<div class="board" use:viewportTop>
 	{#each STATUSES as status (status)}
 		{@const cards = todos.filter((t) => statusOf(t) === status)}
 		<section
@@ -122,6 +133,12 @@
 		border-radius: var(--radius-md);
 		color: var(--ink-3);
 		font-size: var(--text-sm);
+	}
+
+	@media (min-width: 1280px) {
+		.column {
+			min-height: calc(100dvh - var(--top, 0px) - var(--space-9));
+		}
 	}
 
 	@media (max-width: 767px) {

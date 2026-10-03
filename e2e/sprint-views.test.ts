@@ -370,6 +370,103 @@ test('Board cards show their aspect as a tag', async ({ page, request }) => {
 
 const day = (page: Page, key: string) => page.getByTestId(`day-column-${key}`);
 
+const box = async (locator: ReturnType<Page['getByTestId']>) => (await locator.boundingBox())!;
+const weekdays = (page: Page) =>
+	['05', '06', '07', '08', '09', '10', '11'].map((d) => day(page, `2026-10-${d}`));
+
+test('Scenario: Board columns share the width at 1280', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [...ASPECTS],
+		sprint: { state: 'active', weekStart: WEEK },
+		todos: [{ title: 'Draft the cover letter', aspect: 1, inSprint: true }]
+	});
+	await page.goto('/sprint?view=board');
+	await settled(page);
+
+	const columns = await Promise.all(['todo', 'doing', 'done'].map((s) => box(page.getByTestId(`board-column-${s}`))));
+	for (const c of columns) expect(Math.abs(c.width - columns[0].width)).toBeLessThanOrEqual(1);
+
+	const views = await box(page.getByRole('navigation', { name: 'Sprint view' }));
+	const rail = await box(page.getByTestId('context-rail'));
+	const last = columns[2];
+	expect(Math.abs(columns[0].x - views.x)).toBeLessThanOrEqual(1);
+	// The content area ends one gutter (32 px) before the rail.
+	expect(Math.abs(rail.x - 32 - (last.x + last.width))).toBeLessThanOrEqual(1);
+
+	// Down to the viewport bottom, less the page's bottom padding (56 px).
+	for (const c of columns) {
+		expect(c.y + c.height).toBeGreaterThanOrEqual(800 - 56 - 1);
+		expect(c.y + c.height).toBeLessThanOrEqual(800);
+	}
+});
+
+test('Scenario: Week shows the whole week in one row at 1280', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [...ASPECTS],
+		sprint: { state: 'active', weekStart: WEEK },
+		todos: [{ title: 'Clean the fridge', aspect: 2, inSprint: true }]
+	});
+	await page.goto('/sprint?view=week');
+	await settled(page);
+
+	const days = await Promise.all(weekdays(page).map(box));
+	for (const d of days) {
+		expect(d.y).toBe(days[0].y);
+		expect(d.width).toBeGreaterThanOrEqual(120);
+	}
+	for (let i = 1; i < days.length; i++) expect(days[i].x).toBeGreaterThan(days[i - 1].x);
+
+	await expect(page.getByTestId('day-column-unscheduled')).toHaveCount(1);
+	const unscheduled = page.getByTestId('context-rail').getByTestId('day-column-unscheduled');
+	await expect(unscheduled).toBeVisible();
+	await expect(unscheduled).toContainText('Clean the fridge');
+});
+
+test('Scenario: Busy day scrolls inside its column', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [...ASPECTS],
+		sprint: { state: 'active', weekStart: WEEK },
+		todos: Array.from({ length: 15 }, (_, i) => ({
+			title: `Errand ${i + 1}`,
+			aspect: 2,
+			inSprint: true,
+			day: '2026-10-07'
+		}))
+	});
+	await page.goto('/sprint?view=week');
+	await settled(page);
+
+	const busy = day(page, '2026-10-07');
+	await expect(busy.getByTestId('todo-row')).toHaveCount(15);
+	const scroll = await busy.evaluate((el) => {
+		const before = el.scrollTop;
+		el.scrollTop = 200;
+		return { overflows: el.scrollHeight > el.clientHeight, moved: el.scrollTop > before };
+	});
+	expect(scroll).toEqual({ overflows: true, moved: true });
+	expect((await box(busy)).y + (await box(busy)).height).toBeLessThanOrEqual(800);
+	expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+});
+
+test('Scenario: Week wraps between 1024 and 1279', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [...ASPECTS],
+		sprint: { state: 'active', weekStart: WEEK },
+		todos: [{ title: 'Clean the fridge', aspect: 2, inSprint: true }]
+	});
+	await page.setViewportSize({ width: 1100, height: 800 });
+	await page.goto('/sprint?view=week');
+	await settled(page);
+
+	const days = await Promise.all(weekdays(page).map(box));
+	expect(days[6].y).toBeGreaterThan(days[0].y);
+
+	await expect(page.getByTestId('day-column-unscheduled')).toHaveCount(1);
+	await expect(page.getByTestId('context-rail').getByTestId('day-column-unscheduled')).toHaveCount(0);
+	await expect(page.getByTestId('day-column-unscheduled')).toBeVisible();
+	await expect(page.getByTestId('day-column-unscheduled')).toContainText('Clean the fridge');
+});
+
 test('Scenario: Assign a todo to a day by drag', async ({ page, request }) => {
 	await seed(request, {
 		aspects: [...ASPECTS],
