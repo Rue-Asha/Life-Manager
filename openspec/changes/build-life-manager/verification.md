@@ -1,38 +1,39 @@
-verified-at: af15390
+verified-at: 4ebe184
 
 ## Layer 1 — `PORT=4700 npm run proof:full` (green, exit 0)
 
 - `npm run check`: svelte-check 433 files, 0 errors, 0 warnings (svelte-kit sync prints a `config_option_deprecated_alias` notice for `alias: { $lib }` in `vite.config.ts`)
 - `npm run build`: ok
-- `npm run test:unit`: 8 files, 62 tests passed
-- `npm run test:e2e`: 86 passed
+- `npm run test:unit`: 8 files, 68 tests passed
+- `npm run test:e2e`: 89 passed
 
 ```
-  ✓  69 e2e/sprint-views.test.ts:394:2 › on a touch phone › Scenario: Phone shows one day at a time (207ms)
-  ✓  70 e2e/today.test.ts:27:1 › Scenario: Today shows today's sprint todos and overdue todos (138ms)
-  ✓  71 e2e/today.test.ts:55:1 › An overdue todo planned for today is listed once, under Overdue (110ms)
-  ✓  72 e2e/today.test.ts:67:1 › Scenario: Status toggle on Today (208ms)
-  ✓  73 e2e/today.test.ts:85:1 › Scenario: Quick add on Today adds to the sprint on today (507ms)
-  ✓  74 e2e/today.test.ts:105:1 › Scenario: Today without an active sprint prompts to plan (95ms)
-  ✓  75 e2e/today.test.ts:117:1 › Scenario: Today with a pending review prompts to review (152ms)
-  ✓  76 e2e/today.test.ts:141:1 › Scenario: Nothing today shows a calm empty state (108ms)
-  ✓  77 e2e/today.test.ts:159:1 › Scenario: Sunday after the review prompts to plan next week (114ms)
-  ✓  78 e2e/todos.test.ts:28:1 › GET /todos redirects to the backlog (113ms)
-  ✓  79 e2e/todos.test.ts:34:1 › Scenario: Quick add creates a todo in the backlog (473ms)
-  ✓  80 e2e/todos.test.ts:53:1 › Quick add rejects an empty title inline (422ms)
-  ✓  81 e2e/todos.test.ts:63:1 › Scenario: Past due date is allowed and shown overdue (460ms)
-  ✓  82 e2e/todos.test.ts:74:1 › Quick add on phone opens a sheet (557ms)
-  ✓  83 e2e/todos.test.ts:92:1 › Scenario: Edit every field of a todo (681ms)
-  ✓  84 e2e/todos.test.ts:127:1 › Scenario: Checklist items are added, renamed, toggled and deleted (800ms)
-  ✓  85 e2e/todos.test.ts:163:1 › Scenario: Deleting a todo asks for confirmation (1.6s)
-  ✓  86 e2e/todos.test.ts:184:1 › Editing on phone uses a sheet (580ms)
+  ✓  71 e2e/today.test.ts:27:1 › Scenario: Today shows today's sprint todos and overdue todos (118ms)
+  ✓  72 e2e/today.test.ts:55:1 › An overdue todo planned for today is listed once, under Overdue (118ms)
+  ✓  73 e2e/today.test.ts:67:1 › Scenario: Status toggle on Today (253ms)
+  ✓  74 e2e/today.test.ts:94:1 › Scenario: Overdue todos outside the sprint offer the sprint instead of a checkbox (188ms)
+  ✓  75 e2e/today.test.ts:114:1 › Scenario: Quick add on Today adds to the sprint on today (483ms)
+  ✓  76 e2e/today.test.ts:134:1 › No quick add on the Sunday before next week's sprint starts (92ms)
+  ✓  77 e2e/today.test.ts:143:1 › Scenario: Today without an active sprint prompts to plan (112ms)
+  ✓  78 e2e/today.test.ts:155:1 › Scenario: Today with a pending review prompts to review (137ms)
+  ✓  79 e2e/today.test.ts:179:1 › Scenario: Nothing today shows a calm empty state (104ms)
+  ✓  80 e2e/today.test.ts:197:1 › Scenario: Sunday after the review prompts to plan next week (253ms)
+  ✓  81 e2e/todos.test.ts:28:1 › GET /todos redirects to the backlog (105ms)
+  ✓  82 e2e/todos.test.ts:34:1 › Scenario: Quick add creates a todo in the backlog (451ms)
+  ✓  83 e2e/todos.test.ts:53:1 › Quick add rejects an empty title inline (403ms)
+  ✓  84 e2e/todos.test.ts:63:1 › Scenario: Past due date is allowed and shown overdue (427ms)
+  ✓  85 e2e/todos.test.ts:74:1 › Quick add on phone opens a sheet (573ms)
+  ✓  86 e2e/todos.test.ts:92:1 › Scenario: Edit every field of a todo (663ms)
+  ✓  87 e2e/todos.test.ts:127:1 › Scenario: Checklist items are added, renamed, toggled and deleted (823ms)
+  ✓  88 e2e/todos.test.ts:163:1 › Scenario: Deleting a todo asks for confirmation (1.6s)
+  ✓  89 e2e/todos.test.ts:184:1 › Editing on phone uses a sheet (580ms)
 
-  86 passed (32.5s)
+  89 passed (33.2s)
 ```
 
 ## Layer 2 — spec coverage
 
-102 scenarios: unit 32/32 ✓ · e2e 64/64 ✓ · manual 6 · gaps 0.
+104 scenarios: unit 32/32 ✓ · e2e 66/66 ✓ · manual 6 · gaps 0.
 Each unit/e2e row was matched by its exact `Scenario: <title>` in the passed lines of the run above.
 
 | Capability | Scenario | proof | Evidence |
@@ -108,6 +109,7 @@ Each unit/e2e row was matched by its exact `Scenario: <title>` in the passed lin
 | sprint-views | Checkbox toggles done | e2e | `e2e/sprint-views.test.ts` › "Scenario: Checkbox toggles done" ✓ |
 | sprint-views | Unchecking done returns to To do | unit | `src/lib/server/sprints.test.ts` › "Scenario: Unchecking done returns to To do" ✓ |
 | sprint-views | Sprint screens prompt to review when pending | e2e | `e2e/sprint-views.test.ts` › "Scenario: Sprint screens prompt to review when pending" ✓ |
+| sprint-views | Sunday shows the review prompt above the sprint | e2e | `e2e/sprint-views.test.ts` › "Scenario: Sunday shows the review prompt above the sprint" ✓ |
 | sprint-views | Sprint by aspect groups todos with status | e2e | `e2e/sprint-views.test.ts` › "Scenario: Sprint by aspect groups todos with status" ✓ |
 | sprint-views | Aspects without sprint todos are hidden | e2e | `e2e/sprint-views.test.ts` › "Scenario: Aspects without sprint todos are hidden" ✓ |
 | sprint-views | Empty sprint points to the backlog | e2e | `e2e/sprint-views.test.ts` › "Scenario: Empty sprint points to the backlog" ✓ |
@@ -123,6 +125,7 @@ Each unit/e2e row was matched by its exact `Scenario: <title>` in the passed lin
 | today | Today shows today's sprint todos and overdue todos | e2e | `e2e/today.test.ts` › "Scenario: Today shows today's sprint todos and overdue todos" ✓ |
 | today | Overdue means due before today and not done | unit | `src/lib/server/todos.test.ts` › "Scenario: Overdue means due before today and not done" ✓ |
 | today | Status toggle on Today | e2e | `e2e/today.test.ts` › "Scenario: Status toggle on Today" ✓ |
+| today | Overdue todos outside the sprint offer the sprint instead of a checkbox | e2e | `e2e/today.test.ts` › "Scenario: Overdue todos outside the sprint offer the sprint instead of a checkbox" ✓ |
 | today | Quick add on Today adds to the sprint on today | e2e | `e2e/today.test.ts` › "Scenario: Quick add on Today adds to the sprint on today" ✓ |
 | today | Today without an active sprint prompts to plan | e2e | `e2e/today.test.ts` › "Scenario: Today without an active sprint prompts to plan" ✓ |
 | today | Today with a pending review prompts to review | e2e | `e2e/today.test.ts` › "Scenario: Today with a pending review prompts to review" ✓ |
@@ -153,13 +156,13 @@ Start: `npm run dev` → http://localhost:5173 (empty DB redirects to `/welcome`
 
 ## Diffstat
 
-`git diff --stat 4b825dc642cb6eb9a060e54bf8d69288fbee4904 flow/build-life-manager`:
+`git diff --stat 4b825dc642cb6eb9a060e54bf8d69288fbee4904 flow/build-life-manager` (at 4ebe184, before this commit):
 
-- total: 203 files changed, 19894 insertions(+)
-- src/: 77 files changed, 8146 insertions(+)
-- e2e/: 14 files changed, 1997 insertions(+)
+- total: 224 files changed, 20316 insertions(+)
+- src/: 77 files changed, 8270 insertions(+)
+- e2e/: 14 files changed, 2069 insertions(+)
 - design/: 76 files changed, 4851 insertions(+)
-- openspec/: 18 files changed, 1539 insertions(+)
+- openspec/: 39 files changed, 1765 insertions(+)
 - other (root config, README, lockfile): 18 files changed, 3361 insertions(+)
 
 ## Screenshots
