@@ -179,8 +179,8 @@
 			flex-direction: column;
 			align-items: center;
 			gap: var(--space-0);
-			height: 52px;
-			padding: var(--space-2) 0;
+			height: 60px;
+			padding: var(--space-2) 0 var(--space-3);
 			border: 0;
 			border-radius: var(--radius-md);
 			background: none;
@@ -219,6 +219,7 @@
 
 		.strip .today[aria-pressed='true'] {
 			background: var(--accent);
+			color: var(--ink-on-accent);
 		}
 
 		.strip .today[aria-pressed='true'] :is(.wd, .dn) {
@@ -229,7 +230,7 @@
 		.busy::after {
 			content: '';
 			position: absolute;
-			bottom: 4px;
+			bottom: 6px;
 			width: 4px;
 			height: 4px;
 			border-radius: var(--radius-pill);
