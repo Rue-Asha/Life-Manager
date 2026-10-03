@@ -215,7 +215,14 @@ export function setDay(db: DatabaseSync, todoId: Id, day: IsoDate | null): Resul
 }
 
 export function reviewSummary(db: DatabaseSync): { sprint: Sprint; done: Todo[]; open: Todo[] } | null {
-	throw new Error('not implemented');
+	const sprint = getActiveSprint(db);
+	if (!sprint) return null;
+	const todos = listSprintTodos(db, sprint.id);
+	return {
+		sprint,
+		done: todos.filter((t) => t.status === 'done'),
+		open: todos.filter((t) => t.status !== 'done')
+	};
 }
 
 export function closeReview(
@@ -223,5 +230,32 @@ export function closeReview(
 	today: IsoDate,
 	decisions: Record<Id, ReviewDecision>
 ): Result<Sprint> {
-	throw new Error('not implemented');
+	const summary = reviewSummary(db);
+	if (!summary) return { ok: false, error: 'no-active-sprint' };
+	// Closing before Sunday would let the next sprint target the same week.
+	if (reviewState(summary.sprint.weekStart!, today) === 'running') return { ok: false, error: 'sprint-active' };
+	const plan = summary.open.map((t) => ({ todo: t, decision: decisions[t.id] ?? 'carry' }));
+	for (const { todo, decision } of plan) {
+		if (todo.recurring && decision === 'backlog') {
+			return { ok: false, error: 'recurring-no-backlog', field: `decision-${todo.id}` };
+		}
+		if (!todo.recurring && decision === 'drop') {
+			return { ok: false, error: 'not-recurring', field: `decision-${todo.id}` };
+		}
+	}
+	return transaction(db, () => {
+		const draft = planningDraft(db);
+		const carry = db.prepare('UPDATE todos SET sprint_id = ?, day = NULL WHERE id = ?');
+		const drop = db.prepare('DELETE FROM todos WHERE id = ?');
+		for (const { todo, decision } of plan) {
+			if (decision === 'carry') carry.run(draft.id, todo.id);
+			else if (decision === 'drop') drop.run(todo.id);
+			else toBacklog(db, todo.id);
+		}
+		db.prepare("UPDATE sprints SET state = 'closed', closed_at = ? WHERE id = ?").run(
+			now().toISOString(),
+			summary.sprint.id
+		);
+		return { ok: true, value: draft };
+	});
 }

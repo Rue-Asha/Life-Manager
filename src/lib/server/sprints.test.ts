@@ -4,12 +4,14 @@ import type { Id, IsoDate, Sprint, Status } from '$lib/types';
 import { openDb } from './db';
 import {
 	addToActiveSprint,
+	closeReview,
 	getActiveSprint,
 	listSprintTodos,
 	listToday,
 	moveToBacklog,
 	openPlanning,
 	pullTodo,
+	reviewSummary,
 	setDay,
 	setStatus,
 	sprintPhase,
@@ -201,5 +203,85 @@ describe('mid-sprint changes', () => {
 		todo('Unscheduled', { sprintId: s });
 		todo('Old sprint', { sprintId: sprint('closed', '2026-10-05'), day: '2026-10-07' });
 		expect(listToday(db, '2026-10-07').map((t) => t.id)).toEqual([mine]);
+	});
+});
+
+describe('sprint review', () => {
+	it('Scenario: Open recurring instance is carried or dropped', () => {
+		const s = sprint('active', '2026-10-05');
+		const dropped = todo('Gym Mon', { sprintId: s, day: '2026-10-05', recurring: true });
+		const carried = todo('Gym Thu', { sprintId: s, status: 'doing', day: '2026-10-08', recurring: true });
+		const normal = todo('Essay', { sprintId: s, day: '2026-10-06' });
+
+		expect(closeReview(db, '2026-10-12', { [carried]: 'backlog' })).toEqual({
+			ok: false,
+			error: 'recurring-no-backlog',
+			field: `decision-${carried}`
+		});
+		expect(closeReview(db, '2026-10-12', { [normal]: 'drop' })).toEqual({
+			ok: false,
+			error: 'not-recurring',
+			field: `decision-${normal}`
+		});
+		expect(getActiveSprint(db)?.id).toBe(s);
+
+		const result = closeReview(db, '2026-10-12', { [dropped]: 'drop', [carried]: 'carry' });
+		expect(result.ok).toBe(true);
+		const draft = result.ok ? result.value : null;
+		expect(draft).toMatchObject({ state: 'planning', weekStart: null });
+		expect(row(dropped)).toBeUndefined();
+		expect(row(carried)).toMatchObject({ sprint_id: draft!.id, status: 'doing', day: null });
+		expect(row(normal)).toMatchObject({ sprint_id: draft!.id, day: null });
+	});
+
+	it('Scenario: Done todos stay with the closed sprint', () => {
+		const s = sprint('active', '2026-10-05');
+		const done = todo('Done', { sprintId: s, status: 'done', day: '2026-10-06' });
+		const back = todo('Back', { sprintId: s, status: 'doing', day: '2026-10-07' });
+		const summary = reviewSummary(db);
+		expect(summary?.sprint.id).toBe(s);
+		expect(summary?.done.map((t) => t.id)).toEqual([done]);
+		expect(summary?.open.map((t) => t.id)).toEqual([back]);
+
+		const result = closeReview(db, '2026-10-11', { [back]: 'backlog', [done]: 'drop' });
+		expect(result.ok).toBe(true);
+		const draft = result.ok ? result.value.id : 0;
+		expect(row(done)).toMatchObject({ sprint_id: s, status: 'done', day: '2026-10-06' });
+		expect(row(back)).toMatchObject({ sprint_id: null, status: 'todo', day: null });
+		expect(listSprintTodos(db, draft)).toEqual([]);
+		expect(db.prepare('SELECT state, closed_at FROM sprints WHERE id = ?').get(s)).toMatchObject({
+			state: 'closed',
+			closed_at: expect.any(String)
+		});
+		expect(reviewSummary(db)).toBeNull();
+	});
+
+	it('Scenario: Weeks away review only the last sprint', () => {
+		const s = sprint('active', '2026-09-14');
+		todo('Open', { sprintId: s });
+		const result = closeReview(db, '2026-10-07', {});
+		expect(result.ok).toBe(true);
+		expect(db.prepare('SELECT id, state, week_start FROM sprints ORDER BY id').all()).toEqual([
+			{ id: s, state: 'closed', week_start: '2026-09-14' },
+			{ id: result.ok ? result.value.id : 0, state: 'planning', week_start: null }
+		]);
+		expect(sprintPhase(db, '2026-10-07').phase).toBe('planning');
+		const planning = openPlanning(db, '2026-10-07');
+		expect(planning.ok && planning.value.weekStart).toBe('2026-10-05');
+	});
+
+	it('review cannot close before the sprint\'s Sunday', () => {
+		expect(closeReview(db, '2026-10-07', {})).toEqual({ ok: false, error: 'no-active-sprint' });
+		sprint('active', '2026-10-05');
+		expect(closeReview(db, '2026-10-10', {})).toEqual({ ok: false, error: 'sprint-active' });
+	});
+
+	it('carried todos start in the next sprint', () => {
+		const s = sprint('active', '2026-10-05');
+		const carried = todo('Carry', { sprintId: s, status: 'doing', day: '2026-10-06' });
+		const draft = closeReview(db, '2026-10-11', {});
+		const next = startSprint(db, '2026-10-11', []);
+		expect(next.ok && next.value).toMatchObject({ id: draft.ok ? draft.value.id : 0, weekStart: '2026-10-12' });
+		expect(row(carried)).toMatchObject({ status: 'doing', day: null });
 	});
 });
