@@ -47,4 +47,20 @@
 			padding-top: var(--space-8);
 		}
 	}
+
+	/* Wide screens: pages with a context rail lay out their own columns; the rest centre in the free space. */
+	@media (min-width: 1280px) {
+		.page {
+			max-width: none;
+		}
+
+		:global(.page:not(:has(.rail-layout))) {
+			max-width: calc(var(--content-max) + 2 * var(--gutter));
+			margin-inline: auto;
+		}
+
+		:global(.page:has(.rail-layout)) {
+			padding: 0;
+		}
+	}
 </style>
