@@ -339,6 +339,40 @@ test('Scenario: Drop a rail todo on a day column sets its day', async ({ page, r
 	await expect(railRow(page, 'Book a physio appointment')).toHaveCount(0);
 });
 
+test('Scenario: Refused move returns the item to where it was', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [...ASPECTS],
+		sprint: { state: 'active', weekStart: WEEK },
+		todos: [{ title: 'Draft the cover letter', aspect: 1, inSprint: true }]
+	});
+	let refuse!: () => void;
+	const held = new Promise<void>((resolve) => (refuse = resolve));
+	await page.route(
+		(url) => url.pathname === '/todos' && url.search === '?/setStatus',
+		async (route) => {
+			await held;
+			await route.fulfill({
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify({ type: 'failure', status: 400, data: JSON.stringify([{ error: 1 }, 'not-found']) })
+			});
+		}
+	);
+	await page.goto('/sprint?view=board');
+	await settled(page);
+
+	const todo = page.getByTestId('board-column-todo');
+	const doing = page.getByTestId('board-column-doing');
+	await row(page, 'Draft the cover letter').dragTo(doing, { sourcePosition: { x: 8, y: 8 } });
+	await expect(doing).toContainText('Draft the cover letter');
+
+	refuse();
+	await expect(todo.getByTestId('todo-row').filter({ hasText: 'Draft the cover letter' })).toBeVisible();
+	await expect(doing.getByTestId('todo-row')).toHaveCount(0);
+	await page.reload();
+	await expect(row(page, 'Draft the cover letter')).toHaveAttribute('data-status', 'todo');
+});
+
 test('Scenario: Empty board column shows a placeholder', async ({ page, request }) => {
 	await seed(request, {
 		aspects: [...ASPECTS],

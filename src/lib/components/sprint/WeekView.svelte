@@ -31,12 +31,12 @@
 <script lang="ts">
 	import { flip } from 'svelte/animate';
 	import { dropZone } from '$lib/dnd';
-	import { flipOpts, receive, send } from '$lib/motion';
+	import { flipOpts } from '$lib/motion';
 	import type { Aspect, Placement, Target } from '$lib/types';
 	import QuickAdd from '../todo/QuickAdd.svelte';
 	import { dayLabel } from '../todo/format';
 	import { UI_ICONS } from '../ui/icons';
-	import { viewportTop } from './BoardView.svelte';
+	import { arrive, leave, viewportTop } from './BoardView.svelte';
 	import SprintCard from './SprintCard.svelte';
 
 	let {
@@ -66,12 +66,6 @@
 	// The phone shows one column at a time, starting on today.
 	let chosen = $state<string | null>(null);
 	const shown = $derived(chosen ?? (sprintDays.includes(today) ? today : sprintDays[0]));
-
-	// On the phone the other days are hidden; a card has no box to travel from or to there, and
-	// crossfade would scale by width / 0.
-	const rendered = (node: Element) => node.getClientRects().length > 0;
-	const arrive: typeof receive = (node, params) => (rendered(node) ? receive(node, params) : () => ({}));
-	const leave: typeof send = (node, params) => (rendered(node) ? send(node, params) : () => ({}));
 </script>
 
 <nav class="strip" aria-label="Days">
@@ -150,11 +144,15 @@
 		padding: var(--space-3);
 		border-radius: var(--radius-md);
 		background: var(--paper-sunk);
-		transition: background-color var(--dur-fast) var(--ease-out);
+		transition:
+			background-color var(--dur-fast) var(--ease-out),
+			box-shadow var(--dur-fast) var(--ease-out);
 	}
 
+	/* The drop slot is a hairline, not a filled target. */
 	.column:global([data-over]) {
 		background: var(--accent-soft);
+		box-shadow: inset 0 0 0 1px var(--accent);
 	}
 
 	h2 {
