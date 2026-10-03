@@ -12,3 +12,7 @@ learnings:
   - "Shell aliases rm/mv are interactive (-i) and hang agents — use `command rm -f` / `command mv -f`"
   - "pkill -f with a pattern matching the agent's own command line kills its shell — bound dev servers with `timeout` instead"
   - "jq rewrites package.json with 2-space indent — use `jq --tab` to keep npm's format"
+  - "flow-unit symlinks node_modules to the main repo — a unit that installs or generates into it (e.g. .svelte-kit/$app tsconfig) leaks into every worktree; units that change deps must `npm ci` locally first"
+  - "SvelteKit 3 removed the $lib alias (now #lib via package.json imports) — decide the import style in the contract unit"
+  - "fontsource variable fonts register as '<Family> Variable' — token font-family must use that name"
+  - "SvelteKit 3 CSRF: a POST without content type and Origin gets 403 — e2e posting to form actions must send `origin: baseURL`"

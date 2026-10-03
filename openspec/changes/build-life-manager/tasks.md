@@ -26,18 +26,18 @@ E2E tests start with `reset()` and set up data with `seed()` / `setClock()` from
 
 > unit: depends=1,2 · scope=S20 · files=src/lib/types.ts, src/lib/week.ts, src/lib/todo-utils.ts, src/lib/server/schema.ts, src/lib/server/db.ts, src/lib/server/clock.ts, src/lib/server/aspects.ts, src/lib/server/todos.ts, src/lib/server/sprints.ts, src/lib/server/recurring.ts, src/lib/server/db.test.ts, src/hooks.server.ts, src/routes/healthz/+server.ts, src/routes/__test/reset/+server.ts, src/routes/__test/clock/+server.ts, src/routes/__test/seed/+server.ts, e2e/helpers.ts, e2e/runtime.test.ts
 
-- [ ] 3.1 Create `src/lib/types.ts` and stubs with the exact signatures from design.md Contracts (`aspects.ts`, `todos.ts`, `sprints.ts`, `recurring.ts`, `week.ts` throw `not implemented`); implement `berlinToday` and `isOverdue`; `npm run check` green
-- [ ] 3.2 Write `Scenario: Fresh database is migrated` in `src/lib/server/db.test.ts`, then `schema.ts` (migration 1 per Contracts, `user_version`, one transaction per migration) and `db.ts` (`openDb` creates the directory, `foreign_keys`, WAL; `getDb` from `DATABASE_PATH`; `resetDb`)
-- [ ] 3.3 `clock.ts`, `hooks.server.ts` (`init` opens the DB; on error log and `process.exit(1)`), `/healthz`, and the `LM_TEST`-guarded `/__test/reset`, `/__test/clock`, `/__test/seed` routes plus `e2e/helpers.ts` (`reset`, `seed`, `setClock`); write `Scenario: Health check returns 200` in `e2e/runtime.test.ts` first
-- [ ] 3.4 In `e2e/runtime.test.ts`, spawn `node build` on `$PORT + 1000` with a temp directory and write `Scenario: Port and database path come from the environment`, `Scenario: Missing database directory is created`, `Scenario: Migration failure exits non-zero`; run `PORT=<port> npm run proof:full` green
+- [x] 3.1 Create `src/lib/types.ts` and stubs with the exact signatures from design.md Contracts (`aspects.ts`, `todos.ts`, `sprints.ts`, `recurring.ts`, `week.ts` throw `not implemented`); implement `berlinToday` and `isOverdue`; `npm run check` green
+- [x] 3.2 Write `Scenario: Fresh database is migrated` in `src/lib/server/db.test.ts`, then `schema.ts` (migration 1 per Contracts, `user_version`, one transaction per migration) and `db.ts` (`openDb` creates the directory, `foreign_keys`, WAL; `getDb` from `DATABASE_PATH`; `resetDb`)
+- [x] 3.3 `clock.ts`, `hooks.server.ts` (`init` opens the DB; on error log and `process.exit(1)`), `/healthz`, and the `LM_TEST`-guarded `/__test/reset`, `/__test/clock`, `/__test/seed` routes plus `e2e/helpers.ts` (`reset`, `seed`, `setClock`); write `Scenario: Health check returns 200` in `e2e/runtime.test.ts` first
+- [x] 3.4 In `e2e/runtime.test.ts`, spawn `node build` on `$PORT + 1000` with a temp directory and write `Scenario: Port and database path come from the environment`, `Scenario: Missing database directory is created`, `Scenario: Migration failure exits non-zero`; run `PORT=<port> npm run proof:full` green
 
 ## 4. App shell and UI primitives
 
 > unit: depends=1,2 · scope=S19 · files=src/app.css, src/routes/+layout.svelte, src/lib/components/ui/Button.svelte, src/lib/components/ui/Chip.svelte, src/lib/components/ui/Sheet.svelte, src/lib/components/ui/ConfirmDialog.svelte, src/lib/components/ui/EmptyState.svelte, src/lib/components/ui/AspectIcon.svelte, src/lib/components/ui/AspectTag.svelte, src/lib/components/ui/PageHeader.svelte, src/lib/components/shell/Sidebar.svelte, src/lib/components/shell/HomeList.svelte, src/routes/menu/+page.svelte, e2e/navigation.test.ts
 
-- [ ] 4.1 `src/app.css` imports the tokens and sets base type/background (light only); `+layout.svelte` renders the sidebar on desktop and a single column on phone, styled from the approved brief
-- [ ] 4.2 UI primitives in `src/lib/components/ui/` with the props from design.md Contracts, tokens only (no raw colours); `Sheet` is a bottom sheet on phone and a dialog on desktop
-- [ ] 4.3 Write `Scenario: Desktop shows a sidebar` and `Scenario: Phone home list shows the five lists` in `e2e/navigation.test.ts`, then `Sidebar`, `HomeList` and `/menu` (Things-style list, back link to `/menu` from `PageHeader` on phone)
+- [x] 4.1 `src/app.css` imports the tokens and sets base type/background (light only); `+layout.svelte` renders the sidebar on desktop and a single column on phone, styled from the approved brief
+- [x] 4.2 UI primitives in `src/lib/components/ui/` with the props from design.md Contracts, tokens only (no raw colours); `Sheet` is a bottom sheet on phone and a dialog on desktop
+- [x] 4.3 Write `Scenario: Desktop shows a sidebar` and `Scenario: Phone home list shows the five lists` in `e2e/navigation.test.ts`, then `Sidebar`, `HomeList` and `/menu` (Things-style list, back link to `/menu` from `PageHeader` on phone)
 
 ## 5. Aspects and todos services
 
