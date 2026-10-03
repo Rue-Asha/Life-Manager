@@ -1,0 +1,62 @@
+@import './lib/styles/tokens.css';
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html {
+	-webkit-text-size-adjust: 100%;
+}
+
+body {
+	margin: 0;
+	background: var(--paper);
+	color: var(--ink);
+	/* The self-hosted fontsource build registers the family under its "Variable" name. */
+	font-family: 'Bricolage Grotesque Variable', var(--font-sans);
+	font-size: var(--text-md);
+	line-height: var(--leading-body);
+	letter-spacing: var(--tracking-body);
+	font-optical-sizing: auto;
+	-webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+p {
+	margin: 0;
+}
+
+button,
+input,
+textarea,
+select {
+	font: inherit;
+	letter-spacing: inherit;
+	color: inherit;
+}
+
+a {
+	color: var(--accent);
+}
+
+:focus-visible {
+	outline: none;
+	box-shadow: var(--ring-focus);
+}
+
+.num {
+	font-variant-numeric: tabular-nums;
+}
+
+.visually-hidden {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
