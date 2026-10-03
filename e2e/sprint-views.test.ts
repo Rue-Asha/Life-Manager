@@ -272,6 +272,73 @@ test('Scenario: Board and week cards offer the send-back action', async ({ page,
 	await expect(doing.getByTestId('todo-row')).toHaveCount(0);
 });
 
+const railRow = (page: Page, title: string) =>
+	page.getByTestId('backlog-rail').getByTestId('todo-row').filter({ hasText: title });
+
+// The view switch cross-fades; a drag that starts during the snapshot would hit the old page.
+async function settled(page: Page) {
+	await page.waitForFunction(() => !document.documentElement.matches(':active-view-transition'));
+}
+
+test('Scenario: Drop a rail todo on a board column sets its status', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [...ASPECTS],
+		sprint: { state: 'active', weekStart: WEEK },
+		todos: [{ title: 'Morning run', aspect: 0, inSprint: true }, { title: 'Book a physio appointment', aspect: 0 }]
+	});
+	await page.goto('/sprint?view=board');
+	await settled(page);
+
+	await railRow(page, 'Book a physio appointment').dragTo(page.getByTestId('board-column-doing'), {
+		sourcePosition: { x: 8, y: 8 }
+	});
+	await expect(page.getByTestId('board-column-doing')).toContainText('Book a physio appointment');
+
+	await page.reload();
+	await expect(row(page, 'Book a physio appointment')).toHaveAttribute('data-status', 'doing');
+	await expect(page.getByTestId('board-column-doing')).toContainText('Book a physio appointment');
+	await expect(railRow(page, 'Book a physio appointment')).toHaveCount(0);
+});
+
+test('Scenario: Drop a rail todo on the Done column', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [...ASPECTS],
+		sprint: { state: 'active', weekStart: WEEK },
+		todos: [{ title: 'Morning run', aspect: 0, inSprint: true }, { title: 'Book a physio appointment', aspect: 0 }]
+	});
+	await page.goto('/sprint?view=board');
+	await settled(page);
+
+	await railRow(page, 'Book a physio appointment').dragTo(page.getByTestId('board-column-done'), {
+		sourcePosition: { x: 8, y: 8 }
+	});
+	await expect(page.getByTestId('board-column-done')).toContainText('Book a physio appointment');
+
+	await page.reload();
+	await expect(row(page, 'Book a physio appointment')).toHaveAttribute('data-status', 'done');
+	await expect(page.getByRole('checkbox', { name: 'Done: Book a physio appointment' })).toHaveAttribute('aria-checked', 'true');
+});
+
+test('Scenario: Drop a rail todo on a day column sets its day', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [...ASPECTS],
+		sprint: { state: 'active', weekStart: WEEK },
+		todos: [{ title: 'Morning run', aspect: 0, inSprint: true }, { title: 'Book a physio appointment', aspect: 0 }]
+	});
+	await page.goto('/sprint?view=week');
+	await settled(page);
+
+	await railRow(page, 'Book a physio appointment').dragTo(page.getByTestId('day-column-2026-10-08'), {
+		sourcePosition: { x: 8, y: 8 }
+	});
+	await expect(page.getByTestId('day-column-2026-10-08')).toContainText('Book a physio appointment');
+
+	await page.reload();
+	await expect(row(page, 'Book a physio appointment')).toHaveAttribute('data-day', '2026-10-08');
+	await expect(row(page, 'Book a physio appointment')).toHaveAttribute('data-status', 'todo');
+	await expect(railRow(page, 'Book a physio appointment')).toHaveCount(0);
+});
+
 test('Scenario: Empty board column shows a placeholder', async ({ page, request }) => {
 	await seed(request, {
 		aspects: [...ASPECTS],

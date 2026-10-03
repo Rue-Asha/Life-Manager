@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { tick } from 'svelte';
 	import { dropZone } from '$lib/dnd';
-	import type { Aspect, Id, IsoDate, Status, Todo } from '$lib/types';
+	import type { Aspect, Id, IsoDate, Placement, Status, Todo } from '$lib/types';
 	import { STATUS_LABELS } from '../todo/StatusControl.svelte';
 	import { submit } from '../todo/form';
 	import SprintCard from './SprintCard.svelte';
@@ -11,8 +11,15 @@
 		todos,
 		aspects,
 		today,
-		sprintDays
-	}: { todos: Todo[]; aspects: Aspect[]; today: IsoDate; sprintDays: IsoDate[] } = $props();
+		sprintDays,
+		onadd
+	}: {
+		todos: Todo[];
+		aspects: Aspect[];
+		today: IsoDate;
+		sprintDays: IsoDate[];
+		onadd?: (id: Id, placement: Placement) => void;
+	} = $props();
 
 	const STATUSES: Status[] = ['todo', 'doing', 'done'];
 	const PLACEHOLDERS: Record<Status, string> = {
@@ -54,7 +61,10 @@
 		{@const cards = todos.filter((t) => statusOf(t) === status)}
 		<section
 			class="column"
-			use:dropZone={{ accepts: (p) => p.from === 'sprint', ondrop: (p) => drop(p.id, status) }}
+			use:dropZone={{
+				accepts: (p) => p.from === 'sprint' || !!onadd,
+				ondrop: (p) => (p.from === 'sprint' ? drop(p.id, status) : onadd?.(p.id, { status }))
+			}}
 			data-testid="board-column-{status}"
 			aria-labelledby="column-{status}"
 		>

@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { tick } from 'svelte';
 	import { dropZone } from '$lib/dnd';
-	import type { Aspect, Id, IsoDate, Target, Todo } from '$lib/types';
+	import type { Aspect, Id, IsoDate, Placement, Target, Todo } from '$lib/types';
 	import QuickAdd from '../todo/QuickAdd.svelte';
 	import { submit } from '../todo/form';
 	import { dayLabel } from '../todo/format';
@@ -13,8 +13,15 @@
 		todos,
 		aspects,
 		today,
-		sprintDays
-	}: { todos: Todo[]; aspects: Aspect[]; today: IsoDate; sprintDays: IsoDate[] } = $props();
+		sprintDays,
+		onadd
+	}: {
+		todos: Todo[];
+		aspects: Aspect[];
+		today: IsoDate;
+		sprintDays: IsoDate[];
+		onadd?: (id: Id, placement: Placement) => void;
+	} = $props();
 
 	const weekday = new Intl.DateTimeFormat('en-GB', { weekday: 'short', timeZone: 'UTC' });
 	const utc = (d: IsoDate) => new Date(`${d}T00:00:00Z`);
@@ -83,7 +90,10 @@
 		<section
 			class="column"
 			class:away={shown !== key}
-			use:dropZone={{ accepts: (p) => p.from === 'sprint', ondrop: (p) => drop(p.id, day) }}
+			use:dropZone={{
+				accepts: (p) => p.from === 'sprint' || !!onadd,
+				ondrop: (p) => (p.from === 'sprint' ? drop(p.id, day) : onadd?.(p.id, { day }))
+			}}
 			data-testid="day-column-{key}"
 			aria-labelledby="day-{key}"
 		>
