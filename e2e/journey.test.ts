@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { reset, setClock } from './helpers';
+import { reset, seed, setClock } from './helpers';
 
 // Monday 5 October 2026, morning in Berlin: the first sprint runs 5–11 October.
 const MONDAY = '2026-10-05T07:00:00Z';
@@ -138,4 +138,110 @@ test('Done-when journey', async ({ page, request }) => {
 	await expect(page.getByTestId('backlog-rail').getByTestId('todo-row')).toHaveText([/Submit lab report/]);
 	await expect(page.getByTestId('todo-row')).toHaveCount(5);
 	await shot(page, 'next-week');
+});
+
+// Wednesday 7 October 2026: the sprint of 5–11 October is running, with work left in the backlog.
+async function seedManaged(request: Parameters<typeof seed>[0]) {
+	await reset(request);
+	await setClock(request, '2026-10-07T10:00:00Z');
+	return seed(request, {
+		aspects: [
+			{ name: 'Health', color: 'sage', icon: 'heart' },
+			{ name: 'Uni', color: 'lavender', icon: 'cap' }
+		],
+		sprint: { state: 'active', weekStart: '2026-10-05' },
+		todos: [
+			{ title: 'Morning run', aspect: 0, inSprint: true, day: '2026-10-05' },
+			{ title: 'Draft the cover letter', aspect: 1, inSprint: true, day: '2026-10-06' },
+			{ title: 'Read chapter 4', aspect: 1 },
+			{ title: 'Book a physio appointment', aspect: 0 }
+		]
+	});
+}
+
+async function expectAspectPage(page: Page, aspect: number) {
+	await expect(page).toHaveURL(new RegExp(`/aspects/${aspect}$`));
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Uni');
+	await expect(row(page, 'Read chapter 4')).toBeVisible();
+	await expect(page.getByTestId('aspect-sprint').getByTestId('todo-row')).toHaveText([/Read chapter 4/]);
+	await expect(row(page, 'Read chapter 4')).toHaveAttribute('data-day', '2026-10-08');
+	await expect(page.getByTestId('aspect-backlog').getByTestId('todo-row')).toHaveText([/Draft the cover letter/]);
+}
+
+test('Sprint management journey', async ({ page, request }) => {
+	const { aspects } = await seedManaged(request);
+	const rail = page.getByTestId('backlog-rail');
+	const menu = page.getByRole('menu');
+
+	// Pull from the docked rail
+	await page.goto('/sprint');
+	await page.getByRole('button', { name: 'Add to sprint: Read chapter 4' }).click();
+	await expect(page.getByTestId('sprint-list').getByTestId('todo-row').filter({ hasText: 'Read chapter 4' })).toBeVisible();
+	await expect(rail.getByTestId('todo-row').filter({ hasText: 'Read chapter 4' })).toHaveCount(0);
+
+	// Give it a day from the Week's overlay rail, where Unscheduled lives
+	await switchView(page, 'Week', 'week');
+	await page.getByTestId('rail-toggle').click();
+	await expect(day(page, 'unscheduled')).toContainText('Read chapter 4');
+	await row(page, 'Read chapter 4').dragTo(day(page, '2026-10-08'), { sourcePosition: { x: 8, y: 8 } });
+	await expect(day(page, '2026-10-08')).toContainText('Read chapter 4');
+
+	// Send another back from its card
+	await day(page, '2026-10-06').getByTestId('row-actions').click();
+	await menu.getByRole('menuitem', { name: 'Move to backlog' }).click();
+	await expect(day(page, '2026-10-06').getByTestId('todo-row')).toHaveCount(0);
+	await expect(rail.getByTestId('todo-row').filter({ hasText: 'Draft the cover letter' })).toBeVisible();
+	await page.getByTestId('rail-toggle').click();
+	await expect(page.getByTestId('context-rail')).toBeHidden();
+	await shot(page, 'manage-week');
+
+	// Its aspect page shows both sides of the pipeline
+	await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Uni' }).click();
+	await expectAspectPage(page, aspects[1]);
+	await shot(page, 'manage-aspect');
+});
+
+test.describe('on a touch phone', () => {
+	test.use({ viewport: { width: 375, height: 812 }, hasTouch: true, isMobile: true });
+
+	test('Sprint management journey', async ({ page, request }) => {
+		const { aspects } = await seedManaged(request);
+		const sheet = page.getByTestId('manage-sheet');
+		const days = page.getByRole('navigation', { name: 'Days' });
+
+		// Pull through the Manage sheet
+		await page.goto('/sprint');
+		await page.getByTestId('manage-button').tap();
+		await sheet.getByRole('button', { name: 'Add to sprint: Read chapter 4' }).tap();
+		await expect(sheet.getByTestId('todo-row').filter({ hasText: 'Read chapter 4' })).toHaveCount(0);
+		await page.getByRole('button', { name: 'Close' }).tap();
+		await expect(page.getByTestId('sprint-list').getByTestId('todo-row').filter({ hasText: 'Read chapter 4' })).toBeVisible();
+
+		// Give it a day with the day picker
+		await page.getByRole('navigation', { name: 'Sprint view' }).getByRole('link', { name: 'Week' }).tap();
+		await expect(page).toHaveURL(/view=week$/);
+		await days.getByRole('button', { name: 'Unscheduled' }).tap();
+		await row(page, 'Read chapter 4').getByLabel('Day').selectOption({ label: 'Thu 8' });
+		await expect(day(page, 'unscheduled').getByTestId('todo-row')).toHaveCount(0);
+		await days.getByRole('button', { name: 'Thu 8' }).tap();
+		await expect(day(page, '2026-10-08')).toContainText('Read chapter 4');
+
+		// Send another back from its row
+		await days.getByRole('button', { name: 'Tue 6' }).tap();
+		await day(page, '2026-10-06').getByTestId('row-actions').tap();
+		await page.getByRole('menu').getByRole('menuitem', { name: 'Move to backlog' }).tap();
+		await expect(day(page, '2026-10-06').getByTestId('todo-row')).toHaveCount(0);
+		await page.getByTestId('manage-button').tap();
+		await expect(sheet.getByTestId('todo-row').filter({ hasText: 'Draft the cover letter' })).toBeVisible();
+		await page.getByRole('button', { name: 'Close' }).tap();
+
+		// Its aspect page, through Lists → Aspects
+		await page.getByRole('link', { name: 'Lists' }).tap();
+		await expect(page).toHaveURL(/\/menu$/);
+		await page.getByRole('navigation', { name: 'Lists' }).getByRole('link', { name: 'Aspects', exact: true }).tap();
+		await expect(page.getByRole('heading', { level: 1 })).toHaveText('Aspects');
+		await page.getByRole('main').getByRole('link', { name: 'Uni', exact: true }).tap();
+		await expectAspectPage(page, aspects[1]);
+		await page.screenshot({ path: 'test-results/shots/journey-manage-aspect-375.png', fullPage: true });
+	});
 });
