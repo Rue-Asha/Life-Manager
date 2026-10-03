@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { tick } from 'svelte';
+	import { dropZone } from '$lib/dnd';
 	import type { Aspect, Id, IsoDate, Target, Todo } from '$lib/types';
 	import QuickAdd from '../todo/QuickAdd.svelte';
 	import { submit } from '../todo/form';
 	import { dayLabel } from '../todo/format';
 	import { UI_ICONS } from '../ui/icons';
-	import SprintCard, { dropTarget } from './SprintCard.svelte';
+	import SprintCard from './SprintCard.svelte';
 
 	let {
 		todos,
@@ -82,7 +83,7 @@
 		<section
 			class="column"
 			class:away={shown !== key}
-			use:dropTarget={(id) => drop(id, day)}
+			use:dropZone={{ accepts: (p) => p.from === 'sprint', ondrop: (p) => drop(p.id, day) }}
 			data-testid="day-column-{key}"
 			aria-labelledby="day-{key}"
 		>

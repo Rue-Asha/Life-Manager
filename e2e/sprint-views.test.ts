@@ -237,6 +237,41 @@ test('Scenario: Move a todo between board columns by drag', async ({ page, reque
 	await expect(row(page, 'Draft the cover letter')).toHaveAttribute('data-status', 'doing');
 });
 
+test('Scenario: Board and week cards offer the send-back action', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [...ASPECTS],
+		sprint: { state: 'active', weekStart: WEEK },
+		todos: [
+			{ title: 'Draft the cover letter', aspect: 1, inSprint: true, status: 'doing', day: '2026-10-08' },
+			{ title: 'Clean the fridge', aspect: 2, inSprint: true, day: '2026-10-06' },
+			{ title: 'Gym', aspect: 0, inSprint: true, day: '2026-10-06', recurring: true }
+		]
+	});
+	const cardIn = (scope: ReturnType<Page['getByTestId']>, title: string) =>
+		scope.getByTestId('sprint-card').filter({ hasText: title });
+	const menu = page.getByRole('menu');
+
+	await page.goto('/sprint?view=week');
+	await cardIn(day(page, '2026-10-06'), 'Clean the fridge').getByTestId('row-actions').click();
+	await expect(menu.getByRole('menuitem')).toHaveText(['Move to backlog']);
+	await page.keyboard.press('Escape');
+	await cardIn(day(page, '2026-10-06'), 'Gym').getByTestId('row-actions').click();
+	await expect(menu.getByRole('menuitem')).toHaveText(['Remove from sprint']);
+	await page.keyboard.press('Escape');
+
+	await page.goto('/sprint?view=board');
+	const doing = page.getByTestId('board-column-doing');
+	await cardIn(doing, 'Draft the cover letter').getByTestId('row-actions').click();
+	await menu.getByRole('menuitem', { name: 'Move to backlog' }).click();
+	const inRail = page.getByTestId('backlog-rail').getByTestId('todo-row').filter({ hasText: 'Draft the cover letter' });
+	await expect(doing.getByTestId('todo-row')).toHaveCount(0);
+	await expect(inRail).toBeVisible();
+
+	await page.reload();
+	await expect(inRail).toBeVisible();
+	await expect(doing.getByTestId('todo-row')).toHaveCount(0);
+});
+
 test('Scenario: Empty board column shows a placeholder', async ({ page, request }) => {
 	await seed(request, {
 		aspects: [...ASPECTS],

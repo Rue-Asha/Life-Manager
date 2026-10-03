@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { tick } from 'svelte';
+	import { dropZone } from '$lib/dnd';
 	import type { Aspect, Id, IsoDate, Status, Todo } from '$lib/types';
 	import { STATUS_LABELS } from '../todo/StatusControl.svelte';
 	import { submit } from '../todo/form';
-	import SprintCard, { dropTarget } from './SprintCard.svelte';
+	import SprintCard from './SprintCard.svelte';
 
 	let {
 		todos,
@@ -53,7 +54,7 @@
 		{@const cards = todos.filter((t) => statusOf(t) === status)}
 		<section
 			class="column"
-			use:dropTarget={(id) => drop(id, status)}
+			use:dropZone={{ accepts: (p) => p.from === 'sprint', ondrop: (p) => drop(p.id, status) }}
 			data-testid="board-column-{status}"
 			aria-labelledby="column-{status}"
 		>
