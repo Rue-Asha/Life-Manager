@@ -1,36 +1,36 @@
-verified-at: 64c8c84
+verified-at: eb60a44
 
 ## Layer 1 — proof-full (`PORT=4700 npm run proof:full`): green
 
 ```
-  ✓  137 e2e/today.test.ts:77:1 › An overdue todo planned for today is listed once, under Overdue (106ms)
-  ✓  138 e2e/today.test.ts:89:1 › Scenario: Status toggle on Today (274ms)
-  ✓  139 e2e/today.test.ts:116:1 › Scenario: Overdue todos outside the sprint offer the sprint instead of a checkbox (229ms)
-  ✓  140 e2e/today.test.ts:136:1 › Scenario: Quick add on Today adds to the sprint on today (466ms)
-  ✓  141 e2e/today.test.ts:156:1 › No quick add on the Sunday before next week's sprint starts (107ms)
-  ✓  142 e2e/today.test.ts:165:1 › Scenario: Today without an active sprint prompts to plan (131ms)
-  ✓  143 e2e/today.test.ts:177:1 › Scenario: Today with a pending review prompts to review (168ms)
-  ✓  144 e2e/today.test.ts:201:1 › Scenario: Nothing today shows a calm empty state (116ms)
-  ✓  145 e2e/today.test.ts:219:1 › Scenario: Sunday after the review prompts to plan next week (315ms)
-  ✓  146 e2e/todos.test.ts:28:1 › GET /todos redirects to the backlog (95ms)
-  ✓  147 e2e/todos.test.ts:34:1 › Scenario: Quick add creates a todo in the backlog (473ms)
-  ✓  148 e2e/todos.test.ts:53:1 › Quick add rejects an empty title inline (419ms)
-  ✓  149 e2e/todos.test.ts:63:1 › Scenario: Past due date is allowed and shown overdue (440ms)
-  ✓  150 e2e/todos.test.ts:74:1 › Quick add on phone opens a sheet (595ms)
-  ✓  151 e2e/todos.test.ts:92:1 › Scenario: Edit every field of a todo (677ms)
-  ✓  152 e2e/todos.test.ts:127:1 › Scenario: Checklist items are added, renamed, toggled and deleted (806ms)
+  ✓  137 e2e/today.test.ts:77:1 › An overdue todo planned for today is listed once, under Overdue (101ms)
+  ✓  138 e2e/today.test.ts:89:1 › Scenario: Status toggle on Today (245ms)
+  ✓  139 e2e/today.test.ts:116:1 › Scenario: Overdue todos outside the sprint offer the sprint instead of a checkbox (219ms)
+  ✓  140 e2e/today.test.ts:136:1 › Scenario: Quick add on Today adds to the sprint on today (478ms)
+  ✓  141 e2e/today.test.ts:156:1 › No quick add on the Sunday before next week's sprint starts (115ms)
+  ✓  142 e2e/today.test.ts:165:1 › Scenario: Today without an active sprint prompts to plan (117ms)
+  ✓  143 e2e/today.test.ts:177:1 › Scenario: Today with a pending review prompts to review (139ms)
+  ✓  144 e2e/today.test.ts:201:1 › Scenario: Nothing today shows a calm empty state (102ms)
+  ✓  145 e2e/today.test.ts:219:1 › Scenario: Sunday after the review prompts to plan next week (286ms)
+  ✓  146 e2e/todos.test.ts:28:1 › GET /todos redirects to the backlog (100ms)
+  ✓  147 e2e/todos.test.ts:34:1 › Scenario: Quick add creates a todo in the backlog (432ms)
+  ✓  148 e2e/todos.test.ts:53:1 › Quick add rejects an empty title inline (406ms)
+  ✓  149 e2e/todos.test.ts:63:1 › Scenario: Past due date is allowed and shown overdue (428ms)
+  ✓  150 e2e/todos.test.ts:74:1 › Quick add on phone opens a sheet (559ms)
+  ✓  151 e2e/todos.test.ts:92:1 › Scenario: Edit every field of a todo (646ms)
+  ✓  152 e2e/todos.test.ts:127:1 › Scenario: Checklist items are added, renamed, toggled and deleted (822ms)
   ✓  153 e2e/todos.test.ts:163:1 › Scenario: Deleting a todo asks for confirmation (1.6s)
-  ✓  154 e2e/todos.test.ts:184:1 › Editing on phone uses a sheet (574ms)
+  ✓  154 e2e/todos.test.ts:184:1 › Editing on phone uses a sheet (567ms)
 
   154 passed (1.4m)
 ```
 
-svelte-check and build clean; unit (vitest) 79 passed in 8 files; e2e (Playwright) 154 passed.
+svelte-check 0 errors / 0 warnings (446 files); build clean; unit (vitest) 79 passed in 8 files; e2e (Playwright) 154 passed.
 
 ## Layer 2 — spec coverage
 
 83 scenarios: 80 with a passing test named `Scenario: <title>` (unit 11, e2e 69), 3 manual, 0 gaps.
-Round 2 delta vs 7d39939: "Board columns share the width at 1280" THEN reworded to "bottom of the page content area (viewport bottom less bottom padding, ±1 px)"; its test now asserts |column bottom − (800 − --space-9)| ≤ 1 for each column and passes.
+Round 3 delta vs 64c8c84 (b8251de): sprint-views requirement "Wide board and week" now says columns reach "the bottom of the page content area (the viewport bottom less the page's bottom padding)"; the scenario text is unchanged. The test "Scenario: Board columns share the width at 1280" now sums the computed `padding-bottom` of the column's ancestors (and asserts it is > 0) instead of reading `--space-9`, then asserts |column bottom − (800 − padding)| ≤ 1 for each column; it passes. design.md records the decision (Rue may veto). No other test, spec or code changed since 64c8c84.
 
 | Scenario | proof | Evidence |
 |---|---|---|
@@ -135,12 +135,12 @@ Start with `npm run dev` → http://localhost:5173, a sprint running with backlo
 
 ## Diffstat
 
-`git diff --stat flow/build-life-manager...flow/sprint-management`: 101 files changed, 5369 insertions(+), 352 deletions(-).
+`git diff --stat flow/build-life-manager...flow/sprint-management`: 101 files changed, 5387 insertions(+), 352 deletions(-).
 Excluding screenshots: 64 files — src/lib 22 (components, server, motion.ts, dnd.ts, types, styles), src/routes 14, e2e 13, openspec change dir 14 (proposal/design/tasks/scope/flow/verification + 7 delta specs), design/brief.md.
 
 ## Screenshots
 
-Refreshed from this run (37 files, from `test-results/shots/`):
+Refreshed from this run (37 files, from `test-results/shots/`; 3 differ from the previous round: journey-backlog-1280, journey-sprint-board-1280, plan-375):
 
 - `shots/aspect-page-375.png`
 - `shots/aspect-page-1280.png`
