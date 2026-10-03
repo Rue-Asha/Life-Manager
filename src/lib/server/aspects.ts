@@ -62,5 +62,25 @@ export function aspectUsage(db: DatabaseSync, id: Id): { todos: number; rules: n
 }
 
 export function deleteAspect(db: DatabaseSync, id: Id, targetId?: Id): Result<void> {
-	throw new Error('not implemented');
+	if (!getAspect(db, id)) return { ok: false, error: 'not-found' };
+	const usage = aspectUsage(db, id);
+	const inUse = usage.todos + usage.rules > 0;
+	if (inUse) {
+		if (countAspects(db) === 1) return { ok: false, error: 'only-aspect-in-use' };
+		if (targetId === undefined || targetId === id) return { ok: false, error: 'target-required', field: 'targetId' };
+		if (!getAspect(db, targetId)) return { ok: false, error: 'not-found', field: 'targetId' };
+	}
+	db.exec('BEGIN');
+	try {
+		if (inUse) {
+			db.prepare('UPDATE todos SET aspect_id = ? WHERE aspect_id = ?').run(targetId!, id);
+			db.prepare('UPDATE recurring_rules SET aspect_id = ? WHERE aspect_id = ?').run(targetId!, id);
+		}
+		db.prepare('DELETE FROM aspects WHERE id = ?').run(id);
+		db.exec('COMMIT');
+	} catch (err) {
+		db.exec('ROLLBACK');
+		throw err;
+	}
+	return { ok: true, value: undefined };
 }
