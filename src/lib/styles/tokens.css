@@ -97,6 +97,8 @@
 	--gutter: 16px;
 	--sidebar-width: 248px;
 	--content-max: 720px;
+	--rail-width: 340px;
+	--day-col-min: 120px;
 
 	/* Radius: grows with the size of the surface. */
 	--radius-xs: 5px; /* checkbox */
