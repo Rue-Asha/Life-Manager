@@ -1,0 +1,113 @@
+import { expect, test, type Page } from '@playwright/test';
+import { reset, seed, setClock } from './helpers';
+
+// Wednesday 7 October 2026 in Berlin; the target week runs Monday 5 to Sunday 11 October.
+const NOW = '2026-10-07T10:00:00Z';
+
+test.beforeEach(async ({ request }) => {
+	await reset(request);
+	await setClock(request, NOW);
+});
+
+test.afterAll(async ({ request }) => {
+	await setClock(request, null);
+});
+
+const ASPECTS = [
+	{ name: 'Health', color: 'sage', icon: 'heart' },
+	{ name: 'Uni', color: 'lavender', icon: 'cap' }
+] as const;
+
+const row = (page: Page, title: string) => page.getByTestId('todo-row').filter({ hasText: title });
+
+// The sprint views come with U11; the sidebar's sprint count and the backlog show the result.
+async function expectStarted(page: Page, inSprint: string[], inBacklog: string[]) {
+	await expect(page).toHaveURL(/\/sprint$/);
+	await page.goto('/backlog');
+	for (const title of inSprint) await expect(row(page, title)).toHaveCount(0);
+	for (const title of inBacklog) await expect(row(page, title)).toBeVisible();
+	await page.setViewportSize({ width: 1280, height: 800 });
+	const sprint = page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Sprint' });
+	await expect(sprint).toContainText(String(inSprint.length));
+	await page.goto('/sprint/plan');
+	await expect(page).toHaveURL(/\/sprint$/);
+}
+
+test.describe('desktop', () => {
+	test.use({ viewport: { width: 1280, height: 800 } });
+
+	test('Scenario: First run can plan immediately', async ({ page, request }) => {
+		await seed(request, {
+			aspects: [...ASPECTS],
+			todos: [{ title: 'Book a physio appointment' }, { title: 'Read chapter 4', aspect: 1 }]
+		});
+		await page.goto('/sprint/plan');
+
+		await expect(page.getByRole('heading', { level: 1 })).toHaveText('Plan your week');
+		await expect(page.getByTestId('plan-week')).toHaveText('Mon 5 – Sun 11 Oct');
+		const backlog = page.getByTestId('plan-backlog');
+		await expect(backlog.getByTestId('todo-row')).toHaveCount(2);
+		await expect(page.getByTestId('plan-sprint').getByTestId('todo-row')).toHaveCount(0);
+		await expect(page.getByRole('button', { name: 'Start sprint' })).toBeEnabled();
+	});
+
+	test('Scenario: Pull todos by drag and start the sprint', async ({ page, request }) => {
+		await seed(request, {
+			aspects: [...ASPECTS],
+			todos: [
+				{ title: 'Book a physio appointment' },
+				{ title: 'Read chapter 4', aspect: 1 },
+				{ title: 'Clean the fridge' }
+			]
+		});
+		await page.goto('/sprint/plan');
+		const sprint = page.getByTestId('plan-sprint');
+		const backlog = page.getByTestId('plan-backlog');
+
+		await row(page, 'Book a physio appointment').dragTo(sprint);
+		await expect(sprint.getByTestId('todo-row')).toHaveCount(1);
+		await row(page, 'Read chapter 4').dragTo(sprint);
+		await expect(sprint.getByTestId('todo-row')).toHaveCount(2);
+		await expect(backlog.getByTestId('todo-row')).toHaveText([/Clean the fridge/]);
+
+		await page.getByRole('button', { name: 'Start sprint with 2 todos' }).click();
+		await expectStarted(page, ['Book a physio appointment', 'Read chapter 4'], ['Clean the fridge']);
+	});
+
+	test('Drag a planned todo back to the backlog', async ({ page, request }) => {
+		await seed(request, {
+			aspects: [...ASPECTS],
+			sprint: { state: 'planning' },
+			todos: [{ title: 'Book a physio appointment', inSprint: true }]
+		});
+		await page.goto('/sprint/plan');
+
+		await row(page, 'Book a physio appointment').dragTo(page.getByTestId('plan-backlog'));
+		await expect(page.getByTestId('plan-backlog').getByTestId('todo-row')).toHaveCount(1);
+		await expect(page.getByTestId('plan-sprint').getByTestId('todo-row')).toHaveCount(0);
+	});
+
+	test('Planning waits for the review while one is pending', async ({ page, request }) => {
+		await seed(request, { aspects: [...ASPECTS], sprint: { state: 'active', weekStart: '2026-09-28' } });
+		await page.goto('/sprint/plan');
+		await expect(page).toHaveURL(/\/sprint\/review$/);
+	});
+});
+
+test.describe('touch phone', () => {
+	test.use({ viewport: { width: 375, height: 812 }, hasTouch: true, isMobile: true });
+
+	test('Scenario: Pull todos with the picker on touch', async ({ page, request }) => {
+		await seed(request, {
+			aspects: [...ASPECTS],
+			todos: [{ title: 'Book a physio appointment' }, { title: 'Clean the fridge' }]
+		});
+		await page.goto('/sprint/plan');
+
+		await page.getByRole('button', { name: 'Add to sprint: Book a physio appointment' }).tap();
+		await expect(page.getByTestId('plan-sprint').getByTestId('todo-row')).toHaveText([/Book a physio appointment/]);
+
+		await page.getByRole('button', { name: 'Start sprint with 1 todo' }).tap();
+		await expectStarted(page, ['Book a physio appointment'], ['Clean the fridge']);
+	});
+});
