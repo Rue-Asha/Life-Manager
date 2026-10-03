@@ -228,6 +228,11 @@
 			padding-inline: var(--space-2);
 		}
 
+		/* Due date and the row menu wrap under each other rather than spill out of the card. */
+		.column :global(.row .end) {
+			flex-wrap: wrap;
+		}
+
 		h2 {
 			position: sticky;
 			top: calc(-1 * var(--space-2));

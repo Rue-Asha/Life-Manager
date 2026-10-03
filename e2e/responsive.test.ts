@@ -38,15 +38,46 @@ const TODOS: SeedInput['todos'] = [
 	{ title: 'Book a physio appointment' }
 ];
 
-async function expectFits(page: Page, name: string) {
+async function expectFits(page: Page, name: string, shot = true) {
 	await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 	const { scrollWidth, clientWidth } = await page.evaluate(() => ({
 		scrollWidth: document.documentElement.scrollWidth,
 		clientWidth: document.documentElement.clientWidth
 	}));
-	expect(scrollWidth, `${name} scrolls horizontally`).toBeLessThanOrEqual(clientWidth);
-	await page.screenshot({ path: `test-results/shots/${name}-375.png`, fullPage: true });
+	const width = page.viewportSize()!.width;
+	expect(scrollWidth, `${name} scrolls horizontally at ${width}`).toBeLessThanOrEqual(clientWidth);
+	// Nor anything inside it (a busy day column scrolls down, never sideways), except the backlog's
+	// aspect filter, a strip of chips meant to be swiped on a phone.
+	const sideways = await page.evaluate(() =>
+		[...document.querySelectorAll<HTMLElement>('body *')]
+			.filter((el) => ['auto', 'scroll'].includes(getComputedStyle(el).overflowX) && el.scrollWidth > el.clientWidth + 1)
+			.filter((el) => el.getAttribute('aria-label') !== 'Filter by aspect')
+			.map((el) => el.dataset.testid ?? el.className)
+	);
+	expect(sideways, `${name} has sideways scrollers at ${width}`).toEqual([]);
+	if (shot) await page.screenshot({ path: `test-results/shots/${name}-${width}.png`, fullPage: true });
 }
+
+const seedSunday = (request: Parameters<typeof seed>[0]) =>
+	seed(request, {
+		aspects: ASPECTS,
+		sprint: { state: 'active', weekStart: WEEK },
+		rules: [{ title: 'Gym', weekdays: [1, 4], checklist: ['Warm up'] }],
+		todos: TODOS
+	});
+
+// Every screen but Welcome and Plan, which need an empty app and a closed review.
+const screens = (aspect: number) => [
+	['/', 'today'],
+	['/sprint?view=aspect', 'sprint-aspect'],
+	['/sprint?view=board', 'sprint-board'],
+	['/sprint?view=week', 'sprint-week'],
+	['/sprint/review', 'review'],
+	['/backlog', 'backlog'],
+	['/aspects', 'aspects'],
+	[`/aspects/${aspect}`, 'aspect-page'],
+	['/recurring', 'recurring']
+];
 
 test('Scenario: Every screen fits 375 px without horizontal scroll', async ({ page, request }) => {
 	await reset(request);
@@ -54,31 +85,65 @@ test('Scenario: Every screen fits 375 px without horizontal scroll', async ({ pa
 	await expectFits(page, 'welcome');
 
 	await setClock(request, SUNDAY);
-	await seed(request, {
-		aspects: ASPECTS,
-		sprint: { state: 'active', weekStart: WEEK },
-		rules: [{ title: 'Gym', weekdays: [1, 4], checklist: ['Warm up'] }],
-		todos: TODOS
-	});
-	for (const [path, name] of [
-		['/', 'today'],
-		['/sprint?view=aspect', 'sprint-aspect'],
-		['/sprint?view=board', 'sprint-board'],
-		['/sprint?view=week', 'sprint-week'],
-		['/sprint/review', 'review'],
-		['/backlog', 'backlog'],
-		['/aspects', 'aspects'],
-		['/recurring', 'recurring']
-	]) {
+	const { aspects } = await seedSunday(request);
+	for (const [path, name] of screens(aspects[1])) {
 		await page.goto(path);
 		await expectFits(page, name);
 	}
+
+	await page.goto('/sprint');
+	await page.getByTestId('manage-button').tap();
+	await expect(page.getByTestId('manage-sheet')).toBeVisible();
+	await expectFits(page, 'sprint-manage');
 
 	// Planning opens once the review is closed.
 	await page.goto('/sprint/review');
 	await page.getByRole('button', { name: /close/i }).tap();
 	await expect(page).toHaveURL(/\/sprint\/plan$/);
 	await expectFits(page, 'plan');
+});
+
+test.describe('on desktop', () => {
+	test.use({ hasTouch: false, isMobile: false });
+
+	const WIDTHS = [768, 1024, 1280, 1600];
+	// Only the 1280 shots are kept; the other widths just have to fit.
+	const fits = async (page: Page, name: string) => expectFits(page, name, page.viewportSize()!.width === 1280);
+
+	test('Scenario: No screen scrolls horizontally at any width', async ({ page, request }) => {
+		test.setTimeout(120_000);
+		await reset(request);
+		await page.goto('/welcome');
+		for (const width of WIDTHS) {
+			await page.setViewportSize({ width, height: 800 });
+			await fits(page, 'welcome');
+		}
+
+		await setClock(request, SUNDAY);
+		const { aspects } = await seedSunday(request);
+		for (const width of WIDTHS) {
+			await page.setViewportSize({ width, height: 800 });
+			for (const [path, name] of screens(aspects[1])) {
+				await page.goto(path);
+				await fits(page, name);
+			}
+		}
+
+		await page.setViewportSize({ width: 1100, height: 800 });
+		await page.goto('/sprint');
+		await page.getByTestId('rail-toggle').click();
+		await expect(page.getByTestId('context-rail')).toBeVisible();
+		await expect(page.getByTestId('context-rail')).toHaveCSS('transform', 'none');
+		await expectFits(page, 'sprint-overlay-rail');
+
+		await page.goto('/sprint/review');
+		await page.getByRole('button', { name: /close/i }).click();
+		await expect(page).toHaveURL(/\/sprint\/plan$/);
+		for (const width of WIDTHS) {
+			await page.setViewportSize({ width, height: 800 });
+			await fits(page, 'plan');
+		}
+	});
 });
 
 test('Scenario: Phone home list drills into each list', async ({ page, request }) => {
