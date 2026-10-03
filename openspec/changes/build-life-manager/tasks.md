@@ -114,7 +114,7 @@ Tests create aspects and todos with plain SQL (unit 5 runs in parallel).
 > unit: depends=7,8,9,10,11,12 · scope=S19,S20,S22 · files=e2e/responsive.test.ts, e2e/journey.test.ts, e2e/runtime.test.ts, README.md, plus style fixes in any `.svelte` file the tests expose
 
 - [x] 13.1 Write `Scenario: Every screen fits 375 px without horizontal scroll` (screenshot per screen to `test-results/shots/`) and `Scenario: Phone home list drills into each list`, then fix any overflow or broken back link they expose
-- [ ] 13.2 Write `Scenario: Touch-only device completes the sprint ritual` (touch phone viewport, no drag) and fix what it exposes
+- [x] 13.2 Write `Scenario: Touch-only device completes the sprint ritual` (touch phone viewport, no drag) and fix what it exposes
 - [ ] 13.3 Write `Scenario: Data survives a restart` in `e2e/runtime.test.ts` (create an aspect through `/aspects?/create`, restart `node build` on the same `DATABASE_PATH`, aspect still listed)
 - [ ] 13.4 Write a desktop journey test "Done-when journey" in `e2e/journey.test.ts` (onboarding → capture → plan → work in all three views → review → plan next, with a recurring rule appearing on its day), with desktop screenshots; run `PORT=<port> npm run proof:full` green
 - [ ] 13.5 Write `README.md` per `Requirement: Setup README` (setup incl. Node >= 22.5 and `npx playwright install chromium`; scripts `dev`, `build`, `check`, `proof`, `proof:full`; `node build`; env vars `PORT`, `DATABASE_PATH` (default `./data/life-manager.db`), `LM_TEST` (test hooks only, never in production))

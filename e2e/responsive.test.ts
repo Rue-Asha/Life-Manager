@@ -100,3 +100,45 @@ test('Scenario: Phone home list drills into each list', async ({ page, request }
 		await expect(page).toHaveURL(/\/menu$/);
 	}
 });
+
+test('Scenario: Touch-only device completes the sprint ritual', async ({ page, request }) => {
+	await reset(request);
+	await setClock(request, '2026-10-07T10:00:00Z');
+	await seed(request, {
+		aspects: ASPECTS,
+		todos: [{ title: 'Book a physio appointment' }, { title: 'Read chapter 4', aspect: 1 }, { title: 'Clean the fridge', aspect: 2 }]
+	});
+	const row = (title: string) => page.getByTestId('todo-row').filter({ hasText: title });
+
+	await page.goto('/sprint/plan');
+	await expect(page.locator('[draggable="true"]')).toHaveCount(0);
+	await page.getByRole('button', { name: 'Add to sprint: Book a physio appointment' }).tap();
+	await page.getByRole('button', { name: 'Add to sprint: Read chapter 4' }).tap();
+	await expect(page.getByTestId('plan-sprint').getByTestId('todo-row')).toHaveCount(2);
+	await page.getByRole('button', { name: 'Start sprint with 2 todos' }).tap();
+	await expect(page).toHaveURL(/\/sprint$/);
+
+	await page.getByRole('navigation', { name: 'Sprint view' }).getByRole('link', { name: 'Board' }).tap();
+	await expect(page).toHaveURL(/view=board$/);
+	await expect(page.locator('[draggable="true"]')).toHaveCount(0);
+	await row('Read chapter 4').getByLabel('Status').selectOption('doing');
+	await expect(page.getByTestId('board-column-doing')).toContainText('Read chapter 4');
+
+	await page.getByRole('navigation', { name: 'Sprint view' }).getByRole('link', { name: 'Week' }).tap();
+	await expect(page).toHaveURL(/view=week$/);
+	await expect(page.locator('[draggable="true"]')).toHaveCount(0);
+	await page.getByRole('navigation', { name: 'Days' }).getByRole('button', { name: 'Unscheduled' }).tap();
+	await row('Book a physio appointment').getByLabel('Day').selectOption({ label: 'Thu 8' });
+	await page.getByRole('navigation', { name: 'Days' }).getByRole('button', { name: 'Thu 8' }).tap();
+	await expect(page.getByTestId('day-column-2026-10-08')).toContainText('Book a physio appointment');
+	await page.getByRole('checkbox', { name: 'Done: Book a physio appointment' }).tap();
+	await expect(row('Book a physio appointment')).toHaveAttribute('data-status', 'done');
+
+	await setClock(request, '2026-10-11T16:00:00Z');
+	await page.goto('/sprint/review');
+	await page.getByRole('radiogroup', { name: 'Read chapter 4' }).getByText('Back to backlog').tap();
+	await page.getByRole('button', { name: 'Return 1 and close' }).tap();
+	await expect(page).toHaveURL(/\/sprint\/plan$/);
+	await expect(page.getByTestId('plan-backlog').getByTestId('todo-row')).toHaveText([/Read chapter 4/, /Clean the fridge/]);
+	await expect(page.getByTestId('plan-sprint').getByTestId('todo-row')).toHaveCount(0);
+});
