@@ -1,0 +1,131 @@
+/*
+ * Life Manager design tokens — light theme only (scope.md Decisions).
+ * Components use these custom properties; no raw colours outside this file.
+ * Rationale and Mobbin citations: design/brief.md.
+ */
+
+:root {
+	color-scheme: light;
+
+	/* Neutrals: cool paper, never cream; ink is a true dark grey, not tinted black. */
+	--paper: #ffffff;
+	--paper-sunk: #f4f5f7;
+	--paper-hover: #f7f8fa;
+	--paper-scrim: rgb(28 31 38 / 0.18);
+	--line: #e8eaee;
+	--line-strong: #d6d9df;
+	--ink: #1c1f26;
+	--ink-2: #5b616d;
+	--ink-3: #8e939e;
+	--ink-on-accent: #ffffff;
+
+	/* The one accent: a muted indigo, for the primary action, focus and "today". */
+	--accent: #3a4699;
+	--accent-hover: #2f3a85;
+	--accent-soft: #eceefa;
+
+	/* Red is reserved for overdue. */
+	--overdue: #d23a2f;
+	--overdue-soft: #fcedec;
+
+	/* Aspect palette — the only saturated colours in the app. Keys match ASPECT_COLORS. */
+	--aspect-sage: #3d9566;
+	--aspect-sky: #2e83c4;
+	--aspect-lavender: #7a5fc9;
+	--aspect-ochre: #b98314;
+	--aspect-berry: #c0447c;
+	--aspect-lagoon: #17918b;
+	--aspect-tangerine: #d9731f;
+	--aspect-slate: #677184;
+
+	--aspect-sage-tint: color-mix(in oklch, var(--aspect-sage) 11%, var(--paper));
+	--aspect-sky-tint: color-mix(in oklch, var(--aspect-sky) 11%, var(--paper));
+	--aspect-lavender-tint: color-mix(in oklch, var(--aspect-lavender) 11%, var(--paper));
+	--aspect-ochre-tint: color-mix(in oklch, var(--aspect-ochre) 13%, var(--paper));
+	--aspect-berry-tint: color-mix(in oklch, var(--aspect-berry) 11%, var(--paper));
+	--aspect-lagoon-tint: color-mix(in oklch, var(--aspect-lagoon) 11%, var(--paper));
+	--aspect-tangerine-tint: color-mix(in oklch, var(--aspect-tangerine) 12%, var(--paper));
+	--aspect-slate-tint: color-mix(in oklch, var(--aspect-slate) 11%, var(--paper));
+
+	/* Type: one family, Bricolage Grotesque — its optical-size axis makes titles
+	   characterful and rows quiet. Loaded by the app (self-hosted) or the style tile. */
+	--font-sans: 'Bricolage Grotesque', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+	--text-xs: 0.78125rem; /* 12.5px  badges, counts */
+	--text-sm: 0.8125rem; /* 13px    row metadata, labels */
+	--text-md: 0.9375rem; /* 15px    rows, body, inputs */
+	--text-lg: 1.0625rem; /* 17px    aspect group headers */
+	--text-xl: 1.3125rem; /* 21px    sheet titles, section heads */
+	--text-2xl: 1.875rem; /* 30px    page titles on phone */
+	--text-3xl: 2.25rem; /* 36px    page titles on desktop */
+
+	--leading-tight: 1.15;
+	--leading-snug: 1.3;
+	--leading-body: 1.45;
+
+	--weight-regular: 400;
+	--weight-medium: 500;
+	--weight-semibold: 600;
+	--weight-bold: 700;
+
+	--tracking-title: -0.022em;
+	--tracking-body: -0.003em;
+
+	/* Spacing: 4px base. */
+	--space-0: 2px;
+	--space-1: 4px;
+	--space-2: 8px;
+	--space-3: 12px;
+	--space-4: 16px;
+	--space-5: 20px;
+	--space-6: 24px;
+	--space-7: 32px;
+	--space-8: 40px;
+	--space-9: 56px;
+	--space-10: 72px;
+
+	/* Layout. */
+	--row-height: 44px;
+	--control-height: 36px;
+	--checkbox-size: 18px;
+	--icon-sm: 16px;
+	--icon-md: 20px;
+	--icon-lg: 28px;
+	--gutter: 16px;
+	--sidebar-width: 248px;
+	--content-max: 720px;
+
+	/* Radius: grows with the size of the surface. */
+	--radius-xs: 5px; /* checkbox */
+	--radius-sm: 7px; /* chips, inputs */
+	--radius-md: 10px; /* buttons, menus, empty-state boxes */
+	--radius-lg: 16px; /* expanded todo card, dialogs */
+	--radius-xl: 22px; /* bottom sheet top corners */
+	--radius-pill: 999px;
+
+	/* Shadow: only floating surfaces have one; list rows never do. */
+	--shadow-pop: 0 1px 2px rgb(28 31 38 / 0.06), 0 6px 16px -4px rgb(28 31 38 / 0.12);
+	--shadow-float: 0 1px 3px rgb(28 31 38 / 0.05), 0 18px 40px -12px rgb(28 31 38 / 0.22);
+	--ring-focus: 0 0 0 2px var(--paper), 0 0 0 4px var(--accent);
+
+	/* Motion: only in answer to an action. */
+	--dur-fast: 120ms;
+	--dur-base: 200ms;
+	--dur-slow: 320ms;
+	--ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+	--ease-in-out: cubic-bezier(0.6, 0, 0.3, 1);
+}
+
+@media (min-width: 768px) {
+	:root {
+		--gutter: 32px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	:root {
+		--dur-fast: 0ms;
+		--dur-base: 0ms;
+		--dur-slow: 0ms;
+	}
+}
