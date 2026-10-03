@@ -94,6 +94,56 @@ test.describe('desktop', () => {
 	});
 });
 
+test.describe('suggestions', () => {
+	test.use({ viewport: { width: 1280, height: 800 } });
+
+	test('Scenario: Due-this-week todos are suggested pre-marked', async ({ page, request }) => {
+		await seed(request, {
+			aspects: [...ASPECTS],
+			todos: [
+				{ title: 'Submit lab report', aspect: 1, dueDate: '2026-10-08' },
+				{ title: 'Clean the fridge' }
+			]
+		});
+		await page.goto('/sprint/plan');
+
+		const suggestions = page.getByTestId('plan-suggestions');
+		await expect(suggestions.getByTestId('todo-row')).toHaveText([/Submit lab report/]);
+		await expect(suggestions.getByRole('checkbox', { name: 'Include: Submit lab report' })).toBeChecked();
+		await expect(page.getByTestId('plan-backlog').getByTestId('todo-row')).toHaveText([/Clean the fridge/]);
+
+		await page.getByRole('button', { name: 'Start sprint with 1 todo' }).click();
+		await expectStarted(page, ['Submit lab report'], ['Clean the fridge']);
+	});
+
+	test('Scenario: Unmarked suggestion stays in the backlog', async ({ page, request }) => {
+		await seed(request, {
+			aspects: [...ASPECTS],
+			todos: [
+				{ title: 'Submit lab report', aspect: 1, dueDate: '2026-10-08' },
+				{ title: 'Pay the electricity bill', dueDate: '2026-10-11' }
+			]
+		});
+		await page.goto('/sprint/plan');
+
+		await page.getByRole('checkbox', { name: 'Include: Pay the electricity bill' }).uncheck();
+		await page.getByRole('button', { name: 'Start sprint with 1 todo' }).click();
+		await expectStarted(page, ['Submit lab report'], ['Pay the electricity bill']);
+	});
+
+	test('Scenario: No suggestion section when nothing is due', async ({ page, request }) => {
+		await seed(request, {
+			aspects: [...ASPECTS],
+			todos: [{ title: 'Buy running shoes', dueDate: '2026-10-12' }, { title: 'Clean the fridge' }]
+		});
+		await page.goto('/sprint/plan');
+
+		await expect(page.getByTestId('plan-backlog').getByTestId('todo-row')).toHaveCount(2);
+		await expect(page.getByTestId('plan-suggestions')).toHaveCount(0);
+		await expect(page.getByText('Due this week')).toHaveCount(0);
+	});
+});
+
 test.describe('touch phone', () => {
 	test.use({ viewport: { width: 375, height: 812 }, hasTouch: true, isMobile: true });
 

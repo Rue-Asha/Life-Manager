@@ -30,7 +30,10 @@
 		`${data.weekStart.slice(5, 7) === weekEnd.slice(5, 7) ? dayLabel(data.weekStart) : dateLabel(data.weekStart)} – ${dateLabel(weekEnd)}`
 	);
 
-	const count = $derived(data.planned.length);
+	// Suggestions are pulled when the sprint starts, unless unmarked by then.
+	let unmarked = $state<Id[]>([]);
+	const marked = $derived(data.suggested.filter((t) => !unmarked.includes(t.id)));
+	const count = $derived(data.planned.length + marked.length);
 	const startLabel = $derived(count === 0 ? 'Start sprint' : `Start sprint with ${count} todo${count === 1 ? '' : 's'}`);
 
 	const byAspect = (todos: Todo[]) =>
@@ -115,7 +118,34 @@
 		ondrop={(e) => dropped(e, 'sprint')}
 	>
 		<h2 id="sprint-heading">This sprint <span class="count num">{count}</span></h2>
-		{#if count === 0}
+		{#if data.suggested.length > 0}
+			<section class="suggestions" data-testid="plan-suggestions" aria-labelledby="suggestions-heading">
+				<h3 id="suggestions-heading">
+					<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.flag} /></svg>Due this week
+					<span class="count num">{marked.length} of {data.suggested.length}</span>
+				</h3>
+				{#each data.suggested as todo (todo.id)}
+					{@const aspect = data.aspects.find((a) => a.id === todo.aspectId)!}
+					<div class="item">
+						<ul><TodoRow {todo} {aspect} today={data.today} context="planning" /></ul>
+						<input
+							type="checkbox"
+							class="mark"
+							form="start-form"
+							name="suggested"
+							value={todo.id}
+							aria-label="Include: {todo.title}"
+							checked={!unmarked.includes(todo.id)}
+							onchange={(e) =>
+								(unmarked = e.currentTarget.checked
+									? unmarked.filter((id) => id !== todo.id)
+									: [...unmarked, todo.id])}
+						/>
+					</div>
+				{/each}
+			</section>
+		{/if}
+		{#if data.planned.length === 0 && data.suggested.length === 0}
 			<p class="placeholder">
 				{drag.current ? 'Drag todos here from the backlog.' : 'Add todos from the backlog below.'}
 			</p>
@@ -140,7 +170,7 @@
 	</section>
 </div>
 
-<form class="start" method="POST" action="?/start" use:enhance>
+<form id="start-form" class="start" method="POST" action="?/start" use:enhance>
 	{#if form?.error}
 		<p class="error" role="alert">{ERRORS[form.error] ?? 'That didn’t work. Reload and try again.'}</p>
 	{/if}
@@ -216,6 +246,53 @@
 		border-radius: var(--radius-md);
 		color: var(--ink-3);
 		text-align: center;
+	}
+
+	.suggestions {
+		margin-bottom: var(--space-6);
+	}
+
+	.suggestions h3 svg {
+		width: var(--icon-sm);
+		height: var(--icon-sm);
+		fill: none;
+		stroke: var(--accent);
+		stroke-width: 2;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+
+	.mark {
+		appearance: none;
+		display: grid;
+		place-items: center;
+		width: 32px;
+		height: 32px;
+		margin: var(--space-1) 0 0;
+		border: 1px solid var(--line-strong);
+		border-radius: var(--radius-sm);
+		background: var(--paper);
+		cursor: pointer;
+	}
+
+	.mark::after {
+		content: '';
+		width: 10px;
+		height: 5px;
+		margin-top: -3px;
+		border: solid var(--ink-on-accent);
+		border-width: 0 0 2px 2px;
+		transform: rotate(-45deg);
+		opacity: 0;
+	}
+
+	.mark:checked {
+		border-color: var(--accent);
+		background: var(--accent);
+	}
+
+	.mark:checked::after {
+		opacity: 1;
 	}
 
 	.item {

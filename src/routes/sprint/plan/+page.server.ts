@@ -1,7 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { today } from '$lib/server/clock';
 import { getDb } from '$lib/server/db';
-import { listSprintTodos, pullTodo, sprintPhase, startSprint, unpullTodo } from '$lib/server/sprints';
+import { listSprintTodos, pullTodo, sprintPhase, startSprint, suggestedTodos, unpullTodo } from '$lib/server/sprints';
 import { listBacklog } from '$lib/server/todos';
 import type { Result } from '$lib/types';
 import { targetWeek } from '$lib/week';
@@ -15,11 +15,13 @@ export const load: PageServerLoad = () => {
 	if (phase === 'review-available' || phase === 'review-required') redirect(303, '/sprint/review');
 
 	// Opening the page doesn't create the draft; the first pull does.
+	const suggested = suggestedTodos(db, day);
 	return {
 		today: day,
 		weekStart: targetWeek(day),
 		planned: sprint ? listSprintTodos(db, sprint.id) : [],
-		backlog: listBacklog(db)
+		suggested,
+		backlog: listBacklog(db).filter((t) => !suggested.some((s) => s.id === t.id))
 	};
 };
 
