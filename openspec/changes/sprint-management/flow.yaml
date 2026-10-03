@@ -1,0 +1,7 @@
+triage: "feature — connects sprint ⇄ aspects/backlog in the UI, permanent sprint management, desktop layout + motion pass, two lifecycle bug fixes; >1 session. Appetite: 2–3 sessions."
+base: flow/build-life-manager
+gate0: 2026-10-03
+gate1: 2026-10-03
+learnings:
+  - "planner: existing scenarios copied verbatim into MODIFIED blocks already have tests — tasks.md must not re-list them"
+  - "Gate 1 (2026-10-03): Rue approved as it stands — addition (a) createTodo review-required guard NOT added; (b) collapse memory kept, cut candidate if appetite runs over; planner deviations 1–4 accepted."

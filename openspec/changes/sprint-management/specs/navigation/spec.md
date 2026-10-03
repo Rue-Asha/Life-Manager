@@ -1,0 +1,39 @@
+## ADDED Requirements
+
+### Requirement: Wide desktop layout with context rail
+At ≥1280 px screens SHALL use the width: sidebar | content (lists max 720 px, left-aligned) | context
+rail (~320–360 px, `--paper-sunk`). Rails per screen: Sprint → backlog rail plus Unscheduled (week view);
+Today → this sprint's progress per aspect; aspect page → the aspect's details (colour, counts). Screens
+without a rail (Backlog, Review, Recurring, Welcome) centre their column in the free space. Between 1024
+and 1279 px the rail collapses into a toggle button that opens it as an overlay panel; below 768 px the
+phone layout is unchanged. No screen scrolls horizontally at any width. (S9)
+
+#### Scenario: Sprint at 1280 shows a context rail
+- **WHEN** Rue opens `/sprint` at 1280 px during a running sprint
+- **THEN** the context rail is docked at the right edge with the `--paper-sunk` background, and the sprint list is left-aligned next to the sidebar and at most 720 px wide
+- **proof:** e2e
+
+#### Scenario: Today at 1280 shows sprint progress per aspect
+- **WHEN** Rue opens `/` at 1280 px during a running sprint with todos in two aspects
+- **THEN** the context rail lists both aspects with this sprint's progress "done / total"
+- **proof:** e2e
+
+#### Scenario: Aspect page rail shows the aspect's details
+- **WHEN** Rue opens an aspect page at 1280 px
+- **THEN** the context rail shows the aspect's colour, its sprint progress and its backlog count
+- **proof:** e2e
+
+#### Scenario: Screens without a rail centre their column
+- **WHEN** Backlog, Review, Recurring and Welcome are opened at 1600 px
+- **THEN** on each the content column's centre lies within 8 px of the centre of the area right of the sidebar
+- **proof:** e2e
+
+#### Scenario: Rail becomes an overlay toggle between 1024 and 1279
+- **WHEN** Rue opens `/sprint` at 1100 px during a running sprint
+- **THEN** no rail is docked, a rail toggle button is shown, and pressing it opens the rail as an overlay panel without a scrim; pressing it again closes it
+- **proof:** e2e
+
+#### Scenario: No screen scrolls horizontally at any width
+- **WHEN** every screen (Today, Sprint in all three views, Plan, Review, Backlog, Aspects, an aspect page, Recurring, Welcome) is opened at 768, 1024, 1280 and 1600 px
+- **THEN** none scrolls horizontally, and a 1280 px screenshot of each is written to `test-results/shots/`
+- **proof:** e2e
