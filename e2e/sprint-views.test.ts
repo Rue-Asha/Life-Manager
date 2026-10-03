@@ -429,11 +429,9 @@ test('Scenario: Board columns share the width at 1280', async ({ page, request }
 	// The content area ends one gutter (32 px) before the rail.
 	expect(Math.abs(rail.x - 32 - (last.x + last.width))).toBeLessThanOrEqual(1);
 
-	// Down to the viewport bottom, less the page's bottom padding (56 px).
-	for (const c of columns) {
-		expect(c.y + c.height).toBeGreaterThanOrEqual(800 - 56 - 1);
-		expect(c.y + c.height).toBeLessThanOrEqual(800);
-	}
+	// Down to the bottom of the page content area: the viewport bottom less the page's bottom padding.
+	const padding = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--space-9')));
+	for (const c of columns) expect(Math.abs(c.y + c.height - (800 - padding))).toBeLessThanOrEqual(1);
 });
 
 test('Scenario: Week shows the whole week in one row at 1280', async ({ page, request }) => {

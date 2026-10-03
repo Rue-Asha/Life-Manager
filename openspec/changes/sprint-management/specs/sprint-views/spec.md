@@ -184,7 +184,7 @@ column. Between 1024 and 1279 px the week keeps its wrapped layout with Unschedu
 
 #### Scenario: Board columns share the width at 1280
 - **WHEN** Rue opens the board view at 1280 px
-- **THEN** the three columns have equal widths (±1 px), together span the content area, and each reaches the bottom of the viewport
+- **THEN** the three columns have equal widths (±1 px), together span the content area, and each reaches the bottom of the page content area (the viewport bottom less the page's bottom padding, ±1 px)
 - **proof:** e2e
 
 #### Scenario: Week shows the whole week in one row at 1280
