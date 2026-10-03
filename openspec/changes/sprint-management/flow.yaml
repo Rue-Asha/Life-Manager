@@ -8,6 +8,12 @@ learnings:
   - "planner: existing scenarios copied verbatim into MODIFIED blocks already have tests — tasks.md must not re-list them"
   - "U2: symlinked node_modules breaks svelte-check in every worktree (node_modules/$app/tsconfig.json has relative paths, resolving into the main repo) — recurs despite the build.md note; flow-unit start should npm ci per worktree in SvelteKit 3 repos"
   - "U3: SvelteKit view-transition cross-fade (200 ms) silently swallows Playwright drags started during it — e2e helpers that switch views must wait for !document.documentElement.matches(':active-view-transition')"
+  - "U5: Playwright drags from a row's centre break whenever a layout narrows (centre lands on a select) — drag helpers should grab a dedicated handle or the row's top-left"
+  - "U5: units adding a list next to an existing one (rail beside sprint) break other units' count assertions — scope e2e counts to a container test id from the start"
 gate2_notes:
   - "U3: manual check — overlay slide timing (320 ms, no scrim) and cross-fade look; at 768–1279 the rail toggle sits over the overlay's top area near its middle, not its right edge"
   - "U3: added ::view-transition { pointer-events: none } as a judgement call, not proven necessary"
+  - "Spec/scope say overlay band 1024–1279; design.md decision, code and brief use 768–1279 — spec text to be aligned (verify will flag)"
+  - "U7: clicking an aspect row/card now opens /aspects/<id> (S5); Edit/Delete moved into a per-aspect Actions menu, also on phone; aspect-row test id replaced by aspect-card"
+  - "U5: BacklogRail got optional onadd prop (optimistic add); group header 'N open' replaced by done/total ProgressBar; /sprint progress computed client-side, loaded progress/backlogCounts unused"
+  - "U8: Today rail hidden under review-required; aspect rows link to /aspects/<id>; brief §8 Motion + §9 Layout = manual check for Rue"
