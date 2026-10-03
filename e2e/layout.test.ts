@@ -9,7 +9,7 @@ test.afterAll(async ({ request }) => {
 	await setClock(request, null);
 });
 
-async function expectCentred(page: Page, name: string) {
+async function expectCentred(page: Page, name: string, tolerance = 8) {
 	await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 	const { column, free } = await page.evaluate(() => {
 		const main = document.querySelector('main')!.getBoundingClientRect();
@@ -17,29 +17,69 @@ async function expectCentred(page: Page, name: string) {
 		const width = document.documentElement.clientWidth;
 		return { column: main.left + main.width / 2, free: sidebar.right + (width - sidebar.right) / 2 };
 	});
-	expect(Math.abs(column - free), `${name} column is off-centre`).toBeLessThanOrEqual(8);
+	expect(Math.abs(column - free), `${name} column is off-centre`).toBeLessThanOrEqual(tolerance);
 }
 
-test('Scenario: Screens without a rail centre their column', async ({ page, request }) => {
-	await page.setViewportSize({ width: 1600, height: 900 });
-	await reset(request);
-	await page.goto('/welcome');
-	await expectCentred(page, 'welcome');
-
-	await setClock(request, SUNDAY);
-	await seed(request, {
+const seedSunday = (request: Parameters<typeof seed>[0]) =>
+	seed(request, {
 		aspects: [{ name: 'Health' }],
 		sprint: { state: 'active', weekStart: WEEK },
 		rules: [{ title: 'Gym', weekdays: [1, 4] }],
 		todos: [{ title: 'Morning run', inSprint: true, day: '2026-10-11' }, { title: 'Read chapter 4' }]
 	});
-	for (const [path, name] of [
-		['/backlog', 'backlog'],
-		['/sprint/review', 'review'],
-		['/recurring', 'recurring']
-	]) {
+
+test('Scenario: Screens without a rail centre their column', async ({ page, request }) => {
+	for (const width of [1100, 1600]) {
+		await page.setViewportSize({ width, height: 900 });
+		await reset(request);
+		await page.goto('/welcome');
+		await expectCentred(page, `welcome at ${width}`);
+
+		await setClock(request, SUNDAY);
+		await seedSunday(request);
+		for (const [path, name] of [
+			['/backlog', 'backlog'],
+			['/sprint/review', 'review'],
+			['/recurring', 'recurring'],
+			['/aspects', 'aspects']
+		]) {
+			await page.goto(path);
+			await expect(page).toHaveURL(new RegExp(`${path}$`));
+			await expectCentred(page, `${name} at ${width}`);
+		}
+	}
+});
+
+test('Scenario: Screens with a rail centre their column', async ({ page, request }) => {
+	await reset(request);
+	await setClock(request, SUNDAY);
+	const { aspects } = await seedSunday(request);
+	const screens = [
+		['/', 'today'],
+		['/sprint?view=aspect', 'sprint by aspect'],
+		[`/aspects/${aspects[0]}`, 'aspect page']
+	];
+
+	// Docked rail: the column sits in the middle of the space between sidebar and rail.
+	await page.setViewportSize({ width: 1600, height: 900 });
+	for (const [path, name] of screens) {
 		await page.goto(path);
-		await expect(page).toHaveURL(new RegExp(`${path}$`));
-		await expectCentred(page, name);
+		await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+		const rail = page.getByTestId('context-rail');
+		await expect(rail).toBeVisible();
+		const { column, free } = await rail.evaluate((el) => {
+			const content = el.previousElementSibling!.getBoundingClientRect();
+			const sidebar = document.querySelector('main')!.previousElementSibling!.getBoundingClientRect();
+			const left = el.getBoundingClientRect().left;
+			return { column: content.left + content.width / 2, free: (sidebar.right + left) / 2 };
+		});
+		expect(Math.abs(column - free), `${name} column is off-centre`).toBeLessThanOrEqual(2);
+	}
+
+	// Overlay rail: the column is centred right of the sidebar like a screen without a rail.
+	await page.setViewportSize({ width: 1100, height: 900 });
+	for (const [path, name] of screens) {
+		await page.goto(path);
+		await expectCentred(page, `${name} at 1100`, 2);
 	}
 });

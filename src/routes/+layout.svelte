@@ -52,6 +52,7 @@
 	.page {
 		width: 100%;
 		max-width: calc(var(--content-max) + 2 * var(--gutter));
+		margin-inline: auto;
 		padding: var(--space-5) var(--gutter) var(--space-9);
 	}
 
@@ -71,18 +72,11 @@
 		}
 	}
 
-	/* Wide screens: pages with a context rail lay out their own columns; the rest centre in the free space. */
+	/* Wide screens: pages with a context rail lay out their own columns and centre the content between
+	   sidebar and rail; the rest keep the centred column. */
 	@media (min-width: 1280px) {
-		.page {
-			max-width: none;
-		}
-
-		:global(.page:not(:has(.rail-layout))) {
-			max-width: calc(var(--content-max) + 2 * var(--gutter));
-			margin-inline: auto;
-		}
-
 		:global(.page:has(.rail-layout)) {
+			max-width: none;
 			padding: 0;
 		}
 	}

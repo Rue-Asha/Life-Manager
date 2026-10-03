@@ -226,7 +226,7 @@ Lifesum calendar with green-ringed today, https://mobbin.com/screens/3a530be6-95
 - **Phone (<768 px)** is unchanged: one column, no rail. A screen that needs the rail's
   content brings its own way to it (Sprint: the "Manage" sheet).
 - **Wide desktop (≥1280 px): sidebar | content | context rail.** Lists keep the 720 px
-  measure, left-aligned next to the sidebar; the context rail (`--rail-width`, 340 px) docks
+  measure, centred in the space between the sidebar and the rail; the context rail (`--rail-width`, 340 px) docks
   at the right edge on `--paper-sunk`, the same stone as the sidebar, so the content sits
   between two quiet surfaces. Each rail answers the screen's question: Sprint → the backlog
   rail plus Unscheduled; Today → this sprint's progress per aspect ("done / total" with a
@@ -261,9 +261,12 @@ Lifesum calendar with green-ringed today, https://mobbin.com/screens/3a530be6-95
   than a third layout for a band the scope left open.
   — Jira sidebar open/close flow, https://mobbin.com/flows/03bcd9ae-4012-41dc-aac6-98673a6fe3d4
   (screen d4a9c031-0cba-41a8-b0f0-63499d51119c)
-- **Screens without a rail centre their column.** Backlog, Review, Recurring and Welcome
-  keep the 720 px column and centre it in the space right of the sidebar, so no wide screen
-  has an empty right third. No screen scrolls horizontally at any width.
+- **Every main screen centres its column.** Screens with a docked rail (Today, Sprint By
+  aspect, an aspect page) centre the 720 px column between sidebar and rail; screens without
+  one (Backlog, Plan, Review, Recurring, Aspects, Welcome) and every screen at 768–1279 px
+  centre it in the space right of the sidebar, so no screen has an empty right third and
+  switching tabs never shifts the column sideways (Rue at Gate 2). Board and Week are the
+  exception: they fill the content width. No screen scrolls horizontally at any width.
 
 ## Hand-off notes for feature units
 

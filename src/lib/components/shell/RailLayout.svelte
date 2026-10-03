@@ -92,7 +92,8 @@
 		}
 	}
 
-	/* Wide desktop: the rail docks at the right edge; the content keeps the list measure, left-aligned.
+	/* Wide desktop: the rail docks at the right edge; the content keeps the list measure, centred between
+	   sidebar and rail.
 	   An overlay layout (Week) keeps the toggle and panel, so the content gets the full width. */
 	@media (min-width: 1280px) {
 		.rail-layout:not(.overlay) {
@@ -103,6 +104,7 @@
 
 		.content {
 			max-width: calc(var(--content-max) + 2 * var(--gutter));
+			margin-inline: auto;
 			padding: var(--space-8) var(--gutter) var(--space-9);
 		}
 

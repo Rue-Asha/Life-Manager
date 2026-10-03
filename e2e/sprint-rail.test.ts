@@ -141,7 +141,8 @@ test('Scenario: Sprint at 1280 shows a context rail', async ({ page, request }) 
 	const box = await expectDockedRail();
 	const list = (await sprintList(page).boundingBox())!;
 	expect(list.width).toBeLessThanOrEqual(720);
-	expect(list.x - (await sidebarRight())).toBeLessThanOrEqual(64);
+	const free = ((await sidebarRight()) + box.x) / 2;
+	expect(Math.abs(list.x + list.width / 2 - free)).toBeLessThanOrEqual(2);
 	expect(list.x + list.width).toBeLessThanOrEqual(box.x);
 
 	// The board's columns widen past the list measure (wide board), but sit between sidebar and rail.

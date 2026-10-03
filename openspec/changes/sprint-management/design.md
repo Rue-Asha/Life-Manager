@@ -31,8 +31,10 @@ From `scope.md` (Rue's decisions, unchanged):
 
 Technical (planner):
 - **Rail is a per-page component, not a layout slot.** `RailLayout` (content + `rail` snippet) is rendered
-  by the pages that have a rail; the root layout only stops capping `.page` at ≥1280 and centres a 720 px
-  column for pages without one (`.page:has(.rail-layout)` opts out). Alternative — a layout-level slot fed
+  by the pages that have a rail; the root layout centres a 720 px `.page` column on every screen at every
+  width, and at ≥1280 `.page:has(.rail-layout)` opts out so `RailLayout` centres its content in the grid
+  track between sidebar and rail (Rue at Gate 2: every main screen centres its column; wide Board/Week
+  fill the track instead). Alternative — a layout-level slot fed
   through a store or page data — needs cross-route plumbing for three screens.
 - **`RailLayout` bands:** ≥1280 docked rail; 768–1279 toggle + overlay panel (widened from 1024–1279 at
   Gate 1: the overlay is the smaller choice for the tablet band than a third layout); <768 no rail at all —
