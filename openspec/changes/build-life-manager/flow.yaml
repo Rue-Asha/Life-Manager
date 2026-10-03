@@ -16,3 +16,4 @@ learnings:
   - "SvelteKit 3 removed the $lib alias (now #lib via package.json imports) — decide the import style in the contract unit"
   - "fontsource variable fonts register as '<Family> Variable' — token font-family must use that name"
   - "SvelteKit 3 CSRF: a POST without content type and Origin gets 403 — e2e posting to form actions must send `origin: baseURL`"
+  - "adapter-node 6 ignores runtime ORIGIN and assumes https — form actions 403 over plain http unless PROTOCOL_HEADER + X-Forwarded-Proto; set it in playwright.config.ts in the harness unit"
