@@ -1,4 +1,5 @@
 import { fail, redirect } from '@sveltejs/kit';
+import { today } from '$lib/server/clock';
 import { getDb } from '$lib/server/db';
 import {
 	addChecklistItem,
@@ -91,7 +92,7 @@ export const actions: Actions = {
 	},
 	addToSprint: async ({ request }) => {
 		const data = await request.formData();
-		return respond(addToActiveSprint(getDb(), num(data, 'id')), data);
+		return respond(addToActiveSprint(getDb(), num(data, 'id'), today()), data);
 	},
 	moveToBacklog: async ({ request }) => {
 		const data = await request.formData();

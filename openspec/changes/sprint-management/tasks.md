@@ -8,7 +8,7 @@ No task in this change is irreversible (no schema change, no migration, nothing 
 
 > unit: depends=none · scope=none · files=src/lib/types.ts, src/lib/server/sprints.ts, src/lib/server/sprints.test.ts, src/lib/server/todos.ts, src/routes/todos/+page.server.ts, src/lib/dnd.ts, src/lib/motion.ts, src/lib/styles/tokens.css, src/lib/components/ui/ProgressBar.svelte, src/lib/components/ui/Toast.svelte, src/lib/components/rail/BacklogRail.svelte, src/lib/components/shell/RailLayout.svelte, src/lib/components/sprint/UnscheduledList.svelte
 
-- [ ] 1.1 Add `AspectProgress`, `Placement` and error code `review-required` to `src/lib/types.ts`; give `addToActiveSprint` the signature `(db, todoId, today, placement?)` with today's behaviour, update its calls in `src/lib/server/sprints.test.ts`; add stubs `aspectProgress` (returns `{}`) and `backlogCounts` (returns `{}`) per design.md Contracts
+- [x] 1.1 Add `AspectProgress`, `Placement` and error code `review-required` to `src/lib/types.ts`; give `addToActiveSprint` the signature `(db, todoId, today, placement?)` with today's behaviour, update its calls in `src/lib/server/sprints.test.ts`; add stubs `aspectProgress` (returns `{}`) and `backlogCounts` (returns `{}`) per design.md Contracts
 - [ ] 1.2 Write `Scenario: Removing a recurring instance deletes only that instance` in `src/lib/server/sprints.test.ts`, then implement `removeFromSprint` (recurring → `deleteTodo`, else `moveToBacklog`)
 - [ ] 1.3 `/todos` actions per Contracts: `?/addToSprint` reads optional `day` / `status` and passes `today()`; new `?/removeFromSprint`
 - [ ] 1.4 Implement `src/lib/dnd.ts` and `src/lib/motion.ts` per Contracts (reduced motion → 0 ms); add `--rail-width` and `--day-col-min` to `tokens.css`; implement `ui/ProgressBar.svelte`

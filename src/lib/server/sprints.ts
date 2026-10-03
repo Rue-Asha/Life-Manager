@@ -1,7 +1,9 @@
 import type { DatabaseSync, SQLInputValue } from 'node:sqlite';
 import type {
+	AspectProgress,
 	Id,
 	IsoDate,
+	Placement,
 	Priority,
 	Result,
 	ReviewDecision,
@@ -179,7 +181,7 @@ export function listToday(db: DatabaseSync, today: IsoDate): Todo[] {
 	);
 }
 
-export function addToActiveSprint(db: DatabaseSync, todoId: Id): Result<Todo> {
+export function addToActiveSprint(db: DatabaseSync, todoId: Id, today: IsoDate, placement?: Placement): Result<Todo> {
 	const active = getActiveSprint(db);
 	if (!active) return { ok: false, error: 'no-active-sprint' };
 	const todo = getTodo(db, todoId);
@@ -188,6 +190,10 @@ export function addToActiveSprint(db: DatabaseSync, todoId: Id): Result<Todo> {
 		"UPDATE todos SET sprint_id = ?, day = NULL, status = 'todo', completed_at = NULL WHERE id = ?"
 	).run(active.id, todoId);
 	return { ok: true, value: getTodo(db, todoId)! };
+}
+
+export function aspectProgress(db: DatabaseSync, sprintId: Id): Record<Id, AspectProgress> {
+	return {};
 }
 
 export function moveToBacklog(db: DatabaseSync, todoId: Id): Result<Todo> {

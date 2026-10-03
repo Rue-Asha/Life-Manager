@@ -173,6 +173,10 @@ export function listBacklog(db: DatabaseSync, aspectId?: Id): Todo[] {
 	return withChecklists(db, rows);
 }
 
+export function backlogCounts(db: DatabaseSync): Record<Id, number> {
+	return {};
+}
+
 export function listOverdue(db: DatabaseSync, today: IsoDate): Todo[] {
 	const rows = db
 		.prepare(

@@ -190,16 +190,16 @@ describe('mid-sprint changes', () => {
 
 	it('adds a backlog todo to the active sprint as To do', () => {
 		const id = todo('Call bank');
-		expect(addToActiveSprint(db, id)).toEqual({ ok: false, error: 'no-active-sprint' });
+		expect(addToActiveSprint(db, id, '2026-10-07')).toEqual({ ok: false, error: 'no-active-sprint' });
 		const s = sprint('active', '2026-10-05');
-		expect(addToActiveSprint(db, id)).toMatchObject({ ok: true, value: { sprintId: s, status: 'todo', day: null } });
+		expect(addToActiveSprint(db, id, '2026-10-07')).toMatchObject({ ok: true, value: { sprintId: s, status: 'todo', day: null } });
 		expect(moveToBacklog(db, todo('Backlog'))).toEqual({ ok: false, error: 'not-found' });
 	});
 
 	it('a done backlog todo joins the active sprint as To do', () => {
 		const s = sprint('active', '2026-10-05');
 		const id = todo('Call bank', { status: 'done' });
-		expect(addToActiveSprint(db, id)).toMatchObject({ ok: true, value: { sprintId: s, status: 'todo', completedAt: null } });
+		expect(addToActiveSprint(db, id, '2026-10-07')).toMatchObject({ ok: true, value: { sprintId: s, status: 'todo', completedAt: null } });
 	});
 
 	it('only backlog todos join the active sprint', () => {
@@ -207,8 +207,8 @@ describe('mid-sprint changes', () => {
 		const s = sprint('active', '2026-10-05');
 		const done = todo('Done last week', { sprintId: closed, status: 'done', day: '2026-09-30' });
 		const doing = todo('Write essay', { sprintId: s, status: 'doing', day: '2026-10-07' });
-		expect(addToActiveSprint(db, done)).toEqual({ ok: false, error: 'not-found' });
-		expect(addToActiveSprint(db, doing)).toEqual({ ok: false, error: 'not-found' });
+		expect(addToActiveSprint(db, done, '2026-10-07')).toEqual({ ok: false, error: 'not-found' });
+		expect(addToActiveSprint(db, doing, '2026-10-07')).toEqual({ ok: false, error: 'not-found' });
 		expect(row(done)).toMatchObject({ sprint_id: closed, status: 'done', day: '2026-09-30' });
 		expect(row(doing)).toMatchObject({ sprint_id: s, status: 'doing', day: '2026-10-07' });
 	});

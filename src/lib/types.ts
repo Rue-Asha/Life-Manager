@@ -10,6 +10,8 @@ export type SprintPhase = 'none' | 'planning' | ReviewState; // 'none' = no acti
 export type ReviewDecision = 'carry' | 'backlog' | 'drop';
 export type Target = { kind: 'backlog' } | { kind: 'sprint' } | { kind: 'day'; day: IsoDate };
 export type Result<T> = { ok: true; value: T } | { ok: false; error: string; field?: string };
+// 'review-required': adding to the sprint while its review is required.
+export type AddToSprintError = 'no-active-sprint' | 'review-required' | 'not-found' | 'day-outside-sprint';
 
 export interface Aspect {
 	id: Id;
@@ -17,6 +19,16 @@ export interface Aspect {
 	color: AspectColor;
 	icon: AspectIcon;
 	position: number;
+}
+
+export interface AspectProgress {
+	done: number;
+	total: number;
+}
+
+export interface Placement {
+	day?: IsoDate | null;
+	status?: Status;
 }
 
 export interface ChecklistItem {
