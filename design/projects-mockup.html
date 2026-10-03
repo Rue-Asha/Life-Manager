@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Life Manager Projects mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..700&display=swap">
+<link rel="stylesheet" href="../src/lib/styles/tokens.css">
+<style>
+
+	/* Static style tile: every colour, size and duration comes from tokens.css. */
+	*, *::before, *::after { box-sizing: border-box; }
+	html { -webkit-text-size-adjust: 100%; }
+	body {
+		margin: 0;
+		background: var(--paper);
+		color: var(--ink);
+		font-family: var(--font-sans);
+		font-size: var(--text-md);
+		line-height: var(--leading-body);
+		letter-spacing: var(--tracking-body);
+		font-optical-sizing: auto;
+		-webkit-font-smoothing: antialiased;
+	}
+	h1, h2, h3, p { margin: 0; }
+	svg.i { width: var(--icon-md); height: var(--icon-md); flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+	svg.i-sm { width: var(--icon-sm); height: var(--icon-sm); stroke-width: 1.75; }
+	svg.i-lg { width: var(--icon-lg); height: var(--icon-lg); stroke-width: 2; }
+	button { font: inherit; letter-spacing: inherit; color: inherit; }
+	:focus-visible { outline: none; box-shadow: var(--ring-focus); }
+	.num { font-variant-numeric: tabular-nums; }
+
+	/* Aspect hooks: one class sets the aspect's colour pair for everything inside. */
+	.a-sage { --a: var(--aspect-sage); --a-tint: var(--aspect-sage-tint); }
+	.a-sky { --a: var(--aspect-sky); --a-tint: var(--aspect-sky-tint); }
+	.a-lavender { --a: var(--aspect-lavender); --a-tint: var(--aspect-lavender-tint); }
+	.a-ochre { --a: var(--aspect-ochre); --a-tint: var(--aspect-ochre-tint); }
+	.a-berry { --a: var(--aspect-berry); --a-tint: var(--aspect-berry-tint); }
+	.a-lagoon { --a: var(--aspect-lagoon); --a-tint: var(--aspect-lagoon-tint); }
+	.a-tangerine { --a: var(--aspect-tangerine); --a-tint: var(--aspect-tangerine-tint); }
+	.a-slate { --a: var(--aspect-slate); --a-tint: var(--aspect-slate-tint); }
+
+	/* ---------- App frame (the hero) ---------- */
+	.frame {
+		display: grid;
+		grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+		min-height: 640px;
+		border-bottom: 1px solid var(--line);
+	}
+	.sidebar {
+		background: var(--paper-sunk);
+		padding: var(--space-5) var(--space-3);
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-0);
+	}
+	.brand {
+		font-size: var(--text-md);
+		font-weight: var(--weight-bold);
+		letter-spacing: var(--tracking-title);
+		padding: 0 var(--space-3) var(--space-5);
+	}
+	.nav-item {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		height: var(--control-height);
+		padding: 0 var(--space-3);
+		border-radius: var(--radius-md);
+		color: var(--ink);
+		text-decoration: none;
+		font-size: var(--text-md);
+	}
+	.nav-item svg { color: var(--ink-2); }
+	.nav-item .count { margin-left: auto; color: var(--ink-3); font-size: var(--text-sm); }
+	.nav-item .count.late { color: var(--overdue); font-weight: var(--weight-semibold); }
+	.nav-item:hover { background: var(--paper-hover); }
+	.nav-item[aria-current='page'] { background: var(--paper); font-weight: var(--weight-medium); }
+	.nav-item[aria-current='page'] svg { color: var(--accent); }
+	.nav-item.aspect svg { color: var(--a); }
+	.nav-label {
+		font-size: var(--text-sm);
+		color: var(--ink-3);
+		padding: var(--space-6) var(--space-3) var(--space-2);
+	}
+
+	.page {
+		padding: var(--space-8) var(--gutter) var(--space-9);
+		max-width: calc(var(--content-max) + 2 * var(--gutter));
+		width: 100%;
+	}
+	.back {
+		display: none;
+		align-items: center;
+		gap: var(--space-1);
+		color: var(--accent);
+		text-decoration: none;
+		font-size: var(--text-md);
+		margin: 0 0 var(--space-4) calc(-1 * var(--space-1));
+	}
+	.page-title {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		font-size: var(--text-3xl);
+		font-weight: var(--weight-bold);
+		line-height: var(--leading-tight);
+		letter-spacing: var(--tracking-title);
+	}
+	.page-title svg { color: var(--accent); }
+	.page-sub { color: var(--ink-3); font-size: var(--text-md); margin: var(--space-1) 0 var(--space-6) calc(var(--icon-lg) + var(--space-3)); }
+
+	.quick {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		height: var(--row-height);
+		padding: 0 var(--space-3);
+		background: var(--paper-sunk);
+		border-radius: var(--radius-md);
+		color: var(--ink-3);
+		margin-bottom: var(--space-7);
+	}
+
+	.group + .group { margin-top: var(--space-7); }
+	.group-head {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		padding-bottom: var(--space-2);
+		border-bottom: 1px solid var(--line);
+		font-size: var(--text-lg);
+		font-weight: var(--weight-semibold);
+		line-height: var(--leading-snug);
+	}
+	.group-head svg { color: var(--a); }
+	.group-head .count { margin-left: auto; font-size: var(--text-sm); font-weight: var(--weight-regular); color: var(--ink-3); }
+	.group-head.late { color: var(--overdue); }
+	.group-head.late svg { color: var(--overdue); }
+
+	ul.rows { list-style: none; margin: 0; padding: 0; }
+	.row {
+		display: grid;
+		grid-template-columns: var(--checkbox-size) minmax(0, 1fr) auto;
+		align-items: start;
+		column-gap: var(--space-3);
+		min-height: var(--row-height);
+		padding: var(--space-3) var(--space-2);
+		margin: 0 calc(-1 * var(--space-2));
+		border-radius: var(--radius-md);
+		transition: background-color var(--dur-fast) var(--ease-out);
+	}
+	.row:hover { background: var(--paper-hover); }
+	.check {
+		width: var(--checkbox-size);
+		height: var(--checkbox-size);
+		margin-top: 2px;
+		border: 1.5px solid var(--line-strong);
+		border-radius: var(--radius-xs);
+		background: var(--paper);
+		display: grid;
+		place-items: center;
+		padding: 0;
+		cursor: pointer;
+		transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+	}
+	.check svg { width: 12px; height: 12px; stroke-width: 3; color: var(--ink-on-accent); opacity: 0; }
+	.check[aria-checked='true'] { background: var(--a); border-color: var(--a); }
+	.check[aria-checked='true'] svg { opacity: 1; }
+	.row-title { line-height: var(--leading-snug); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.row-meta {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-3);
+		margin-top: var(--space-0);
+		font-size: var(--text-sm);
+		color: var(--ink-3);
+	}
+	.row-meta span { display: inline-flex; align-items: center; gap: var(--space-1); }
+	.dot { width: 7px; height: 7px; border-radius: var(--radius-pill); background: var(--a); }
+	.row-end { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); color: var(--ink-2); padding-top: 1px; }
+	.row-end .late { color: var(--overdue); font-weight: var(--weight-medium); }
+	.row.done .row-title {
+		color: var(--ink-3);
+		text-decoration: line-through;
+		text-decoration-color: var(--ink-3);
+	}
+	.prio { display: inline-flex; align-items: flex-end; gap: 2px; height: 12px; }
+	.prio i { display: block; width: 3px; border-radius: 1px; background: var(--line-strong); }
+	.prio i:nth-child(1) { height: 5px; }
+	.prio i:nth-child(2) { height: 8px; }
+	.prio i:nth-child(3) { height: 12px; }
+	.prio[data-p='1'] i, .prio[data-p='2'] i:nth-child(-n+2), .prio[data-p='3'] i:nth-child(1) { background: var(--ink-2); }
+
+	
+	.sec-title { font-size: var(--text-xl); font-weight: var(--weight-semibold); letter-spacing: -0.01em; margin-bottom: var(--space-2); }
+	.sec-note { color: var(--ink-2); max-width: 62ch; margin-bottom: var(--space-6); }
+	.tag { display: inline-flex; align-items: center; gap: var(--space-1); height: 26px; padding: 0 var(--space-2) 0 6px; border-radius: var(--radius-sm); background: var(--a-tint); color: var(--ink); font-size: var(--text-sm); font-weight: var(--weight-medium); }
+	.pchip { display: inline-flex; align-items: center; gap: var(--space-1); height: 30px; padding: 0 var(--space-3) 0 var(--space-2); border-radius: var(--radius-sm); border: 1px solid var(--line-strong); background: var(--paper); color: var(--ink-2); font-size: var(--text-sm); cursor: pointer; }
+	.btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); height: var(--control-height); padding: 0 var(--space-4); border-radius: var(--radius-md); border: 0; font-size: var(--text-md); font-weight: var(--weight-medium); cursor: pointer; transition: background-color var(--dur-fast) var(--ease-out); }
+	.btn-primary { background: var(--accent); color: var(--ink-on-accent); }
+	.btn-primary:hover { background: var(--accent-hover); }
+	.btn-secondary { background: var(--paper-sunk); color: var(--ink); }
+	.btn-quiet { background: none; color: var(--ink-2); padding: 0 var(--space-2); }
+	.empty { text-align: center; color: var(--ink-3); padding: var(--space-8) var(--space-4); }
+	.empty a { color: var(--accent); text-decoration: none; font-weight: var(--weight-medium); }
+	.homelist { border-radius: var(--radius-lg); border: 1px solid var(--line); padding: var(--space-2); }
+	.homelist .nav-item { height: var(--row-height); }
+	.homelist hr { border: 0; border-top: 1px solid var(--line); margin: var(--space-2) var(--space-3); }
+	@media (max-width: 767px) {
+		.frame { grid-template-columns: minmax(0, 1fr); min-height: 0; }
+		.sidebar { display: none; }
+		.page { padding-top: var(--space-5); }
+		.back { display: inline-flex; }
+		.page-title { font-size: var(--text-2xl); }
+		.page-sub { margin-left: 0; }
+	}
+
+	.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+	svg.s { width: var(--icon-sm); height: var(--icon-sm); flex: none; color: var(--ink-3); }
+	svg.s-active { color: var(--accent); }
+	.group-head .count { margin-left: auto; }
+	.group-head.toggle { width: 100%; background: none; border: 0; border-bottom: 1px solid var(--line); cursor: pointer; text-align: left; color: var(--ink-2); font-family: inherit; }
+	.group-head.toggle .chev { color: var(--ink-3); }
+	.group-head.toggle:hover { color: var(--ink); }
+	.group-head.toggle[aria-expanded='true'] .chev { transform: rotate(90deg); }
+	.group-head svg { color: inherit; }
+	.group-head svg.s-active { color: var(--accent); }
+	.group-head svg.s-backlog, .group-head svg.s-paused, .group-head svg.s-implemented { color: var(--ink-3); }
+
+	.page { margin: 0 auto; }
+	.title-row { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-1); }
+	.title-row .page-title { flex: 1; min-width: 0; }
+	.page-sub.flat { margin-left: calc(var(--icon-lg) + var(--space-3)); }
+
+	/* Cards: hairline outline on paper, no shadow; they are not floating. */
+	ul.cards li { min-width: 0; }
+	ul.cards { list-style: none; margin: 0; padding: var(--space-4) 0 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--space-3); }
+	.pcard {
+		display: flex; flex-direction: column; gap: var(--space-2); height: 100%;
+		padding: var(--space-4);
+		border: 1px solid var(--line); border-radius: var(--radius-md);
+		background: var(--paper); color: inherit; text-decoration: none;
+		transition: background-color var(--dur-fast) var(--ease-out);
+	}
+	.pcard:hover { background: var(--paper-hover); }
+	.pcard-name { font-size: var(--text-lg); font-weight: var(--weight-semibold); line-height: var(--leading-snug); letter-spacing: var(--tracking-title); }
+	.pcard-desc { color: var(--ink-2); font-size: var(--text-md); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	ul.tags { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--space-1); }
+	ul.tags li { height: 22px; display: inline-flex; align-items: center; padding: 0 var(--space-2); border-radius: var(--radius-xs); background: var(--paper-sunk); color: var(--ink-2); font-size: var(--text-xs); }
+	.pcard-foot { margin-top: auto; padding-top: var(--space-2); display: flex; align-items: center; justify-content: flex-end; gap: var(--space-3); font-size: var(--text-sm); color: var(--ink-3); }
+	.pcard-foot .repo { margin-right: auto; display: inline-flex; color: var(--ink-3); }
+	.pcard-foot .none { color: var(--ink-3); }
+
+	/* Status pill: a property chip with the state's glyph. */
+	.status-wrap { position: relative; display: inline-block; }
+	.status-pill {
+		display: inline-flex; align-items: center; gap: var(--space-2);
+		height: 30px; padding: 0 var(--space-2) 0 var(--space-3);
+		border: 1px solid var(--line-strong); border-radius: var(--radius-pill);
+		background: var(--paper); color: var(--ink); font-size: var(--text-sm); font-weight: var(--weight-medium); cursor: pointer;
+	}
+	.status-pill svg.i { width: var(--icon-sm); height: var(--icon-sm); color: var(--ink-3); }
+	.status-pill svg.s-active { color: var(--accent); }
+	.menu {
+		position: absolute; z-index: 2; top: calc(100% + var(--space-1)); left: 0; min-width: 200px;
+		padding: var(--space-1); background: var(--paper); border-radius: var(--radius-md); box-shadow: var(--shadow-pop);
+		list-style: none; margin: 0;
+	}
+	.menu li { display: flex; align-items: center; gap: var(--space-3); height: var(--control-height); padding: 0 var(--space-3); border-radius: var(--radius-sm); font-size: var(--text-md); }
+	.menu li:hover { background: var(--paper-hover); }
+	.menu li svg.s { width: var(--icon-sm); height: var(--icon-sm); }
+	.menu li .tick { margin-left: auto; color: var(--accent); width: var(--icon-sm); height: var(--icon-sm); }
+
+	.desc { color: var(--ink-2); font-size: var(--text-md); margin: var(--space-4) 0 0; max-width: 62ch; }
+
+	/* Metadata: wrapping row below 1280, rail at 1280 and up. */
+	.meta-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin-top: var(--space-4); }
+	.meta-row .pchip { cursor: default; text-decoration: none; }
+	.meta-row .pchip.link { color: var(--accent); cursor: pointer; }
+	.meta-row .pchip.tagc { background: var(--paper-sunk); border-color: transparent; }
+	.rail { display: none; background: var(--paper-sunk); padding: var(--space-8) var(--space-6); }
+	.rail h2 { font-size: var(--text-lg); font-weight: var(--weight-semibold); margin-bottom: var(--space-4); }
+	.props { margin: 0; display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: var(--space-4) var(--space-3); align-items: start; font-size: var(--text-md); }
+	.props dt { color: var(--ink-3); font-size: var(--text-sm); padding-top: 2px; }
+	.props dd { margin: 0; }
+	.props a { color: var(--accent); text-decoration: none; display: inline-flex; align-items: center; gap: var(--space-1); word-break: break-all; }
+	.props ul.tags li { background: var(--paper); }
+	.rail .btn { margin-top: var(--space-6); }
+	@media (min-width: 1280px) {
+		.frame.has-rail { grid-template-columns: var(--sidebar-width) minmax(0, 1fr) var(--rail-width); }
+		.frame.has-rail .rail { display: block; }
+		.frame.has-rail .meta-row { display: none; }
+	}
+
+	.section-label { display: flex; align-items: center; justify-content: space-between; margin: var(--space-8) 0 var(--space-3); font-size: var(--text-lg); font-weight: var(--weight-semibold); padding-bottom: var(--space-2); border-bottom: 1px solid var(--line); }
+	.section-label .btn-quiet { height: 28px; font-size: var(--text-sm); }
+	.notes { font-size: var(--text-md); line-height: 1.55; max-width: 62ch; }
+	.notes h3 { font-size: var(--text-md); font-weight: var(--weight-semibold); margin: var(--space-5) 0 var(--space-1); }
+	.notes h3:first-child { margin-top: 0; }
+	.notes p { margin: 0 0 var(--space-3); color: var(--ink); }
+	.notes ul { margin: 0 0 var(--space-3); padding-left: var(--space-5); }
+	.notes li { margin-bottom: var(--space-1); }
+	.notes code { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 0.92em; background: var(--paper-sunk); padding: 1px 5px; border-radius: var(--radius-xs); }
+	.notes a { color: var(--accent); }
+	.notes-empty { color: var(--ink-3); background: var(--paper-sunk); border-radius: var(--radius-md); padding: var(--space-4); display: flex; align-items: center; gap: var(--space-3); }
+
+	.todo-group + .todo-group { margin-top: var(--space-5); }
+	.todo-group .group-head { font-size: var(--text-md); }
+	.danger { margin-top: var(--space-9); display: flex; }
+	.danger .btn-quiet { color: var(--ink-2); gap: var(--space-2); padding: 0 var(--space-3) 0 var(--space-2); }
+
+	/* ---------- States ---------- */
+	.states { padding: var(--space-9) var(--gutter) var(--space-10); max-width: 1200px; margin: 0 auto; }
+	.states h2.sec-title { margin-top: var(--space-9); }
+	.states h2.sec-title:first-child { margin-top: 0; }
+	.state-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-7); align-items: start; }
+	.state-box { border: 1px dashed var(--line-strong); border-radius: var(--radius-md); padding: var(--space-6); }
+	.state-box > small { display: block; color: var(--ink-3); font-size: var(--text-sm); margin-bottom: var(--space-4); }
+	.prompt { background: var(--paper-sunk); border-radius: var(--radius-md); padding: var(--space-5); }
+	.prompt h3 { font-size: var(--text-lg); font-weight: var(--weight-semibold); margin-bottom: var(--space-1); }
+	.prompt p { color: var(--ink-2); margin-bottom: var(--space-4); }
+	.choice { list-style: none; margin: 0 0 var(--space-4); padding: 0; }
+	.choice li { display: flex; align-items: center; gap: var(--space-3); height: var(--row-height); padding: 0 var(--space-2); border-radius: var(--radius-md); }
+	.choice li svg.i { color: var(--a); }
+	.choice li .tick { margin-left: auto; color: var(--accent); }
+	.choice li[aria-selected='true'] { background: var(--paper); }
+	.form { display: grid; gap: var(--space-3); }
+	.field { display: grid; gap: var(--space-1); }
+	.field label { font-size: var(--text-sm); color: var(--ink-2); font-weight: var(--weight-medium); }
+	.input { height: var(--control-height); padding: 0 var(--space-3); border: 1px solid var(--line-strong); border-radius: var(--radius-sm); background: var(--paper); font: inherit; color: var(--ink); display: flex; align-items: center; }
+	.input.ph { color: var(--ink-3); }
+	.input.err { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+	.field .hint { font-size: var(--text-sm); color: var(--ink-2); }
+	.form-foot { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-2); }
+	.dialog { background: var(--paper); border-radius: var(--radius-lg); box-shadow: var(--shadow-float); padding: var(--space-6); max-width: 420px; }
+	.dialog h3 { font-size: var(--text-xl); font-weight: var(--weight-semibold); margin-bottom: var(--space-2); }
+	.dialog p { color: var(--ink-2); margin-bottom: var(--space-5); }
+	.badge { display: inline-flex; align-items: center; gap: var(--space-1); color: var(--ink-3); text-decoration: none; }
+	.badge:hover { color: var(--ink); }
+	.badge svg.i { width: 14px; height: 14px; stroke-width: 1.75; }
+	@media (max-width: 767px) {
+		.state-grid { grid-template-columns: 1fr; }
+		ul.cards { grid-template-columns: minmax(0, 1fr); }
+		.frame .menu { display: none; }
+		.title-row .btn { padding: 0 var(--space-3); }
+		.status-wrap { display: block; }
+	}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position: absolute" aria-hidden="true">
+	<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+	<symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14 M12 5v14"/></symbol>
+	<symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="M0 0m15 18-6-6 6-6"/></symbol>
+	<symbol id="i-calendar-days" viewBox="0 0 24 24"><path d="M8 2v3 M16 2v3 M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2Z M3 9h18 M8 13h.01 M12 13h.01 M16 13h.01 M8 17h.01 M12 17h.01 M16 17h.01"/></symbol>
+	<symbol id="i-list-checks" viewBox="0 0 24 24"><path d="M13 5h8 M13 12h8 M13 19h8 M0 0m3 17 2 2 4-4 M0 0m3 7 2 2 4-4"/></symbol>
+	<symbol id="i-repeat" viewBox="0 0 24 24"><path d="M0 0m17 2 4 4-4 4 M3 11v-1a4 4 0 0 1 4-4h14 M0 0m7 22-4-4 4-4 M21 13v1a4 4 0 0 1-4 4H3"/></symbol>
+	<symbol id="i-inbox" viewBox="0 0 24 24"><path d="M22 12L16 12L14 15L10 15L8 12L2 12 M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></symbol>
+	<symbol id="i-heart" viewBox="0 0 24 24"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5 M3.22 13H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/></symbol>
+	<symbol id="i-cap" viewBox="0 0 24 24"><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z M22 10v6 M6 12.5V16a6 3 0 0 0 12 0v-3.5"/></symbol>
+	<symbol id="i-briefcase" viewBox="0 0 24 24"><path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16 M4 6h16a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-16a2 2 0 0 1 -2 -2v-10a2 2 0 0 1 2 -2Z"/></symbol>
+	<symbol id="i-house" viewBox="0 0 24 24"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8 M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+	<symbol id="i-wallet" viewBox="0 0 24 24"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1 M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></symbol>
+	<symbol id="i-people" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M16 3.128a4 4 0 0 1 0 7.744 M22 21v-2a4 4 0 0 0-3-3.87 M5 7a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"/></symbol>
+	<symbol id="i-code" viewBox="0 0 24 24"><path d="M0 0m16 18 6-6-6-6 M0 0m8 6-6 6 6 6"/></symbol>
+	<symbol id="i-pen" viewBox="0 0 24 24"><path d="M13 21h8 M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></symbol>
+	<symbol id="i-sun" viewBox="0 0 24 24"><path d="M8 12a4 4 0 1 0 8 0a4 4 0 1 0 -8 0 M12 2v2 M12 20v2 M0 0m4.93 4.93 1.41 1.41 M0 0m17.66 17.66 1.41 1.41 M2 12h2 M20 12h2 M0 0m6.34 17.66-1.41 1.41 M0 0m19.07 4.93-1.41 1.41"/></symbol>
+	<symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol>
+	<symbol id="i-git-branch" viewBox="0 0 24 24"><path d="M6 3v12 M15 6a3 3 0 1 0 6 0a3 3 0 1 0 -6 0 M3 18a3 3 0 1 0 6 0a3 3 0 1 0 -6 0 M18 9a9 9 0 0 1-9 9"/></symbol>
+	<symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+	<symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+	<symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18 M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6 M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></symbol>
+	<symbol id="s-backlog" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-dasharray="2.6 2.6"/></symbol>
+	<symbol id="s-active" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M8 4a4 4 0 0 1 0 8Z" fill="currentColor"/></symbol>
+	<symbol id="s-paused" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M6.4 5.6v4.8 M9.6 5.6v4.8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></symbol>
+	<symbol id="s-implemented" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="currentColor"/><path d="m5 8.2 2 2 4-4.2" fill="none" stroke="var(--paper)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+
+</svg>
+
+<section id="overview" aria-label="Projects overview">
+<div class="frame">
+	<nav class="sidebar" aria-label="Main">
+		<div class="brand">Life Manager</div>
+		<a class="nav-item " href="#"><svg class="i"><use href="#i-sun"/></svg>Today<span class="count num">2</span></a>
+		<a class="nav-item " href="#"><svg class="i"><use href="#i-calendar-days"/></svg>Sprint<span class="count num">14</span></a>
+		<a class="nav-item " href="#"><svg class="i"><use href="#i-inbox"/></svg>Backlog<span class="count num">23</span></a>
+		<a class="nav-item " href="#"><svg class="i"><use href="#i-repeat"/></svg>Recurring<span class="count num">4</span></a>
+		<a class="nav-item " href="#" aria-current="page"><svg class="i"><use href="#i-folder"/></svg>Projects<span class="count num">3</span></a>
+		<div class="nav-label">Aspects</div>
+		<a class="nav-item aspect a-sage" href="#"><svg class="i"><use href="#i-heart"/></svg>Health<span class="count num">5</span></a>
+		<a class="nav-item aspect a-lavender" href="#"><svg class="i"><use href="#i-cap"/></svg>Uni<span class="count num">8</span></a>
+		<a class="nav-item aspect a-sky" href="#"><svg class="i"><use href="#i-code"/></svg>IT<span class="count num">9</span></a>
+		<a class="nav-item aspect a-ochre" href="#"><svg class="i"><use href="#i-house"/></svg>Home<span class="count num">3</span></a>
+		<a class="nav-item aspect a-lagoon" href="#"><svg class="i"><use href="#i-wallet"/></svg>Finance<span class="count num">2</span></a>
+	</nav>
+	<main class="page">
+		<a class="back" href="#"><svg class="i"><use href="#i-chevron-left"/></svg>Lists</a>
+		<div class="title-row">
+			<h1 class="page-title"><svg class="i i-lg"><use href="#i-folder"/></svg>Projects</h1>
+			<button class="btn btn-primary"><svg class="i i-sm"><use href="#i-plus"/></svg>New project</button>
+		</div>
+		<p class="page-sub">3 active, 6 in total</p>
+		<section class="group" data-testid="project-group-active">
+			<h2 class="group-head"><svg class="s s-active"><use href="#s-active"/></svg>Active<span class="count num">3</span></h2>
+			<ul class="cards">
+				<li><a class="pcard" href="#" data-status="active">
+					<span class="pcard-name">Life Manager</span>
+					<span class="pcard-desc">Weekly-sprint planner for every part of life, self-hosted on the homelab.</span>
+					<ul class="tags" aria-label="Tags"><li>SvelteKit</li><li>SQLite</li><li>Node</li></ul>
+					<span class="pcard-foot"><span class="repo" title="Repository"><svg class="i i-sm"><use href="#i-git-branch"/></svg><span class="sr">Repository linked</span></span><span class="open num">4 open</span></span>
+				</a></li><li><a class="pcard" href="#" data-status="active">
+					<span class="pcard-name">Homelab config</span>
+					<span class="pcard-desc">Ansible and Terraform for the Proxmox containers.</span>
+					<ul class="tags" aria-label="Tags"><li>Ansible</li><li>Terraform</li></ul>
+					<span class="pcard-foot"><span class="repo" title="Repository"><svg class="i i-sm"><use href="#i-git-branch"/></svg><span class="sr">Repository linked</span></span><span class="open num">2 open</span></span>
+				</a></li><li><a class="pcard" href="#" data-status="active">
+					<span class="pcard-name">Party Games</span>
+					<span class="pcard-desc">Phone-as-controller games for the living room.</span>
+					<ul class="tags" aria-label="Tags"><li>Svelte</li><li>WebSocket</li></ul>
+					<span class="pcard-foot"><span class="repo" title="Repository"><svg class="i i-sm"><use href="#i-git-branch"/></svg><span class="sr">Repository linked</span></span><span class="open none">No open todos</span></span>
+				</a></li>
+			</ul>
+		</section>
+		<section class="group" data-testid="project-group-backlog">
+			<h2 class="group-head"><svg class="s s-backlog"><use href="#s-backlog"/></svg>Backlog<span class="count num">2</span></h2>
+			<ul class="cards">
+				<li><a class="pcard" href="#" data-status="backlog">
+					<span class="pcard-name">Photo archive indexer</span>
+					<span class="pcard-desc">Idea: index the NAS photo archive and find duplicates by perceptual hash.</span>
+					<ul class="tags" aria-label="Tags"><li>Rust</li><li>CLI</li></ul>
+					<span class="pcard-foot"><span class="open none">No open todos</span></span>
+				</a></li><li><a class="pcard" href="#" data-status="backlog">
+					<span class="pcard-name">Home energy dashboard</span>
+					<span class="pcard-desc">Idea: chart power use from the smart plugs next to the weather.</span>
+					<ul class="tags" aria-label="Tags"><li>Grafana</li><li>MQTT</li><li>Home</li></ul>
+					<span class="pcard-foot"><span class="open none">No open todos</span></span>
+				</a></li>
+			</ul>
+		</section>
+		<section class="group" data-testid="project-group-paused">
+			<h2 class="group-head"><svg class="s s-paused"><use href="#s-paused"/></svg>Paused<span class="count num">1</span></h2>
+			<ul class="cards">
+				<li><a class="pcard" href="#" data-status="paused">
+					<span class="pcard-name">Budget importer</span>
+					<span class="pcard-desc">Read bank CSV exports into a ledger. Waiting for the new export format.</span>
+					<ul class="tags" aria-label="Tags"><li>Python</li></ul>
+					<span class="pcard-foot"><span class="repo" title="Repository"><svg class="i i-sm"><use href="#i-git-branch"/></svg><span class="sr">Repository linked</span></span><span class="open num">1 open</span></span>
+				</a></li>
+			</ul>
+		</section>
+		<section class="group" data-testid="project-group-implemented">
+			<button class="group-head toggle" aria-expanded="false"><svg class="i i-sm chev"><use href="#i-chevron-right"/></svg><svg class="s s-implemented"><use href="#s-implemented"/></svg>Implemented (3)</button>
+		</section>
+	</main>
+</div>
+</section>
+
+<section id="detail" aria-label="Project detail">
+<div class="frame has-rail">
+	<nav class="sidebar" aria-label="Main">
+		<div class="brand">Life Manager</div>
+		<a class="nav-item " href="#"><svg class="i"><use href="#i-sun"/></svg>Today<span class="count num">2</span></a>
+		<a class="nav-item " href="#"><svg class="i"><use href="#i-calendar-days"/></svg>Sprint<span class="count num">14</span></a>
+		<a class="nav-item " href="#"><svg class="i"><use href="#i-inbox"/></svg>Backlog<span class="count num">23</span></a>
+		<a class="nav-item " href="#"><svg class="i"><use href="#i-repeat"/></svg>Recurring<span class="count num">4</span></a>
+		<a class="nav-item " href="#" aria-current="page"><svg class="i"><use href="#i-folder"/></svg>Projects<span class="count num">3</span></a>
+		<div class="nav-label">Aspects</div>
+		<a class="nav-item aspect a-sage" href="#"><svg class="i"><use href="#i-heart"/></svg>Health<span class="count num">5</span></a>
+		<a class="nav-item aspect a-lavender" href="#"><svg class="i"><use href="#i-cap"/></svg>Uni<span class="count num">8</span></a>
+		<a class="nav-item aspect a-sky" href="#"><svg class="i"><use href="#i-code"/></svg>IT<span class="count num">9</span></a>
+		<a class="nav-item aspect a-ochre" href="#"><svg class="i"><use href="#i-house"/></svg>Home<span class="count num">3</span></a>
+		<a class="nav-item aspect a-lagoon" href="#"><svg class="i"><use href="#i-wallet"/></svg>Finance<span class="count num">2</span></a>
+	</nav>
+	<main class="page">
+		<a class="back" href="#"><svg class="i"><use href="#i-chevron-left"/></svg>Projects</a>
+		<h1 class="page-title">Life Manager</h1>
+		<div style="margin-top: var(--space-3)">
+			<div class="status-wrap">
+				<button class="status-pill" aria-haspopup="menu" aria-expanded="true" data-testid="status-pill"><svg class="s s-active" style="color: var(--accent)"><use href="#s-active"/></svg>Active<svg class="i"><use href="#i-chevron-down"/></svg></button>
+				<ul class="menu" role="menu" aria-label="Set status">
+					<li role="menuitem"><svg class="s s-backlog"><use href="#s-backlog"/></svg>Backlog</li>
+					<li role="menuitem"><svg class="s s-active" style="color: var(--accent)"><use href="#s-active"/></svg>Active<svg class="i tick"><use href="#i-check"/></svg></li>
+					<li role="menuitem"><svg class="s s-paused"><use href="#s-paused"/></svg>Paused</li>
+					<li role="menuitem"><svg class="s s-implemented"><use href="#s-implemented"/></svg>Implemented</li>
+				</ul>
+			</div>
+		</div>
+		<p class="desc">Weekly-sprint planner for every part of life, self-hosted on the homelab.</p>
+
+		<div class="meta-row" data-testid="project-meta">
+			<a class="pchip link" href="#"><svg class="i i-sm"><use href="#i-git-branch"/></svg>github.com/rue-asha/life-manager</a>
+			<span class="pchip tagc">SvelteKit</span><span class="pchip tagc">SQLite</span><span class="pchip tagc">Node</span>
+			<span class="pchip">Created 3 Oct</span><span class="pchip">Updated 4 Oct</span>
+			<button class="pchip"><svg class="i i-sm"><use href="#i-pen"/></svg>Edit details</button>
+		</div>
+
+		<div class="section-label">Notes<button class="btn btn-quiet"><svg class="i i-sm"><use href="#i-pen"/></svg>Edit</button></div>
+		<div class="notes">
+			<h3>Where it stands</h3>
+			<p>Sprints, board and week view work. Next up is the Projects module so ideas and running work live in one place.</p>
+			<h3>Change requests</h3>
+			<ul>
+				<li>Show the project name on todo rows</li>
+				<li>Export a finished sprint as Markdown</li>
+				<li>Keep <code>npm run proof</code> under 30 s</li>
+			</ul>
+			<p>Deploy notes are in the <a href="#">homelab runbook</a>.</p>
+		</div>
+
+		<div class="section-label">Linked todos</div>
+		<section class="todo-group" data-testid="project-todos-open">
+			<h2 class="group-head">Open<span class="count num">3</span></h2>
+			<ul class="rows">
+				<li class="row a-sky">
+					<button class="check" role="checkbox" aria-checked="false" aria-label="Done"><svg class="i"><use href="#i-check"/></svg></button>
+					<div><div class="row-title">Design the Projects mockup</div></div>
+					<div class="row-end"><span class="prio" data-p="2" aria-label="Priority 2"><i></i><i></i><i></i></span></div>
+				</li>
+				<li class="row a-sky">
+					<button class="check" role="checkbox" aria-checked="false" aria-label="Done"><svg class="i"><use href="#i-check"/></svg></button>
+					<div><div class="row-title">Write migration 2</div><div class="row-meta"><span><svg class="i i-sm"><use href="#i-list-checks"/></svg><span class="num">1/3</span></span></div></div>
+					<div class="row-end"></div>
+				</li>
+				<li class="row a-sky">
+					<button class="check" role="checkbox" aria-checked="false" aria-label="Done"><svg class="i"><use href="#i-check"/></svg></button>
+					<div><div class="row-title">Pick a Markdown parser</div></div>
+					<div class="row-end"></div>
+				</li>
+			</ul>
+		</section>
+		<section class="todo-group" data-testid="project-todos-planned">
+			<h2 class="group-head">Planned<span class="count num">1</span></h2>
+			<ul class="rows">
+				<li class="row a-sky">
+					<button class="check" role="checkbox" aria-checked="false" aria-label="Done"><svg class="i"><use href="#i-check"/></svg></button>
+					<div><div class="row-title">Build the overview page</div></div>
+					<div class="row-end"><span class="prio" data-p="1" aria-label="Priority 1"><i></i><i></i><i></i></span><span class="num">Tue</span></div>
+				</li>
+			</ul>
+		</section>
+		<section class="todo-group" data-testid="project-todos-done">
+			<button class="group-head toggle" aria-expanded="false"><svg class="i i-sm chev"><use href="#i-chevron-right"/></svg>Done<span class="count num">4</span></button>
+		</section>
+
+		<div class="danger"><button class="btn btn-quiet"><svg class="i i-sm"><use href="#i-trash"/></svg>Delete project</button></div>
+	</main>
+	<aside class="rail" aria-label="Project details">
+		<h2>Details</h2>
+		<dl class="props" data-testid="project-meta">
+			<dt>Repo</dt><dd><a href="#"><svg class="i i-sm"><use href="#i-git-branch"/></svg>rue-asha/life-manager</a></dd>
+			<dt>Tags</dt><dd><ul class="tags"><li>SvelteKit</li><li>SQLite</li><li>Node</li></ul></dd>
+			<dt>Todos</dt><dd class="num">3 open, 1 planned, 4 done</dd>
+			<dt>Created</dt><dd class="num">3 Oct 2026</dd>
+			<dt>Updated</dt><dd class="num">4 Oct 2026</dd>
+		</dl>
+		<button class="btn btn-secondary"><svg class="i i-sm"><use href="#i-pen"/></svg>Edit details</button>
+	</aside>
+</div>
+</section>
+
+<section class="states" aria-label="Other states">
+	<h2 class="sec-title">Other states</h2>
+	<p class="sec-note">Not part of the four screenshots. Everything here uses the same tokens; copy is English.</p>
+	<div class="state-grid">
+		<div class="state-box"><small>First run, no IT aspect chosen yet (top of /projects)</small>
+			<div class="prompt" data-testid="it-aspect-prompt">
+				<h3>Which aspect holds your IT todos?</h3>
+				<p>Todos of this aspect can be linked to a project. You can change it later.</p>
+				<ul class="choice" role="listbox">
+					<li class="a-sage"><svg class="i"><use href="#i-heart"/></svg>Health</li>
+					<li class="a-lavender"><svg class="i"><use href="#i-cap"/></svg>Uni</li>
+					<li class="a-sky" role="option" aria-selected="true"><svg class="i"><use href="#i-code"/></svg>IT<svg class="i tick"><use href="#i-check"/></svg></li>
+				</ul>
+				<button class="btn btn-primary">Use IT for projects</button>
+			</div>
+		</div>
+		<div class="state-box"><small>No projects yet</small>
+			<div class="empty">Capture your first idea. A project starts in the backlog.<br><a href="#">New project</a></div>
+		</div>
+		<div class="state-box"><small>New project form (opens in place under the title)</small>
+			<div class="form">
+				<div class="field"><label>Name</label><div class="input err">&nbsp;</div><span class="hint">Give the project a name.</span></div>
+				<div class="field"><label>Description</label><div class="input ph">One line about it</div></div>
+				<div class="field"><label>Repository URL</label><div class="input ph">https://github.com/…</div></div>
+				<div class="field"><label>Tags</label><div class="input ph">SvelteKit, SQLite</div><span class="hint">Separate with commas.</span></div>
+				<div class="form-foot"><button class="btn btn-quiet">Cancel</button><button class="btn btn-primary">Add project</button></div>
+			</div>
+		</div>
+		<div class="state-box"><small>Mark as implemented while todos are open (confirm dialog)</small>
+			<div class="dialog" role="dialog" aria-label="Mark as implemented">
+				<h3>Mark as implemented?</h3>
+				<p>3 linked todos are still open. They stay as they are.</p>
+				<div class="form-foot"><button class="btn btn-quiet">Cancel</button><button class="btn btn-primary">Mark as implemented</button></div>
+			</div>
+		</div>
+		<div class="state-box"><small>Status menu on phone (bottom sheet, same four states)</small>
+			<div class="dialog" style="border-radius: var(--radius-xl) var(--radius-xl) 0 0; max-width: 375px; padding: var(--space-4)">
+				<ul class="menu" style="position: static; box-shadow: none; width: 100%">
+					<li><svg class="s s-backlog"><use href="#s-backlog"/></svg>Backlog</li>
+					<li><svg class="s s-active" style="color: var(--accent)"><use href="#s-active"/></svg>Active<svg class="i tick"><use href="#i-check"/></svg></li>
+					<li><svg class="s s-paused"><use href="#s-paused"/></svg>Paused</li>
+					<li><svg class="s s-implemented"><use href="#s-implemented"/></svg>Implemented</li>
+				</ul>
+			</div>
+		</div>
+		<div class="state-box"><small>Notes empty, and a project without linked todos</small>
+			<div class="notes-empty"><svg class="i"><use href="#i-pen"/></svg>No notes yet. Write down the plan, decisions or change requests.</div>
+			<div class="empty" style="padding-bottom: 0">No linked todos yet. Choose the IT aspect on a todo, then pick this project in the Project field.</div>
+		</div>
+		<div class="state-box"><small>Project badge on a todo row (Today, Sprint, Backlog): muted glyph and name, wraps under the title on phone</small>
+			<ul class="rows"><li class="row a-sky">
+				<button class="check" role="checkbox" aria-checked="false" aria-label="Done"><svg class="i"><use href="#i-check"/></svg></button>
+				<div><div class="row-title">Design the Projects mockup</div>
+				<div class="row-meta"><span><i class="dot"></i>IT</span><a class="badge" href="#" data-testid="project-badge"><svg class="i"><use href="#i-folder"/></svg>Life Manager</a></div></div>
+				<div class="row-end"><span class="prio" data-p="2" aria-label="Priority 2"><i></i><i></i><i></i></span></div>
+			</li></ul>
+		</div>
+		<div class="state-box"><small>Phone home list with the sixth entry</small>
+			<nav class="homelist" aria-label="Lists">
+				<a class="nav-item" href="#"><svg class="i"><use href="#i-sun"/></svg>Today<span class="count num">2</span></a>
+				<a class="nav-item" href="#"><svg class="i"><use href="#i-calendar-days"/></svg>Sprint<span class="count num">14</span></a>
+				<a class="nav-item" href="#"><svg class="i"><use href="#i-inbox"/></svg>Backlog<span class="count num">23</span></a>
+				<a class="nav-item" href="#"><svg class="i"><use href="#i-repeat"/></svg>Recurring<span class="count num">4</span></a>
+				<a class="nav-item" href="#"><svg class="i"><use href="#i-folder"/></svg>Projects<span class="count num">3</span></a>
+			</nav>
+		</div>
+	</div>
+</section>
+</body>
+</html>
