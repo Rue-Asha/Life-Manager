@@ -1,0 +1,146 @@
+import type { DatabaseSync } from 'node:sqlite';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { Id, IsoDate, Sprint, Status } from '$lib/types';
+import { openDb } from './db';
+import {
+	getActiveSprint,
+	listSprintTodos,
+	openPlanning,
+	pullTodo,
+	sprintPhase,
+	startSprint,
+	suggestedTodos,
+	unpullTodo
+} from './sprints';
+
+let db: DatabaseSync;
+let aspect: Id;
+
+beforeEach(() => {
+	db = openDb(':memory:');
+	aspect = Number(
+		db
+			.prepare(
+				"INSERT INTO aspects (name, color, icon, position, created_at) VALUES ('Health', 'sage', 'heart', 0, '')"
+			)
+			.run().lastInsertRowid
+	);
+});
+
+function sprint(state: Sprint['state'], weekStart: IsoDate | null): Id {
+	return Number(
+		db.prepare('INSERT INTO sprints (week_start, state) VALUES (?, ?)').run(weekStart, state).lastInsertRowid
+	);
+}
+
+function todo(
+	title: string,
+	fields: { sprintId?: Id | null; status?: Status; day?: IsoDate | null; dueDate?: IsoDate | null; recurring?: boolean } = {}
+): Id {
+	return Number(
+		db
+			.prepare(
+				`INSERT INTO todos (title, aspect_id, sprint_id, status, day, due_date, recurring, created_at)
+				 VALUES (?, ?, ?, ?, ?, ?, ?, '')`
+			)
+			.run(
+				title,
+				aspect,
+				fields.sprintId ?? null,
+				fields.status ?? 'todo',
+				fields.day ?? null,
+				fields.dueDate ?? null,
+				fields.recurring ? 1 : 0
+			).lastInsertRowid
+	);
+}
+
+function row(id: Id) {
+	return db.prepare('SELECT sprint_id, status, day, completed_at FROM todos WHERE id = ?').get(id);
+}
+
+describe('sprint planning', () => {
+	it('Scenario: Start a sprint with zero todos', () => {
+		const result = startSprint(db, '2026-10-07', []);
+		expect(result.ok).toBe(true);
+		const active = getActiveSprint(db);
+		expect(active).toMatchObject({ state: 'active', weekStart: '2026-10-05' });
+		expect(active?.startedAt).not.toBeNull();
+		expect(listSprintTodos(db, active!.id)).toEqual([]);
+	});
+
+	it('Scenario: Only one sprint can be active', () => {
+		const first = startSprint(db, '2026-10-05', []);
+		const before = getActiveSprint(db);
+		const second = startSprint(db, '2026-10-07', []);
+		expect(second).toEqual({ ok: false, error: 'sprint-active' });
+		expect(getActiveSprint(db)).toEqual(before);
+		expect(first.ok && first.value.id).toBe(before?.id);
+		expect(openPlanning(db, '2026-10-07')).toEqual({ ok: false, error: 'sprint-active' });
+	});
+
+	it('Scenario: Planning is blocked while a review is pending', () => {
+		sprint('active', '2026-09-28');
+		expect(openPlanning(db, '2026-10-05')).toEqual({ ok: false, error: 'review-pending' });
+		expect(startSprint(db, '2026-10-05', [])).toEqual({ ok: false, error: 'review-pending' });
+		expect(db.prepare('SELECT count(*) AS n FROM sprints').get()).toEqual({ n: 1 });
+	});
+
+	it('Scenario: Review is available from the sprint\'s Sunday', () => {
+		sprint('active', '2026-10-05');
+		expect(sprintPhase(db, '2026-10-05').phase).toBe('running');
+		expect(sprintPhase(db, '2026-10-10').phase).toBe('running');
+		expect(sprintPhase(db, '2026-10-11')).toMatchObject({
+			phase: 'review-available',
+			sprint: { state: 'active', weekStart: '2026-10-05' }
+		});
+	});
+
+	it('Scenario: Review is required from the Monday after', () => {
+		sprint('active', '2026-10-05');
+		expect(sprintPhase(db, '2026-10-12').phase).toBe('review-required');
+		expect(sprintPhase(db, '2026-11-02').phase).toBe('review-required');
+	});
+
+	it('phase is none without sprints and planning with a draft', () => {
+		expect(sprintPhase(db, '2026-10-05')).toEqual({ phase: 'none', sprint: null });
+		const planning = openPlanning(db, '2026-10-11');
+		expect(planning.ok && planning.value.weekStart).toBe('2026-10-12');
+		expect(sprintPhase(db, '2026-10-11')).toMatchObject({ phase: 'planning', sprint: { state: 'planning' } });
+		const again = openPlanning(db, '2026-10-11');
+		expect(again.ok && again.value.sprint.id).toBe(planning.ok && planning.value.sprint.id);
+	});
+
+	it('suggests backlog todos due in the target week and starts with the checked ones', () => {
+		const thursday = todo('Due Thursday', { dueDate: '2026-10-15' });
+		const sunday = todo('Due Sunday', { dueDate: '2026-10-18' });
+		todo('Due this week', { dueDate: '2026-10-09' });
+		todo('Due later', { dueDate: '2026-10-19' });
+		todo('No date');
+		expect(suggestedTodos(db, '2026-10-11').map((t) => t.id)).toEqual([thursday, sunday]);
+
+		const started = startSprint(db, '2026-10-11', [thursday]);
+		expect(started.ok && started.value.weekStart).toBe('2026-10-12');
+		const id = started.ok ? started.value.id : 0;
+		expect(listSprintTodos(db, id).map((t) => t.id)).toEqual([thursday]);
+		expect(row(sunday)).toMatchObject({ sprint_id: null });
+	});
+
+	it('pulled todos sit in the draft until the sprint starts, unpull returns them', () => {
+		const a = todo('A');
+		const b = todo('B');
+		const pulled = pullTodo(db, a);
+		expect(pullTodo(db, b).ok).toBe(true);
+		expect(pulled.ok && pulled.value.sprintId).not.toBeNull();
+		const draft = sprintPhase(db, '2026-10-07').sprint!;
+		expect(draft.state).toBe('planning');
+
+		expect(unpullTodo(db, b)).toMatchObject({ ok: true, value: { sprintId: null, status: 'todo' } });
+		const started = startSprint(db, '2026-10-07', []);
+		expect(started.ok && started.value.id).toBe(draft.id);
+		expect(listSprintTodos(db, draft.id).map((t) => t.id)).toEqual([a]);
+		expect(pullTodo(db, b)).toEqual({ ok: false, error: 'sprint-active' });
+		expect(unpullTodo(db, a)).toEqual({ ok: false, error: 'not-found' });
+		expect(pullTodo(db, 999)).toEqual({ ok: false, error: 'not-found' });
+	});
+});
