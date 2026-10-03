@@ -3,6 +3,7 @@ base: flow/build-life-manager
 gate0: 2026-10-03
 gate1: 2026-10-03
 decisions:
+  - "Gate 2 correction (2026-10-03, Rue): main column centred on every screen, rail or not (was left-aligned beside a rail, centred without); Board/Week stay full width. scope.md S9 updated."
   - "Build (2026-10-03, after wave 4): Rue chose — in Week view the rail is the toggle overlay even at ≥1280 so Mon–Sun fit in one row; scope.md S10 updated. S9 band text aligned to 768–1279."
   - "Gate 1 (2026-10-03): Rue approved as it stands — addition (a) createTodo review-required guard NOT added; (b) collapse memory kept, cut candidate if appetite runs over; planner deviations 1–4 accepted."
 learnings:
@@ -13,6 +14,9 @@ learnings:
   - "U5: units adding a list next to an existing one (rail beside sprint) break other units' count assertions — scope e2e counts to a container test id from the start"
   - "U6: Svelte crossfade divides by target width — a display:none counterpart yields NaN and leaves the outgoing node stuck; guard in motion.ts (U6 guarded board/week only; AspectView/BacklogRail still raw)"
   - "U6: during a 200 ms crossfade two copies of an element exist — page-wide strict locators fail; mark the outgoing copy aria-hidden and rename its test ids"
+  - "fixer: in the Manage sheet flow at 375 the display:none rail and the sheet both register crossfade send with the same key — later mount wins; fragile if mount order changes"
+  - "fixer: Playwright webServer runs `node build` — rebuild before an e2e mutation check or the run tests the stale build"
+  - "Gate 2 correction: Rue saw screens with a rail left-aligned and screens without centred as inconsistent — layout rules must give one alignment for all main screens, not vary by whether a rail exists"
 gate2_notes:
   - "U3: manual check — overlay slide timing (320 ms, no scrim) and cross-fade look; at 768–1279 the rail toggle sits over the overlay's top area near its middle, not its right edge"
   - "U3: added ::view-transition { pointer-events: none } as a judgement call, not proven necessary"
@@ -23,8 +27,6 @@ gate2_notes:
   - "U6: motion.ts crossfade NaN guard missing for AspectView/BacklogRail — candidate for verify/fixer"
   - "U9: brief §9 Week overlay paragraph = taste check for Rue; board and week cards keep a ~40 px blank band under the meta line (row-menu button on its own line) — see shots/sprint-board-1280.png"
   - "U9: style fixes outside unit files — AspectTag ellipsis (long names spilled at 1280), BoardView meta wraps under the line at ≥768; responsive no-h-scroll test also checks inner scrollers (Backlog filter chip strip exempt)"
-  - "fixer: in the Manage sheet flow at 375 the display:none rail and the sheet both register crossfade send with the same key — later mount wins; fragile if mount order changes"
-  - "fixer: Playwright webServer runs `node build` — rebuild before an e2e mutation check or the run tests the stale build"
 review_log:
   - "round 1 (verifier 3580102 at 7d39939: green, 80/80 automated scenarios, 3 manual, 0 gaps; reviewer: no weakened/weak tests, no correctness bugs; 1 low spec mismatch — board columns stop 56 px short of viewport bottom). Fixer: reword spec to 'bottom of page content area', keep CSS (orchestrator call, Rue may veto); also try to reproduce U6's crossfade NaN for AspectView/BacklogRail and move the guard into motion.ts if reproducible."
   - "round 1 fixer 64c8c84: board-column spec reworded to page content area (±1 px, test reads --space-9), CSS kept — Rue confirms or vetoes; crossfade NaN not reproducible at 375 Manage/AspectView (3 runs), no code change."
