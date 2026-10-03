@@ -413,3 +413,71 @@ test.describe('touch phone', () => {
 		await expect(sprintList(page).locator('[draggable="true"]')).toHaveCount(0);
 	});
 });
+
+// Records when animations run, from a rAF loop, relative to the last pointerdown.
+async function watchAnimations(page: Page) {
+	await page.waitForFunction(() => document.getAnimations().length === 0);
+	await page.evaluate(() => {
+		const w = window as unknown as { __motion: { press: number; first: number | null; max: number } };
+		w.__motion = { press: 0, first: null, max: 0 };
+		document.addEventListener('pointerdown', () => ((w.__motion.press = performance.now()), (w.__motion.first = null)), true);
+		const tick = () => {
+			const running = document.getAnimations().length;
+			w.__motion.max = Math.max(w.__motion.max, running);
+			if (running > 0 && w.__motion.first === null) w.__motion.first = performance.now() - w.__motion.press;
+			requestAnimationFrame(tick);
+		};
+		tick();
+	});
+}
+
+const motion = (page: Page) =>
+	page.evaluate(() => (window as unknown as { __motion: { first: number | null; max: number } }).__motion);
+
+test('Scenario: Moving a todo from the rail starts a move animation', async ({ page, request }) => {
+	const { aspects } = await seedRunning(request, [
+		{ title: 'Morning run', inSprint: true },
+		{ title: 'Book a physio appointment' },
+		{ title: 'Stretch for ten minutes' }
+	]);
+	await page.goto('/sprint');
+	const count = page.getByTestId(`rail-group-${aspects[0]}`).getByTestId('rail-count');
+	await expect(count).toHaveText('2');
+	await watchAnimations(page);
+
+	await page.getByRole('button', { name: 'Add to sprint: Book a physio appointment' }).click();
+	await page.waitForTimeout(400);
+	const { first } = await motion(page);
+	expect(first).not.toBeNull();
+	expect(first!).toBeLessThanOrEqual(100);
+	await expect(row(sprintList(page), 'Book a physio appointment')).toBeVisible({ timeout: 1 });
+	await expect(count).toHaveText('1', { timeout: 1 });
+});
+
+test('Scenario: Reduced motion moves instantly', async ({ page, request }) => {
+	await page.emulateMedia({ reducedMotion: 'reduce' });
+	await seedRunning(request, [
+		{ title: 'Morning run', inSprint: true },
+		{ title: 'Book a physio appointment' },
+		{ title: 'Stretch for ten minutes' }
+	]);
+	await page.goto('/sprint');
+	await watchAnimations(page);
+
+	await page.getByRole('button', { name: 'Add to sprint: Book a physio appointment' }).click();
+	await expect(row(sprintList(page), 'Book a physio appointment')).toBeVisible();
+	await expect(row(rail(page), 'Book a physio appointment')).toHaveCount(0);
+
+	await page.getByRole('navigation', { name: 'Sprint view' }).getByRole('link', { name: 'Board' }).click();
+	await expect(page).toHaveURL(/view=board$/);
+	const doing = page.getByTestId('board-column-doing');
+	await page.getByTestId('board-column-todo').getByTestId('todo-row').filter({ hasText: 'Morning run' })
+		.dragTo(doing, { sourcePosition: { x: 8, y: 8 } });
+	await expect(row(doing, 'Morning run')).toBeVisible();
+	await expect(row(page.getByTestId('board-column-todo'), 'Book a physio appointment')).toBeVisible();
+
+	await page.waitForTimeout(300);
+	expect((await motion(page)).max).toBe(0);
+	await page.reload();
+	await expect(row(page.getByTestId('board-column-doing'), 'Morning run')).toHaveAttribute('data-status', 'doing');
+});
