@@ -24,6 +24,7 @@
 	let chosenAspectId = $state<Id | null>(null);
 	let priority = $state<Priority>(0);
 	let dueDate = $state<IsoDate | ''>('');
+	let projectId = $state<Id | ''>('');
 	let checklist = $state<string[]>([]);
 	let error = $state<ActionError | null>(null);
 	let titleInput = $state<HTMLInputElement>();
@@ -43,6 +44,7 @@
 		chosenAspectId = null;
 		priority = 0;
 		dueDate = '';
+		projectId = '';
 		checklist = [];
 		error = null;
 	}
@@ -113,7 +115,7 @@
 			</ul>
 		{/if}
 
-		<TodoFields {aspects} bind:aspectId={() => aspectId, (id) => (chosenAspectId = id)} bind:priority bind:dueDate>
+		<TodoFields {aspects} bind:aspectId={() => aspectId, (id) => (chosenAspectId = id)} bind:priority bind:dueDate bind:projectId>
 			<Chip icon="list-checks" pressed={checklist.length > 0} onclick={() => (checklist = checklist.length ? [] : [''])}>
 				Checklist
 			</Chip>
