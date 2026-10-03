@@ -115,33 +115,46 @@ test('Scenario: No rail while the review is required', async ({ page, request })
 
 test('Scenario: Sprint at 1280 shows a context rail', async ({ page, request }) => {
 	await seedRunning(request, [{ title: 'Morning run', inSprint: true }, { title: 'Book a physio appointment' }]);
-	await page.goto('/sprint');
-
 	const context = page.getByTestId('context-rail');
-	await expect(context).toBeVisible();
-	const box = (await context.boundingBox())!;
-	const width = await page.evaluate(() => document.documentElement.clientWidth);
-	expect(Math.abs(box.x + box.width - width)).toBeLessThanOrEqual(1);
-	const [background, sunk] = await context.evaluate((el) => {
-		const probe = document.createElement('div');
-		probe.style.background = 'var(--paper-sunk)';
-		document.body.append(probe);
-		const value = getComputedStyle(probe).backgroundColor;
-		probe.remove();
-		return [getComputedStyle(el).backgroundColor, value];
-	});
-	expect(background).toBe(sunk);
+	const sidebarRight = () =>
+		page.evaluate(() => document.querySelector('main')!.previousElementSibling!.getBoundingClientRect().right);
 
-	const sidebarRight = await page.evaluate(
-		() => document.querySelector('main')!.previousElementSibling!.getBoundingClientRect().right
-	);
+	async function expectDockedRail() {
+		await expect(context).toBeVisible();
+		await expect(page.getByTestId('rail-toggle')).toBeHidden();
+		const box = (await context.boundingBox())!;
+		const width = await page.evaluate(() => document.documentElement.clientWidth);
+		expect(Math.abs(box.x + box.width - width)).toBeLessThanOrEqual(1);
+		const [background, sunk] = await context.evaluate((el) => {
+			const probe = document.createElement('div');
+			probe.style.background = 'var(--paper-sunk)';
+			document.body.append(probe);
+			const value = getComputedStyle(probe).backgroundColor;
+			probe.remove();
+			return [getComputedStyle(el).backgroundColor, value];
+		});
+		expect(background).toBe(sunk);
+		return box;
+	}
+
+	await page.goto('/sprint?view=aspect');
+	const box = await expectDockedRail();
 	const list = (await sprintList(page).boundingBox())!;
 	expect(list.width).toBeLessThanOrEqual(720);
-	expect(list.x - sidebarRight).toBeLessThanOrEqual(64);
+	expect(list.x - (await sidebarRight())).toBeLessThanOrEqual(64);
 	expect(list.x + list.width).toBeLessThanOrEqual(box.x);
+
+	// The board's columns widen past the list measure (wide board), but sit between sidebar and rail.
+	await page.goto('/sprint?view=board');
+	await page.waitForFunction(() => !document.documentElement.matches(':active-view-transition'));
+	const boardRail = await expectDockedRail();
+	const todo = (await page.getByTestId('board-column-todo').boundingBox())!;
+	const done = (await page.getByTestId('board-column-done').boundingBox())!;
+	expect(todo.x - (await sidebarRight())).toBeLessThanOrEqual(64);
+	expect(done.x + done.width).toBeLessThanOrEqual(boardRail.x);
 });
 
-test('Scenario: Rail becomes an overlay toggle between 1024 and 1279', async ({ page, request }) => {
+test('Scenario: Rail becomes an overlay toggle below 1280', async ({ page, request }) => {
 	await page.setViewportSize({ width: 1100, height: 800 });
 	await seedRunning(request, [{ title: 'Morning run', inSprint: true }, { title: 'Book a physio appointment' }]);
 	await page.goto('/sprint');

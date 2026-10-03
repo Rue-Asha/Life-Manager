@@ -231,7 +231,8 @@ Lifesum calendar with green-ringed today, https://mobbin.com/screens/3a530be6-95
   between two quiet surfaces. Each rail answers the screen's question: Sprint → the backlog
   rail plus Unscheduled; Today → this sprint's progress per aspect ("done / total" with a
   hairline bar in the aspect colour); an aspect page → that aspect's colour and counts.
-  Board and Week drop the 720 px cap and fill the width, Week in one row.
+  Board and Week drop the 720 px cap and fill the width, Week in one row. By aspect and
+  Board dock the rail; Week keeps it as an overlay (below).
   — Jira "Unscheduled work" rail, https://mobbin.com/screens/5fddb893-f912-443e-bd23-ec673aa6a254;
   Linear cycle + inspector flow, https://mobbin.com/flows/801fe69f-8f59-4bdc-a28a-9837f93fcd39
   (screen 890e49aa-ac99-4fa8-b15c-d21076cbc045);
@@ -242,11 +243,18 @@ Lifesum calendar with green-ringed today, https://mobbin.com/screens/3a530be6-95
 - **Progress per aspect is done / total, not capacity.** There are no estimates in the
   model, so a group header or rail row shows a count and a hairline bar, never points.
   — Jira per-team progress cells, https://mobbin.com/screens/994f09c1-4ca4-4127-8039-af78b1801a94
-- **Week in one row.** At ≥1280 Mon–Sun sit side by side (columns at least `--day-col-min`,
-  120 px) and Unscheduled moves into the rail.
+- **Week in one row, rail as an overlay.** At ≥1280 Mon–Sun sit side by side across the
+  full content width (columns at least `--day-col-min`, 120 px) and Unscheduled moves into
+  the rail. In Week the rail (Unscheduled above the backlog) stays the toggle + overlay
+  panel even at ≥1280: sidebar 248 + docked rail 340 + gutters leave ~628 px at 1280, too
+  little for 7 × 120 px, and a week that scrolls sideways hides the weekend (Rue's call
+  during the build). Without the docked rail the seven columns get ~138 px each. Switching
+  to By aspect or Board docks the rail again, and an open overlay closes when leaving Week,
+  so coming back starts closed. Drops from the overlay onto a day work as from the docked
+  rail; a busy day scrolls inside its column.
   — Todoist Upcoming, https://mobbin.com/screens/009edfa2-d70c-4e02-a9ee-ba3b81c33a6a;
   Amie list + grid, https://mobbin.com/screens/41dde7c0-c4c4-4f68-a6bc-8c3e50977d13
-- **Narrow desktop and tablet (768–1279 px): overlay rail.** The rail collapses behind a
+- **Narrow desktop and tablet (768–1279 px, and Week at every width ≥768): overlay rail.** The rail collapses behind a
   toggle button at the top right of the content; pressing it slides the rail in as a
   floating panel over the content's right edge, without a scrim, and pressing it again
   closes it. The scope named 1024–1279; the overlay also covers 768–1023, the smaller choice
