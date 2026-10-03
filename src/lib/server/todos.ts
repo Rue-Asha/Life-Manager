@@ -88,27 +88,75 @@ export function getTodo(db: DatabaseSync, id: Id): Todo | null {
 }
 
 export function updateTodo(db: DatabaseSync, id: Id, patch: TodoPatch): Result<Todo> {
-	throw new Error('not implemented');
+	if (!getTodo(db, id)) return { ok: false, error: 'not-found' };
+	const sets: string[] = [];
+	const values: (string | number | null)[] = [];
+	if (patch.title !== undefined) {
+		const title = patch.title.trim();
+		if (!title) return { ok: false, error: 'required', field: 'title' };
+		sets.push('title = ?');
+		values.push(title);
+	}
+	if (patch.aspectId !== undefined) {
+		if (!aspectExists(db, patch.aspectId)) return { ok: false, error: 'no-aspect', field: 'aspectId' };
+		sets.push('aspect_id = ?');
+		values.push(patch.aspectId);
+	}
+	if (patch.notes !== undefined) {
+		sets.push('notes = ?');
+		values.push(patch.notes);
+	}
+	if (patch.priority !== undefined) {
+		sets.push('priority = ?');
+		values.push(patch.priority);
+	}
+	if (patch.dueDate !== undefined) {
+		sets.push('due_date = ?');
+		values.push(patch.dueDate);
+	}
+	if (sets.length > 0) db.prepare(`UPDATE todos SET ${sets.join(', ')} WHERE id = ?`).run(...values, id);
+	return { ok: true, value: getTodo(db, id)! };
 }
 
 export function deleteTodo(db: DatabaseSync, id: Id): Result<void> {
-	throw new Error('not implemented');
+	const { changes } = db.prepare('DELETE FROM todos WHERE id = ?').run(id);
+	return changes ? { ok: true, value: undefined } : { ok: false, error: 'not-found' };
+}
+
+function getItem(db: DatabaseSync, id: Id): ChecklistItem | null {
+	const row = db.prepare(`SELECT ${itemColumns} FROM checklist_items WHERE id = ?`).get(id) as ItemRow | undefined;
+	return row ? toItem(row) : null;
 }
 
 export function addChecklistItem(db: DatabaseSync, todoId: Id, text: string): Result<ChecklistItem> {
-	throw new Error('not implemented');
+	if (!db.prepare('SELECT 1 FROM todos WHERE id = ?').get(todoId)) return { ok: false, error: 'not-found' };
+	const trimmed = text.trim();
+	if (!trimmed) return { ok: false, error: 'required', field: 'text' };
+	const { lastInsertRowid } = db
+		.prepare(
+			`INSERT INTO checklist_items (todo_id, text, position)
+			 VALUES (?1, ?2, (SELECT coalesce(max(position) + 1, 0) FROM checklist_items WHERE todo_id = ?1))`
+		)
+		.run(todoId, trimmed);
+	return { ok: true, value: getItem(db, Number(lastInsertRowid))! };
 }
 
 export function renameChecklistItem(db: DatabaseSync, itemId: Id, text: string): Result<ChecklistItem> {
-	throw new Error('not implemented');
+	if (!getItem(db, itemId)) return { ok: false, error: 'not-found' };
+	const trimmed = text.trim();
+	if (!trimmed) return { ok: false, error: 'required', field: 'text' };
+	db.prepare('UPDATE checklist_items SET text = ? WHERE id = ?').run(trimmed, itemId);
+	return { ok: true, value: getItem(db, itemId)! };
 }
 
 export function toggleChecklistItem(db: DatabaseSync, itemId: Id, done: boolean): Result<ChecklistItem> {
-	throw new Error('not implemented');
+	const { changes } = db.prepare('UPDATE checklist_items SET done = ? WHERE id = ?').run(done ? 1 : 0, itemId);
+	return changes ? { ok: true, value: getItem(db, itemId)! } : { ok: false, error: 'not-found' };
 }
 
 export function deleteChecklistItem(db: DatabaseSync, itemId: Id): Result<void> {
-	throw new Error('not implemented');
+	const { changes } = db.prepare('DELETE FROM checklist_items WHERE id = ?').run(itemId);
+	return changes ? { ok: true, value: undefined } : { ok: false, error: 'not-found' };
 }
 
 export function listBacklog(db: DatabaseSync, aspectId?: Id): Todo[] {
