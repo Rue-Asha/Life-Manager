@@ -102,3 +102,49 @@ test('Scenario: Aspect page rail shows the aspect\'s details', async ({ page, re
 	await expect(rail.getByTestId('progress')).toContainText('1 / 2');
 	await expect(rail.getByTestId('backlog-count')).toHaveText('1 in backlog');
 });
+
+test('Scenario: Move todos between sprint and backlog on the aspect page', async ({ page, request }) => {
+	const ids = await seed(request, RUNNING);
+	await page.goto(`/aspects/${ids.aspects[0]}`);
+
+	await row(backlogSection(page), 'Buy running shoes').hover();
+	await page.getByRole('button', { name: 'Add to sprint: Buy running shoes' }).click();
+	await expect(row(sprintSection(page), 'Buy running shoes')).toBeVisible();
+	await expect(sprintSection(page).getByTestId('progress')).toContainText('1 / 3');
+
+	await row(sprintSection(page), 'Stretch for ten minutes').getByTestId('row-actions').click();
+	await page.getByRole('menuitem', { name: 'Move to backlog' }).click();
+	await expect(row(backlogSection(page), 'Stretch for ten minutes')).toBeVisible();
+	await expect(row(sprintSection(page), 'Stretch for ten minutes')).toHaveCount(0);
+	await expect(sprintSection(page).getByTestId('progress')).toContainText('1 / 2');
+});
+
+test('Scenario: Drag between sections on the aspect page', async ({ page, request }) => {
+	const ids = await seed(request, RUNNING);
+	await page.goto(`/aspects/${ids.aspects[0]}`);
+
+	await row(backlogSection(page), 'Buy running shoes').dragTo(sprintSection(page));
+	await expect(row(sprintSection(page), 'Buy running shoes')).toBeVisible();
+
+	await page.reload();
+	await expect(row(sprintSection(page), 'Buy running shoes')).toBeVisible();
+	await expect(row(backlogSection(page), 'Buy running shoes')).toHaveCount(0);
+
+	await row(sprintSection(page), 'Stretch for ten minutes').dragTo(backlogSection(page));
+	await page.reload();
+	await expect(row(backlogSection(page), 'Stretch for ten minutes')).toBeVisible();
+});
+
+test('Scenario: Quick add on the aspect page defaults to the aspect', async ({ page, request }) => {
+	const ids = await seed(request, RUNNING);
+	await page.goto(`/aspects/${ids.aspects[1]}`);
+
+	await backlogSection(page).getByRole('button', { name: 'Add a todo' }).click();
+	const form = page.getByRole('form', { name: 'New todo' });
+	await form.getByRole('textbox', { name: 'Title' }).fill('Email the tutor');
+	await form.getByRole('button', { name: 'Add todo' }).click();
+	await expect(row(backlogSection(page), 'Email the tutor')).toBeVisible();
+
+	await page.goto('/backlog');
+	await expect(row(page.getByTestId(`aspect-group-${ids.aspects[1]}`), 'Email the tutor')).toBeVisible();
+});
