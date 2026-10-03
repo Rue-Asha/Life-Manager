@@ -1,6 +1,12 @@
 import { expect, test } from '@playwright/test';
+import { reset, seed } from './helpers';
 
 const LISTS = ['Today', 'Sprint', 'Backlog', 'Aspects', 'Recurring'];
+
+test.beforeEach(async ({ request }) => {
+	await reset(request);
+	await seed(request, { aspects: [{ name: 'Health' }] });
+});
 
 test('Scenario: Desktop shows a sidebar', async ({ page }) => {
 	await page.setViewportSize({ width: 1280, height: 800 });

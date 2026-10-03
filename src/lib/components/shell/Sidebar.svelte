@@ -1,27 +1,45 @@
 <script lang="ts" module>
+	import type { Aspect } from '../../types';
 	import type { UiIcon } from '../ui/icons';
 
-	export const NAV_ITEMS: { label: string; href: string; icon: UiIcon }[] = [
-		{ label: 'Today', href: '/', icon: 'sun' },
-		{ label: 'Sprint', href: '/sprint', icon: 'calendar-days' },
-		{ label: 'Backlog', href: '/backlog', icon: 'inbox' },
-		{ label: 'Recurring', href: '/recurring', icon: 'repeat' },
-		{ label: 'Aspects', href: '/aspects', icon: 'layers' }
+	export type NavCount = 'today' | 'sprint' | 'backlog' | 'recurring' | 'aspects';
+
+	export interface NavData {
+		counts: Record<NavCount | 'overdue', number>;
+		aspects: (Aspect & { backlog: number })[];
+	}
+
+	export const NAV_ITEMS: { label: string; href: string; icon: UiIcon; count: NavCount }[] = [
+		{ label: 'Today', href: '/', icon: 'sun', count: 'today' },
+		{ label: 'Sprint', href: '/sprint', icon: 'calendar-days', count: 'sprint' },
+		{ label: 'Backlog', href: '/backlog', icon: 'inbox', count: 'backlog' },
+		{ label: 'Recurring', href: '/recurring', icon: 'repeat', count: 'recurring' },
+		{ label: 'Aspects', href: '/aspects', icon: 'layers', count: 'aspects' }
 	];
 
 	export function isCurrent(href: string, pathname: string) {
 		return href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(href + '/');
 	}
+
+	// Today shows its overdue count instead of its own, in red, while anything is late.
+	export function navCount(nav: NavData, key: NavCount): { n: number; late: boolean } {
+		if (key === 'today' && nav.counts.overdue > 0) return { n: nav.counts.overdue, late: true };
+		return { n: nav.counts[key], late: false };
+	}
 </script>
 
 <script lang="ts">
 	import { page } from '$app/state';
+	import AspectIcon from '../ui/AspectIcon.svelte';
 	import { UI_ICONS } from '../ui/icons';
+
+	const nav = $derived(page.data.nav as NavData);
 </script>
 
 <nav aria-label="Main">
 	<a class="brand" href="/">Life Manager</a>
 	{#each NAV_ITEMS as item (item.href)}
+		{@const count = navCount(nav, item.count)}
 		<a
 			class="item"
 			href={item.href}
@@ -29,8 +47,22 @@
 		>
 			<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS[item.icon]} /></svg>
 			{item.label}
+			{#if count.n > 0}<span class="count num" class:late={count.late} aria-hidden="true">{count.n}</span>{/if}
 		</a>
 	{/each}
+	{#if nav.aspects.length > 0}
+		<ul aria-label="Aspects">
+			{#each nav.aspects as aspect (aspect.id)}
+				<li>
+					<a class="item" href="/backlog?aspect={aspect.id}">
+						<AspectIcon icon={aspect.icon} color={aspect.color} />
+						<span class="name">{aspect.name}</span>
+						{#if aspect.backlog > 0}<span class="count num" aria-hidden="true">{aspect.backlog}</span>{/if}
+					</a>
+				</li>
+			{/each}
+		</ul>
+	{/if}
 </nav>
 
 <style>
@@ -72,6 +104,34 @@
 	.item[aria-current='page'] {
 		background: var(--paper);
 		font-weight: var(--weight-medium);
+	}
+
+	.name {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.count {
+		margin-left: auto;
+		color: var(--ink-3);
+		font-size: var(--text-sm);
+		font-weight: var(--weight-regular);
+	}
+
+	.count.late {
+		color: var(--overdue);
+		font-weight: var(--weight-semibold);
+	}
+
+	ul {
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-0);
+		margin: 0;
+		padding: 0;
+		list-style: none;
 	}
 
 	svg {
