@@ -179,3 +179,17 @@ Refreshed from this run (37 files, from `test-results/shots/`; 3 differ from the
 - `shots/today-1280.png`
 - `shots/welcome-375.png`
 - `shots/welcome-1280.png`
+
+## Review
+
+Three rounds of review (Layer 3); the round limit is reached, and nothing is left open.
+
+**Round 1** (fresh-context review of the full diff, at 7d39939): no weakened tests (every edited test traces to S1/S5/S10/S11 or R1), no weak tests, no correctness bugs.
+- spec (low): board columns stop 56 px short of the viewport bottom while the scenario said "reaches the bottom of the viewport" → fixer 64c8c84 reworded the scenario to "page content area", CSS kept (orchestrator call, **Rue to confirm or veto**).
+- U6 friction (not a reviewer finding): crossfade NaN with a `display:none` counterpart in AspectView/BacklogRail → not reproducible (3 runs at 375 touch, Manage sheet ↔ AspectView ↔ hidden rail), no code change.
+
+**Round 2** (review of 64c8c84 only):
+- weak: the test read the `--space-9` token instead of the real content padding → fixed in b8251de: it sums the computed `padding-bottom` of the column's ancestors; a mutation to `--space-8` makes it fail.
+- spec: requirement text and scope S10 still said "viewport bottom" → scope S10 (ff210b6), requirement text and a design.md Decision (b8251de) aligned.
+
+**Round 3**: final verification at eb60a44, green, 80/80 automated scenarios, 0 gaps.
