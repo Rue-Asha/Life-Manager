@@ -174,7 +174,8 @@ action. (S6)
 
 ### Requirement: Wide board and week
 At ≥1280 px the board and week views SHALL fill the available width: board columns stretch evenly with
-equal minimum height reaching the viewport bottom; the week shows Monday–Sunday in one row (each column
+equal minimum height reaching the bottom of the page content area (the viewport bottom less the page's
+bottom padding); the week shows Monday–Sunday in one row (each column
 at least ~120 px) across the full content width and the Unscheduled list moves into the rail. In the Week
 view the rail (backlog + Unscheduled) is the toggle overlay even at ≥1280 px, so the seven columns fit
 without sideways scrolling; By aspect and Board keep the docked rail. Switching between Week and Board or

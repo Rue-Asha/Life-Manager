@@ -44,6 +44,10 @@ Technical (planner):
   turns false (leaving Week) `open` resets to false, so a later return to Week starts closed. `WeekView`
   keeps rendering `UnscheduledList` into the rail from 1280 and drops its `overflow-x` on the week row.
   Alternatives: narrower rail (still doesn't fit 7 × 120 at 1280) or keeping sideways scroll (rejected by Rue).
+- **Board columns end at the page content bottom, not the viewport edge** (orchestrator call during verify,
+  2026-10-03; Rue may veto at Gate 2): the column min-height stops at the viewport bottom less the page's
+  bottom padding, so the board keeps the same bottom padding as every other screen. Alternative — columns to
+  the viewport edge — would need the content container to drop its bottom padding on the board view only.
 - **Breakpoints are literal media queries** (768 / 1024 / 1280); CSS custom properties can't be used in
   `@media`. Rail width and min day-column width become tokens (`--rail-width`, `--day-col-min`).
 - **One add function with placement.** `addToActiveSprint(db, todoId, today, placement?)` covers button,

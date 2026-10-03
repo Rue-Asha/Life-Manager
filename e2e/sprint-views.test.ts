@@ -430,7 +430,13 @@ test('Scenario: Board columns share the width at 1280', async ({ page, request }
 	expect(Math.abs(rail.x - 32 - (last.x + last.width))).toBeLessThanOrEqual(1);
 
 	// Down to the bottom of the page content area: the viewport bottom less the page's bottom padding.
-	const padding = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--space-9')));
+	// Summed over the ancestors, so whichever container pads the page at this width is the one measured.
+	const padding = await page.getByTestId('board-column-todo').evaluate((el) => {
+		let sum = 0;
+		for (let a = el.parentElement; a; a = a.parentElement) sum += parseFloat(getComputedStyle(a).paddingBottom);
+		return sum;
+	});
+	expect(padding).toBeGreaterThan(0);
 	for (const c of columns) expect(Math.abs(c.y + c.height - (800 - padding))).toBeLessThanOrEqual(1);
 });
 
