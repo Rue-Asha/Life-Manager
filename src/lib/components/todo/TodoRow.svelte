@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import { MediaQuery } from 'svelte/reactivity';
@@ -41,6 +42,20 @@
 	let editing = $state(false);
 	const expanded = $derived(editing && desktop.current);
 	const close = () => (editing = false);
+
+	let menuOpen = $state(false);
+	let actionsEl = $state<HTMLElement>();
+
+	async function openMenu() {
+		menuOpen = !menuOpen;
+		await tick();
+		if (menuOpen) actionsEl?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+	}
+
+	function closeMenu(e: PointerEvent | KeyboardEvent) {
+		if (!menuOpen) return;
+		if (e instanceof KeyboardEvent ? e.key === 'Escape' : !actionsEl?.contains(e.target as Node)) menuOpen = false;
+	}
 </script>
 
 {#snippet moves()}
@@ -56,6 +71,8 @@
 		</form>
 	{/if}
 {/snippet}
+
+<svelte:window onpointerdown={closeMenu} onkeydown={closeMenu} />
 
 <li
 	class="row"
@@ -120,6 +137,31 @@
 					{#if overdue}<span class="visually-hidden">Overdue,</span>{/if}
 					{dueLabel(todo.dueDate, today)}
 				</span>
+			{/if}
+			{#if context === 'sprint'}
+				<div class="actions" bind:this={actionsEl}>
+					<button
+						type="button"
+						class="more"
+						data-testid="row-actions"
+						aria-label="More actions"
+						aria-haspopup="menu"
+						aria-expanded={menuOpen}
+						onclick={openMenu}
+					>
+						<svg viewBox="0 0 24 24" aria-hidden="true">
+							<circle cx="5" cy="12" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="19" cy="12" r="1.5" />
+						</svg>
+					</button>
+					{#if menuOpen}
+						<div class="menu" role="menu" aria-label="Actions for {todo.title}">
+							<form method="POST" action="/todos?/moveToBacklog" use:enhance={submit()}>
+								<input type="hidden" name="id" value={todo.id} />
+								<button role="menuitem">Move to backlog</button>
+							</form>
+						</div>
+					{/if}
+				</div>
 			{/if}
 			{#if context === 'backlog' && sprintDays}
 				<form method="POST" action="/todos?/addToSprint" use:enhance={submit()}>
@@ -377,6 +419,81 @@
 		.add:focus-visible {
 			opacity: 1;
 		}
+
+		.more {
+			opacity: 0;
+			transition: opacity var(--dur-fast) var(--ease-out);
+		}
+
+		.row:hover .more,
+		.more:focus-visible,
+		.more[aria-expanded='true'] {
+			opacity: 1;
+		}
+	}
+
+	.actions {
+		position: relative;
+		margin: -5px 0;
+	}
+
+	.more {
+		display: grid;
+		place-items: center;
+		width: 28px;
+		height: 28px;
+		padding: 0;
+		border: 0;
+		border-radius: var(--radius-sm);
+		background: none;
+		color: var(--ink-3);
+		cursor: pointer;
+	}
+
+	.more:hover,
+	.more[aria-expanded='true'] {
+		background: var(--paper-sunk);
+		color: var(--ink);
+	}
+
+	.more svg {
+		width: 16px;
+		height: 16px;
+		fill: currentColor;
+	}
+
+	.menu {
+		position: absolute;
+		top: calc(100% + var(--space-1));
+		right: 0;
+		z-index: 2;
+		min-width: 190px;
+		padding: var(--space-1);
+		border: 1px solid var(--line);
+		border-radius: var(--radius-md);
+		background: var(--paper);
+		box-shadow: var(--shadow-float);
+	}
+
+	.menu [role='menuitem'] {
+		display: block;
+		width: 100%;
+		padding: var(--space-2) var(--space-3);
+		border: 0;
+		border-radius: var(--radius-sm);
+		background: none;
+		color: var(--ink);
+		font: inherit;
+		font-size: var(--text-sm);
+		text-align: left;
+		white-space: nowrap;
+		cursor: pointer;
+	}
+
+	.menu [role='menuitem']:hover,
+	.menu [role='menuitem']:focus-visible {
+		background: var(--paper-hover);
+		outline: none;
 	}
 
 	@media (max-width: 767px) {
