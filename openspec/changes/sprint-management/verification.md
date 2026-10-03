@@ -1,26 +1,26 @@
-verified-at: cafd457
+verified-at: 9e47a65
 
 ## Layer 1 — proof-full (`PORT=4700 npm run proof:full`): green
 
 ```
-  ✓  138 e2e/today.test.ts:77:1 › An overdue todo planned for today is listed once, under Overdue (136ms)
-  ✓  139 e2e/today.test.ts:89:1 › Scenario: Status toggle on Today (294ms)
-  ✓  140 e2e/today.test.ts:116:1 › Scenario: Overdue todos outside the sprint offer the sprint instead of a checkbox (207ms)
-  ✓  141 e2e/today.test.ts:136:1 › Scenario: Quick add on Today adds to the sprint on today (541ms)
-  ✓  142 e2e/today.test.ts:156:1 › No quick add on the Sunday before next week's sprint starts (170ms)
-  ✓  143 e2e/today.test.ts:165:1 › Scenario: Today without an active sprint prompts to plan (161ms)
-  ✓  144 e2e/today.test.ts:177:1 › Scenario: Today with a pending review prompts to review (190ms)
-  ✓  145 e2e/today.test.ts:201:1 › Scenario: Nothing today shows a calm empty state (145ms)
-  ✓  146 e2e/today.test.ts:219:1 › Scenario: Sunday after the review prompts to plan next week (322ms)
-  ✓  147 e2e/todos.test.ts:28:1 › GET /todos redirects to the backlog (106ms)
-  ✓  148 e2e/todos.test.ts:34:1 › Scenario: Quick add creates a todo in the backlog (468ms)
-  ✓  149 e2e/todos.test.ts:53:1 › Quick add rejects an empty title inline (455ms)
-  ✓  150 e2e/todos.test.ts:63:1 › Scenario: Past due date is allowed and shown overdue (440ms)
-  ✓  151 e2e/todos.test.ts:74:1 › Quick add on phone opens a sheet (595ms)
-  ✓  152 e2e/todos.test.ts:92:1 › Scenario: Edit every field of a todo (675ms)
-  ✓  153 e2e/todos.test.ts:127:1 › Scenario: Checklist items are added, renamed, toggled and deleted (838ms)
+  ✓  138 e2e/today.test.ts:77:1 › An overdue todo planned for today is listed once, under Overdue (135ms)
+  ✓  139 e2e/today.test.ts:89:1 › Scenario: Status toggle on Today (291ms)
+  ✓  140 e2e/today.test.ts:116:1 › Scenario: Overdue todos outside the sprint offer the sprint instead of a checkbox (238ms)
+  ✓  141 e2e/today.test.ts:136:1 › Scenario: Quick add on Today adds to the sprint on today (530ms)
+  ✓  142 e2e/today.test.ts:156:1 › No quick add on the Sunday before next week's sprint starts (102ms)
+  ✓  143 e2e/today.test.ts:165:1 › Scenario: Today without an active sprint prompts to plan (133ms)
+  ✓  144 e2e/today.test.ts:177:1 › Scenario: Today with a pending review prompts to review (151ms)
+  ✓  145 e2e/today.test.ts:201:1 › Scenario: Nothing today shows a calm empty state (113ms)
+  ✓  146 e2e/today.test.ts:219:1 › Scenario: Sunday after the review prompts to plan next week (316ms)
+  ✓  147 e2e/todos.test.ts:28:1 › GET /todos redirects to the backlog (118ms)
+  ✓  148 e2e/todos.test.ts:34:1 › Scenario: Quick add creates a todo in the backlog (459ms)
+  ✓  149 e2e/todos.test.ts:53:1 › Quick add rejects an empty title inline (450ms)
+  ✓  150 e2e/todos.test.ts:63:1 › Scenario: Past due date is allowed and shown overdue (423ms)
+  ✓  151 e2e/todos.test.ts:74:1 › Quick add on phone opens a sheet (593ms)
+  ✓  152 e2e/todos.test.ts:92:1 › Scenario: Edit every field of a todo (681ms)
+  ✓  153 e2e/todos.test.ts:127:1 › Scenario: Checklist items are added, renamed, toggled and deleted (832ms)
   ✓  154 e2e/todos.test.ts:163:1 › Scenario: Deleting a todo asks for confirmation (1.6s)
-  ✓  155 e2e/todos.test.ts:184:1 › Editing on phone uses a sheet (589ms)
+  ✓  155 e2e/todos.test.ts:184:1 › Editing on phone uses a sheet (588ms)
 
   155 passed (1.4m)
 ```
@@ -30,8 +30,7 @@ svelte-check 0 errors / 0 warnings (446 files); build clean; unit (vitest) 79 pa
 ## Layer 2 — spec coverage
 
 84 scenarios: 81 with a passing test named `Scenario: <title>` (unit 11, e2e 70), 3 manual, 0 gaps.
-Delta vs eb60a44 (Gate 2 correction 9a93eb4 + cafd457): navigation requirement "Wide desktop layout with context rail" now centres the list column between sidebar and rail at ≥1280 and right of the sidebar at 768–1279; new scenario "Screens with a rail centre their column" (`e2e/layout.test.ts`, passes); "Screens without a rail centre their column" now runs at 1100 and 1600 and includes Aspects (passes); "Sprint at 1280 shows a context rail" now asserts the By-aspect list is centred within 2 px between sidebar and rail (passes). Code: `RailLayout.svelte`, `+layout.svelte`; design.md and design/brief.md updated.
-Note (not a gap by lookup): the requirement text names Plan among the screens without a rail, but no scenario/test opens `/sprint/plan` for centring.
+Delta vs cafd457 (9e47a65): `RailLayout.svelte` `.content` gets `width: 100%` at ≥1280 (an auto-margin grid item shrank to fit instead of filling). Navigation requirement now scopes "Board and Week fill the content width" to ≥1280 px. "Sprint at 1280 shows a context rail" now runs at 1280 and 1600 — at 1600 the By-aspect list is capped (≤720) and centred within 2 px between sidebar and rail, and the Board columns start ≤64 px after the sidebar and stop ≤64 px before the rail (passes). "Screens without a rail centre their column" now includes Plan (`/sprint/plan`) at 1100 and 1600 (passes). The previous round's Plan note is resolved. No other spec, test or code changed.
 
 | Scenario | proof | Evidence |
 |---|---|---|
@@ -127,19 +126,19 @@ Start with `npm run dev` → http://localhost:5173, a sprint running with backlo
 - [ ] Moves look like they travel: at ≥1280 on `/sprint`, use "Add to sprint" on a rail todo and send a sprint todo back — the item glides between rail and list, nothing jumps.
 - [ ] Rail slides in with the content reflowing: at ~1100 px on `/sprint`, press the rail toggle — the overlay slides in (~320 ms, no scrim) and closes the same way; toggle sits over the overlay's top area.
 - [ ] Brief documents motion and the three-column layout with references: read `design/brief.md` §8 Motion and §9 Layout (incl. the Week overlay paragraph and the centring rule) — Mobbin references cited, matches the app.
-- [ ] Centred column everywhere (Gate 2 correction): at 1600 and ~1100 px open Today, Sprint (By aspect), an aspect page, Backlog, Recurring, Aspects, Plan — the column sits in the middle of the free space each time; Board/Week stay full width — `shots/today-1280.png`, `shots/sprint-aspect-1280.png`, `shots/aspect-page-1280.png`.
+- [ ] Centred column everywhere (Gate 2 correction): at 1600 and ~1100 px open Today, Sprint (By aspect), an aspect page, Backlog, Recurring, Aspects, Plan — the column sits in the middle of the free space each time; Board/Week fill the width at ≥1280 — `shots/today-1280.png`, `shots/sprint-aspect-1280.png`, `shots/aspect-page-1280.png`.
 - [ ] Cross-fade look on route changes and Board/Week/By aspect switches (gate2 note U3).
 - [ ] Board/week cards: ~40 px blank band under the meta line — `shots/sprint-board-1280.png` (gate2 note U9).
 - [ ] Board columns end at the page content bottom (56 px above the viewport edge), not the viewport bottom — `shots/sprint-board-1280.png`; confirm or veto the round-1 spec rewording (S10).
 
 ## Diffstat
 
-`git diff --stat flow/build-life-manager...flow/sprint-management`: 101 files changed, 5451 insertions(+), 352 deletions(-).
+`git diff --stat flow/build-life-manager...flow/sprint-management`: 101 files changed, 5452 insertions(+), 352 deletions(-).
 Excluding screenshots: 64 files — src/lib 22 (components, server, motion.ts, dnd.ts, types, styles), src/routes 14, e2e 13, openspec change dir 14 (proposal/design/tasks/scope/flow/verification + 7 delta specs), design/brief.md.
 
 ## Screenshots
 
-Refreshed from this run (37 files, from `test-results/shots/`; 5 differ from the committed set: journey-manage-aspect-375, journey-next-week-1280, journey-sprint-aspect-1280, journey-sprint-board-1280, plan-375):
+Refreshed from this run (37 files, from `test-results/shots/`; 8 differ from the committed set: aspect-page-1280, journey-manage-aspect-1280, journey-manage-aspect-375, journey-sprint-aspect-1280, journey-today-1280, plan-375, sprint-aspect-1280, today-1280 — the 1280 rail screens reflect the `width: 100%` fix):
 
 - `shots/aspect-page-375.png`
 - `shots/aspect-page-1280.png`
