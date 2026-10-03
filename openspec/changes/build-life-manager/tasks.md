@@ -43,11 +43,11 @@ E2E tests start with `reset()` and set up data with `seed()` / `setClock()` from
 
 > unit: depends=3 · scope=S3,S4,S5,S6,S7,S8,S9 · files=src/lib/server/aspects.ts, src/lib/server/todos.ts, src/lib/server/aspects.test.ts, src/lib/server/todos.test.ts
 
-- [ ] 5.1 Write `Scenario: Duplicate aspect name is rejected`, then implement `listAspects`, `countAspects`, `createAspect`, `updateAspect`, `aspectUsage` (trimmed non-empty name, case-insensitive uniqueness, palette/icon keys validated)
-- [ ] 5.2 Write `Scenario: Deleting an aspect moves its todos and rules` and `Scenario: Rule follows its deleted aspect` (insert rules with plain SQL), then `deleteAspect` (`target-required` when in use, `only-aspect-in-use`, one transaction)
-- [ ] 5.3 Write `Scenario: Todo without an existing aspect is rejected`, `Scenario: Todo stores all optional fields`, `Scenario: Empty todo title is rejected`, then `createTodo` with targets backlog / sprint / day (active sprint read with plain SQL; `no-active-sprint`, `day-outside-sprint`) and `getTodo`
-- [ ] 5.4 Write `Scenario: Changing the aspect keeps sprint, status and day` and `Scenario: Deleting a recurring instance keeps its rule`, then `updateTodo`, `deleteTodo` and the checklist functions
-- [ ] 5.5 Write `Scenario: Backlog lists only todos not in a sprint, in order` and `Scenario: Overdue means due before today and not done`, then `listBacklog` and `listOverdue`
+- [x] 5.1 Write `Scenario: Duplicate aspect name is rejected`, then implement `listAspects`, `countAspects`, `createAspect`, `updateAspect`, `aspectUsage` (trimmed non-empty name, case-insensitive uniqueness, palette/icon keys validated)
+- [x] 5.2 Write `Scenario: Deleting an aspect moves its todos and rules` and `Scenario: Rule follows its deleted aspect` (insert rules with plain SQL), then `deleteAspect` (`target-required` when in use, `only-aspect-in-use`, one transaction)
+- [x] 5.3 Write `Scenario: Todo without an existing aspect is rejected`, `Scenario: Todo stores all optional fields`, `Scenario: Empty todo title is rejected`, then `createTodo` with targets backlog / sprint / day (active sprint read with plain SQL; `no-active-sprint`, `day-outside-sprint`) and `getTodo`
+- [x] 5.4 Write `Scenario: Changing the aspect keeps sprint, status and day` and `Scenario: Deleting a recurring instance keeps its rule`, then `updateTodo`, `deleteTodo` and the checklist functions
+- [x] 5.5 Write `Scenario: Backlog lists only todos not in a sprint, in order` and `Scenario: Overdue means due before today and not done`, then `listBacklog` and `listOverdue`
 
 ## 6. Sprint and recurring engine
 
@@ -55,11 +55,11 @@ E2E tests start with `reset()` and set up data with `seed()` / `setClock()` from
 
 Tests create aspects and todos with plain SQL (unit 5 runs in parallel).
 
-- [ ] 6.1 Write `Scenario: Sprint covers one ISO week in Europe/Berlin`, `Scenario: Week boundary across a DST change`, `Scenario: Target week is the current week before Sunday`, `Scenario: Target week on Sunday is next week`, then the rest of `week.ts`
-- [ ] 6.2 Write `Scenario: Start a sprint with zero todos`, `Scenario: Only one sprint can be active`, `Scenario: Planning is blocked while a review is pending`, `Scenario: Review is available from the sprint's Sunday`, `Scenario: Review is required from the Monday after`, then `sprintPhase`, `getActiveSprint`, `openPlanning`, `suggestedTodos`, `pullTodo`, `unpullTodo`, `startSprint`
-- [ ] 6.3 Write `Scenario: Moving back to the backlog clears day and status` and `Scenario: Unchecking done returns to To do`, then `listSprintTodos`, `listToday`, `addToActiveSprint`, `moveToBacklog`, `setStatus`, `toggleDone`, `setDay` (`completedAt` set/cleared)
-- [ ] 6.4 Write `Scenario: Open recurring instance is carried or dropped`, `Scenario: Done todos stay with the closed sprint`, `Scenario: Weeks away review only the last sprint`, then `reviewSummary` and `closeReview` (one transaction; new planning draft holds carried todos)
-- [ ] 6.5 Write `Scenario: Rule without weekdays is rejected`, `Scenario: Starting a sprint adds one instance per weekday`, `Scenario: Rule created mid-sprint fills the remaining days`, `Scenario: Editing a rule affects only future sprints`, `Scenario: Deleting a rule keeps existing instances`, then `recurring.ts` and its calls from `startSprint` and `createRule`
+- [x] 6.1 Write `Scenario: Sprint covers one ISO week in Europe/Berlin`, `Scenario: Week boundary across a DST change`, `Scenario: Target week is the current week before Sunday`, `Scenario: Target week on Sunday is next week`, then the rest of `week.ts`
+- [x] 6.2 Write `Scenario: Start a sprint with zero todos`, `Scenario: Only one sprint can be active`, `Scenario: Planning is blocked while a review is pending`, `Scenario: Review is available from the sprint's Sunday`, `Scenario: Review is required from the Monday after`, then `sprintPhase`, `getActiveSprint`, `openPlanning`, `suggestedTodos`, `pullTodo`, `unpullTodo`, `startSprint`
+- [x] 6.3 Write `Scenario: Moving back to the backlog clears day and status` and `Scenario: Unchecking done returns to To do`, then `listSprintTodos`, `listToday`, `addToActiveSprint`, `moveToBacklog`, `setStatus`, `toggleDone`, `setDay` (`completedAt` set/cleared)
+- [x] 6.4 Write `Scenario: Open recurring instance is carried or dropped`, `Scenario: Done todos stay with the closed sprint`, `Scenario: Weeks away review only the last sprint`, then `reviewSummary` and `closeReview` (one transaction; new planning draft holds carried todos)
+- [x] 6.5 Write `Scenario: Rule without weekdays is rejected`, `Scenario: Starting a sprint adds one instance per weekday`, `Scenario: Rule created mid-sprint fills the remaining days`, `Scenario: Editing a rule affects only future sprints`, `Scenario: Deleting a rule keeps existing instances`, then `recurring.ts` and its calls from `startSprint` and `createRule`
 
 ## 7. Aspects UI and onboarding
 

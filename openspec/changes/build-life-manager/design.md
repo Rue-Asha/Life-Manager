@@ -210,3 +210,17 @@ None — new repo, empty database. Homelab deploy is split off.
 ## Open Questions
 
 None blocking. The visual direction is settled at U2's taste gate.
+
+## Build notes (from unit reports — read before building UI)
+
+- Imports: `$lib` works via `alias` in vite.config.ts (SvelteKit 3 deprecation warning expected). U4 components use relative imports; either is fine.
+- UI icons: `src/lib/components/ui/icons.ts` exports `UI_ICONS` / `UiIcon` (Lucide paths). Nav items: `NAV_ITEMS`, `isCurrent()` exported from `Sidebar.svelte` `<script module>`. Font family name is 'Bricolage Grotesque Variable'.
+- Sheet is a native `<dialog>` driven by `open`; Escape/backdrop call `onclose`.
+- e2e: use `reset()` / `seed()` from `e2e/helpers.ts` (seed shape documented there). SvelteKit 3 CSRF: posting to form actions from `request.post` needs `headers: { origin: baseURL }`.
+- aspects.ts errors: unknown colour/icon → `required` on `color`/`icon`; deleteAspect → `not-found`, `only-aspect-in-use`, `target-required` (field `targetId`); an aspect not in use is deleted and targetId ignored.
+- todos.ts: createTodo checks title (`required`) then aspect (`no-aspect` on `aspectId`); checklist entries trimmed, empty dropped. listBacklog sorts P1→P3, none, then due date (undated last); grouping by aspect is the UI's job. listOverdue ignores sprint, sorted by due date.
+- sprints.ts: `review-pending` covers review-available and review-required; a running sprint gives `sprint-active` (openPlanning, startSprint, pullTodo, closeReview before its Sunday). pullTodo creates the planning draft if missing. unpullTodo: draft todos only; moveToBacklog: active-sprint todos only; both reset sprint, day, status, completedAt. setDay → `day-outside-sprint` (field `day`).
+- Review: missing decisions count as `carry`; decisions on done todos ignored; `backlog` on a recurring instance → `recurring-no-backlog`, `drop` on a normal todo → `not-recurring` (field `decision-<id>`).
+- recurring.ts: generateInstances takes optional `ruleId`; createRule mid-sprint adds only its own instances (today onward).
+- Today (U12): `listToday` returns active-sprint todos on today only — combine with `listOverdue` (which includes backlog todos, per Gate 1).
+- Gaps for U7: navigation e2e tests don't seed data — once the zero-aspects → /welcome redirect lands, add `reset()` + `seed({ aspects })` in a beforeEach. The sidebar lacks per-list counts and the aspect list under "Aspects" shown in the style tile; both need layout data from `+layout.server.ts` (U7).
