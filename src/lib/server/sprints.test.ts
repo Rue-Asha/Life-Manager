@@ -4,6 +4,7 @@ import type { Id, IsoDate, ReviewDecision, Sprint, Status } from '$lib/types';
 import { openDb } from './db';
 import {
 	addToActiveSprint,
+	aspectProgress,
 	closeReview,
 	getActiveSprint,
 	listSprintTodos,
@@ -21,6 +22,7 @@ import {
 	toggleDone,
 	unpullTodo
 } from './sprints';
+import { backlogCounts } from './todos';
 
 let db: DatabaseSync;
 let aspect: Id;
@@ -214,6 +216,44 @@ describe('mid-sprint changes', () => {
 		expect(row(doing)).toMatchObject({ sprint_id: s, status: 'doing', day: '2026-10-07' });
 	});
 
+	it('Scenario: Add to the sprint with a day or a status', () => {
+		const s = sprint('active', '2026-10-05');
+		const thursday = todo('Call bank');
+		const done = todo('Pay rent');
+		const outside = todo('Book trip');
+		expect(addToActiveSprint(db, thursday, '2026-10-07', { day: '2026-10-08' })).toMatchObject({
+			ok: true,
+			value: { sprintId: s, day: '2026-10-08', status: 'todo' }
+		});
+		const added = addToActiveSprint(db, done, '2026-10-07', { status: 'done' });
+		expect(added).toMatchObject({ ok: true, value: { sprintId: s, status: 'done' } });
+		expect(added.ok && added.value.completedAt).toBeTruthy();
+		expect(addToActiveSprint(db, outside, '2026-10-07', { day: '2026-10-12' })).toEqual({
+			ok: false,
+			error: 'day-outside-sprint',
+			field: 'day'
+		});
+		expect(row(outside)).toMatchObject({ sprint_id: null, day: null, status: 'todo' });
+	});
+
+	it('Scenario: Adding a todo that is no longer in the backlog is refused', () => {
+		const s = sprint('active', '2026-10-05');
+		const id = todo('Write essay', { sprintId: s, status: 'doing', day: '2026-10-07' });
+		expect(addToActiveSprint(db, id, '2026-10-07', { day: '2026-10-09', status: 'done' })).toEqual({
+			ok: false,
+			error: 'not-found'
+		});
+		expect(row(id)).toMatchObject({ sprint_id: s, status: 'doing', day: '2026-10-07', completed_at: null });
+	});
+
+	it('Scenario: Adding to the sprint is refused while the review is required', () => {
+		const s = sprint('active', '2026-10-05');
+		const id = todo('Call bank');
+		expect(addToActiveSprint(db, id, '2026-10-12')).toEqual({ ok: false, error: 'review-required' });
+		expect(row(id)).toMatchObject({ sprint_id: null, status: 'todo', day: null, completed_at: null });
+		expect(addToActiveSprint(db, id, '2026-10-11')).toMatchObject({ ok: true, value: { sprintId: s } });
+	});
+
 	it('Scenario: Removing a recurring instance deletes only that instance', () => {
 		const s = sprint('active', '2026-10-05');
 		const rule = Number(
@@ -356,5 +396,27 @@ describe('sprint review', () => {
 		const next = startSprint(db, '2026-10-11', []);
 		expect(next.ok && next.value).toMatchObject({ id: draft.ok ? draft.value.id : 0, weekStart: '2026-10-12' });
 		expect(row(carried)).toMatchObject({ status: 'doing', day: null });
+	});
+});
+
+describe('progress', () => {
+	it('Scenario: Progress and backlog counts per aspect', () => {
+		const s = sprint('active', '2026-10-05');
+		todo('Run', { sprintId: s, status: 'done' });
+		todo('Swim', { sprintId: s, status: 'doing' });
+		todo('Stretch', { sprintId: s });
+		todo('Yoga');
+		todo('Climb');
+		const a = aspect;
+		aspect = Number(
+			db
+				.prepare("INSERT INTO aspects (name, color, icon, position, created_at) VALUES ('Home', 'clay', 'home', 1, '')")
+				.run().lastInsertRowid
+		);
+		todo('Fix shelf');
+		todo('Old', { sprintId: sprint('closed', '2026-09-28'), status: 'done' });
+
+		expect(aspectProgress(db, s)).toEqual({ [a]: { done: 1, total: 3 } });
+		expect(backlogCounts(db)).toEqual({ [a]: 2, [aspect]: 1 });
 	});
 });

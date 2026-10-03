@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { Id, Priority, RuleInput, Weekday } from '$lib/types';
 import { openDb } from './db';
 import { createRule, deleteRule, listRules, updateRule } from './recurring';
-import { closeReview, getActiveSprint, listSprintTodos, startSprint } from './sprints';
+import { closeReview, getActiveSprint, listSprintTodos, setStatus, startSprint } from './sprints';
 
 let db: DatabaseSync;
 let aspect: Id;
@@ -154,5 +154,49 @@ describe('recurring rules', () => {
 		});
 		expect(listRules(db)).toEqual([rule.ok && rule.value]);
 		expect(updateRule(db, 999, gym())).toEqual({ ok: false, error: 'not-found' });
+	});
+});
+
+describe('carried recurring instances', () => {
+	function carryInto(next: (ids: Id[]) => void = () => {}) {
+		const instances = activeTodos();
+		closeReview(db, '2026-10-11', {});
+		next(instances.map((t) => t.id));
+		startSprint(db, '2026-10-11', []);
+	}
+
+	it('Scenario: Carried recurring instance is not duplicated', () => {
+		const rule = createRule(db, gym(), '2026-10-01');
+		const id = rule.ok ? rule.value.id : 0;
+		startSprint(db, '2026-10-05', []);
+		const [monday, thursday] = activeTodos();
+		setStatus(db, monday.id, 'done');
+		setStatus(db, thursday.id, 'doing');
+		carryInto();
+		const instances = activeTodos().filter((t) => t.ruleId === id);
+		expect(instances.map((t) => [t.id === thursday.id, t.day, t.status])).toEqual([
+			[true, '2026-10-12', 'doing'],
+			[false, '2026-10-15', 'todo']
+		]);
+	});
+
+	it('Scenario: Carried instance of a deleted rule keeps no day', () => {
+		const rule = createRule(db, gym({ weekdays: [4] }), '2026-10-01');
+		startSprint(db, '2026-10-05', []);
+		const [carried] = activeTodos();
+		carryInto(() => deleteRule(db, rule.ok ? rule.value.id : 0));
+		expect(activeTodos().map((t) => [t.id, t.day, t.ruleId])).toEqual([[carried.id, null, null]]);
+	});
+
+	it('Scenario: More carried instances than weekdays', () => {
+		const rule = createRule(db, gym(), '2026-10-01');
+		const id = rule.ok ? rule.value.id : 0;
+		startSprint(db, '2026-10-05', []);
+		const [first, second] = activeTodos();
+		carryInto(() => updateRule(db, id, gym({ weekdays: [1] })));
+		expect(activeTodos().map((t) => [t.id, t.day])).toEqual([
+			[first.id, '2026-10-12'],
+			[second.id, null]
+		]);
 	});
 });
