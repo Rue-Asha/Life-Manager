@@ -2,19 +2,19 @@ triage: "feature — connects sprint ⇄ aspects/backlog in the UI, permanent sp
 base: flow/build-life-manager
 gate0: 2026-10-03
 gate1: 2026-10-03
+gate2: 2026-10-03
 decisions:
+  - "Gate 2 (2026-10-03, Rue approved): confirmed A board columns end at page content bottom, B aspect click opens page + Edit/Delete in menu, C done/total progress in group headers, D Today rail hidden under review-required."
   - "Gate 2 correction (2026-10-03, Rue): main column centred on every screen, rail or not (was left-aligned beside a rail, centred without); Board/Week stay full width. scope.md S9 updated."
   - "Build (2026-10-03, after wave 4): Rue chose — in Week view the rail is the toggle overlay even at ≥1280 so Mon–Sun fit in one row; scope.md S10 updated. S9 band text aligned to 768–1279."
   - "Gate 1 (2026-10-03): Rue approved as it stands — addition (a) createTodo review-required guard NOT added; (b) collapse memory kept, cut candidate if appetite runs over; planner deviations 1–4 accepted."
 learnings:
-  - "planner: existing scenarios copied verbatim into MODIFIED blocks already have tests — tasks.md must not re-list them"
   - "U2: symlinked node_modules breaks svelte-check in every worktree (node_modules/$app/tsconfig.json has relative paths, resolving into the main repo) — recurs despite the build.md note; flow-unit start should npm ci per worktree in SvelteKit 3 repos"
   - "U3: SvelteKit view-transition cross-fade (200 ms) silently swallows Playwright drags started during it — e2e helpers that switch views must wait for !document.documentElement.matches(':active-view-transition')"
   - "U5: Playwright drags from a row's centre break whenever a layout narrows (centre lands on a select) — drag helpers should grab a dedicated handle or the row's top-left"
   - "U5: units adding a list next to an existing one (rail beside sprint) break other units' count assertions — scope e2e counts to a container test id from the start"
   - "U6: Svelte crossfade divides by target width — a display:none counterpart yields NaN and leaves the outgoing node stuck; guard in motion.ts (U6 guarded board/week only; AspectView/BacklogRail still raw)"
   - "U6: during a 200 ms crossfade two copies of an element exist — page-wide strict locators fail; mark the outgoing copy aria-hidden and rename its test ids"
-  - "fixer: in the Manage sheet flow at 375 the display:none rail and the sheet both register crossfade send with the same key — later mount wins; fragile if mount order changes"
   - "fixer: Playwright webServer runs `node build` — rebuild before an e2e mutation check or the run tests the stale build"
   - "Gate 2 correction: Rue saw screens with a rail left-aligned and screens without centred as inconsistent — layout rules must give one alignment for all main screens, not vary by whether a rail exists"
   - "layout e2e: a centring/fill assertion at a width where the track is narrower than the max-width cap passes trivially — assert at a width where the cap binds (here 1600) and prove by mutation; this hid a real Board shrink bug"
