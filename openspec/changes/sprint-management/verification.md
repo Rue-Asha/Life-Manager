@@ -177,3 +177,19 @@ Refreshed from this run (37 files, from `test-results/shots/`; 8 differ from the
 - `shots/today-1280.png`
 - `shots/welcome-375.png`
 - `shots/welcome-1280.png`
+
+## Review
+
+Before Gate 2: three rounds of review, with the round limit reached and nothing left open. After Gate 2: one correction from Rue and two review passes.
+
+**Round 1** (full diff, at 7d39939): no weakened tests (every edited test traces to S1/S5/S10/S11 or R1), no weak tests, no correctness bugs.
+- spec (low): board columns stopped 56 px short of the viewport bottom → scenario reworded to "page content area" and the CSS kept (64c8c84, orchestrator call, **Rue to confirm or veto**).
+- U6's crossfade NaN in AspectView/BacklogRail → not reproducible (3 runs at 375 px touch), no code change.
+
+**Round 2** (64c8c84): the test read the `--space-9` token → it now sums the computed `padding-bottom` of the column's ancestors, and a mutation makes it fail. Requirement text, scope S10 and design.md aligned (ff210b6, b8251de).
+
+**Round 3**: verification at eb60a44, green, 0 gaps.
+
+**Gate 2 correction** (Rue: "make consistent … main interfaces all being centered") → cafd457 centres the main column on every screen, with or without a rail. Shared rules in `+layout.svelte` and `RailLayout`. New scenario "Screens with a rail centre their column".
+- review of cafd457: the By-aspect centring check and the Board fill check couldn't fail at 1280 (track 692 px < cap 784 px); the navigation spec said Board/Week fill below 1280; Plan wasn't tested → fixed in 9e47a65: both checks also run at 1600 and are proven by mutation, the spec is limited to ≥1280, and Plan was added. Tightening the Board check exposed a **real bug** introduced by cafd457: at ≥1280 Board shrank to its content (902 of 1012 px at 1600) → `width: 100%` on `.content`.
+- review of 9e47a65: no findings.
