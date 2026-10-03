@@ -1,7 +1,10 @@
 <script lang="ts">
-	import type { Aspect, IsoDate, Status, Todo } from '$lib/types';
+	import { enhance } from '$app/forms';
+	import { tick } from 'svelte';
+	import type { Aspect, Id, IsoDate, Status, Todo } from '$lib/types';
 	import { STATUS_LABELS } from '../todo/StatusControl.svelte';
-	import SprintCard from './SprintCard.svelte';
+	import { submit } from '../todo/form';
+	import SprintCard, { dropTarget } from './SprintCard.svelte';
 
 	let {
 		todos,
@@ -18,12 +21,42 @@
 	};
 
 	const aspectOf = (todo: Todo) => aspects.find((a) => a.id === todo.aspectId)!;
+
+	// A dropped card sits in its new column while the move saves, instead of springing back.
+	let moved = $state<{ id: Id; status: Status } | null>(null);
+	let moveForm = $state<HTMLFormElement>();
+	const statusOf = (todo: Todo) => (moved?.id === todo.id ? moved.status : todo.status);
+
+	async function drop(id: Id, status: Status) {
+		if (todos.find((t) => t.id === id)?.status === status) return;
+		moved = { id, status };
+		await tick();
+		moveForm?.requestSubmit();
+	}
+
+	const settle = () => (moved = null);
 </script>
+
+<form
+	bind:this={moveForm}
+	method="POST"
+	action="/todos?/setStatus"
+	hidden
+	use:enhance={submit({ onsuccess: settle, onerror: settle })}
+>
+	<input type="hidden" name="id" value={moved?.id} />
+	<input type="hidden" name="status" value={moved?.status} />
+</form>
 
 <div class="board">
 	{#each STATUSES as status (status)}
-		{@const cards = todos.filter((t) => t.status === status)}
-		<section class="column" data-testid="board-column-{status}" aria-labelledby="column-{status}">
+		{@const cards = todos.filter((t) => statusOf(t) === status)}
+		<section
+			class="column"
+			use:dropTarget={(id) => drop(id, status)}
+			data-testid="board-column-{status}"
+			aria-labelledby="column-{status}"
+		>
 			<h2 id="column-{status}">{STATUS_LABELS[status]}<span class="num">{cards.length}</span></h2>
 			{#each cards as todo (todo.id)}
 				<SprintCard {todo} aspect={aspectOf(todo)} {today} {sprintDays} />
@@ -50,6 +83,11 @@
 		padding: var(--space-3);
 		border-radius: var(--radius-md);
 		background: var(--paper-sunk);
+		transition: background-color var(--dur-fast) var(--ease-out);
+	}
+
+	.column:global([data-over]) {
+		background: var(--accent-soft);
 	}
 
 	h2 {

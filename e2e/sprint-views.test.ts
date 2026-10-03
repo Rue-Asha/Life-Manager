@@ -197,3 +197,70 @@ test('Scenario: Checkbox toggles done', async ({ page, request }) => {
 		);
 	}
 });
+
+test('Scenario: Move a todo between board columns by drag', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [...ASPECTS],
+		sprint: { state: 'active', weekStart: WEEK },
+		todos: [{ title: 'Draft the cover letter', aspect: 1, inSprint: true }]
+	});
+	await page.goto('/sprint?view=board');
+
+	await row(page, 'Draft the cover letter').dragTo(page.getByTestId('board-column-doing'));
+	await expect(page.getByTestId('board-column-doing')).toContainText('Draft the cover letter');
+
+	await page.reload();
+	await expect(page.getByTestId('board-column-doing')).toContainText('Draft the cover letter');
+	await expect(row(page, 'Draft the cover letter')).toHaveAttribute('data-status', 'doing');
+});
+
+test('Scenario: Empty board column shows a placeholder', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [...ASPECTS],
+		sprint: { state: 'active', weekStart: WEEK },
+		todos: [
+			{ title: 'Clean the fridge', aspect: 2, inSprint: true },
+			{ title: 'Morning run', aspect: 0, inSprint: true, status: 'done' }
+		]
+	});
+	await page.goto('/sprint?view=board');
+
+	await expect(page.getByTestId('board-column-doing').getByTestId('column-placeholder')).toBeVisible();
+	await expect(page.getByTestId('board-column-doing').getByTestId('todo-row')).toHaveCount(0);
+	await expect(page.getByTestId('board-column-todo').getByTestId('column-placeholder')).toHaveCount(0);
+});
+
+test('Board cards show their aspect as a tag', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [...ASPECTS],
+		sprint: { state: 'active', weekStart: WEEK },
+		todos: [{ title: 'Read chapter 4', aspect: 1, inSprint: true }]
+	});
+	await page.goto('/sprint?view=board');
+
+	const card = page.getByTestId('sprint-card').filter({ hasText: 'Read chapter 4' });
+	await expect(card.getByTestId('aspect-tag')).toHaveText('Uni');
+	await expect(card.getByTestId('aspect-tag').locator('svg')).toBeVisible();
+});
+
+test.describe('on a touch phone', () => {
+	test.use({ hasTouch: true, isMobile: true });
+
+	test.beforeEach(async ({ page }) => {
+		await page.setViewportSize({ width: 375, height: 800 });
+	});
+
+	test('Scenario: Move a todo between board columns with the status menu on touch', async ({ page, request }) => {
+		await seed(request, {
+			aspects: [...ASPECTS],
+			sprint: { state: 'active', weekStart: WEEK },
+			todos: [{ title: 'Clean the fridge', aspect: 2, inSprint: true }]
+		});
+		await page.goto('/sprint?view=board');
+		await expect(page.getByTestId('sprint-card').first()).not.toHaveAttribute('draggable', 'true');
+
+		await row(page, 'Clean the fridge').getByLabel('Status').selectOption('done');
+		await expect(page.getByTestId('board-column-done')).toContainText('Clean the fridge');
+		await expect(page.getByTestId('board-column-todo').getByTestId('todo-row')).toHaveCount(0);
+	});
+});
