@@ -34,6 +34,8 @@
 	import { UI_ICONS } from '../ui/icons';
 
 	const nav = $derived(page.data.nav as NavData);
+	// On an aspect's page its own link is the current one, not Aspects as well.
+	const aspectHref = $derived(nav.aspects.map((a) => `/aspects/${a.id}`).find((h) => h === page.url.pathname));
 </script>
 
 <nav aria-label="Main">
@@ -43,7 +45,7 @@
 		<a
 			class="item"
 			href={item.href}
-			aria-current={isCurrent(item.href, page.url.pathname) ? 'page' : undefined}
+			aria-current={isCurrent(item.href, page.url.pathname) && !aspectHref ? 'page' : undefined}
 		>
 			<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS[item.icon]} /></svg>
 			{item.label}
@@ -57,7 +59,7 @@
 					<a
 						class="item"
 						href="/aspects/{aspect.id}"
-						aria-current={page.url.pathname === `/aspects/${aspect.id}` ? 'page' : undefined}
+						aria-current={aspectHref === `/aspects/${aspect.id}` ? 'page' : undefined}
 					>
 						<AspectIcon icon={aspect.icon} color={aspect.color} />
 						<span class="name">{aspect.name}</span>

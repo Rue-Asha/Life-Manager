@@ -7,6 +7,7 @@
 	import AspectIcon from '$lib/components/ui/AspectIcon.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
+	import ProgressBar from '$lib/components/ui/ProgressBar.svelte';
 	import Sheet from '$lib/components/ui/Sheet.svelte';
 	import { UI_ICONS } from '$lib/components/ui/icons';
 	import type { PageProps } from './$types';
@@ -74,11 +75,20 @@
 
 <ul>
 	{#each data.aspects as aspect (aspect.id)}
-		<li data-testid="aspect-row">
+		{@const progress = data.progress?.[aspect.id]}
+		<li data-testid="aspect-card">
 			<span class="tile" style:background={ASPECT_COLORS[aspect.color].tint}>
 				<AspectIcon icon={aspect.icon} color={aspect.color} />
 			</span>
 			<a class="name" href="/aspects/{aspect.id}">{aspect.name}</a>
+			<span class="stats">
+				{#if progress}
+					<ProgressBar done={progress.done} total={progress.total} color={aspect.color} />
+				{:else if data.progress}
+					<span>Not in this sprint</span>
+				{/if}
+				<span class="num" data-testid="backlog-count">{data.backlogCounts[aspect.id] ?? 0} in backlog</span>
+			</span>
 			<span class="count num">{todoCount(aspect.usage.todos)}</span>
 			<div class="actions">
 				<button
@@ -173,7 +183,12 @@
 		list-style: none;
 	}
 
-	li + li {
+	li + li::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		right: var(--space-3);
+		left: var(--space-3);
 		border-top: 1px solid var(--line);
 	}
 
@@ -265,6 +280,68 @@
 	.menu [role='menuitem']:disabled {
 		color: var(--ink-3);
 		cursor: default;
+	}
+
+	.stats {
+		display: none;
+	}
+
+	/* Wide screens: the short list becomes a grid of cards; one aspect stays one card at the left. */
+	@media (min-width: 1024px) {
+		ul {
+			display: grid;
+			grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+			gap: var(--space-3);
+		}
+
+		li + li::before {
+			content: none;
+		}
+
+		li {
+			display: grid;
+			grid-template-columns: auto minmax(0, 1fr);
+			grid-template-areas:
+				'tile actions'
+				'name name'
+				'stats stats'
+				'count count';
+			align-items: center;
+			row-gap: var(--space-1);
+			margin: 0;
+			padding: var(--space-4);
+			border: 1px solid var(--line);
+			border-radius: var(--radius-lg);
+		}
+
+		.tile {
+			grid-area: tile;
+			margin-bottom: var(--space-3);
+		}
+
+		.actions {
+			grid-area: actions;
+			justify-self: end;
+			align-self: start;
+		}
+
+		.name {
+			grid-area: name;
+		}
+
+		.stats {
+			grid-area: stats;
+			display: flex;
+			flex-wrap: wrap;
+			align-items: center;
+			gap: var(--space-1) var(--space-3);
+			color: var(--ink-3);
+			font-size: var(--text-sm);
+		}
+
+		.count {
+			grid-area: count;
+		}
 	}
 
 	.tile {
