@@ -17,6 +17,7 @@ learnings:
   - "fixer: in the Manage sheet flow at 375 the display:none rail and the sheet both register crossfade send with the same key — later mount wins; fragile if mount order changes"
   - "fixer: Playwright webServer runs `node build` — rebuild before an e2e mutation check or the run tests the stale build"
   - "Gate 2 correction: Rue saw screens with a rail left-aligned and screens without centred as inconsistent — layout rules must give one alignment for all main screens, not vary by whether a rail exists"
+  - "layout e2e: a centring/fill assertion at a width where the track is narrower than the max-width cap passes trivially — assert at a width where the cap binds (here 1600) and prove by mutation; this hid a real Board shrink bug"
 gate2_notes:
   - "U3: manual check — overlay slide timing (320 ms, no scrim) and cross-fade look; at 768–1279 the rail toggle sits over the overlay's top area near its middle, not its right edge"
   - "U3: added ::view-transition { pointer-events: none } as a judgement call, not proven necessary"
