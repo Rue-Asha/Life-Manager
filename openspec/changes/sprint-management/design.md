@@ -34,9 +34,16 @@ Technical (planner):
   by the pages that have a rail; the root layout only stops capping `.page` at ≥1280 and centres a 720 px
   column for pages without one (`.page:has(.rail-layout)` opts out). Alternative — a layout-level slot fed
   through a store or page data — needs cross-route plumbing for three screens.
-- **`RailLayout` bands:** ≥1280 docked rail; 768–1279 toggle + overlay panel (scope names 1024–1279; the
-  768–1023 tablet band isn't specified, and the overlay is the smaller choice there than a third layout);
-  <768 no rail at all — the page supplies its phone alternative (Sprint: the Manage sheet).
+- **`RailLayout` bands:** ≥1280 docked rail; 768–1279 toggle + overlay panel (widened from 1024–1279 at
+  Gate 1: the overlay is the smaller choice for the tablet band than a third layout); <768 no rail at all —
+  the page supplies its phone alternative (Sprint: the Manage sheet).
+- **Week keeps the overlay rail at ≥1280** (Rue, 2026-10-03, during build): sidebar 248 + docked rail 340 +
+  gutters leave ~628 px, too little for 7 × 120 px columns, so U6's in-week sideways scroll is replaced.
+  `RailLayout` gets an `overlay` flag that keeps the 768–1279 toggle + overlay band at every width ≥768;
+  `/sprint` passes `overlay={view === 'week'}`, leaving ~968 px for seven ~138 px columns. When `overlay`
+  turns false (leaving Week) `open` resets to false, so a later return to Week starts closed. `WeekView`
+  keeps rendering `UnscheduledList` into the rail from 1280 and drops its `overflow-x` on the week row.
+  Alternatives: narrower rail (still doesn't fit 7 × 120 at 1280) or keeping sideways scroll (rejected by Rue).
 - **Breakpoints are literal media queries** (768 / 1024 / 1280); CSS custom properties can't be used in
   `@media`. Rail width and min day-column width become tokens (`--rail-width`, `--day-col-min`).
 - **One add function with placement.** `addToActiveSprint(db, todoId, today, placement?)` covers button,
@@ -135,7 +142,7 @@ review first." with a link to `/sprint/review`.
 | `ui/ProgressBar.svelte` | `done: number; total: number; color: AspectColor` — renders "done / total" (`data-testid="progress"`) and a hairline bar | **implemented by U1** |
 | `ui/Toast.svelte` | `message: string; actionLabel?: string; onaction?: () => void; ontimeout: () => void; duration?: number` (default 5000) — `data-testid="toast"` | stub · U4 |
 | `rail/BacklogRail.svelte` | `backlog: Todo[]; aspects: Aspect[]; progress?: Record<Id, AspectProgress>; canAdd: boolean; addAction: string` (e.g. `/todos?/addToSprint`, `?/pull`)`; addLabel?: string; onreturn?: (id: Id) => void` (set → the rail is a drop zone for `from: 'sprint'` payloads with `recurring: false`; recurring instances have no backlog)`; testid?: string` (default `backlog-rail`) | stub lists titles · U4 |
-| `shell/RailLayout.svelte` | `children: Snippet; rail?: Snippet; railTitle: string; wide?: boolean` (wide → content not capped at 720) | stub renders children then rail · U3 |
+| `shell/RailLayout.svelte` | `children: Snippet; rail?: Snippet; railTitle: string; wide?: boolean; overlay?: boolean` (wide → content not capped at 720; overlay → toggle + overlay panel instead of docking at ≥1280, `open` resets when it turns false — added by U9) | stub renders children then rail · U3 |
 | `sprint/UnscheduledList.svelte` | `todos: Todo[]; sprintDays: IsoDate[]; today: IsoDate` | stub renders nothing · U6 |
 
 ### Test ids (new)
@@ -166,6 +173,8 @@ rail at ≥1280), `aspect-group-<id>`, `board-column-<status>`, `day-column-<Iso
 - [R4 `openspec/specs/` holds build-life-manager's synced specs now] → deltas are written against them;
   build-life-manager is archived before this change is archived.
 - [R5 base branch `flow/build-life-manager` is still at Gate 2] → merge order is build-life-manager first.
+- [Week's rail is an overlay at ≥1280, so `day-column-unscheduled` is inside a closed panel there] → tests that
+  use it at 1280 open the rail toggle first (U9 updates `sprint-views.test.ts`).
 - [Unscheduled list moves between WeekView and the rail] → U6 owns both the hiding and `UnscheduledList`,
   so the `day-column-unscheduled` test id exists exactly once at every width.
 - [Toast-delayed delete] → a tab closed within 5 s keeps the instance; acceptable.

@@ -75,7 +75,7 @@ no error is shown and the lists reload. (S2)
 - **proof:** e2e
 
 #### Scenario: Drop a rail todo on a day column sets its day
-- **WHEN** on desktop Rue drags a rail todo onto the week view's Thursday column
+- **WHEN** on desktop at 1280 px Rue opens the week view's rail overlay with the rail toggle and drags a rail todo onto the Thursday column
 - **THEN** the todo is in the sprint, assigned to that Thursday
 - **proof:** e2e
 
@@ -175,9 +175,12 @@ action. (S6)
 ### Requirement: Wide board and week
 At ≥1280 px the board and week views SHALL fill the available width: board columns stretch evenly with
 equal minimum height reaching the viewport bottom; the week shows Monday–Sunday in one row (each column
-at least ~120 px) and the Unscheduled list moves into the context rail. A day with many todos scrolls
-within its column. Between 1024 and 1279 px the week keeps its wrapped layout with Unscheduled in the
-content. (S10)
+at least ~120 px) across the full content width and the Unscheduled list moves into the rail. In the Week
+view the rail (backlog + Unscheduled) is the toggle overlay even at ≥1280 px, so the seven columns fit
+without sideways scrolling; By aspect and Board keep the docked rail. Switching between Week and Board or
+By aspect at ≥1280 px swaps overlay and docked rail, and an open overlay closes when leaving Week. Drops
+from the overlay rail onto a day work as from the docked rail. A day with many todos scrolls within its
+column. Between 1024 and 1279 px the week keeps its wrapped layout with Unscheduled in the content. (S10)
 
 #### Scenario: Board columns share the width at 1280
 - **WHEN** Rue opens the board view at 1280 px
@@ -186,7 +189,18 @@ content. (S10)
 
 #### Scenario: Week shows the whole week in one row at 1280
 - **WHEN** Rue opens the week view at 1280 px
-- **THEN** the seven day columns share one top edge, each is at least 120 px wide, no Unscheduled column is in the content, and the Unscheduled list is in the context rail
+- **THEN** no rail is docked and the rail toggle is shown, the seven day columns share one top edge, each is at least 120 px wide, the week does not scroll sideways (its scroll width equals its client width), and no Unscheduled column is in the content
+- **AND** pressing the rail toggle opens the overlay, which holds the Unscheduled list above the backlog rail
+- **proof:** e2e
+
+#### Scenario: Switching Week and Board swaps overlay and docked rail
+- **WHEN** at 1280 px Rue switches the sprint view from Board to Week and back to Board
+- **THEN** in Board the rail is docked with no rail toggle, in Week the rail is undocked with a rail toggle, and back in Board it is docked again
+- **proof:** e2e
+
+#### Scenario: Open week overlay closes when leaving Week
+- **WHEN** at 1280 px Rue opens the rail overlay in Week, switches to Board, and then back to Week
+- **THEN** after the switch back the overlay is closed (toggle `aria-expanded="false"`, rail not visible)
 - **proof:** e2e
 
 #### Scenario: Busy day scrolls inside its column
@@ -203,7 +217,7 @@ content. (S10)
 
 ### Requirement: Week-by-day view
 The week view SHALL show columns Monday–Sunday plus "Unscheduled" (at ≥1280 px the Unscheduled list sits
-in the context rail); todos are assigned or moved to a day by drag on desktop and by a day picker on
+in the Week view's rail overlay); todos are assigned or moved to a day by drag on desktop and by a day picker on
 touch; today is highlighted; on a phone one day is shown at a time. Only days of the active sprint are
 selectable; done todos stay on their day, marked done. (S16, S10)
 

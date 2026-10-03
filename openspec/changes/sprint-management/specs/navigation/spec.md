@@ -2,14 +2,15 @@
 
 ### Requirement: Wide desktop layout with context rail
 At ≥1280 px screens SHALL use the width: sidebar | content (lists max 720 px, left-aligned) | context
-rail (~320–360 px, `--paper-sunk`). Rails per screen: Sprint → backlog rail plus Unscheduled (week view);
+rail (~320–360 px, `--paper-sunk`). Rails per screen: Sprint → backlog rail, docked in By aspect and Board
+and a toggle overlay in Week even at ≥1280 px (with Unscheduled; see sprint-views "Wide board and week");
 Today → this sprint's progress per aspect; aspect page → the aspect's details (colour, counts). Screens
-without a rail (Backlog, Review, Recurring, Welcome) centre their column in the free space. Between 1024
+without a rail (Backlog, Review, Recurring, Welcome) centre their column in the free space. Between 768
 and 1279 px the rail collapses into a toggle button that opens it as an overlay panel; below 768 px the
 phone layout is unchanged. No screen scrolls horizontally at any width. (S9)
 
 #### Scenario: Sprint at 1280 shows a context rail
-- **WHEN** Rue opens `/sprint` at 1280 px during a running sprint
+- **WHEN** Rue opens `/sprint` at 1280 px during a running sprint, in the By aspect view and in the Board view
 - **THEN** the context rail is docked at the right edge with the `--paper-sunk` background, and the sprint list is left-aligned next to the sidebar and at most 720 px wide
 - **proof:** e2e
 
@@ -28,7 +29,7 @@ phone layout is unchanged. No screen scrolls horizontally at any width. (S9)
 - **THEN** on each the content column's centre lies within 8 px of the centre of the area right of the sidebar
 - **proof:** e2e
 
-#### Scenario: Rail becomes an overlay toggle between 1024 and 1279
+#### Scenario: Rail becomes an overlay toggle below 1280
 - **WHEN** Rue opens `/sprint` at 1100 px during a running sprint
 - **THEN** no rail is docked, a rail toggle button is shown, and pressing it opens the rail as an overlay panel without a scrim; pressing it again closes it
 - **proof:** e2e

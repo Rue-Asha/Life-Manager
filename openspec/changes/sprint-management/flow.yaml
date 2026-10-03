@@ -3,6 +3,7 @@ base: flow/build-life-manager
 gate0: 2026-10-03
 gate1: 2026-10-03
 decisions:
+  - "Build (2026-10-03, after wave 4): Rue chose — in Week view the rail is the toggle overlay even at ≥1280 so Mon–Sun fit in one row; scope.md S10 updated. S9 band text aligned to 768–1279."
   - "Gate 1 (2026-10-03): Rue approved as it stands — addition (a) createTodo review-required guard NOT added; (b) collapse memory kept, cut candidate if appetite runs over; planner deviations 1–4 accepted."
 learnings:
   - "planner: existing scenarios copied verbatim into MODIFIED blocks already have tests — tasks.md must not re-list them"
