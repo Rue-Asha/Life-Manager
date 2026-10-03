@@ -1,9 +1,21 @@
 <script lang="ts">
 	import '@fontsource-variable/bricolage-grotesque/opsz.css';
 	import '../app.css';
+	import { onNavigate } from '$app/navigation';
 	import Sidebar from '../lib/components/shell/Sidebar.svelte';
+	import { reducedMotion } from '../lib/motion';
 
 	let { children } = $props();
+
+	onNavigate((navigation) => {
+		if (!document.startViewTransition || reducedMotion()) return;
+		return new Promise((resolve) => {
+			document.startViewTransition(async () => {
+				resolve();
+				await navigation.complete;
+			});
+		});
+	});
 </script>
 
 <div class="shell">
@@ -16,6 +28,17 @@
 </div>
 
 <style>
+	/* The cross-fade is a snapshot laid over the page; clicks and drags go through to the new page. */
+	:global(::view-transition) {
+		pointer-events: none;
+	}
+
+	:global(::view-transition-old(root)),
+	:global(::view-transition-new(root)) {
+		animation-duration: var(--dur-base);
+		animation-timing-function: var(--ease-out);
+	}
+
 	.shell {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr);
