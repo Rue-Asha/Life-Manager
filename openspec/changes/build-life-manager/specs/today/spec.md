@@ -2,12 +2,13 @@
 
 ### Requirement: Today view
 Today SHALL be the default landing screen, showing active-sprint todos assigned to today plus overdue
-todos (due before today, not done), grouped by aspect, with status toggles and a quick add that adds
-to the sprint on today. (S21)
+todos (due before today, not done), with status toggles and a quick add that adds to the sprint on
+today. Today's todos are grouped by aspect; overdue todos are listed once, in a single "Overdue" group
+that names each todo's aspect. (S21)
 
 #### Scenario: Today shows today's sprint todos and overdue todos
 - **WHEN** Rue opens `/` with one sprint todo on today, one on tomorrow, and one backlog todo due yesterday
-- **THEN** Today lists the first and the overdue one, grouped by aspect, and not the one on tomorrow
+- **THEN** Today lists the first under its aspect and the overdue one in the "Overdue" group with its aspect named, and not the one on tomorrow
 - **proof:** e2e
 
 #### Scenario: Overdue means due before today and not done
