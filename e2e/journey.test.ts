@@ -26,9 +26,11 @@ async function quickAdd(page: Page, title: string, aspect: string, due?: string)
 	await expect(row(page, title)).toBeVisible();
 }
 
+// A drag can't start while the view cross-fade still covers the page.
 async function switchView(page: Page, name: string, view: string) {
 	await page.getByRole('navigation', { name: 'Sprint view' }).getByRole('link', { name }).click();
 	await expect(page).toHaveURL(new RegExp(`view=${view}$`));
+	await page.waitForFunction(() => !document.documentElement.matches(':active-view-transition'));
 }
 
 test('Done-when journey', async ({ page, request }) => {
