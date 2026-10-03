@@ -30,7 +30,7 @@
 		padding: 0;
 	}
 
-	/* Aspects are the setup list, so a hairline sets them apart from the four lists of todos. */
+	/* Aspects are the setup list, so a hairline sets them apart from the five lists. */
 	.aspects {
 		margin-top: var(--space-2);
 		padding-top: var(--space-2);
