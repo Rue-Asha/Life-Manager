@@ -3,9 +3,12 @@
 	import { MediaQuery } from 'svelte/reactivity';
 	import RailLayout from '$lib/components/shell/RailLayout.svelte';
 	import ProjectMeta from '$lib/components/projects/ProjectMeta.svelte';
+	import StatusPill from '$lib/components/projects/StatusPill.svelte';
 	import ProjectNotes from '$lib/components/projects/ProjectNotes.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
+	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
 	import Sheet from '$lib/components/ui/Sheet.svelte';
+	import { GLYPHS } from '$lib/components/projects/glyphs';
 	import { UI_ICONS } from '$lib/components/ui/icons';
 	import { PROJECT_MESSAGES } from '$lib/projects';
 	import type { PageProps } from './$types';
@@ -16,6 +19,8 @@
 	const wide = new MediaQuery('min-width: 1280px');
 
 	let editing = $state(false);
+	let deleting = $state(false);
+	let deleteForm = $state<HTMLFormElement>();
 	let error = $state<{ error: string; field?: string }>();
 	const uid = $props.id();
 
@@ -38,12 +43,32 @@
 		<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS['chevron-left']} /></svg>Projects
 	</a>
 	<h1>{project.name}</h1>
+	<div class="status"><StatusPill status={project.status} openCount={data.counts.open} /></div>
 	{#if project.description}<p class="desc">{project.description}</p>{/if}
 	{#if !wide.current}
 		<ProjectMeta {project} todos={data.todos} mode="row" onedit={edit} />
 	{/if}
 	<ProjectNotes html={data.notesHtml} notes={project.notes} />
+
+	<div class="danger">
+		<button type="button" onclick={() => (deleting = true)}>
+			<svg viewBox="0 0 24 24" aria-hidden="true"><path d={GLYPHS.trash} /></svg>Delete project
+		</button>
+	</div>
 </RailLayout>
+
+<form method="POST" action="?/delete" hidden bind:this={deleteForm} use:enhance></form>
+
+<ConfirmDialog
+	open={deleting}
+	title="Delete project?"
+	message={data.counts.linked === 0
+		? 'No todos are linked to it.'
+		: `${data.counts.linked} linked ${data.counts.linked === 1 ? 'todo' : 'todos'} will be unlinked and kept.`}
+	confirmLabel="Delete project"
+	onconfirm={() => deleteForm?.requestSubmit()}
+	oncancel={() => (deleting = false)}
+/>
 
 <Sheet open={editing} title="Edit details" onclose={() => (editing = false)}>
 	<form
@@ -111,6 +136,39 @@
 		font-weight: var(--weight-bold);
 		line-height: var(--leading-tight);
 		letter-spacing: var(--tracking-title);
+	}
+
+	.status {
+		margin-top: var(--space-3);
+	}
+
+	.danger {
+		display: flex;
+		margin-top: var(--space-9);
+	}
+
+	.danger button {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
+		height: var(--control-height);
+		padding: 0 var(--space-3) 0 var(--space-2);
+		border: 0;
+		border-radius: var(--radius-md);
+		background: none;
+		color: var(--ink-2);
+		font-weight: var(--weight-medium);
+		cursor: pointer;
+	}
+
+	.danger button:hover {
+		color: var(--ink);
+	}
+
+	.danger svg {
+		width: var(--icon-sm);
+		height: var(--icon-sm);
+		stroke-width: 1.75;
 	}
 
 	.desc {

@@ -169,3 +169,101 @@ test('Scenario: Long notes are not truncated', async ({ page, request }) => {
 	});
 	expect(own).toEqual({ overflow: 'visible', grows: true });
 });
+
+const OPEN_TODOS: NonNullable<SeedInput['todos']> = [
+	{ title: 'Write migration', aspect: 1, project: 0 },
+	{ title: 'Build the page', aspect: 1, project: 0 }
+];
+
+const menuItems = (page: Page) => page.getByRole('menuitem');
+const confirmDialog = (page: Page) => page.getByRole('dialog');
+
+test('Scenario: Status pill offers the four states', async ({ page, request }) => {
+	const id = await seedProject(request);
+	await page.goto(`/projects/${id}`);
+
+	await expect(pill(page)).toContainText('Backlog');
+	await pill(page).click();
+	await expect(menuItems(page)).toHaveText(['Backlog', 'Active', 'Paused', 'Implemented']);
+	await menuItems(page).filter({ hasText: 'Active' }).click();
+
+	await expect(pill(page)).toContainText('Active');
+	await expect(menuItems(page)).toHaveCount(0);
+	await page.reload();
+	await expect(pill(page)).toContainText('Active');
+});
+
+test('Scenario: Implemented with open todos asks for confirmation', async ({ page, request }) => {
+	const id = await seedProject(request, { todos: OPEN_TODOS }, { status: 'active' });
+	await page.goto(`/projects/${id}`);
+
+	await pill(page).click();
+	await menuItems(page).filter({ hasText: 'Implemented' }).click();
+	await expect(confirmDialog(page)).toContainText('2 linked todos are still open');
+	await expect(pill(page)).toContainText('Active');
+	await confirmDialog(page).getByRole('button', { name: 'Mark as implemented' }).click();
+
+	await expect(pill(page)).toContainText('Implemented');
+	await expect(page.getByTestId('project-meta')).toContainText('2 open');
+	await page.reload();
+	await expect(pill(page)).toContainText('Implemented');
+	await expect(page.getByTestId('project-meta')).toContainText('2 open');
+});
+
+test('Scenario: Cancelling the implemented warning changes nothing', async ({ page, request }) => {
+	const id = await seedProject(request, { todos: OPEN_TODOS }, { status: 'active' });
+	await page.goto(`/projects/${id}`);
+
+	await pill(page).click();
+	await menuItems(page).filter({ hasText: 'Implemented' }).click();
+	await confirmDialog(page).getByRole('button', { name: 'Cancel' }).click();
+
+	await expect(confirmDialog(page)).toBeHidden();
+	await expect(pill(page)).toContainText('Active');
+	await page.reload();
+	await expect(pill(page)).toContainText('Active');
+});
+
+test('Scenario: Implemented without open todos needs no confirmation', async ({ page, request }) => {
+	const done = OPEN_TODOS.map((t) => ({ ...t, status: 'done' as const, completedAt: '2026-10-06T09:00:00Z' }));
+	const id = await seedProject(request, { todos: done }, { status: 'active' });
+	await page.goto(`/projects/${id}`);
+
+	await pill(page).click();
+	await menuItems(page).filter({ hasText: 'Implemented' }).click();
+
+	await expect(pill(page)).toContainText('Implemented');
+	await expect(confirmDialog(page)).toBeHidden();
+});
+
+test('Scenario: Reopening an implemented project needs no confirmation', async ({ page, request }) => {
+	const id = await seedProject(request, { todos: OPEN_TODOS }, { status: 'implemented' });
+	await page.goto(`/projects/${id}`);
+
+	await pill(page).click();
+	await menuItems(page).filter({ hasText: 'Active' }).click();
+
+	await expect(pill(page)).toContainText('Active');
+	await expect(confirmDialog(page)).toBeHidden();
+});
+
+test('Scenario: Deleting a project asks for confirmation', async ({ page, request }) => {
+	const todos = [...OPEN_TODOS, { title: 'Deploy it', aspect: 1, project: 0 }];
+	const id = await seedProject(request, { todos });
+	await page.goto(`/projects/${id}`);
+
+	await page.getByRole('button', { name: 'Delete project' }).click();
+	await expect(confirmDialog(page)).toContainText('3 linked todos will be unlinked');
+	await confirmDialog(page).getByRole('button', { name: 'Cancel' }).click();
+	await expect(confirmDialog(page)).toBeHidden();
+	await expect(heading(page)).toHaveText('Life Manager');
+
+	await page.getByRole('button', { name: 'Delete project' }).click();
+	await confirmDialog(page).getByRole('button', { name: 'Delete project' }).click();
+	await expect(page).toHaveURL(/\/projects$/);
+
+	const response = await page.goto(`/projects/${id}`);
+	expect(response?.status()).toBe(404);
+	await page.goto('/backlog');
+	await expect(page.getByText('Deploy it')).toBeVisible();
+});
