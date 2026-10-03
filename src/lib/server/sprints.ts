@@ -167,27 +167,51 @@ export function listSprintTodos(db: DatabaseSync, sprintId: Id): Todo[] {
 }
 
 export function listToday(db: DatabaseSync, today: IsoDate): Todo[] {
-	throw new Error('not implemented');
+	return selectTodos(
+		db,
+		"day = ? AND sprint_id = (SELECT id FROM sprints WHERE state = 'active')",
+		today
+	);
 }
 
 export function addToActiveSprint(db: DatabaseSync, todoId: Id): Result<Todo> {
-	throw new Error('not implemented');
+	const active = getActiveSprint(db);
+	if (!active) return { ok: false, error: 'no-active-sprint' };
+	if (!getTodo(db, todoId)) return { ok: false, error: 'not-found' };
+	db.prepare('UPDATE todos SET sprint_id = ?, day = NULL WHERE id = ?').run(active.id, todoId);
+	return { ok: true, value: getTodo(db, todoId)! };
 }
 
 export function moveToBacklog(db: DatabaseSync, todoId: Id): Result<Todo> {
-	throw new Error('not implemented');
+	if (!inSprint(db, todoId, 'active')) return { ok: false, error: 'not-found' };
+	return { ok: true, value: toBacklog(db, todoId) };
 }
 
 export function setStatus(db: DatabaseSync, todoId: Id, status: Status): Result<Todo> {
-	throw new Error('not implemented');
+	const todo = getTodo(db, todoId);
+	if (!todo) return { ok: false, error: 'not-found' };
+	const completedAt = status !== 'done' ? null : todo.completedAt ?? now().toISOString();
+	db.prepare('UPDATE todos SET status = ?, completed_at = ? WHERE id = ?').run(status, completedAt, todoId);
+	return { ok: true, value: getTodo(db, todoId)! };
 }
 
 export function toggleDone(db: DatabaseSync, todoId: Id): Result<Todo> {
-	throw new Error('not implemented');
+	const todo = getTodo(db, todoId);
+	if (!todo) return { ok: false, error: 'not-found' };
+	return setStatus(db, todoId, todo.status === 'done' ? 'todo' : 'done');
 }
 
 export function setDay(db: DatabaseSync, todoId: Id, day: IsoDate | null): Result<Todo> {
-	throw new Error('not implemented');
+	const todo = getTodo(db, todoId);
+	if (!todo) return { ok: false, error: 'not-found' };
+	if (day !== null) {
+		const weekStart = todo.sprintId === null ? null : getSprint(db, todo.sprintId).weekStart;
+		if (weekStart === null || day < weekStart || day > addDays(weekStart, 6)) {
+			return { ok: false, error: 'day-outside-sprint', field: 'day' };
+		}
+	}
+	db.prepare('UPDATE todos SET day = ? WHERE id = ?').run(day, todoId);
+	return { ok: true, value: getTodo(db, todoId)! };
 }
 
 export function reviewSummary(db: DatabaseSync): { sprint: Sprint; done: Todo[]; open: Todo[] } | null {

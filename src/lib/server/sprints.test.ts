@@ -3,13 +3,19 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { Id, IsoDate, Sprint, Status } from '$lib/types';
 import { openDb } from './db';
 import {
+	addToActiveSprint,
 	getActiveSprint,
 	listSprintTodos,
+	listToday,
+	moveToBacklog,
 	openPlanning,
 	pullTodo,
+	setDay,
+	setStatus,
 	sprintPhase,
 	startSprint,
 	suggestedTodos,
+	toggleDone,
 	unpullTodo
 } from './sprints';
 
@@ -142,5 +148,58 @@ describe('sprint planning', () => {
 		expect(pullTodo(db, b)).toEqual({ ok: false, error: 'sprint-active' });
 		expect(unpullTodo(db, a)).toEqual({ ok: false, error: 'not-found' });
 		expect(pullTodo(db, 999)).toEqual({ ok: false, error: 'not-found' });
+	});
+});
+
+describe('mid-sprint changes', () => {
+	it('Scenario: Moving back to the backlog clears day and status', () => {
+		const id = todo('Write essay', { sprintId: sprint('active', '2026-10-05'), status: 'doing', day: '2026-10-07' });
+		expect(moveToBacklog(db, id)).toMatchObject({ ok: true, value: { sprintId: null, day: null, status: 'todo' } });
+		expect(row(id)).toMatchObject({ sprint_id: null, day: null, status: 'todo' });
+	});
+
+	it('Scenario: Unchecking done returns to To do', () => {
+		const id = todo('Run', { sprintId: sprint('active', '2026-10-05') });
+		const done = toggleDone(db, id);
+		expect(done).toMatchObject({ ok: true, value: { status: 'done' } });
+		expect(done.ok && done.value.completedAt).toBeTruthy();
+		expect(toggleDone(db, id)).toMatchObject({ ok: true, value: { status: 'todo', completedAt: null } });
+		expect(row(id)).toMatchObject({ status: 'todo', completed_at: null });
+	});
+
+	it('setStatus records completion only for done', () => {
+		const id = todo('Run', { sprintId: sprint('active', '2026-10-05') });
+		expect(setStatus(db, id, 'doing')).toMatchObject({ ok: true, value: { status: 'doing', completedAt: null } });
+		const done = setStatus(db, id, 'done');
+		expect(done.ok && done.value.completedAt).toBeTruthy();
+		expect(setStatus(db, id, 'doing')).toMatchObject({ ok: true, value: { completedAt: null } });
+		expect(setStatus(db, 999, 'done')).toEqual({ ok: false, error: 'not-found' });
+	});
+
+	it('adds a backlog todo to the active sprint as To do', () => {
+		const id = todo('Call bank');
+		expect(addToActiveSprint(db, id)).toEqual({ ok: false, error: 'no-active-sprint' });
+		const s = sprint('active', '2026-10-05');
+		expect(addToActiveSprint(db, id)).toMatchObject({ ok: true, value: { sprintId: s, status: 'todo', day: null } });
+		expect(moveToBacklog(db, todo('Backlog'))).toEqual({ ok: false, error: 'not-found' });
+	});
+
+	it('setDay accepts only days of the todo\'s sprint', () => {
+		const id = todo('Run', { sprintId: sprint('active', '2026-10-05') });
+		expect(setDay(db, id, '2026-10-11')).toMatchObject({ ok: true, value: { day: '2026-10-11' } });
+		expect(setDay(db, id, '2026-10-12')).toEqual({ ok: false, error: 'day-outside-sprint', field: 'day' });
+		expect(setDay(db, id, '2026-10-04')).toEqual({ ok: false, error: 'day-outside-sprint', field: 'day' });
+		expect(setDay(db, todo('Backlog'), '2026-10-06')).toEqual({ ok: false, error: 'day-outside-sprint', field: 'day' });
+		expect(setDay(db, id, null)).toMatchObject({ ok: true, value: { day: null } });
+		expect(setDay(db, 999, null)).toEqual({ ok: false, error: 'not-found' });
+	});
+
+	it('lists today\'s todos of the active sprint', () => {
+		const s = sprint('active', '2026-10-05');
+		const mine = todo('Today', { sprintId: s, day: '2026-10-07' });
+		todo('Tomorrow', { sprintId: s, day: '2026-10-08' });
+		todo('Unscheduled', { sprintId: s });
+		todo('Old sprint', { sprintId: sprint('closed', '2026-10-05'), day: '2026-10-07' });
+		expect(listToday(db, '2026-10-07').map((t) => t.id)).toEqual([mine]);
 	});
 });
