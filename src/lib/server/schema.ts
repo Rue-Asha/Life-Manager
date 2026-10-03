@@ -55,5 +55,25 @@ export const migrations: string[] = [
 		done INTEGER NOT NULL DEFAULT 0,
 		position INTEGER NOT NULL
 	);
+	`,
+	`
+	CREATE TABLE it_projects (
+		id INTEGER PRIMARY KEY,
+		name TEXT NOT NULL,
+		description TEXT NOT NULL DEFAULT '',
+		repo_url TEXT NULL,
+		tags TEXT NOT NULL DEFAULT '[]',
+		notes TEXT NOT NULL DEFAULT '',
+		status TEXT NOT NULL DEFAULT 'backlog' CHECK (status IN ('backlog', 'active', 'paused', 'implemented')),
+		created_at TEXT NOT NULL,
+		updated_at TEXT NOT NULL
+	);
+
+	CREATE TABLE settings (
+		key TEXT PRIMARY KEY,
+		value TEXT NOT NULL
+	);
+
+	ALTER TABLE todos ADD COLUMN project_id INTEGER NULL REFERENCES it_projects (id) ON DELETE SET NULL;
 	`
 ];

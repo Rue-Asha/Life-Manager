@@ -2,6 +2,7 @@ import { redirect } from '@sveltejs/kit';
 import { listAspects } from '$lib/server/aspects';
 import { today } from '$lib/server/clock';
 import { getDb } from '$lib/server/db';
+import { countActiveProjects, getItAspectId, listProjectRefs } from '$lib/server/projects';
 import { listRules } from '$lib/server/recurring';
 import { getActiveSprint, listSprintTodos, listToday } from '$lib/server/sprints';
 import { listBacklog, listOverdue } from '$lib/server/todos';
@@ -23,9 +24,10 @@ export const load: LayoutServerLoad = ({ url }) => {
 			sprint: active ? listSprintTodos(db, active.id).filter((t) => t.status !== 'done').length : 0,
 			backlog: backlog.length,
 			recurring: listRules(db).length,
-			aspects: aspects.length
+			aspects: aspects.length,
+			projects: countActiveProjects(db)
 		},
 		aspects: aspects.map((a) => ({ ...a, backlog: backlog.filter((t) => t.aspectId === a.id).length }))
 	};
-	return { aspects, nav };
+	return { aspects, nav, projects: listProjectRefs(db), itAspectId: getItAspectId(db) };
 };

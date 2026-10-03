@@ -9,6 +9,7 @@ import {
 	updateAspect
 } from './aspects';
 import type { AspectInput, Id } from '$lib/types';
+import { getItAspectId, setItAspectId } from './projects';
 
 const health: AspectInput = { name: 'Health', color: 'sage', icon: 'heart' };
 const uni: AspectInput = { name: 'Uni', color: 'lavender', icon: 'cap' };
@@ -139,6 +140,29 @@ describe('aspects', () => {
 			expect({ ...db.prepare('SELECT aspect_id FROM recurring_rules WHERE id = ?').get(rule) }).toEqual({
 				aspect_id: b
 			});
+		});
+
+		it('Scenario: Deleting the IT aspect unsets the setting', () => {
+			const db = openDb(':memory:');
+			const a = create(db, health);
+			const b = create(db, uni);
+			setItAspectId(db, a);
+			const project = Number(
+				db
+					.prepare("INSERT INTO it_projects (name, created_at, updated_at) VALUES ('P', '', '')")
+					.run().lastInsertRowid
+			);
+			const t = insertTodo(db, a, null, 'todo', null);
+			db.prepare('UPDATE todos SET project_id = ? WHERE id = ?').run(project, t);
+
+			expect(deleteAspect(db, a, b).ok).toBe(true);
+
+			expect(getItAspectId(db)).toBeNull();
+			expect(db.prepare('SELECT count(*) AS n FROM settings').get()).toEqual({ n: 0 });
+			expect({ ...db.prepare('SELECT project_id FROM todos WHERE id = ?').get(t) }).toEqual({ project_id: null });
+			const reused = create(db, { ...health, name: 'Later' });
+			expect(getItAspectId(db)).toBeNull();
+			expect(reused).not.toBe(a);
 		});
 
 		it('Scenario: Rule follows its deleted aspect', () => {

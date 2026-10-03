@@ -38,6 +38,8 @@ export function resetDb(): void {
 	getDb().exec(`
 		DELETE FROM checklist_items;
 		DELETE FROM todos;
+		DELETE FROM settings;
+		DELETE FROM it_projects;
 		DELETE FROM recurring_rules;
 		DELETE FROM sprints;
 		DELETE FROM aspects;
