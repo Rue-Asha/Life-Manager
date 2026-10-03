@@ -1,6 +1,13 @@
-import { fail } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import type { AspectColor, AspectIcon } from '$lib/aspect-style';
-import { aspectUsage, createAspect, listAspects, updateAspect } from '$lib/server/aspects';
+import {
+	aspectUsage,
+	countAspects,
+	createAspect,
+	deleteAspect,
+	listAspects,
+	updateAspect
+} from '$lib/server/aspects';
 import { getDb } from '$lib/server/db';
 import type { AspectInput } from '$lib/types';
 import type { Actions, PageServerLoad } from './$types';
@@ -32,5 +39,14 @@ export const actions: Actions = {
 		const result = updateAspect(getDb(), id, input);
 		if (!result.ok) return fail(400, { error: result.error, field: result.field, values: { id, ...input } });
 		return { aspect: result.value };
+	},
+	delete: async ({ request }) => {
+		const form = await request.formData();
+		const id = Number(form.get('id'));
+		const targetId = form.has('targetId') ? Number(form.get('targetId')) : undefined;
+		const db = getDb();
+		const result = deleteAspect(db, id, targetId);
+		if (!result.ok) return fail(400, { error: result.error, field: result.field, values: { id, targetId } });
+		if (countAspects(db) === 0) redirect(303, '/welcome');
 	}
 };

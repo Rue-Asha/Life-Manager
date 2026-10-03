@@ -2,6 +2,7 @@
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import { ASPECT_COLORS } from '$lib/aspect-style';
 	import AspectForm from '$lib/components/aspects/AspectForm.svelte';
+	import DeleteAspectDialog from '$lib/components/aspects/DeleteAspectDialog.svelte';
 	import AspectIcon from '$lib/components/ui/AspectIcon.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
@@ -14,6 +15,7 @@
 	type Row = (typeof data.aspects)[number];
 
 	let editing = $state<Row | 'new' | null>(null);
+	let deleting = $state<Row | null>(null);
 	let error = $state<string>();
 
 	function open(target: Row | 'new') {
@@ -32,6 +34,10 @@
 			editing = null;
 		};
 	};
+
+	function locked(aspect: Row) {
+		return data.aspects.length === 1 && aspect.usage.todos + aspect.usage.rules > 0;
+	}
 
 	function todoCount(n: number) {
 		return n === 0 ? 'No todos' : n === 1 ? '1 todo' : `${n} todos`;
@@ -78,13 +84,41 @@
 				icon={current?.icon}
 				{error}
 			/>
+			{#if current && locked(current)}
+				<p class="locked" id="locked-note">
+					This is your only aspect and it still has todos or rules. Add another aspect to move them to
+					first.
+				</p>
+			{/if}
 			<footer>
+				{#if current}
+					<Button
+						type="button"
+						variant="quiet"
+						class="delete"
+						disabled={locked(current)}
+						aria-describedby={locked(current) ? 'locked-note' : undefined}
+						onclick={() => {
+							deleting = current;
+							editing = null;
+						}}
+					>
+						Delete aspect
+					</Button>
+				{/if}
 				<Button type="button" variant="quiet" onclick={() => (editing = null)}>Cancel</Button>
 				<Button variant="primary">{current ? 'Save' : 'Create aspect'}</Button>
 			</footer>
 		</form>
 	{/if}
 </Sheet>
+
+<DeleteAspectDialog
+	aspect={deleting}
+	usage={deleting?.usage ?? { todos: 0, rules: 0 }}
+	targets={data.aspects.filter((a) => a.id !== deleting?.id)}
+	onclose={() => (deleting = null)}
+/>
 
 <style>
 	ul {
@@ -147,6 +181,16 @@
 		stroke-width: 2;
 		stroke-linecap: round;
 		stroke-linejoin: round;
+	}
+
+	.locked {
+		margin-top: var(--space-4);
+		color: var(--ink-3);
+		font-size: var(--text-sm);
+	}
+
+	footer :global(.delete) {
+		margin-right: auto;
 	}
 
 	footer {

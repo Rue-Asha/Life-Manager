@@ -139,3 +139,70 @@ test('aspect list shows each todo count', async ({ page, request }) => {
 	await expect(aspectRow(page, 'Health')).toContainText('2 todos');
 	await expect(aspectRow(page, 'Uni')).toContainText('No todos');
 });
+
+async function openDelete(page: Page, name: string) {
+	await aspectRow(page, name).getByRole('button', { name: new RegExp(name) }).click();
+	await page.getByRole('dialog', { name: 'Edit aspect' }).getByRole('button', { name: 'Delete aspect' }).click();
+	return page.getByRole('dialog', { name: `Delete ${name}?` });
+}
+
+test('Scenario: Delete confirmation asks for a target aspect', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [{ name: 'Health' }, { name: 'Uni' }, { name: 'Job' }],
+		todos: [{ title: 'Run', aspect: 0 }, { title: 'Swim', aspect: 0 }]
+	});
+	await page.goto('/aspects');
+
+	const dialog = await openDelete(page, 'Health');
+	await expect(dialog.getByRole('radio')).toHaveCount(2);
+	await dialog.getByRole('radio', { name: 'Uni' }).check();
+	await dialog.getByRole('button', { name: 'Move 2 and delete' }).click();
+
+	await expect(dialog).toBeHidden();
+	await expect(aspectRow(page, 'Health')).toHaveCount(0);
+	await expect(aspectRow(page, 'Uni')).toContainText('2 todos');
+	await expect(aspectRow(page, 'Job')).toContainText('No todos');
+});
+
+test('Scenario: Aspect without todos is deleted with a simple confirm', async ({ page, request }) => {
+	await seed(request, { aspects: [{ name: 'Health' }, { name: 'Uni' }] });
+	await page.goto('/aspects');
+
+	const dialog = await openDelete(page, 'Uni');
+	await expect(dialog.getByRole('radio')).toHaveCount(0);
+	await dialog.getByRole('button', { name: 'Delete aspect' }).click();
+
+	await expect(dialog).toBeHidden();
+	await expect(aspectRow(page, 'Uni')).toHaveCount(0);
+	await expect(page.getByTestId('aspect-row')).toHaveCount(1);
+});
+
+test('Scenario: Only aspect with todos cannot be deleted', async ({ page, request, baseURL }) => {
+	const ids = await seed(request, { aspects: [{ name: 'Health' }], todos: [{ title: 'Run' }] });
+	await page.goto('/aspects');
+
+	await aspectRow(page, 'Health').getByRole('button', { name: /Health/ }).click();
+	const sheet = page.getByRole('dialog', { name: 'Edit aspect' });
+	const remove = sheet.getByRole('button', { name: 'Delete aspect' });
+	await expect(remove).toBeDisabled();
+	await expect(remove).toHaveAccessibleDescription(/only aspect/);
+
+	const response = await request.post('/aspects?/delete', {
+		form: { id: String(ids.aspects[0]) },
+		headers: { origin: baseURL!, 'x-sveltekit-action': 'true' }
+	});
+	expect(await response.text()).toContain('only-aspect-in-use');
+	await page.reload();
+	await expect(aspectRow(page, 'Health')).toHaveCount(1);
+});
+
+test('Scenario: Deleting the last aspect returns to first run', async ({ page, request }) => {
+	await seed(request, { aspects: [{ name: 'Health' }] });
+	await page.goto('/aspects');
+
+	const dialog = await openDelete(page, 'Health');
+	await dialog.getByRole('button', { name: 'Delete aspect' }).click();
+
+	await expect(page).toHaveURL(/\/welcome$/);
+	await expect(page.getByRole('checkbox', { name: 'Health', exact: true })).toBeVisible();
+});
