@@ -5,6 +5,7 @@
 	import type { Aspect, Id, IsoDate, Todo } from '$lib/types';
 	import TodoRow from '../todo/TodoRow.svelte';
 	import AspectIcon from '../ui/AspectIcon.svelte';
+	import ProgressBar from '../ui/ProgressBar.svelte';
 
 	let {
 		todos,
@@ -36,11 +37,11 @@
 	use:dropZone={{ accepts: (p) => !!onadd && p.from === 'backlog', ondrop: (p) => onadd?.(p.id) }}
 >
 	{#each groups as { aspect, todos } (aspect.id)}
-		{@const open = todos.filter((t) => t.status !== 'done').length}
+		{@const done = todos.filter((t) => t.status === 'done').length}
 		<section class="group" data-testid="aspect-group-{aspect.id}" aria-labelledby="group-{aspect.id}">
 			<h2 id="group-{aspect.id}">
 				<AspectIcon icon={aspect.icon} color={aspect.color} />{aspect.name}
-				<span class="count num" aria-label="{open} open">{open}</span>
+				<span class="progress"><ProgressBar {done} total={todos.length} color={aspect.color} /></span>
 			</h2>
 			<!-- Global: the first todo of an aspect arrives with its group and should still travel in. -->
 			{#each todos as todo (todo.id)}
@@ -82,10 +83,8 @@
 		line-height: var(--leading-snug);
 	}
 
-	.count {
+	.progress {
 		margin-left: auto;
-		color: var(--ink-3);
-		font-size: var(--text-sm);
 		font-weight: var(--weight-regular);
 	}
 

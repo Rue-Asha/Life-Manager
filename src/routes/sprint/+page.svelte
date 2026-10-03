@@ -12,7 +12,7 @@
 	import SprintPrompt from '$lib/components/todo/SprintPrompt.svelte';
 	import { dateLabel, dayLabel } from '$lib/components/todo/format';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
-	import type { Id, Todo } from '$lib/types';
+	import type { AspectProgress, Id, Todo } from '$lib/types';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -33,6 +33,17 @@
 		...data.backlog.filter((t) => moves[t.id] !== 'sprint'),
 		...data.todos.filter((t) => moves[t.id] === 'backlog').map(unplaced)
 	]);
+
+	// From the shown list, so counts change with the motion instead of after the reload.
+	const progress = $derived.by(() => {
+		const byAspect: Record<Id, AspectProgress> = {};
+		for (const t of todos) {
+			const p = (byAspect[t.aspectId] ??= { done: 0, total: 0 });
+			p.total++;
+			if (t.status === 'done') p.done++;
+		}
+		return byAspect;
+	});
 
 	async function move(id: Id, to: 'sprint' | 'backlog') {
 		moves[id] = to;
@@ -63,6 +74,7 @@
 	<BacklogRail
 		{backlog}
 		aspects={data.aspects}
+		{progress}
 		canAdd
 		addAction="/todos?/addToSprint"
 		onadd={(id) => move(id, 'sprint')}

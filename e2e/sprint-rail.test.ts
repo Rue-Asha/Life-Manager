@@ -284,3 +284,64 @@ test('Scenario: Drag a sprint todo onto the rail', async ({ page, request }) => 
 	await expect(row(sprintList(page), 'Book a physio appointment')).toHaveCount(0);
 	await expect(row(sprintList(page), 'Morning run')).toBeVisible();
 });
+
+test('Scenario: Group header shows done of total', async ({ page, request }) => {
+	const { aspects } = await seedRunning(request, [
+		{ title: 'Morning run', inSprint: true, status: 'done' },
+		{ title: 'Stretch for ten minutes', inSprint: true },
+		{ title: 'Book a physio appointment', inSprint: true, status: 'doing' }
+	]);
+	await page.goto('/sprint');
+
+	const header = page.getByTestId(`aspect-group-${aspects[0]}`).locator('h2');
+	const progress = header.getByTestId('progress');
+	await expect(progress).toHaveText('1 / 3');
+	const bar = await progress.evaluate((el) => {
+		const [track, fill] = [el.lastElementChild!, el.lastElementChild!.firstElementChild!];
+		return {
+			ratio: fill.getBoundingClientRect().width / track.getBoundingClientRect().width,
+			color: getComputedStyle(fill).backgroundColor
+		};
+	});
+	expect(bar.ratio).toBeCloseTo(1 / 3, 1);
+	expect(bar.color).toBe(await header.locator('svg').first().evaluate((svg) => getComputedStyle(svg).color));
+});
+
+test('Scenario: Rail header shows backlog count and progress', async ({ page, request }) => {
+	const { aspects } = await seedRunning(request, [
+		{ title: 'Morning run', inSprint: true, status: 'done' },
+		{ title: 'Stretch for ten minutes', inSprint: true },
+		{ title: 'Book a physio appointment' },
+		{ title: 'Buy running shoes' }
+	]);
+	await page.goto('/sprint');
+
+	const header = page.getByTestId(`rail-group-${aspects[0]}`).locator('h3');
+	await expect(header.getByTestId('rail-count')).toHaveText('2');
+	await expect(header.getByTestId('progress')).toHaveText('1 / 2');
+});
+
+test('Scenario: Aspect without sprint todos shows only in the rail', async ({ page, request }) => {
+	const { aspects } = await seedRunning(request, [
+		{ title: 'Morning run', inSprint: true },
+		{ title: 'Email the tutor', aspect: 1 }
+	]);
+	await page.goto('/sprint');
+
+	await expect(page.getByTestId(`aspect-group-${aspects[1]}`)).toHaveCount(0);
+	const uni = page.getByTestId(`rail-group-${aspects[1]}`);
+	await expect(uni).toBeVisible();
+	await expect(uni.getByTestId('rail-count')).toHaveText('1');
+	await expect(uni.getByTestId('progress')).toHaveCount(0);
+});
+
+test('Scenario: Aspect without backlog todos is omitted from the rail', async ({ page, request }) => {
+	const { aspects } = await seedRunning(request, [
+		{ title: 'Morning run', inSprint: true },
+		{ title: 'Email the tutor', aspect: 1 }
+	]);
+	await page.goto('/sprint');
+
+	await expect(page.getByTestId(`aspect-group-${aspects[0]}`)).toBeVisible();
+	await expect(page.getByTestId(`rail-group-${aspects[0]}`)).toHaveCount(0);
+});
