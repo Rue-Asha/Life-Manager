@@ -1,0 +1,55 @@
+/*
+ * Palette A — Cool indigo. Current U2 palette: white paper, cool greys, a muted indigo that reads as ink with intent.
+ * Overrides only the colour tokens of src/lib/styles/tokens.css, scoped to [data-palette='a'].
+ * Composite tokens (tints, scrim, shadows, focus ring) are restated so they resolve against
+ * this palette's paper and accent when the scope is not :root.
+ * — Things 3 Anytime, https://mobbin.com/screens/9f0d2a69-0445-4c6d-a4ab-94275b5be1b7
+ * — Linear sidebar, https://mobbin.com/screens/610d34b6-6ad8-45ab-80fb-2107b31ed01e
+ * — Todoist web sidebar, https://mobbin.com/screens/9a3efd63-6ad3-48a4-a655-2c5e6c4a8bbe
+ */
+
+[data-palette='a'] {
+	color-scheme: light;
+
+	/* Neutrals: cool paper, never cream; ink is a true dark grey, not tinted black. */
+	--paper: #ffffff;
+	--paper-sunk: #f4f5f7;
+	--paper-hover: #f7f8fa;
+	--paper-scrim: rgb(28 31 38 / 0.18);
+	--line: #e8eaee;
+	--line-strong: #d6d9df;
+	--ink: #1c1f26;
+	--ink-2: #5b616d;
+	--ink-3: #8e939e;
+	--ink-on-accent: #ffffff;
+
+	/* The one accent: a muted indigo, for the primary action, focus and "today". */
+	--accent: #3a4699;
+	--accent-hover: #2f3a85;
+	--accent-soft: #eceefa;
+
+	--overdue: #d23a2f;
+	--overdue-soft: #fcedec;
+
+	--aspect-sage: #3d9566;
+	--aspect-sky: #2e83c4;
+	--aspect-lavender: #7a5fc9;
+	--aspect-ochre: #b98314;
+	--aspect-berry: #c0447c;
+	--aspect-lagoon: #17918b;
+	--aspect-tangerine: #d9731f;
+	--aspect-slate: #677184;
+
+	--aspect-sage-tint: color-mix(in oklch, var(--aspect-sage) 11%, var(--paper));
+	--aspect-sky-tint: color-mix(in oklch, var(--aspect-sky) 11%, var(--paper));
+	--aspect-lavender-tint: color-mix(in oklch, var(--aspect-lavender) 11%, var(--paper));
+	--aspect-ochre-tint: color-mix(in oklch, var(--aspect-ochre) 13%, var(--paper));
+	--aspect-berry-tint: color-mix(in oklch, var(--aspect-berry) 11%, var(--paper));
+	--aspect-lagoon-tint: color-mix(in oklch, var(--aspect-lagoon) 11%, var(--paper));
+	--aspect-tangerine-tint: color-mix(in oklch, var(--aspect-tangerine) 12%, var(--paper));
+	--aspect-slate-tint: color-mix(in oklch, var(--aspect-slate) 11%, var(--paper));
+
+	--shadow-pop: 0 1px 2px rgb(28 31 38 / 0.06), 0 6px 16px -4px rgb(28 31 38 / 0.12);
+	--shadow-float: 0 1px 3px rgb(28 31 38 / 0.05), 0 18px 40px -12px rgb(28 31 38 / 0.22);
+	--ring-focus: 0 0 0 2px var(--paper), 0 0 0 4px var(--accent);
+}
