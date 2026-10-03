@@ -6,7 +6,7 @@ type TodoRow = Omit<Todo, 'recurring' | 'checklist'> & { recurring: number };
 type ItemRow = Omit<ChecklistItem, 'done'> & { done: number };
 
 const todoColumns = `id, title, aspect_id AS aspectId, notes, priority, due_date AS dueDate,
-	sprint_id AS sprintId, status, day, recurring, rule_id AS ruleId, created_at AS createdAt,
+	sprint_id AS sprintId, status, day, recurring, rule_id AS ruleId, project_id AS projectId, created_at AS createdAt,
 	completed_at AS completedAt`;
 const itemColumns = 'id, todo_id AS todoId, text, done, position';
 
