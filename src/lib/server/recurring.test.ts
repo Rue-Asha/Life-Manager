@@ -1,6 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { Id, Priority, RuleInput } from '$lib/types';
+import type { Id, Priority, RuleInput, Weekday } from '$lib/types';
 import { openDb } from './db';
 import { createRule, deleteRule, listRules, updateRule } from './recurring';
 import { closeReview, getActiveSprint, listSprintTodos, startSprint } from './sprints';
@@ -120,6 +120,25 @@ describe('recurring rules', () => {
 			field: 'priority'
 		});
 		expect(listRules(db)).toMatchObject([{ aspectId: aspect, priority: 0 }]);
+	});
+
+	it('weekdays outside Monday to Sunday are refused', () => {
+		for (const weekdays of [[8], [0], [1, NaN]] as Weekday[][]) {
+			expect(createRule(db, gym({ weekdays }), '2026-10-07')).toEqual({
+				ok: false,
+				error: 'weekdays-required',
+				field: 'weekdays'
+			});
+		}
+		expect(listRules(db)).toEqual([]);
+		const rule = createRule(db, gym(), '2026-10-07');
+		const id = rule.ok ? rule.value.id : 0;
+		expect(updateRule(db, id, gym({ weekdays: [1, 8] as Weekday[] }))).toEqual({
+			ok: false,
+			error: 'weekdays-required',
+			field: 'weekdays'
+		});
+		expect(listRules(db)).toMatchObject([{ weekdays: [1, 4] }]);
 	});
 
 	it('rule title is required and fields are stored', () => {

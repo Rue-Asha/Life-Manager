@@ -121,7 +121,8 @@ export function suggestedTodos(db: DatabaseSync, today: IsoDate): Todo[] {
 }
 
 export function pullTodo(db: DatabaseSync, todoId: Id): Result<Todo> {
-	if (!getTodo(db, todoId)) return { ok: false, error: 'not-found' };
+	const todo = getTodo(db, todoId);
+	if (!todo || (todo.sprintId !== null && !inSprint(db, todoId, 'planning'))) return { ok: false, error: 'not-found' };
 	if (getActiveSprint(db)) return { ok: false, error: 'sprint-active' };
 	db.prepare('UPDATE todos SET sprint_id = ?, day = NULL WHERE id = ?').run(planningDraft(db).id, todoId);
 	return { ok: true, value: getTodo(db, todoId)! };
@@ -181,7 +182,8 @@ export function listToday(db: DatabaseSync, today: IsoDate): Todo[] {
 export function addToActiveSprint(db: DatabaseSync, todoId: Id): Result<Todo> {
 	const active = getActiveSprint(db);
 	if (!active) return { ok: false, error: 'no-active-sprint' };
-	if (!getTodo(db, todoId)) return { ok: false, error: 'not-found' };
+	const todo = getTodo(db, todoId);
+	if (!todo || todo.sprintId !== null) return { ok: false, error: 'not-found' };
 	db.prepare(
 		"UPDATE todos SET sprint_id = ?, day = NULL, status = 'todo', completed_at = NULL WHERE id = ?"
 	).run(active.id, todoId);

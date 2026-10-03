@@ -22,7 +22,7 @@
 <div class="sprint" class:wide={data.sprintDays && data.view !== 'aspect'}>
 	<PageHeader title="Sprint" icon="calendar-days">
 		{#if data.sprintDays}
-			<span class="range num">{dayLabel(data.sprintDays[0])} – {dateLabel(data.sprintDays[6])}</span>
+			<span class="range num" data-testid="sprint-week">{dayLabel(data.sprintDays[0])} – {dateLabel(data.sprintDays[6])}</span>
 		{/if}
 	</PageHeader>
 

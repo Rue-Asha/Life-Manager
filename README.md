@@ -33,8 +33,12 @@ the runtime tests start their own servers on `$PORT + 1000`. Set `PORT` if those
 
 ```sh
 npm run build
-PORT=3000 DATABASE_PATH=/var/lib/life-manager/life-manager.db node build
+PORT=3000 DATABASE_PATH=/var/lib/life-manager/life-manager.db PROTOCOL_HEADER=x-forwarded-proto node build
 ```
+
+This expects a reverse proxy in front that sends `X-Forwarded-Proto` (see
+[Behind a reverse proxy](#behind-a-reverse-proxy)). Opened directly over plain http, pages load but
+every form post is rejected with a 403, so the app is effectively read-only.
 
 Migrations run on start; a failing migration exits non-zero. The database directory is created if
 it is missing. `GET /healthz` answers `200 ok` once the database is open.

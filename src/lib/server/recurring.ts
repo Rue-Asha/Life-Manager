@@ -29,7 +29,9 @@ function validate(db: DatabaseSync, input: RuleInput): { ok: false; error: strin
 	if (!db.prepare('SELECT 1 FROM aspects WHERE id = ?').get(input.aspectId)) {
 		return { ok: false, error: 'no-aspect', field: 'aspectId' };
 	}
-	if (input.weekdays.length === 0) return { ok: false, error: 'weekdays-required', field: 'weekdays' };
+	if (input.weekdays.length === 0 || !input.weekdays.every((d) => Number.isInteger(d) && d >= 1 && d <= 7)) {
+		return { ok: false, error: 'weekdays-required', field: 'weekdays' };
+	}
 	if (input.priority !== undefined && !isPriority(input.priority)) return { ok: false, error: 'required', field: 'priority' };
 	return null;
 }

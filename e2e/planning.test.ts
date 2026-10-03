@@ -20,9 +20,11 @@ const ASPECTS = [
 
 const row = (page: Page, title: string) => page.getByTestId('todo-row').filter({ hasText: title });
 
-// Starting lands on the sprint view; what wasn't pulled stays in the backlog, and planning is over.
+// Starting lands on the sprint view for the target week; what wasn't pulled stays in the backlog,
+// and planning is over.
 async function expectStarted(page: Page, inSprint: string[], inBacklog: string[]) {
 	await expect(page).toHaveURL(/\/sprint$/);
+	await expect(page.getByTestId('sprint-week')).toHaveText('Mon 5 – Sun 11 Oct');
 	await expect(page.getByTestId('todo-row')).toHaveCount(inSprint.length);
 	for (const title of inSprint) await expect(row(page, title)).toHaveAttribute('data-status', 'todo');
 	await page.goto('/backlog');

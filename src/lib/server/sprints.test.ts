@@ -151,6 +151,16 @@ describe('sprint planning', () => {
 		expect(unpullTodo(db, a)).toEqual({ ok: false, error: 'not-found' });
 		expect(pullTodo(db, 999)).toEqual({ ok: false, error: 'not-found' });
 	});
+
+	it('only backlog or draft todos can be pulled', () => {
+		const closed = sprint('closed', '2026-09-28');
+		const done = todo('Done last week', { sprintId: closed, status: 'done', day: '2026-09-30' });
+		expect(pullTodo(db, done)).toEqual({ ok: false, error: 'not-found' });
+		expect(row(done)).toMatchObject({ sprint_id: closed, status: 'done', day: '2026-09-30' });
+		const a = todo('A');
+		expect(pullTodo(db, a).ok).toBe(true);
+		expect(pullTodo(db, a).ok).toBe(true);
+	});
 });
 
 describe('mid-sprint changes', () => {
@@ -190,6 +200,17 @@ describe('mid-sprint changes', () => {
 		const s = sprint('active', '2026-10-05');
 		const id = todo('Call bank', { status: 'done' });
 		expect(addToActiveSprint(db, id)).toMatchObject({ ok: true, value: { sprintId: s, status: 'todo', completedAt: null } });
+	});
+
+	it('only backlog todos join the active sprint', () => {
+		const closed = sprint('closed', '2026-09-28');
+		const s = sprint('active', '2026-10-05');
+		const done = todo('Done last week', { sprintId: closed, status: 'done', day: '2026-09-30' });
+		const doing = todo('Write essay', { sprintId: s, status: 'doing', day: '2026-10-07' });
+		expect(addToActiveSprint(db, done)).toEqual({ ok: false, error: 'not-found' });
+		expect(addToActiveSprint(db, doing)).toEqual({ ok: false, error: 'not-found' });
+		expect(row(done)).toMatchObject({ sprint_id: closed, status: 'done', day: '2026-09-30' });
+		expect(row(doing)).toMatchObject({ sprint_id: s, status: 'doing', day: '2026-10-07' });
 	});
 
 	it('setStatus refuses an unknown status', () => {

@@ -10,18 +10,28 @@ test.beforeEach(async ({ request }) => {
 
 test('Scenario: Desktop shows a sidebar', async ({ page }) => {
 	await page.setViewportSize({ width: 1280, height: 800 });
-	await page.goto('/');
+	const screens: [string, string][] = [
+		['/', 'Today'],
+		['/sprint', 'Sprint'],
+		['/backlog', 'Backlog'],
+		['/aspects', 'Aspects'],
+		['/recurring', 'Recurring'],
+		['/sprint/plan', 'Sprint']
+	];
 
-	const sidebar = page.getByRole('navigation', { name: 'Main' });
-	await expect(sidebar).toBeVisible();
-	for (const name of LISTS) {
-		await expect(sidebar.getByRole('link', { name, exact: true })).toBeVisible();
+	for (const [path, current] of screens) {
+		await page.goto(path);
+		const sidebar = page.getByRole('navigation', { name: 'Main' });
+		await expect(sidebar).toBeVisible();
+		for (const name of LISTS) {
+			await expect(sidebar.getByRole('link', { name, exact: true })).toBeVisible();
+		}
+		await expect(sidebar.getByRole('link', { name: current, exact: true })).toHaveAttribute(
+			'aria-current',
+			'page'
+		);
+		await expect(sidebar.locator('[aria-current="page"]')).toHaveCount(1);
 	}
-	await expect(sidebar.getByRole('link', { name: 'Today', exact: true })).toHaveAttribute(
-		'aria-current',
-		'page'
-	);
-	await expect(sidebar.locator('[aria-current="page"]')).toHaveCount(1);
 });
 
 test('Scenario: Phone home list shows the five lists', async ({ page }) => {
