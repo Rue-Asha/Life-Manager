@@ -6,7 +6,7 @@
 	import { MediaQuery } from 'svelte/reactivity';
 	import { ASPECT_COLORS } from '$lib/aspect-style';
 	import { isOverdue } from '$lib/todo-utils';
-	import type { Aspect, IsoDate, Todo } from '$lib/types';
+	import type { Aspect, IsoDate, ProjectRef, Todo } from '$lib/types';
 	import { UI_ICONS } from '../ui/icons';
 	import Button from '../ui/Button.svelte';
 	import Toast from '../ui/Toast.svelte';
@@ -40,6 +40,9 @@
 
 	// The editor's aspect picker needs every aspect; pages showing rows return them from load.
 	const aspects = $derived((page.data.aspects as Aspect[] | undefined) ?? [aspect]);
+	const project = $derived(
+		todo.projectId === null ? undefined : (page.data.projects as ProjectRef[] | undefined)?.find((p) => p.id === todo.projectId)
+	);
 	const desktop = new MediaQuery('min-width: 768px');
 	let editing = $state(false);
 	const expanded = $derived(editing && desktop.current);
@@ -172,6 +175,9 @@
 					</span>
 				{/if}
 				{#if todo.notes}<span>Notes</span>{/if}
+				{#if project}
+					<span><a class="badge" href="/projects/{project.id}" data-testid="project-badge"><svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.folder} /></svg>{project.name}</a></span>
+				{/if}
 			</div>
 			{#if addError}
 				<p class="add-error" role="alert">
@@ -382,6 +388,20 @@
 		stroke-width: 1.75;
 		stroke-linecap: round;
 		stroke-linejoin: round;
+	}
+
+	.badge {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-1);
+		min-width: 0;
+		color: var(--ink-3);
+		overflow-wrap: anywhere;
+		text-decoration: none;
+	}
+
+	.badge:hover {
+		color: var(--ink);
 	}
 
 	.dot {
