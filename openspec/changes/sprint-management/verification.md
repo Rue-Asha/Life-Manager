@@ -1,36 +1,37 @@
-verified-at: eb60a44
+verified-at: cafd457
 
 ## Layer 1 — proof-full (`PORT=4700 npm run proof:full`): green
 
 ```
-  ✓  137 e2e/today.test.ts:77:1 › An overdue todo planned for today is listed once, under Overdue (101ms)
-  ✓  138 e2e/today.test.ts:89:1 › Scenario: Status toggle on Today (245ms)
-  ✓  139 e2e/today.test.ts:116:1 › Scenario: Overdue todos outside the sprint offer the sprint instead of a checkbox (219ms)
-  ✓  140 e2e/today.test.ts:136:1 › Scenario: Quick add on Today adds to the sprint on today (478ms)
-  ✓  141 e2e/today.test.ts:156:1 › No quick add on the Sunday before next week's sprint starts (115ms)
-  ✓  142 e2e/today.test.ts:165:1 › Scenario: Today without an active sprint prompts to plan (117ms)
-  ✓  143 e2e/today.test.ts:177:1 › Scenario: Today with a pending review prompts to review (139ms)
-  ✓  144 e2e/today.test.ts:201:1 › Scenario: Nothing today shows a calm empty state (102ms)
-  ✓  145 e2e/today.test.ts:219:1 › Scenario: Sunday after the review prompts to plan next week (286ms)
-  ✓  146 e2e/todos.test.ts:28:1 › GET /todos redirects to the backlog (100ms)
-  ✓  147 e2e/todos.test.ts:34:1 › Scenario: Quick add creates a todo in the backlog (432ms)
-  ✓  148 e2e/todos.test.ts:53:1 › Quick add rejects an empty title inline (406ms)
-  ✓  149 e2e/todos.test.ts:63:1 › Scenario: Past due date is allowed and shown overdue (428ms)
-  ✓  150 e2e/todos.test.ts:74:1 › Quick add on phone opens a sheet (559ms)
-  ✓  151 e2e/todos.test.ts:92:1 › Scenario: Edit every field of a todo (646ms)
-  ✓  152 e2e/todos.test.ts:127:1 › Scenario: Checklist items are added, renamed, toggled and deleted (822ms)
-  ✓  153 e2e/todos.test.ts:163:1 › Scenario: Deleting a todo asks for confirmation (1.6s)
-  ✓  154 e2e/todos.test.ts:184:1 › Editing on phone uses a sheet (567ms)
+  ✓  138 e2e/today.test.ts:77:1 › An overdue todo planned for today is listed once, under Overdue (136ms)
+  ✓  139 e2e/today.test.ts:89:1 › Scenario: Status toggle on Today (294ms)
+  ✓  140 e2e/today.test.ts:116:1 › Scenario: Overdue todos outside the sprint offer the sprint instead of a checkbox (207ms)
+  ✓  141 e2e/today.test.ts:136:1 › Scenario: Quick add on Today adds to the sprint on today (541ms)
+  ✓  142 e2e/today.test.ts:156:1 › No quick add on the Sunday before next week's sprint starts (170ms)
+  ✓  143 e2e/today.test.ts:165:1 › Scenario: Today without an active sprint prompts to plan (161ms)
+  ✓  144 e2e/today.test.ts:177:1 › Scenario: Today with a pending review prompts to review (190ms)
+  ✓  145 e2e/today.test.ts:201:1 › Scenario: Nothing today shows a calm empty state (145ms)
+  ✓  146 e2e/today.test.ts:219:1 › Scenario: Sunday after the review prompts to plan next week (322ms)
+  ✓  147 e2e/todos.test.ts:28:1 › GET /todos redirects to the backlog (106ms)
+  ✓  148 e2e/todos.test.ts:34:1 › Scenario: Quick add creates a todo in the backlog (468ms)
+  ✓  149 e2e/todos.test.ts:53:1 › Quick add rejects an empty title inline (455ms)
+  ✓  150 e2e/todos.test.ts:63:1 › Scenario: Past due date is allowed and shown overdue (440ms)
+  ✓  151 e2e/todos.test.ts:74:1 › Quick add on phone opens a sheet (595ms)
+  ✓  152 e2e/todos.test.ts:92:1 › Scenario: Edit every field of a todo (675ms)
+  ✓  153 e2e/todos.test.ts:127:1 › Scenario: Checklist items are added, renamed, toggled and deleted (838ms)
+  ✓  154 e2e/todos.test.ts:163:1 › Scenario: Deleting a todo asks for confirmation (1.6s)
+  ✓  155 e2e/todos.test.ts:184:1 › Editing on phone uses a sheet (589ms)
 
-  154 passed (1.4m)
+  155 passed (1.4m)
 ```
 
-svelte-check 0 errors / 0 warnings (446 files); build clean; unit (vitest) 79 passed in 8 files; e2e (Playwright) 154 passed.
+svelte-check 0 errors / 0 warnings (446 files); build clean; unit (vitest) 79 passed in 8 files; e2e (Playwright) 155 passed.
 
 ## Layer 2 — spec coverage
 
-83 scenarios: 80 with a passing test named `Scenario: <title>` (unit 11, e2e 69), 3 manual, 0 gaps.
-Round 3 delta vs 64c8c84 (b8251de): sprint-views requirement "Wide board and week" now says columns reach "the bottom of the page content area (the viewport bottom less the page's bottom padding)"; the scenario text is unchanged. The test "Scenario: Board columns share the width at 1280" now sums the computed `padding-bottom` of the column's ancestors (and asserts it is > 0) instead of reading `--space-9`, then asserts |column bottom − (800 − padding)| ≤ 1 for each column; it passes. design.md records the decision (Rue may veto). No other test, spec or code changed since 64c8c84.
+84 scenarios: 81 with a passing test named `Scenario: <title>` (unit 11, e2e 70), 3 manual, 0 gaps.
+Delta vs eb60a44 (Gate 2 correction 9a93eb4 + cafd457): navigation requirement "Wide desktop layout with context rail" now centres the list column between sidebar and rail at ≥1280 and right of the sidebar at 768–1279; new scenario "Screens with a rail centre their column" (`e2e/layout.test.ts`, passes); "Screens without a rail centre their column" now runs at 1100 and 1600 and includes Aspects (passes); "Sprint at 1280 shows a context rail" now asserts the By-aspect list is centred within 2 px between sidebar and rail (passes). Code: `RailLayout.svelte`, `+layout.svelte`; design.md and design/brief.md updated.
+Note (not a gap by lookup): the requirement text names Plan among the screens without a rail, but no scenario/test opens `/sprint/plan` for centring.
 
 | Scenario | proof | Evidence |
 |---|---|---|
@@ -47,19 +48,17 @@ Round 3 delta vs 64c8c84 (b8251de): sprint-views requirement "Wide board and wee
 | Aspects page stays a list on phone (aspects) | e2e | `e2e/aspects.test.ts` › "Scenario: Aspects page stays a list on phone" ✓ |
 | Single aspect is one left-aligned card (aspects) | e2e | `e2e/aspects.test.ts` › "Scenario: Single aspect is one left-aligned card" ✓ |
 | Card menu holds edit and delete (aspects) | e2e | `e2e/aspects.test.ts` › "Scenario: Card menu holds edit and delete" ✓ |
-| Brief documents motion and the three-column layout with references (design-direction) | manual (taste document, judged by Rue) | Gate 2 checklist · `design/brief.md` §8 Motion, §9 Layout |
 | Moving a todo from the rail starts a move animation (motion) | e2e | `e2e/sprint-rail.test.ts` › "Scenario: Moving a todo from the rail starts a move animation" ✓ |
 | Reduced motion moves instantly (motion) | e2e | `e2e/sprint-rail.test.ts` › "Scenario: Reduced motion moves instantly" ✓ |
 | Refused move returns the item to where it was (motion) | e2e | `e2e/sprint-views.test.ts` › "Scenario: Refused move returns the item to where it was" ✓ |
-| Moves look like they travel (motion) | manual (motion quality is a visual judgement, made by Rue at Gate 2) | Gate 2 checklist (motion) |
 | Route changes and view switches use a view transition (motion) | e2e | `e2e/motion.test.ts` › "Scenario: Route changes and view switches use a view transition" ✓ |
 | Navigation without View Transitions is instant (motion) | e2e | `e2e/motion.test.ts` › "Scenario: Navigation without View Transitions is instant" ✓ |
 | Reduced motion navigates without a transition (motion) | e2e | `e2e/motion.test.ts` › "Scenario: Reduced motion navigates without a transition" ✓ |
-| Rail slides in with the content reflowing (motion) | manual (motion quality is a visual judgement, made by Rue at Gate 2) | Gate 2 checklist (overlay slide) · `shots/sprint-overlay-rail-1100.png` |
 | Sprint at 1280 shows a context rail (navigation) | e2e | `e2e/sprint-rail.test.ts` › "Scenario: Sprint at 1280 shows a context rail" ✓ |
 | Today at 1280 shows sprint progress per aspect (navigation) | e2e | `e2e/today.test.ts` › "Scenario: Today at 1280 shows sprint progress per aspect" ✓ |
 | Aspect page rail shows the aspect's details (navigation) | e2e | `e2e/aspect-page.test.ts` › "Scenario: Aspect page rail shows the aspect's details" ✓ |
 | Screens without a rail centre their column (navigation) | e2e | `e2e/layout.test.ts` › "Scenario: Screens without a rail centre their column" ✓ |
+| Screens with a rail centre their column (navigation) | e2e | `e2e/layout.test.ts` › "Scenario: Screens with a rail centre their column" ✓ |
 | Rail becomes an overlay toggle below 1280 (navigation) | e2e | `e2e/sprint-rail.test.ts` › "Scenario: Rail becomes an overlay toggle below 1280" ✓ |
 | No screen scrolls horizontally at any width (navigation) | e2e | `e2e/responsive.test.ts` › "Scenario: No screen scrolls horizontally at any width" ✓ |
 | Starting a sprint adds one instance per weekday (recurring) | unit | `src/lib/server/recurring.test.ts` › "Scenario: Starting a sprint adds one instance per weekday" ✓ |
@@ -117,10 +116,9 @@ Round 3 delta vs 64c8c84 (b8251de): sprint-views requirement "Wide board and wee
 | Today is highlighted in the week view (sprint-views) | e2e | `e2e/sprint-views.test.ts` › "Scenario: Today is highlighted in the week view" ✓ |
 | Phone shows one day at a time (sprint-views) | e2e | `e2e/sprint-views.test.ts` › "Scenario: Phone shows one day at a time" ✓ |
 | Done todos stay on their day (sprint-views) | e2e | `e2e/sprint-views.test.ts` › "Scenario: Done todos stay on their day" ✓ |
-
-Notes on gate2_notes vs scenarios: none contradicts a scenario. The overlay-band note (1024–1279) is
-resolved — the delta spec says 768–1279. The U6 note "Mon–Fri visible at 1280, in-week horizontal scroll"
-is superseded by the Week-overlay decision; "Week shows the whole week in one row at 1280" passes.
+| Brief documents motion and the three-column layout with references (design-direction) | manual (taste document, judged by Rue) | Gate 2 checklist · `design/brief.md` §8 Motion, §9 Layout |
+| Moves look like they travel (motion) | manual (motion quality is a visual judgement, made by Rue at Gate 2) | Gate 2 checklist (motion) |
+| Rail slides in with the content reflowing (motion) | manual (motion quality is a visual judgement, made by Rue at Gate 2) | Gate 2 checklist (overlay slide) · `shots/sprint-overlay-rail-1100.png` |
 
 ## Manual checklist (Gate 2)
 
@@ -128,19 +126,20 @@ Start with `npm run dev` → http://localhost:5173, a sprint running with backlo
 
 - [ ] Moves look like they travel: at ≥1280 on `/sprint`, use "Add to sprint" on a rail todo and send a sprint todo back — the item glides between rail and list, nothing jumps.
 - [ ] Rail slides in with the content reflowing: at ~1100 px on `/sprint`, press the rail toggle — the overlay slides in (~320 ms, no scrim) and closes the same way; toggle sits over the overlay's top area.
-- [ ] Brief documents motion and the three-column layout with references: read `design/brief.md` §8 Motion and §9 Layout (incl. the Week overlay paragraph) — Mobbin references cited, matches the app.
+- [ ] Brief documents motion and the three-column layout with references: read `design/brief.md` §8 Motion and §9 Layout (incl. the Week overlay paragraph and the centring rule) — Mobbin references cited, matches the app.
+- [ ] Centred column everywhere (Gate 2 correction): at 1600 and ~1100 px open Today, Sprint (By aspect), an aspect page, Backlog, Recurring, Aspects, Plan — the column sits in the middle of the free space each time; Board/Week stay full width — `shots/today-1280.png`, `shots/sprint-aspect-1280.png`, `shots/aspect-page-1280.png`.
 - [ ] Cross-fade look on route changes and Board/Week/By aspect switches (gate2 note U3).
 - [ ] Board/week cards: ~40 px blank band under the meta line — `shots/sprint-board-1280.png` (gate2 note U9).
 - [ ] Board columns end at the page content bottom (56 px above the viewport edge), not the viewport bottom — `shots/sprint-board-1280.png`; confirm or veto the round-1 spec rewording (S10).
 
 ## Diffstat
 
-`git diff --stat flow/build-life-manager...flow/sprint-management`: 101 files changed, 5387 insertions(+), 352 deletions(-).
+`git diff --stat flow/build-life-manager...flow/sprint-management`: 101 files changed, 5451 insertions(+), 352 deletions(-).
 Excluding screenshots: 64 files — src/lib 22 (components, server, motion.ts, dnd.ts, types, styles), src/routes 14, e2e 13, openspec change dir 14 (proposal/design/tasks/scope/flow/verification + 7 delta specs), design/brief.md.
 
 ## Screenshots
 
-Refreshed from this run (37 files, from `test-results/shots/`; 3 differ from the previous round: journey-backlog-1280, journey-sprint-board-1280, plan-375):
+Refreshed from this run (37 files, from `test-results/shots/`; 5 differ from the committed set: journey-manage-aspect-375, journey-next-week-1280, journey-sprint-aspect-1280, journey-sprint-board-1280, plan-375):
 
 - `shots/aspect-page-375.png`
 - `shots/aspect-page-1280.png`
@@ -179,17 +178,3 @@ Refreshed from this run (37 files, from `test-results/shots/`; 3 differ from the
 - `shots/today-1280.png`
 - `shots/welcome-375.png`
 - `shots/welcome-1280.png`
-
-## Review
-
-Three rounds of review (Layer 3); the round limit is reached, and nothing is left open.
-
-**Round 1** (fresh-context review of the full diff, at 7d39939): no weakened tests (every edited test traces to S1/S5/S10/S11 or R1), no weak tests, no correctness bugs.
-- spec (low): board columns stop 56 px short of the viewport bottom while the scenario said "reaches the bottom of the viewport" → fixer 64c8c84 reworded the scenario to "page content area", CSS kept (orchestrator call, **Rue to confirm or veto**).
-- U6 friction (not a reviewer finding): crossfade NaN with a `display:none` counterpart in AspectView/BacklogRail → not reproducible (3 runs at 375 touch, Manage sheet ↔ AspectView ↔ hidden rail), no code change.
-
-**Round 2** (review of 64c8c84 only):
-- weak: the test read the `--space-9` token instead of the real content padding → fixed in b8251de: it sums the computed `padding-bottom` of the column's ancestors; a mutation to `--space-8` makes it fail.
-- spec: requirement text and scope S10 still said "viewport bottom" → scope S10 (ff210b6), requirement text and a design.md Decision (b8251de) aligned.
-
-**Round 3**: final verification at eb60a44, green, 80/80 automated scenarios, 0 gaps.
