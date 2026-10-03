@@ -2,6 +2,12 @@ triage: "feature — connects sprint ⇄ aspects/backlog in the UI, permanent sp
 base: flow/build-life-manager
 gate0: 2026-10-03
 gate1: 2026-10-03
+decisions:
+  - "Gate 1 (2026-10-03): Rue approved as it stands — addition (a) createTodo review-required guard NOT added; (b) collapse memory kept, cut candidate if appetite runs over; planner deviations 1–4 accepted."
 learnings:
   - "planner: existing scenarios copied verbatim into MODIFIED blocks already have tests — tasks.md must not re-list them"
-  - "Gate 1 (2026-10-03): Rue approved as it stands — addition (a) createTodo review-required guard NOT added; (b) collapse memory kept, cut candidate if appetite runs over; planner deviations 1–4 accepted."
+  - "U2: symlinked node_modules breaks svelte-check in every worktree (node_modules/$app/tsconfig.json has relative paths, resolving into the main repo) — recurs despite the build.md note; flow-unit start should npm ci per worktree in SvelteKit 3 repos"
+  - "U3: SvelteKit view-transition cross-fade (200 ms) silently swallows Playwright drags started during it — e2e helpers that switch views must wait for !document.documentElement.matches(':active-view-transition')"
+gate2_notes:
+  - "U3: manual check — overlay slide timing (320 ms, no scrim) and cross-fade look; at 768–1279 the rail toggle sits over the overlay's top area near its middle, not its right edge"
+  - "U3: added ::view-transition { pointer-events: none } as a judgement call, not proven necessary"
