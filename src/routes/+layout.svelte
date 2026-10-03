@@ -37,8 +37,10 @@
 			grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
 		}
 
+		/* The nav is a sticky viewport-high column; the cell behind it carries the colour down long pages. */
 		.sidebar {
 			display: block;
+			background: var(--paper-sunk);
 		}
 
 		.page {
