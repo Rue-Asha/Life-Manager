@@ -134,7 +134,7 @@ test('Done-when journey', async ({ page, request }) => {
 	for (const gymDay of ['2026-10-13', '2026-10-15']) {
 		await expect(day(page, gymDay).getByTestId('todo-row')).toContainText('Gym');
 	}
-	await expect(page.getByTestId('context-rail').getByTestId('todo-row')).toHaveText([/Submit lab report/]);
+	await expect(page.getByTestId('backlog-rail').getByTestId('todo-row')).toHaveText([/Submit lab report/]);
 	await expect(page.getByTestId('todo-row')).toHaveCount(5);
 	await shot(page, 'next-week');
 });
