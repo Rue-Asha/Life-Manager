@@ -7,45 +7,48 @@
 :root {
 	color-scheme: light;
 
-	/* Neutrals: cool paper, never cream; ink is a true dark grey, not tinted black. */
-	--paper: #ffffff;
-	--paper-sunk: #f4f5f7;
-	--paper-hover: #f7f8fa;
-	--paper-scrim: rgb(28 31 38 / 0.18);
-	--line: #e8eaee;
-	--line-strong: #d6d9df;
-	--ink: #1c1f26;
-	--ink-2: #5b616d;
-	--ink-3: #8e939e;
+	/* Neutrals: cream page, stone-beige sunk surfaces, green-black ink (palette C, Lifesum). */
+	--paper: #fbf9f4;
+	--paper-sunk: #f0ece2;
+	--paper-hover: #f6f3ec;
+	--paper-scrim: rgb(35 45 38 / 0.18);
+	--line: #e4dfd3;
+	/* Darkest stone that still reads calm: the unchecked checkbox outline needs 3:1 on paper and paper-hover. */
+	--line-strong: #948c7d;
+	--ink: #1f2a24;
+	--ink-2: #4f5a53;
+	--ink-3: #666d66;
 	--ink-on-accent: #ffffff;
 
-	/* The one accent: a muted indigo, for the primary action, focus and "today". */
-	--accent: #3a4699;
-	--accent-hover: #2f3a85;
-	--accent-soft: #eceefa;
+	/* The one accent: deep forest green, for the primary action, focus and "today". */
+	--accent: #1f5a44;
+	--accent-hover: #174836;
+	--accent-soft: #e4ede6;
 
 	/* Red is reserved for overdue. */
-	--overdue: #d23a2f;
-	--overdue-soft: #fcedec;
+	--overdue: #b8382a;
+	--overdue-soft: #f8e9e3;
 
-	/* Aspect palette — the only saturated colours in the app. Keys match ASPECT_COLORS. */
-	--aspect-sage: #3d9566;
-	--aspect-sky: #2e83c4;
-	--aspect-lavender: #7a5fc9;
-	--aspect-ochre: #b98314;
-	--aspect-berry: #c0447c;
-	--aspect-lagoon: #17918b;
-	--aspect-tangerine: #d9731f;
-	--aspect-slate: #677184;
+	/* Aspect palette — the only saturated colours in the app. Keys match ASPECT_COLORS.
+	   Botanical, a little desaturated so they sit on cream without glowing. */
+	--aspect-sage: #4f8a43;
+	--aspect-sky: #3c7aa0;
+	--aspect-lavender: #7964a8;
+	--aspect-ochre: #a47718;
+	--aspect-berry: #a94866;
+	--aspect-lagoon: #237e74;
+	--aspect-tangerine: #bd5f26;
+	--aspect-slate: #6a7369;
 
-	--aspect-sage-tint: color-mix(in oklch, var(--aspect-sage) 11%, var(--paper));
-	--aspect-sky-tint: color-mix(in oklch, var(--aspect-sky) 11%, var(--paper));
-	--aspect-lavender-tint: color-mix(in oklch, var(--aspect-lavender) 11%, var(--paper));
-	--aspect-ochre-tint: color-mix(in oklch, var(--aspect-ochre) 13%, var(--paper));
-	--aspect-berry-tint: color-mix(in oklch, var(--aspect-berry) 11%, var(--paper));
-	--aspect-lagoon-tint: color-mix(in oklch, var(--aspect-lagoon) 11%, var(--paper));
-	--aspect-tangerine-tint: color-mix(in oklch, var(--aspect-tangerine) 12%, var(--paper));
-	--aspect-slate-tint: color-mix(in oklch, var(--aspect-slate) 11%, var(--paper));
+	/* oklab, not oklch: oklch swings an aspect's hue toward the warm paper's hue. */
+	--aspect-sage-tint: color-mix(in oklab, var(--aspect-sage) 16%, var(--paper));
+	--aspect-sky-tint: color-mix(in oklab, var(--aspect-sky) 16%, var(--paper));
+	--aspect-lavender-tint: color-mix(in oklab, var(--aspect-lavender) 16%, var(--paper));
+	--aspect-ochre-tint: color-mix(in oklab, var(--aspect-ochre) 16%, var(--paper));
+	--aspect-berry-tint: color-mix(in oklab, var(--aspect-berry) 16%, var(--paper));
+	--aspect-lagoon-tint: color-mix(in oklab, var(--aspect-lagoon) 16%, var(--paper));
+	--aspect-tangerine-tint: color-mix(in oklab, var(--aspect-tangerine) 16%, var(--paper));
+	--aspect-slate-tint: color-mix(in oklab, var(--aspect-slate) 16%, var(--paper));
 
 	/* Type: one family, Bricolage Grotesque — its optical-size axis makes titles
 	   characterful and rows quiet. Loaded by the app (self-hosted) or the style tile. */
@@ -104,8 +107,8 @@
 	--radius-pill: 999px;
 
 	/* Shadow: only floating surfaces have one; list rows never do. */
-	--shadow-pop: 0 1px 2px rgb(28 31 38 / 0.06), 0 6px 16px -4px rgb(28 31 38 / 0.12);
-	--shadow-float: 0 1px 3px rgb(28 31 38 / 0.05), 0 18px 40px -12px rgb(28 31 38 / 0.22);
+	--shadow-pop: 0 1px 2px rgb(35 45 38 / 0.06), 0 6px 16px -4px rgb(35 45 38 / 0.12);
+	--shadow-float: 0 1px 3px rgb(35 45 38 / 0.05), 0 18px 40px -12px rgb(35 45 38 / 0.22);
 	--ring-focus: 0 0 0 2px var(--paper), 0 0 0 4px var(--accent);
 
 	/* Motion: only in answer to an action. */
