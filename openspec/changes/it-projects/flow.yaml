@@ -1,0 +1,7 @@
+triage: "feature — new tables + migration, new module UI, nav spec delta, >1 session. Appetite: 2–3 sessions"
+gate0: 2026-10-04
+gate1: 2026-10-04
+base: main
+learnings:
+  - "explore: a pre-decided brief ('bitte nicht neu aufrollen') still got reversed once Rue saw the entity model drawn out (ideas = backlog projects, no project_items) — show the entity diagram early, before detail questions."
+  - "Repo path in args was wrong (00_Archive/Life-Managment-Dashboard vs Life-Manager) — resolve repo path with fd before flow-status."
