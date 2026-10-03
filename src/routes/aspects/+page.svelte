@@ -92,19 +92,20 @@
 			{/if}
 			<footer>
 				{#if current}
-					<Button
-						type="button"
-						variant="quiet"
-						class="delete"
-						disabled={locked(current)}
-						aria-describedby={locked(current) ? 'locked-note' : undefined}
-						onclick={() => {
-							deleting = current;
-							editing = null;
-						}}
-					>
-						Delete aspect
-					</Button>
+					<span class="start">
+						<Button
+							type="button"
+							variant="quiet"
+							disabled={locked(current)}
+							aria-describedby={locked(current) ? 'locked-note' : undefined}
+							onclick={() => {
+								deleting = current;
+								editing = null;
+							}}
+						>
+							Delete aspect
+						</Button>
+					</span>
 				{/if}
 				<Button type="button" variant="quiet" onclick={() => (editing = null)}>Cancel</Button>
 				<Button variant="primary">{current ? 'Save' : 'Create aspect'}</Button>
@@ -189,7 +190,7 @@
 		font-size: var(--text-sm);
 	}
 
-	footer :global(.delete) {
+	.start {
 		margin-right: auto;
 	}
 
