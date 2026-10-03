@@ -20,3 +20,6 @@ learnings:
   - "SvelteKit 3 enhance: update() resets the form and clears bind:group radios → update({ reset: false }); SubmitFunction comes from $app/forms; `cp` is also aliased interactive"
   - "e2e after client-side navigation: wait for URL or heading before the next locator, else it matches the old page"
   - "zsh: an unmatched glob aborts the whole command — name files explicitly in rm"
+  - "flow orchestrator: /clear does not stop background subagents — check ListAgents before treating uncommitted edits as an interrupted agent's leftovers (a duplicate fixer was spawned)"
+review_log:
+  - "round 1 (reviewer at af15390, fixer 83e30de): 2 weak tests (today Sunday-after-review, smoke /) → rewritten; overdue-on-Today checkbox → backlog context + Add to sprint, new today scenario; overdue sprint todo vanished when ticked → stays struck through on the day ticked (deviation from 'until sprint closes' — confirm at Gate 2); addToActiveSprint kept Done → resets to todo; Sunday /sprint → spec clarified per Rue's decision, new e2e; quick add on Sunday before next sprint → hidden unless today is a sprint day; unvalidated review decisions → refused; Unicode case-fold → JS toLowerCase duplicate check; status/priority/aspectId 500s → service-layer refusals. All with tests."
