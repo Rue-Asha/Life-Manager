@@ -23,7 +23,7 @@ Scope e2e count assertions to container test ids, never page-wide (repo learning
 - [x] 2.2 Build `design/projects-mockup.html` as a static page styled only through `src/lib/styles/tokens.css` (like `design/style-tile.html`): overview (Active / Backlog / Paused sections, collapsed "Implemented (n)" row, cards with name, one-line description, tags, repo glyph, open count, the empty state and the IT aspect prompt) and detail (title, status pill with its open menu, description, notes rendered + placeholder, linked todos Open / Planned / Done collapsed, metadata rail at 1600 and wrapping row at 375, a todo row with the project badge, the sidebar with Projects after Recurring)
 - [x] 2.3 Write the four screenshots (overview and detail at 1600 px and 375 px) to `design/shots/projects-*.png`
 - [x] 2.4 Add a "Projects" section to `design/brief.md` (and the Projects entry to §6 Navigation) citing a Mobbin URL for every decision; state that motion is unchanged (route cross-fade only) and that copy is English
-- [ ] 2.5 ⏸ HUMAN APPROVAL STOP — Rue approves the mockup. Do not mark this done yourself: stop here and report `needs-human: Rue approves the Projects mockup (design/projects-mockup.html, design/shots/projects-*.png, brief.md Projects section)`. Units 3, 4 and 5 must not start until Rue has approved.
+- [x] 2.5 ⏸ HUMAN APPROVAL STOP — Rue approves the mockup. Do not mark this done yourself: stop here and report `needs-human: Rue approves the Projects mockup (design/projects-mockup.html, design/shots/projects-*.png, brief.md Projects section)`. Units 3, 4 and 5 must not start until Rue has approved.
 
 ## 3. Projects overview, IT aspect setting and nav entry
 
