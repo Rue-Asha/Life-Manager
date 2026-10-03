@@ -20,6 +20,11 @@ to the sprint on today. (S21)
 - **THEN** its status is Done and it stays visible struck through
 - **proof:** e2e
 
+#### Scenario: Overdue todos outside the sprint offer the sprint instead of a checkbox
+- **WHEN** Today lists an overdue backlog todo during an active sprint
+- **THEN** its row has no done checkbox and offers "Add to sprint", which adds it to the sprint as To do
+- **proof:** e2e
+
 #### Scenario: Quick add on Today adds to the sprint on today
 - **WHEN** Rue quick-adds a todo on Today during an active sprint
 - **THEN** the todo is in the active sprint, assigned to today, and listed on Today

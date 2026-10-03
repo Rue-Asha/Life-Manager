@@ -21,8 +21,9 @@ function validate(db: DatabaseSync, input: AspectInput, id: Id | null): Result<A
 	if (!name) return { ok: false, error: 'required', field: 'name' };
 	if (!Object.hasOwn(ASPECT_COLORS, input.color)) return { ok: false, error: 'required', field: 'color' };
 	if (!Object.hasOwn(ASPECT_ICONS, input.icon)) return { ok: false, error: 'required', field: 'icon' };
-	// lower() matches the unique index on lower(name), so both agree on what a duplicate is.
-	const taken = db.prepare('SELECT 1 FROM aspects WHERE lower(name) = lower(?) AND id IS NOT ?').get(name, id);
+	// SQLite's lower() (and so the unique index) folds ASCII only; "Ärzte" vs "ärzte" is caught here.
+	const key = name.toLowerCase();
+	const taken = listAspects(db).some((a) => a.id !== id && a.name.toLowerCase() === key);
 	if (taken) return { ok: false, error: 'duplicate', field: 'name' };
 	return { ok: true, value: { name, color: input.color, icon: input.icon } };
 }

@@ -182,7 +182,9 @@ export function addToActiveSprint(db: DatabaseSync, todoId: Id): Result<Todo> {
 	const active = getActiveSprint(db);
 	if (!active) return { ok: false, error: 'no-active-sprint' };
 	if (!getTodo(db, todoId)) return { ok: false, error: 'not-found' };
-	db.prepare('UPDATE todos SET sprint_id = ?, day = NULL WHERE id = ?').run(active.id, todoId);
+	db.prepare(
+		"UPDATE todos SET sprint_id = ?, day = NULL, status = 'todo', completed_at = NULL WHERE id = ?"
+	).run(active.id, todoId);
 	return { ok: true, value: getTodo(db, todoId)! };
 }
 
@@ -191,7 +193,10 @@ export function moveToBacklog(db: DatabaseSync, todoId: Id): Result<Todo> {
 	return { ok: true, value: toBacklog(db, todoId) };
 }
 
+const STATUSES: Status[] = ['todo', 'doing', 'done'];
+
 export function setStatus(db: DatabaseSync, todoId: Id, status: Status): Result<Todo> {
+	if (!STATUSES.includes(status)) return { ok: false, error: 'required', field: 'status' };
 	const todo = getTodo(db, todoId);
 	if (!todo) return { ok: false, error: 'not-found' };
 	const completedAt = status !== 'done' ? null : todo.completedAt ?? now().toISOString();
@@ -229,6 +234,8 @@ export function reviewSummary(db: DatabaseSync): { sprint: Sprint; done: Todo[];
 	};
 }
 
+const DECISIONS: ReviewDecision[] = ['carry', 'backlog', 'drop'];
+
 export function closeReview(
 	db: DatabaseSync,
 	today: IsoDate,
@@ -240,6 +247,7 @@ export function closeReview(
 	if (reviewState(summary.sprint.weekStart!, today) === 'running') return { ok: false, error: 'sprint-active' };
 	const plan = summary.open.map((t) => ({ todo: t, decision: decisions[t.id] ?? 'carry' }));
 	for (const { todo, decision } of plan) {
+		if (!DECISIONS.includes(decision)) return { ok: false, error: 'required', field: `decision-${todo.id}` };
 		if (todo.recurring && decision === 'backlog') {
 			return { ok: false, error: 'recurring-no-backlog', field: `decision-${todo.id}` };
 		}

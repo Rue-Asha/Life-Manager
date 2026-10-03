@@ -38,6 +38,18 @@ describe('aspects', () => {
 		expect(listAspects(db).map((a) => a.name)).toEqual(['Health', 'Uni']);
 	});
 
+	it('treats names differing only in non-ASCII case as duplicates', () => {
+		const db = openDb(':memory:');
+		const id = create(db, { ...health, name: 'Ärzte' });
+		expect(createAspect(db, { ...uni, name: 'ärzte' })).toEqual({ ok: false, error: 'duplicate', field: 'name' });
+		expect(updateAspect(db, create(db, uni), { ...uni, name: 'ÄRZTE' })).toEqual({
+			ok: false,
+			error: 'duplicate',
+			field: 'name'
+		});
+		expect(updateAspect(db, id, { ...health, name: 'ärzte' })).toMatchObject({ ok: true, value: { name: 'ärzte' } });
+	});
+
 	it('creates aspects in order with trimmed names', () => {
 		const db = openDb(':memory:');
 		const r = createAspect(db, { ...health, name: '  Health ' });

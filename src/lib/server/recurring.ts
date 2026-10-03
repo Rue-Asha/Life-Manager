@@ -1,5 +1,6 @@
 import type { DatabaseSync, SQLInputValue } from 'node:sqlite';
 import type { Id, IsoDate, Priority, RecurringRule, Result, RuleInput, Sprint, Todo, Weekday } from '$lib/types';
+import { isPriority } from '$lib/todo-utils';
 import { addDays } from '$lib/week';
 import { now } from './clock';
 import { getActiveSprint, selectTodos, transaction } from './sprints';
@@ -23,9 +24,13 @@ function getRule(db: DatabaseSync, id: Id): RecurringRule | null {
 	return r ? toRule(r) : null;
 }
 
-function validate(input: RuleInput): { ok: false; error: string; field: string } | null {
+function validate(db: DatabaseSync, input: RuleInput): { ok: false; error: string; field: string } | null {
 	if (!input.title.trim()) return { ok: false, error: 'required', field: 'title' };
+	if (!db.prepare('SELECT 1 FROM aspects WHERE id = ?').get(input.aspectId)) {
+		return { ok: false, error: 'no-aspect', field: 'aspectId' };
+	}
 	if (input.weekdays.length === 0) return { ok: false, error: 'weekdays-required', field: 'weekdays' };
+	if (input.priority !== undefined && !isPriority(input.priority)) return { ok: false, error: 'required', field: 'priority' };
 	return null;
 }
 
@@ -45,7 +50,7 @@ export function listRules(db: DatabaseSync): RecurringRule[] {
 }
 
 export function createRule(db: DatabaseSync, input: RuleInput, today: IsoDate): Result<RecurringRule> {
-	const invalid = validate(input);
+	const invalid = validate(db, input);
 	if (invalid) return invalid;
 	return transaction(db, () => {
 		const { lastInsertRowid } = db
@@ -61,7 +66,7 @@ export function createRule(db: DatabaseSync, input: RuleInput, today: IsoDate): 
 }
 
 export function updateRule(db: DatabaseSync, id: Id, input: RuleInput): Result<RecurringRule> {
-	const invalid = validate(input);
+	const invalid = validate(db, input);
 	if (invalid) return invalid;
 	if (!getRule(db, id)) return { ok: false, error: 'not-found' };
 	db.prepare(

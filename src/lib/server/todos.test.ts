@@ -13,7 +13,7 @@ import {
 	toggleChecklistItem,
 	updateTodo
 } from './todos';
-import type { Id, Todo } from '$lib/types';
+import type { Id, Priority, Todo } from '$lib/types';
 
 function setup() {
 	const db = openDb(':memory:');
@@ -185,6 +185,19 @@ describe('updateTodo and deleteTodo', () => {
 		expect(updateTodo(db, t.id, { aspectId: aspect + 99 })).toEqual({ ok: false, error: 'no-aspect', field: 'aspectId' });
 		expect(updateTodo(db, t.id + 99, { title: 'x' })).toEqual({ ok: false, error: 'not-found' });
 		expect(getTodo(db, t.id)?.title).toBe('Run');
+	});
+
+	it('refuses an unknown priority on create and update', () => {
+		const { db, aspect } = setup();
+		expect(createTodo(db, { title: 'Run', aspectId: aspect, priority: NaN as Priority })).toEqual({
+			ok: false,
+			error: 'required',
+			field: 'priority'
+		});
+		expect(todoCount(db)).toBe(0);
+		const t = value(createTodo(db, { title: 'Run', aspectId: aspect, priority: 2 }));
+		expect(updateTodo(db, t.id, { priority: 4 as Priority })).toEqual({ ok: false, error: 'required', field: 'priority' });
+		expect(getTodo(db, t.id)?.priority).toBe(2);
 	});
 
 	it('Scenario: Deleting a recurring instance keeps its rule', () => {

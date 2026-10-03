@@ -1,6 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { Id, RuleInput } from '$lib/types';
+import type { Id, Priority, RuleInput } from '$lib/types';
 import { openDb } from './db';
 import { createRule, deleteRule, listRules, updateRule } from './recurring';
 import { closeReview, getActiveSprint, listSprintTodos, startSprint } from './sprints';
@@ -94,6 +94,32 @@ describe('recurring rules', () => {
 		expect(instances).toHaveLength(2);
 		for (const t of instances) expect(t).toMatchObject({ recurring: true, ruleId: null });
 		expect(deleteRule(db, id)).toEqual({ ok: false, error: 'not-found' });
+	});
+
+	it('a missing aspect or unknown priority is refused, not thrown', () => {
+		expect(createRule(db, gym({ aspectId: aspect + 99 }), '2026-10-07')).toEqual({
+			ok: false,
+			error: 'no-aspect',
+			field: 'aspectId'
+		});
+		expect(createRule(db, gym({ priority: NaN as Priority }), '2026-10-07')).toEqual({
+			ok: false,
+			error: 'required',
+			field: 'priority'
+		});
+		const rule = createRule(db, gym(), '2026-10-07');
+		const id = rule.ok ? rule.value.id : 0;
+		expect(updateRule(db, id, gym({ aspectId: aspect + 99 }))).toEqual({
+			ok: false,
+			error: 'no-aspect',
+			field: 'aspectId'
+		});
+		expect(updateRule(db, id, gym({ priority: 7 as Priority }))).toEqual({
+			ok: false,
+			error: 'required',
+			field: 'priority'
+		});
+		expect(listRules(db)).toMatchObject([{ aspectId: aspect, priority: 0 }]);
 	});
 
 	it('rule title is required and fields are stored', () => {

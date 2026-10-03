@@ -20,11 +20,19 @@ toggles Done. Completed todos stay visible, struck through, until the sprint clo
 - **proof:** unit
 
 ### Requirement: Sprint screens follow the sprint phase
-Sprint screens SHALL show a prompt instead of the sprint when no sprint is active or a review is pending. (S17 edge)
+Sprint screens SHALL show a prompt instead of the sprint when no sprint is active, the next sprint is
+being planned, or the active sprint's review is required. On the sprint's Sunday, when the review is
+available but not yet required, the sprint stays workable with a prompt to review above it — Sunday is
+still a sprint day. (S17 edge)
 
 #### Scenario: Sprint screens prompt to review when pending
 - **WHEN** the active sprint's review is required and Rue opens the sprint screen
 - **THEN** a prompt links to the review and the screen offers no way to start a new sprint
+- **proof:** e2e
+
+#### Scenario: Sunday shows the review prompt above the sprint
+- **WHEN** it is the active sprint's Sunday and Rue opens the sprint screen
+- **THEN** a prompt links to the review, and the sprint's todos are listed below it and can still be ticked done
 - **proof:** e2e
 
 ### Requirement: By-aspect view

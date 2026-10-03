@@ -13,6 +13,8 @@
 
 	// Review-required means the sprint's week is over, so today is no longer one of its days.
 	const inSprint = $derived(data.phase === 'running' || data.phase === 'review-available');
+	// On Sunday next week's sprint can already be running, and today is not one of its days.
+	const onSprintDay = $derived(data.sprintDays.includes(data.today));
 	const aspectOf = (id: Id) => data.aspects.find((a) => a.id === id)!;
 	const groups = $derived(
 		data.aspects
@@ -33,9 +35,11 @@
 {/if}
 
 {#if inSprint}
-	<div class="quick">
-		<QuickAdd aspects={data.aspects} target={{ kind: 'day', day: data.today }} />
-	</div>
+	{#if onSprintDay}
+		<div class="quick">
+			<QuickAdd aspects={data.aspects} target={{ kind: 'day', day: data.today }} />
+		</div>
+	{/if}
 	{#if groups.length === 0 && data.overdue.length === 0}
 		<p class="empty" data-testid="empty-state">
 			<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.sun} /></svg>
@@ -49,7 +53,19 @@
 		<h2 id="group-overdue" class="late">Overdue<span class="count num">{data.overdue.length}</span></h2>
 		<ul>
 			{#each data.overdue as todo (todo.id)}
-				<TodoRow {todo} aspect={aspectOf(todo.aspectId)} today={data.today} context="today" mixed />
+				<!-- Done belongs to the running sprint, so backlog and draft todos are offered the sprint instead of a checkbox. -->
+				{#if todo.sprintId === data.activeSprintId}
+					<TodoRow {todo} aspect={aspectOf(todo.aspectId)} today={data.today} context="today" mixed />
+				{:else}
+					<TodoRow
+						{todo}
+						aspect={aspectOf(todo.aspectId)}
+						today={data.today}
+						context="backlog"
+						sprintDays={todo.sprintId === null && inSprint ? data.sprintDays : undefined}
+						mixed
+					/>
+				{/if}
 			{/each}
 		</ul>
 	</section>

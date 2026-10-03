@@ -41,6 +41,29 @@ test('Scenario: Sprint screens prompt to review when pending', async ({ page, re
 	}
 });
 
+test('Scenario: Sunday shows the review prompt above the sprint', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [...ASPECTS],
+		sprint: { state: 'active', weekStart: WEEK },
+		todos: [{ title: 'Weekly reset', inSprint: true, day: '2026-10-11' }]
+	});
+	await setClock(request, '2026-10-11T10:00:00Z');
+
+	for (const view of ['aspect', 'board', 'week']) {
+		await page.goto(`/sprint?view=${view}`);
+		const prompt = page.getByTestId('sprint-prompt');
+		await expect(prompt).toHaveAttribute('data-phase', 'review-available');
+		await expect(prompt.getByRole('link')).toHaveAttribute('href', '/sprint/review');
+		await expect(row(page, 'Weekly reset')).toBeVisible();
+	}
+
+	await page.goto('/sprint');
+	await page.getByRole('checkbox', { name: 'Done: Weekly reset' }).click();
+	await expect(row(page, 'Weekly reset')).toHaveAttribute('data-status', 'done');
+	await page.reload();
+	await expect(row(page, 'Weekly reset')).toHaveAttribute('data-status', 'done');
+});
+
 test('Scenario: Sprint by aspect groups todos with status', async ({ page, request }) => {
 	const { aspects } = await seed(request, {
 		aspects: [...ASPECTS],

@@ -1,4 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
+import { isPriority } from '$lib/todo-utils';
 import type { ChecklistItem, Id, IsoDate, NewTodo, Result, Todo, TodoPatch } from '$lib/types';
 
 type TodoRow = Omit<Todo, 'recurring' | 'checklist'> & { recurring: number };
@@ -36,6 +37,7 @@ export function createTodo(db: DatabaseSync, input: NewTodo): Result<Todo> {
 	const title = input.title.trim();
 	if (!title) return { ok: false, error: 'required', field: 'title' };
 	if (!aspectExists(db, input.aspectId)) return { ok: false, error: 'no-aspect', field: 'aspectId' };
+	if (input.priority !== undefined && !isPriority(input.priority)) return { ok: false, error: 'required', field: 'priority' };
 
 	const target = input.target ?? { kind: 'backlog' };
 	let sprintId: Id | null = null;
@@ -107,6 +109,7 @@ export function updateTodo(db: DatabaseSync, id: Id, patch: TodoPatch): Result<T
 		values.push(patch.notes);
 	}
 	if (patch.priority !== undefined) {
+		if (!isPriority(patch.priority)) return { ok: false, error: 'required', field: 'priority' };
 		sets.push('priority = ?');
 		values.push(patch.priority);
 	}

@@ -1,6 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { Id, IsoDate, Sprint, Status } from '$lib/types';
+import type { Id, IsoDate, ReviewDecision, Sprint, Status } from '$lib/types';
 import { openDb } from './db';
 import {
 	addToActiveSprint,
@@ -186,6 +186,18 @@ describe('mid-sprint changes', () => {
 		expect(moveToBacklog(db, todo('Backlog'))).toEqual({ ok: false, error: 'not-found' });
 	});
 
+	it('a done backlog todo joins the active sprint as To do', () => {
+		const s = sprint('active', '2026-10-05');
+		const id = todo('Call bank', { status: 'done' });
+		expect(addToActiveSprint(db, id)).toMatchObject({ ok: true, value: { sprintId: s, status: 'todo', completedAt: null } });
+	});
+
+	it('setStatus refuses an unknown status', () => {
+		const id = todo('Run', { sprintId: sprint('active', '2026-10-05') });
+		expect(setStatus(db, id, 'later' as Status)).toEqual({ ok: false, error: 'required', field: 'status' });
+		expect(row(id)).toMatchObject({ status: 'todo' });
+	});
+
 	it('setDay accepts only days of the todo\'s sprint', () => {
 		const id = todo('Run', { sprintId: sprint('active', '2026-10-05') });
 		expect(setDay(db, id, '2026-10-11')).toMatchObject({ ok: true, value: { day: '2026-10-11' } });
@@ -268,6 +280,18 @@ describe('sprint review', () => {
 		expect(sprintPhase(db, '2026-10-07').phase).toBe('planning');
 		const planning = openPlanning(db, '2026-10-07');
 		expect(planning.ok && planning.value.weekStart).toBe('2026-10-05');
+	});
+
+	it('an unknown decision is refused, not treated as backlog', () => {
+		const s = sprint('active', '2026-10-05');
+		const gym = todo('Gym Mon', { sprintId: s, day: '2026-10-05', recurring: true });
+		expect(closeReview(db, '2026-10-12', { [gym]: 'foo' as ReviewDecision })).toEqual({
+			ok: false,
+			error: 'required',
+			field: `decision-${gym}`
+		});
+		expect(row(gym)).toMatchObject({ sprint_id: s });
+		expect(getActiveSprint(db)?.id).toBe(s);
 	});
 
 	it('review cannot close before the sprint\'s Sunday', () => {
