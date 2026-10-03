@@ -52,6 +52,28 @@ test('Scenario: Today shows today\'s sprint todos and overdue todos', async ({ p
 	await expect(row(page, 'Book a physio appointment')).toHaveCount(0);
 });
 
+test('Scenario: Today at 1280 shows sprint progress per aspect', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [...ASPECTS],
+		sprint: ACTIVE,
+		todos: [
+			{ title: 'Morning run', aspect: 0, inSprint: true, day: TODAY, status: 'done' },
+			{ title: 'Book a physio appointment', aspect: 0, inSprint: true, day: '2026-10-08' },
+			{ title: 'Pay the rent', aspect: 1, inSprint: true },
+			{ title: 'Send tax receipts', aspect: 1 }
+		]
+	});
+	await page.goto('/');
+
+	const rail = page.getByTestId('context-rail');
+	await expect(rail).toBeVisible();
+	await expect(page.getByTestId('rail-toggle')).toBeHidden();
+	const items = rail.getByRole('listitem');
+	await expect(items).toHaveCount(2);
+	await expect(items.filter({ hasText: 'Health' }).getByTestId('progress')).toHaveText(/1 \/ 2/);
+	await expect(items.filter({ hasText: 'Finance' }).getByTestId('progress')).toHaveText(/0 \/ 1/);
+});
+
 test('An overdue todo planned for today is listed once, under Overdue', async ({ page, request }) => {
 	await seed(request, {
 		aspects: [...ASPECTS],
