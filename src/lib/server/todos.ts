@@ -1,12 +1,90 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type { ChecklistItem, Id, IsoDate, NewTodo, Result, Todo, TodoPatch } from '$lib/types';
 
+type TodoRow = Omit<Todo, 'recurring' | 'checklist'> & { recurring: number };
+type ItemRow = Omit<ChecklistItem, 'done'> & { done: number };
+
+const todoColumns = `id, title, aspect_id AS aspectId, notes, priority, due_date AS dueDate,
+	sprint_id AS sprintId, status, day, recurring, rule_id AS ruleId, created_at AS createdAt,
+	completed_at AS completedAt`;
+const itemColumns = 'id, todo_id AS todoId, text, done, position';
+
+function toItem(row: ItemRow): ChecklistItem {
+	return { ...row, done: row.done === 1 };
+}
+
+function withChecklists(db: DatabaseSync, rows: TodoRow[]): Todo[] {
+	if (rows.length === 0) return [];
+	const items = db
+		.prepare(
+			`SELECT ${itemColumns} FROM checklist_items
+			 WHERE todo_id IN (SELECT value FROM json_each(?)) ORDER BY position, id`
+		)
+		.all(JSON.stringify(rows.map((r) => r.id))) as unknown as ItemRow[];
+	return rows.map((r) => ({
+		...r,
+		recurring: r.recurring === 1,
+		checklist: items.filter((i) => i.todoId === r.id).map(toItem)
+	}));
+}
+
+function aspectExists(db: DatabaseSync, id: Id): boolean {
+	return db.prepare('SELECT 1 FROM aspects WHERE id = ?').get(id) !== undefined;
+}
+
 export function createTodo(db: DatabaseSync, input: NewTodo): Result<Todo> {
-	throw new Error('not implemented');
+	const title = input.title.trim();
+	if (!title) return { ok: false, error: 'required', field: 'title' };
+	if (!aspectExists(db, input.aspectId)) return { ok: false, error: 'no-aspect', field: 'aspectId' };
+
+	const target = input.target ?? { kind: 'backlog' };
+	let sprintId: Id | null = null;
+	let day: IsoDate | null = null;
+	if (target.kind !== 'backlog') {
+		const sprint = db
+			.prepare("SELECT id, week_start AS weekStart, date(week_start, '+6 days') AS weekEnd FROM sprints WHERE state = 'active'")
+			.get() as { id: Id; weekStart: IsoDate; weekEnd: IsoDate } | undefined;
+		if (!sprint) return { ok: false, error: 'no-active-sprint' };
+		sprintId = sprint.id;
+		if (target.kind === 'day') {
+			if (target.day < sprint.weekStart || target.day > sprint.weekEnd) {
+				return { ok: false, error: 'day-outside-sprint', field: 'day' };
+			}
+			day = target.day;
+		}
+	}
+
+	db.exec('BEGIN');
+	try {
+		const { lastInsertRowid } = db
+			.prepare(
+				`INSERT INTO todos (title, aspect_id, notes, priority, due_date, sprint_id, day, created_at)
+				 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+			)
+			.run(
+				title,
+				input.aspectId,
+				input.notes ?? '',
+				input.priority ?? 0,
+				input.dueDate ?? null,
+				sprintId,
+				day,
+				new Date().toISOString()
+			);
+		const insertItem = db.prepare('INSERT INTO checklist_items (todo_id, text, position) VALUES (?, ?, ?)');
+		const texts = (input.checklist ?? []).map((t) => t.trim()).filter(Boolean);
+		texts.forEach((text, i) => insertItem.run(lastInsertRowid, text, i));
+		db.exec('COMMIT');
+		return { ok: true, value: getTodo(db, Number(lastInsertRowid))! };
+	} catch (err) {
+		db.exec('ROLLBACK');
+		throw err;
+	}
 }
 
 export function getTodo(db: DatabaseSync, id: Id): Todo | null {
-	throw new Error('not implemented');
+	const row = db.prepare(`SELECT ${todoColumns} FROM todos WHERE id = ?`).get(id) as TodoRow | undefined;
+	return row ? withChecklists(db, [row])[0] : null;
 }
 
 export function updateTodo(db: DatabaseSync, id: Id, patch: TodoPatch): Result<Todo> {
