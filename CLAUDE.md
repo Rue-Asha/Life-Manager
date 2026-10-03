@@ -15,6 +15,7 @@ Single user, no auth; light theme only.
 - Before changing aspects, read openspec/specs/aspects/spec.md.
 - Before changing backlog, read openspec/specs/backlog/spec.md.
 - Before changing design-direction, read openspec/specs/design-direction/spec.md.
+- Before changing motion, read openspec/specs/motion/spec.md.
 - Before changing navigation, read openspec/specs/navigation/spec.md.
 - Before changing recurring, read openspec/specs/recurring/spec.md.
 - Before changing sprint-lifecycle, read openspec/specs/sprint-lifecycle/spec.md.
@@ -25,3 +26,6 @@ Single user, no auth; light theme only.
 ## Learnings
 - **Font tokens for fontsource variable fonts** → use the `'<Family> Variable'` name (e.g. `'Bricolage Grotesque Variable'`). (weil: that's the name fontsource registers; the plain family silently falls back) [2026-10-03 · build-life-manager]
 - **e2e after client-side navigation** → wait for the URL or heading before the next locator. (weil: otherwise it matches the old page) [2026-10-03 · build-life-manager]
+- **e2e count assertions** → scope them to a container test id (e.g. the sprint list), never page-wide. (weil: a unit adding the backlog rail beside the sprint broke other units' counts) [2026-10-03 · sprint-management]
+- **Svelte `crossfade` on a new element** → route it through the guard in `motion.ts`. (weil: crossfade divides by target width; a display:none counterpart yields NaN and leaves the outgoing node stuck — AspectView/BacklogRail still use it raw) [2026-10-03 · sprint-management]
+- **Elements that crossfade (200 ms)** → mark the outgoing copy `aria-hidden` and rename its test ids. (weil: two copies exist mid-transition and page-wide strict locators fail) [2026-10-03 · sprint-management]
