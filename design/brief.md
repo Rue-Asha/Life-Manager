@@ -189,18 +189,73 @@ Lifesum calendar with green-ringed today, https://mobbin.com/screens/3a530be6-95
 
 ## 8. Motion
 
-- **Motion answers an action, never decorates.** Durations are 120 / 200 / 320 ms with one
-  ease-out curve, and all drop to 0 under `prefers-reduced-motion`.
+- **Motion shows where things went, never decorates.** The first brief let motion only
+  answer an action; sprint-management (S12/S13) widens that to two more cases: a todo that
+  moves travels to its new place, and navigation cross-fades. Durations stay on the
+  existing tokens, 120 / 200 / 320 ms with one ease-out curve; Mobbin shows no timings, so
+  nothing new was invented. Under `prefers-reduced-motion` every case below is instant.
   - Checking a box: the fill and tick draw in 120 ms, then the title strikes through in
     200 ms. The row stays where it is.
   - Opening a todo: the row expands in place into a 16 px-radius card (320 ms) while the list
     behind dims to `--paper-scrim`. This is the signature interaction.
   - Sheets slide up 320 ms on phone and dialogs fade-scale in 200 ms on desktop.
-  - Drag (desktop only) lifts the card with `--shadow-float`.
   - There are no page-load entrances or hover animations on rows; hover only changes the
     background to `--paper-hover`.
   — Things 3 expand-in-place, https://mobbin.com/screens/18b05379-2af1-41ab-afef-0ca4870933c1;
   Rox completion flow, https://mobbin.com/flows/2702b66f-8544-4c03-b2b0-4171f11d3b9f
+- **Moves travel (S12).** A todo moving between the backlog rail and the sprint, between
+  board columns or between days crossfades to its new place in 200 ms while the gap it left
+  closes over the same 200 ms, and the counts update with it. A move the server refuses
+  travels back. Drag (desktop only) lifts the card with `--shadow-float` and **no tilt**;
+  the target shows a hairline drop slot, not a filled box, and the source closes up as the
+  card leaves. Todoist's tilted drag card was looked at and rejected.
+  — ClickUp status change flow, https://mobbin.com/flows/1a8d1ee2-e9e2-47da-ba44-b7e37f20de7b;
+  Basecamp drop placeholder, https://mobbin.com/flows/0c8d2cf2-4132-42b1-ba65-91a17fed7d35
+  (screen 7c517ff9-2478-4b18-8ba7-b7ed515bfecc);
+  counter-example Todoist tilted drag, https://mobbin.com/screens/349a1427-9550-4ec9-ab52-d3ddb0fa73a9
+- **Navigation cross-fades (S13).** Route changes and the sprint view switch (By aspect /
+  Board / Week) cross-fade the content in 120–200 ms through the View Transitions API; a
+  browser without it navigates instantly. The rail overlay slides in from the right over
+  320 ms while the content reflows, **without a scrim**: the rail is a panel next to the
+  work, not a modal over it.
+  — Jira sidebar open/close flow, https://mobbin.com/flows/03bcd9ae-4012-41dc-aac6-98673a6fe3d4
+  (screen d4a9c031-0cba-41a8-b0f0-63499d51119c)
+
+## 9. Layout
+
+- **Phone (<768 px)** is unchanged: one column, no rail. A screen that needs the rail's
+  content brings its own way to it (Sprint: the "Manage" sheet).
+- **Wide desktop (≥1280 px): sidebar | content | context rail.** Lists keep the 720 px
+  measure, left-aligned next to the sidebar; the context rail (`--rail-width`, 340 px) docks
+  at the right edge on `--paper-sunk`, the same stone as the sidebar, so the content sits
+  between two quiet surfaces. Each rail answers the screen's question: Sprint → the backlog
+  rail plus Unscheduled; Today → this sprint's progress per aspect ("done / total" with a
+  hairline bar in the aspect colour); an aspect page → that aspect's colour and counts.
+  Board and Week drop the 720 px cap and fill the width, Week in one row.
+  — Jira "Unscheduled work" rail, https://mobbin.com/screens/5fddb893-f912-443e-bd23-ec673aa6a254;
+  Linear cycle + inspector flow, https://mobbin.com/flows/801fe69f-8f59-4bdc-a28a-9837f93fcd39
+  (screen 890e49aa-ac99-4fa8-b15c-d21076cbc045);
+  ClickUp Planner, https://mobbin.com/screens/87aa6e25-826f-425c-8456-d385d344fc83;
+  Todoist Insights panel, https://mobbin.com/screens/46dab991-e521-44bc-984a-c936e31610a8;
+  Superlist panes, https://mobbin.com/flows/495f838e-56fa-4539-ae58-4ea2dba639a1
+  (screen 73df32d9-dd60-4545-ae47-d09410fd0cfc)
+- **Progress per aspect is done / total, not capacity.** There are no estimates in the
+  model, so a group header or rail row shows a count and a hairline bar, never points.
+  — Jira per-team progress cells, https://mobbin.com/screens/994f09c1-4ca4-4127-8039-af78b1801a94
+- **Week in one row.** At ≥1280 Mon–Sun sit side by side (columns at least `--day-col-min`,
+  120 px) and Unscheduled moves into the rail.
+  — Todoist Upcoming, https://mobbin.com/screens/009edfa2-d70c-4e02-a9ee-ba3b81c33a6a;
+  Amie list + grid, https://mobbin.com/screens/41dde7c0-c4c4-4f68-a6bc-8c3e50977d13
+- **Narrow desktop and tablet (768–1279 px): overlay rail.** The rail collapses behind a
+  toggle button at the top right of the content; pressing it slides the rail in as a
+  floating panel over the content's right edge, without a scrim, and pressing it again
+  closes it. The scope named 1024–1279; the overlay also covers 768–1023, the smaller choice
+  than a third layout for a band the scope left open.
+  — Jira sidebar open/close flow, https://mobbin.com/flows/03bcd9ae-4012-41dc-aac6-98673a6fe3d4
+  (screen d4a9c031-0cba-41a8-b0f0-63499d51119c)
+- **Screens without a rail centre their column.** Backlog, Review, Recurring and Welcome
+  keep the 720 px column and centre it in the space right of the sidebar, so no wide screen
+  has an empty right third. No screen scrolls horizontally at any width.
 
 ## Hand-off notes for feature units
 
