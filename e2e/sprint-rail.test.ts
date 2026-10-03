@@ -167,3 +167,58 @@ test('Scenario: Rail becomes an overlay toggle between 1024 and 1279', async ({ 
 	await toggle.click();
 	await expect(context).toBeHidden();
 });
+
+test('Scenario: Rail title filter narrows the list', async ({ page, request }) => {
+	await seedRunning(request, [
+		{ title: 'Morning run', inSprint: true },
+		{ title: 'Book a physio appointment' },
+		{ title: 'Stretch for ten minutes' },
+		{ title: 'Email the tutor', aspect: 1 }
+	]);
+	await page.goto('/sprint');
+
+	const filter = page.getByTestId('rail-filter');
+	await filter.fill('PHYSIO');
+	await expect(rail(page).getByTestId('todo-row')).toHaveText([/Book a physio appointment/]);
+
+	await filter.fill('');
+	await expect(rail(page).getByTestId('todo-row')).toHaveCount(3);
+});
+
+test('Scenario: Rail filter without a match', async ({ page, request }) => {
+	await seedRunning(request, [{ title: 'Morning run', inSprint: true }, { title: 'Book a physio appointment' }]);
+	await page.goto('/sprint');
+
+	await page.getByTestId('rail-filter').fill('dentist');
+	await expect(rail(page).getByTestId('todo-row')).toHaveCount(0);
+	await expect(rail(page)).toContainText('No backlog todo matches');
+});
+
+test('Scenario: Empty backlog shows the rail\'s empty state', async ({ page, request }) => {
+	await seedRunning(request, [{ title: 'Morning run', inSprint: true }]);
+	await page.goto('/sprint');
+
+	await expect(rail(page)).toContainText('The backlog is empty.');
+	await expect(rail(page).getByRole('link')).toHaveAttribute('href', '/backlog');
+	await expect(page.getByTestId('rail-filter')).toHaveCount(0);
+});
+
+test('Scenario: Collapsed rail groups are remembered', async ({ page, request }) => {
+	const { aspects } = await seedRunning(request, [
+		{ title: 'Book a physio appointment' },
+		{ title: 'Email the tutor', aspect: 1 }
+	]);
+	await page.goto('/sprint');
+
+	const health = page.getByTestId(`rail-group-${aspects[0]}`);
+	const uni = page.getByTestId(`rail-group-${aspects[1]}`);
+	await health.getByRole('button', { name: 'Health' }).click();
+	await expect(health).toHaveAttribute('data-collapsed', 'true');
+	await expect(health.getByTestId('todo-row')).toHaveCount(0);
+
+	await page.reload();
+	await expect(health).toHaveAttribute('data-collapsed', 'true');
+	await expect(health.getByTestId('todo-row')).toHaveCount(0);
+	await expect(uni).toHaveAttribute('data-collapsed', 'false');
+	await expect(row(uni, 'Email the tutor')).toBeVisible();
+});
