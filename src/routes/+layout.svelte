@@ -1,0 +1,48 @@
+<script lang="ts">
+	import '@fontsource-variable/bricolage-grotesque/opsz.css';
+	import '../app.css';
+	import Sidebar from '../lib/components/shell/Sidebar.svelte';
+
+	let { children } = $props();
+</script>
+
+<div class="shell">
+	<div class="sidebar">
+		<Sidebar />
+	</div>
+	<main class="page">
+		{@render children()}
+	</main>
+</div>
+
+<style>
+	.shell {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		min-height: 100dvh;
+	}
+
+	.sidebar {
+		display: none;
+	}
+
+	.page {
+		width: 100%;
+		max-width: calc(var(--content-max) + 2 * var(--gutter));
+		padding: var(--space-5) var(--gutter) var(--space-9);
+	}
+
+	@media (min-width: 768px) {
+		.shell {
+			grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+		}
+
+		.sidebar {
+			display: block;
+		}
+
+		.page {
+			padding-top: var(--space-8);
+		}
+	}
+</style>
