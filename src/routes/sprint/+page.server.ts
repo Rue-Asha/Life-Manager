@@ -1,6 +1,7 @@
 import { today } from '$lib/server/clock';
 import { getDb } from '$lib/server/db';
-import { listSprintTodos, sprintPhase } from '$lib/server/sprints';
+import { aspectProgress, listSprintTodos, sprintPhase } from '$lib/server/sprints';
+import { backlogCounts, listBacklog } from '$lib/server/todos';
 import { weekDays } from '$lib/week';
 import type { PageServerLoad } from './$types';
 
@@ -19,6 +20,9 @@ export const load: PageServerLoad = ({ url }) => {
 		phase,
 		today: day,
 		todos: showSprint ? listSprintTodos(db, sprint.id) : [],
-		sprintDays: showSprint ? weekDays(sprint.weekStart!) : null
+		sprintDays: showSprint ? weekDays(sprint.weekStart!) : null,
+		backlog: showSprint ? listBacklog(db) : [],
+		progress: showSprint ? aspectProgress(db, sprint.id) : {},
+		backlogCounts: showSprint ? backlogCounts(db) : {}
 	};
 };

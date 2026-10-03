@@ -17,20 +17,26 @@
 	);
 </script>
 
-{#each groups as { aspect, todos } (aspect.id)}
-	{@const open = todos.filter((t) => t.status !== 'done').length}
-	<section class="group" data-testid="aspect-group-{aspect.id}" aria-labelledby="group-{aspect.id}">
-		<h2 id="group-{aspect.id}">
-			<AspectIcon icon={aspect.icon} color={aspect.color} />{aspect.name}
-			<span class="count num" aria-label="{open} open">{open}</span>
-		</h2>
-		<ul>
-			{#each todos as todo (todo.id)}
-				<TodoRow {todo} {aspect} {today} context="sprint" {sprintDays} />
-			{/each}
-		</ul>
-	</section>
-{/each}
+<div class="list" data-testid="sprint-list">
+	{#each groups as { aspect, todos } (aspect.id)}
+		{@const open = todos.filter((t) => t.status !== 'done').length}
+		<section class="group" data-testid="aspect-group-{aspect.id}" aria-labelledby="group-{aspect.id}">
+			<h2 id="group-{aspect.id}">
+				<AspectIcon icon={aspect.icon} color={aspect.color} />{aspect.name}
+				<span class="count num" aria-label="{open} open">{open}</span>
+			</h2>
+			<ul>
+				{#each todos as todo (todo.id)}
+					<TodoRow {todo} {aspect} {today} context="sprint" {sprintDays} />
+				{/each}
+			</ul>
+		</section>
+	{:else}
+		<p class="empty" data-testid="empty-state">
+			Nothing in this sprint yet. Add a todo above, or pull some in from the <a href="/backlog">backlog</a>.
+		</p>
+	{/each}
+</div>
 
 <style>
 	.group + .group {
@@ -59,5 +65,21 @@
 		margin: 0;
 		padding: 0;
 		list-style: none;
+	}
+
+	.empty {
+		padding: var(--space-8) var(--space-4);
+		color: var(--ink-3);
+		text-align: center;
+	}
+
+	.empty a {
+		color: var(--accent);
+		font-weight: var(--weight-medium);
+		text-decoration: none;
+	}
+
+	.empty a:hover {
+		text-decoration: underline;
 	}
 </style>

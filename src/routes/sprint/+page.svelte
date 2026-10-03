@@ -1,6 +1,9 @@
 <script lang="ts">
+	import BacklogRail from '$lib/components/rail/BacklogRail.svelte';
+	import RailLayout from '$lib/components/shell/RailLayout.svelte';
 	import AspectView from '$lib/components/sprint/AspectView.svelte';
 	import BoardView from '$lib/components/sprint/BoardView.svelte';
+	import UnscheduledList from '$lib/components/sprint/UnscheduledList.svelte';
 	import ViewSwitch from '$lib/components/sprint/ViewSwitch.svelte';
 	import WeekView from '$lib/components/sprint/WeekView.svelte';
 	import QuickAdd from '$lib/components/todo/QuickAdd.svelte';
@@ -19,38 +22,44 @@
 	<title>Sprint · Life Manager</title>
 </svelte:head>
 
-<div class="sprint" class:wide={data.sprintDays && data.view !== 'aspect'}>
-	<PageHeader title="Sprint" icon="calendar-days">
-		{#if data.sprintDays}
-			<span class="range num" data-testid="sprint-week">{dayLabel(data.sprintDays[0])} – {dateLabel(data.sprintDays[6])}</span>
-		{/if}
-	</PageHeader>
-
-	{#if data.phase !== 'running'}
-		<div class="prompt"><SprintPrompt phase={data.phase} /></div>
+{#snippet rail()}
+	{#if data.view === 'week'}
+		<UnscheduledList todos={data.todos} sprintDays={data.sprintDays!} today={data.today} />
 	{/if}
+	<BacklogRail backlog={data.backlog} aspects={data.aspects} canAdd addAction="/todos?/addToSprint" />
+{/snippet}
 
-	{#if data.sprintDays}
-		<div class="bar"><ViewSwitch view={data.view} /></div>
+<RailLayout railTitle="Backlog" wide={data.view !== 'aspect'} rail={data.sprintDays ? rail : undefined}>
+	<div class="sprint" class:wide={data.sprintDays && data.view !== 'aspect'}>
+		<PageHeader title="Sprint" icon="calendar-days">
+			{#if data.sprintDays}
+				<span class="range num" data-testid="sprint-week">{dayLabel(data.sprintDays[0])} – {dateLabel(data.sprintDays[6])}</span>
+			{/if}
+		</PageHeader>
 
-		{#if data.view !== 'week'}
-			<div class="quick"><QuickAdd aspects={data.aspects} target={{ kind: 'sprint' }} /></div>
+		{#if data.phase !== 'running'}
+			<div class="prompt"><SprintPrompt phase={data.phase} /></div>
 		{/if}
 
-		{#if data.todos.length === 0 && data.view === 'aspect'}
-			<p class="empty" data-testid="empty-state">
-				Nothing in this sprint yet. Add a todo above, or pull some in from the <a href="/backlog">backlog</a>.
-			</p>
-		{:else}
+		{#if data.sprintDays}
+			<div class="bar"><ViewSwitch view={data.view} /></div>
+
+			{#if data.view !== 'week'}
+				<div class="quick"><QuickAdd aspects={data.aspects} target={{ kind: 'sprint' }} /></div>
+			{/if}
+
 			<View todos={data.todos} aspects={data.aspects} today={data.today} sprintDays={data.sprintDays} />
 		{/if}
-	{/if}
-</div>
+	</div>
+</RailLayout>
 
 <style>
-	/* Columns need more room than a list: board and week widen the page past the list measure. */
-	:global(.page:has(.sprint.wide)) {
-		max-width: calc(var(--content-max) * 1.5 + 2 * var(--gutter));
+	/* Columns need more room than a list: board and week widen the page past the list measure.
+	   From 1280 the rail layout sizes the content itself. */
+	@media (max-width: 1279px) {
+		:global(.page:has(.sprint.wide)) {
+			max-width: calc(var(--content-max) * 1.5 + 2 * var(--gutter));
+		}
 	}
 
 	.range {
@@ -65,21 +74,5 @@
 
 	.quick {
 		margin-bottom: var(--space-6);
-	}
-
-	.empty {
-		padding: var(--space-8) var(--space-4);
-		color: var(--ink-3);
-		text-align: center;
-	}
-
-	.empty a {
-		color: var(--accent);
-		font-weight: var(--weight-medium);
-		text-decoration: none;
-	}
-
-	.empty a:hover {
-		text-decoration: underline;
 	}
 </style>
