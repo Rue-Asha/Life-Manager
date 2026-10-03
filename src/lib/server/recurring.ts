@@ -90,12 +90,21 @@ export function generateInstances(db: DatabaseSync, sprint: Sprint, fromDay: Iso
 		 VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)`
 	);
 	const insertItem = db.prepare('INSERT INTO checklist_items (todo_id, text, position) VALUES (?, ?, ?)');
+	const carried = db.prepare("SELECT id FROM todos WHERE sprint_id = ? AND rule_id = ? AND status != 'done' ORDER BY id");
+	const placeCarried = db.prepare('UPDATE todos SET day = ? WHERE id = ?');
 	const createdAt = now().toISOString();
 	const ids: Id[] = [];
 	for (const rule of rules) {
+		// Instances carried over by the review take the rule's slots first, so the rule isn't doubled.
+		const open = (carried.all(sprint.id, rule.id) as Row[]).map((r) => Number(r.id));
 		for (const weekday of rule.weekdays) {
 			const day = addDays(sprint.weekStart!, weekday - 1);
 			if (day < fromDay) continue;
+			const carriedId = open.shift();
+			if (carriedId !== undefined) {
+				placeCarried.run(day, carriedId);
+				continue;
+			}
 			const id = Number(
 				insertTodo.run(rule.title, rule.aspectId, rule.notes, rule.priority, sprint.id, day, rule.id, createdAt)
 					.lastInsertRowid
