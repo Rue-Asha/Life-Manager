@@ -4,6 +4,7 @@ import type { Id, IsoDate, ReviewDecision, Sprint, Status } from '$lib/types';
 import { openDb } from './db';
 import {
 	addToActiveSprint,
+	aspectProgress,
 	closeReview,
 	getActiveSprint,
 	listSprintTodos,
@@ -21,6 +22,7 @@ import {
 	toggleDone,
 	unpullTodo
 } from './sprints';
+import { backlogCounts } from './todos';
 
 let db: DatabaseSync;
 let aspect: Id;
@@ -394,5 +396,27 @@ describe('sprint review', () => {
 		const next = startSprint(db, '2026-10-11', []);
 		expect(next.ok && next.value).toMatchObject({ id: draft.ok ? draft.value.id : 0, weekStart: '2026-10-12' });
 		expect(row(carried)).toMatchObject({ status: 'doing', day: null });
+	});
+});
+
+describe('progress', () => {
+	it('Scenario: Progress and backlog counts per aspect', () => {
+		const s = sprint('active', '2026-10-05');
+		todo('Run', { sprintId: s, status: 'done' });
+		todo('Swim', { sprintId: s, status: 'doing' });
+		todo('Stretch', { sprintId: s });
+		todo('Yoga');
+		todo('Climb');
+		const a = aspect;
+		aspect = Number(
+			db
+				.prepare("INSERT INTO aspects (name, color, icon, position, created_at) VALUES ('Home', 'clay', 'home', 1, '')")
+				.run().lastInsertRowid
+		);
+		todo('Fix shelf');
+		todo('Old', { sprintId: sprint('closed', '2026-09-28'), status: 'done' });
+
+		expect(aspectProgress(db, s)).toEqual({ [a]: { done: 1, total: 3 } });
+		expect(backlogCounts(db)).toEqual({ [a]: 2, [aspect]: 1 });
 	});
 });

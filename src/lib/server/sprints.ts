@@ -205,7 +205,13 @@ export function addToActiveSprint(db: DatabaseSync, todoId: Id, today: IsoDate, 
 }
 
 export function aspectProgress(db: DatabaseSync, sprintId: Id): Record<Id, AspectProgress> {
-	return {};
+	const rows = db
+		.prepare(
+			`SELECT aspect_id, SUM(status = 'done') AS done, COUNT(*) AS total FROM todos
+			 WHERE sprint_id = ? GROUP BY aspect_id`
+		)
+		.all(sprintId) as Row[];
+	return Object.fromEntries(rows.map((r) => [Number(r.aspect_id), { done: Number(r.done), total: Number(r.total) }]));
 }
 
 export function moveToBacklog(db: DatabaseSync, todoId: Id): Result<Todo> {

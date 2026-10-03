@@ -174,7 +174,10 @@ export function listBacklog(db: DatabaseSync, aspectId?: Id): Todo[] {
 }
 
 export function backlogCounts(db: DatabaseSync): Record<Id, number> {
-	return {};
+	const rows = db
+		.prepare('SELECT aspect_id, COUNT(*) AS n FROM todos WHERE sprint_id IS NULL GROUP BY aspect_id')
+		.all() as unknown as { aspect_id: number; n: number }[];
+	return Object.fromEntries(rows.map((r) => [r.aspect_id, r.n]));
 }
 
 export function listOverdue(db: DatabaseSync, today: IsoDate): Todo[] {
