@@ -1,11 +1,15 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { page } from '$app/state';
+	import { MediaQuery } from 'svelte/reactivity';
 	import { ASPECT_COLORS } from '$lib/aspect-style';
 	import { isOverdue } from '$lib/todo-utils';
 	import type { Aspect, IsoDate, Todo } from '$lib/types';
 	import { UI_ICONS } from '../ui/icons';
+	import Button from '../ui/Button.svelte';
 	import DayPicker from './DayPicker.svelte';
 	import StatusControl from './StatusControl.svelte';
+	import TodoEditor from './TodoEditor.svelte';
 	import { submit } from './form';
 	import { dueLabel } from './format';
 
@@ -28,12 +32,34 @@
 	const done = $derived(todo.status === 'done');
 	const overdue = $derived(isOverdue(todo, today));
 	const checked = $derived(todo.checklist.filter((i) => i.done).length);
+
+	// The editor's aspect picker needs every aspect; pages showing rows return them from load.
+	const aspects = $derived((page.data.aspects as Aspect[] | undefined) ?? [aspect]);
+	const desktop = new MediaQuery('min-width: 768px');
+	let editing = $state(false);
+	const expanded = $derived(editing && desktop.current);
+	const close = () => (editing = false);
 </script>
+
+{#snippet moves()}
+	{#if context === 'backlog' && sprintDays}
+		<form method="POST" action="/todos?/addToSprint" use:enhance={submit({ onsuccess: close })}>
+			<input type="hidden" name="id" value={todo.id} />
+			<Button variant="secondary">Add to sprint</Button>
+		</form>
+	{:else if context === 'sprint'}
+		<form method="POST" action="/todos?/moveToBacklog" use:enhance={submit({ onsuccess: close })}>
+			<input type="hidden" name="id" value={todo.id} />
+			<Button variant="secondary">Move to backlog</Button>
+		</form>
+	{/if}
+{/snippet}
 
 <li
 	class="row"
 	class:checkable
 	class:done
+	class:expanded
 	data-testid="todo-row"
 	data-todo-id={todo.id}
 	data-status={todo.status}
@@ -41,60 +67,69 @@
 	data-overdue={overdue}
 	style:--a={ASPECT_COLORS[aspect.color].fg}
 >
-	{#if checkable}
-		<form method="POST" action="/todos?/toggleDone" use:enhance={submit()}>
-			<input type="hidden" name="id" value={todo.id} />
-			<button class="check" role="checkbox" aria-checked={done} aria-label="Done: {todo.title}">
-				<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.check} /></svg>
-			</button>
-		</form>
+	{#if expanded}
+		<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+		<div class="scrim" onclick={close}></div>
 	{/if}
-
-	<div class="main">
-		<span class="title">{todo.title}</span>
-		<div class="meta">
-			{#if context === 'today'}
-				<span><i class="dot"></i>{aspect.name}</span>
-			{/if}
-			{#if context === 'sprint'}
-				<StatusControl todoId={todo.id} status={todo.status} />
-				{#if sprintDays}<DayPicker todoId={todo.id} day={todo.day} {sprintDays} />{/if}
-			{/if}
-			{#if todo.recurring}
-				<span><svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.repeat} /></svg>Recurring</span>
-			{/if}
-			{#if todo.checklist.length}
-				<span aria-label="Checklist {checked} of {todo.checklist.length}">
-					<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS['list-checks']} /></svg>
-					<span class="num">{checked}/{todo.checklist.length}</span>
-				</span>
-			{/if}
-			{#if todo.notes}<span>Notes</span>{/if}
-		</div>
-	</div>
-
-	<div class="end">
-		{#if todo.priority}
-			<span class="prio" data-p={todo.priority} role="img" aria-label="Priority {todo.priority}">
-				<i></i><i></i><i></i>
-			</span>
-		{/if}
-		{#if todo.dueDate}
-			<span class="due num" class:late={overdue}>
-				{#if overdue}<span class="visually-hidden">Overdue,</span>{/if}
-				{dueLabel(todo.dueDate, today)}
-			</span>
-		{/if}
-		{#if context === 'backlog' && sprintDays}
-			<form method="POST" action="/todos?/addToSprint" use:enhance={submit()}>
+	{#if editing}
+		<TodoEditor {todo} {aspects} open={editing} onclose={close} actions={moves} />
+	{/if}
+	{#if !expanded}
+		{#if checkable}
+			<form method="POST" action="/todos?/toggleDone" use:enhance={submit()}>
 				<input type="hidden" name="id" value={todo.id} />
-				<button class="add" aria-label="Add to sprint: {todo.title}" title="Add to sprint">
-					<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.plus} /></svg>
-					<span class="add-label">Add to sprint</span>
+				<button class="check" role="checkbox" aria-checked={done} aria-label="Done: {todo.title}">
+					<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.check} /></svg>
 				</button>
 			</form>
 		{/if}
-	</div>
+
+		<div class="main">
+			<button type="button" class="title" onclick={() => (editing = true)}>{todo.title}</button>
+			<div class="meta">
+				{#if context === 'today'}
+					<span><i class="dot"></i>{aspect.name}</span>
+				{/if}
+				{#if context === 'sprint'}
+					<StatusControl todoId={todo.id} status={todo.status} />
+					{#if sprintDays}<DayPicker todoId={todo.id} day={todo.day} {sprintDays} />{/if}
+				{/if}
+				{#if todo.recurring}
+					<span><svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.repeat} /></svg>Recurring</span>
+				{/if}
+				{#if todo.checklist.length}
+					<span aria-label="Checklist {checked} of {todo.checklist.length}">
+						<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS['list-checks']} /></svg>
+						<span class="num">{checked}/{todo.checklist.length}</span>
+					</span>
+				{/if}
+				{#if todo.notes}<span>Notes</span>{/if}
+			</div>
+		</div>
+
+		<div class="end">
+			{#if todo.priority}
+				<span class="prio" data-p={todo.priority} role="img" aria-label="Priority {todo.priority}">
+					<i></i><i></i><i></i>
+				</span>
+			{/if}
+			{#if todo.dueDate}
+				<span class="due num" class:late={overdue}>
+					{#if overdue}<span class="visually-hidden">Overdue,</span>{/if}
+					{dueLabel(todo.dueDate, today)}
+				</span>
+			{/if}
+			{#if context === 'backlog' && sprintDays}
+				<form method="POST" action="/todos?/addToSprint" use:enhance={submit()}>
+					<input type="hidden" name="id" value={todo.id} />
+					<button class="add" aria-label="Add to sprint: {todo.title}" title="Add to sprint">
+						<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.plus} /></svg>
+						<span class="add-label">Add to sprint</span>
+					</button>
+				</form>
+			{/if}
+		</div>
+	{/if}
 </li>
 
 <style>
@@ -108,6 +143,29 @@
 		margin: 0 calc(-1 * var(--space-2));
 		border-radius: var(--radius-md);
 		transition: background-color var(--dur-fast) var(--ease-out);
+	}
+
+	.expanded {
+		display: block;
+		padding: 0;
+	}
+
+	.expanded:hover {
+		background: none;
+	}
+
+	.scrim {
+		position: fixed;
+		inset: 0;
+		z-index: 1;
+		background: var(--paper-scrim);
+		animation: fade var(--dur-slow) var(--ease-out);
+	}
+
+	@keyframes fade {
+		from {
+			opacity: 0;
+		}
 	}
 
 	.checkable {
@@ -165,6 +223,12 @@
 
 	.title {
 		display: block;
+		width: 100%;
+		padding: 0;
+		border: 0;
+		background: none;
+		text-align: left;
+		cursor: default;
 		overflow: hidden;
 		line-height: var(--leading-snug);
 		text-overflow: ellipsis;
