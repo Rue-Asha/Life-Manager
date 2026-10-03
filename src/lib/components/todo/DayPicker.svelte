@@ -54,7 +54,9 @@
 		stroke-linejoin: round;
 	}
 
+	/* Without it a select is as wide as its longest option, "Unscheduled". */
 	select {
+		field-sizing: content;
 		appearance: none;
 		padding: 0;
 		border: 0;

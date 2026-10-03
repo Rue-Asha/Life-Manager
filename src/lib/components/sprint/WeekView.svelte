@@ -165,6 +165,19 @@
 		margin: 0 calc(-1 * var(--space-1));
 	}
 
+	/* Priority and due date drop under the meta line instead of squeezing the title. */
+	.column :global(.row.checkable) {
+		grid-template-columns: var(--checkbox-size) minmax(0, 1fr);
+	}
+
+	.column :global(.row .end) {
+		grid-column: 2;
+	}
+
+	.column :global(.row .end:has(*)) {
+		margin-top: var(--space-2);
+	}
+
 	@media (max-width: 767px) {
 		.strip {
 			display: grid;
