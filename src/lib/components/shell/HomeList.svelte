@@ -1,17 +1,22 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import { UI_ICONS } from '../ui/icons';
-	import { NAV_ITEMS } from './Sidebar.svelte';
+	import { NAV_ITEMS, navCount, type NavData } from './Sidebar.svelte';
+
+	const nav = $derived(page.data.nav as NavData);
 </script>
 
 <nav aria-label="Lists">
 	<ul>
 		{#each NAV_ITEMS as item (item.href)}
+			{@const count = navCount(nav, item.count)}
 			<li class:aspects={item.href === '/aspects'}>
 				<a href={item.href}>
 					<svg viewBox="0 0 24 24" aria-hidden="true" class:today={item.href === '/'}>
 						<path d={UI_ICONS[item.icon]} />
 					</svg>
 					{item.label}
+					{#if count.n > 0}<span class="count num" class:late={count.late} aria-hidden="true">{count.n}</span>{/if}
 				</a>
 			</li>
 		{/each}
@@ -47,6 +52,17 @@
 
 	a:hover {
 		background: var(--paper-hover);
+	}
+
+	.count {
+		margin-left: auto;
+		color: var(--ink-3);
+		font-size: var(--text-md);
+	}
+
+	.count.late {
+		color: var(--overdue);
+		font-weight: var(--weight-semibold);
 	}
 
 	svg {
