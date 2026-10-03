@@ -13,7 +13,7 @@
 	import SprintPrompt from '$lib/components/todo/SprintPrompt.svelte';
 	import { dateLabel, dayLabel } from '$lib/components/todo/format';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
-	import type { AspectProgress, Id, Todo } from '$lib/types';
+	import type { AspectProgress, Id, Placement, Todo } from '$lib/types';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -23,9 +23,14 @@
 	// A move shows at once, so the todo travels before the reload confirms it; a refused move
 	// drops out of here and travels back.
 	let moves = $state<Record<Id, 'sprint' | 'backlog'>>({});
+	let placements = $state<Record<Id, Placement>>({});
 	let failure = $state<string | null>(null);
 
-	const unplaced = (t: Todo): Todo => ({ ...t, status: 'todo', day: null });
+	const unplaced = (t: Todo): Todo => ({
+		...t,
+		status: placements[t.id]?.status ?? 'todo',
+		day: placements[t.id]?.day ?? null
+	});
 	const todos = $derived([
 		...data.todos.filter((t) => moves[t.id] !== 'backlog'),
 		...data.backlog.filter((t) => moves[t.id] === 'sprint').map(unplaced)
@@ -46,11 +51,14 @@
 		return byAspect;
 	});
 
-	async function move(id: Id, to: 'sprint' | 'backlog') {
+	async function move(id: Id, to: 'sprint' | 'backlog', placement?: Placement) {
 		moves[id] = to;
+		if (placement) placements[id] = placement;
 		failure = null;
 		const body = new FormData();
 		body.set('id', String(id));
+		if (placement?.status) body.set('status', placement.status);
+		if (placement?.day) body.set('day', placement.day);
 		const response = await fetch(to === 'sprint' ? '/todos?/addToSprint' : '/todos?/moveToBacklog', {
 			method: 'POST',
 			body,
@@ -61,6 +69,7 @@
 		if (result.type === 'failure' && result.data?.error !== 'not-found') failure = String(result.data?.error);
 		else await invalidateAll();
 		delete moves[id];
+		delete placements[id];
 	}
 </script>
 
@@ -125,7 +134,13 @@
 				/>
 			{:else}
 				{@const View = VIEWS[data.view]}
-				<View {todos} aspects={data.aspects} today={data.today} sprintDays={data.sprintDays} />
+				<View
+					{todos}
+					aspects={data.aspects}
+					today={data.today}
+					sprintDays={data.sprintDays}
+					onadd={(id, placement) => move(id, 'sprint', placement)}
+				/>
 			{/if}
 		{/if}
 	</div>
