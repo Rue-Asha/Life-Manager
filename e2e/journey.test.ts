@@ -96,11 +96,12 @@ test('Done-when journey', async ({ page, request }) => {
 		await expect(day(page, gymDay).getByTestId('todo-row')).toContainText('Gym');
 		await expect(day(page, gymDay).getByTestId('todo-row')).toContainText('Recurring');
 	}
-	// Beside the rail the week wraps past 800 px; a drag that has to scroll picks up whatever lands under the press.
-	await page.setViewportSize({ width: 1280, height: 1200 });
+	// In Week the rail, with Unscheduled, is an overlay behind its toggle.
+	await page.getByTestId('rail-toggle').click();
 	await row(page, 'Submit lab report').dragTo(day(page, '2026-10-07'), { sourcePosition: { x: 8, y: 8 } });
-	await page.setViewportSize({ width: 1280, height: 800 });
 	await expect(day(page, '2026-10-07')).toContainText('Submit lab report');
+	await page.getByTestId('rail-toggle').click();
+	await expect(page.getByTestId('context-rail')).toBeHidden();
 	await shot(page, 'sprint-week');
 
 	await setClock(request, '2026-10-07T07:00:00Z');

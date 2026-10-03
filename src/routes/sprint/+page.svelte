@@ -92,7 +92,12 @@
 	/>
 {/snippet}
 
-<RailLayout railTitle="Backlog" wide={data.view !== 'aspect'} rail={data.sprintDays ? rail : undefined}>
+<RailLayout
+	railTitle="Backlog"
+	wide={data.view !== 'aspect'}
+	overlay={data.view === 'week'}
+	rail={data.sprintDays ? rail : undefined}
+>
 	<div class="sprint" class:wide={data.sprintDays && data.view !== 'aspect'}>
 		<PageHeader title="Sprint" icon="calendar-days">
 			{#if data.sprintDays}

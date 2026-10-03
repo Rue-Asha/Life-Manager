@@ -208,14 +208,13 @@
 		}
 	}
 
-	/* Wide desktop: Monday–Sunday in one row. Where seven columns don't fit next to the rail the
-	   week scrolls sideways inside itself, never the page; a busy day scrolls inside its column. */
+	/* Wide desktop: Monday–Sunday in one row across the content width (the rail is an overlay in
+	   Week, so seven columns fit); a busy day scrolls inside its column. */
 	@media (min-width: 1280px) {
 		.week {
 			grid-template-columns: repeat(7, minmax(var(--day-col-min), 1fr));
 			gap: var(--space-2);
 			align-items: stretch;
-			overflow-x: auto;
 		}
 
 		/* Narrow columns: tighter insets leave the card's chips room. */

@@ -6,15 +6,21 @@
 		children,
 		rail,
 		railTitle,
-		wide = false
-	}: { children: Snippet; rail?: Snippet; railTitle: string; wide?: boolean } = $props();
+		wide = false,
+		overlay = false
+	}: { children: Snippet; rail?: Snippet; railTitle: string; wide?: boolean; overlay?: boolean } = $props();
 
 	const id = $props.id();
 	let open = $state(false);
+
+	// Leaving the overlay (Week → Board) closes it, so a later return starts closed.
+	$effect.pre(() => {
+		if (!overlay) open = false;
+	});
 </script>
 
 {#if rail}
-	<div class="rail-layout" class:wide>
+	<div class="rail-layout" class:wide class:overlay>
 		<div class="content">
 			<div class="bar">
 				<Button
@@ -86,9 +92,10 @@
 		}
 	}
 
-	/* Wide desktop: the rail docks at the right edge; the content keeps the list measure, left-aligned. */
+	/* Wide desktop: the rail docks at the right edge; the content keeps the list measure, left-aligned.
+	   An overlay layout (Week) keeps the toggle and panel, so the content gets the full width. */
 	@media (min-width: 1280px) {
-		.rail-layout {
+		.rail-layout:not(.overlay) {
 			display: grid;
 			grid-template-columns: minmax(0, 1fr) var(--rail-width);
 			align-items: start;
@@ -103,12 +110,11 @@
 			max-width: none;
 		}
 
-		.bar {
+		.rail-layout:not(.overlay) .bar {
 			display: none;
 		}
 
-		.rail,
-		.rail.open {
+		.rail-layout:not(.overlay) .rail {
 			position: sticky;
 			z-index: auto;
 			width: auto;

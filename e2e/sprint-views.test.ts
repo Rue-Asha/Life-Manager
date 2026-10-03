@@ -327,6 +327,8 @@ test('Scenario: Drop a rail todo on a day column sets its day', async ({ page, r
 	});
 	await page.goto('/sprint?view=week');
 	await settled(page);
+	await page.getByTestId('rail-toggle').click();
+	await expect(railRow(page, 'Book a physio appointment')).toBeVisible();
 
 	await railRow(page, 'Book a physio appointment').dragTo(page.getByTestId('day-column-2026-10-08'), {
 		sourcePosition: { x: 8, y: 8 }
@@ -438,10 +440,15 @@ test('Scenario: Week shows the whole week in one row at 1280', async ({ page, re
 	await seed(request, {
 		aspects: [...ASPECTS],
 		sprint: { state: 'active', weekStart: WEEK },
-		todos: [{ title: 'Clean the fridge', aspect: 2, inSprint: true }]
+		todos: [{ title: 'Clean the fridge', aspect: 2, inSprint: true }, { title: 'Book a physio appointment', aspect: 0 }]
 	});
 	await page.goto('/sprint?view=week');
 	await settled(page);
+
+	const rail = page.getByTestId('context-rail');
+	const toggle = page.getByTestId('rail-toggle');
+	await expect(rail).toBeHidden();
+	await expect(toggle).toBeVisible();
 
 	const days = await Promise.all(weekdays(page).map(box));
 	for (const d of days) {
@@ -449,11 +456,77 @@ test('Scenario: Week shows the whole week in one row at 1280', async ({ page, re
 		expect(d.width).toBeGreaterThanOrEqual(120);
 	}
 	for (let i = 1; i < days.length; i++) expect(days[i].x).toBeGreaterThan(days[i - 1].x);
+	const week = day(page, '2026-10-05').locator('..');
+	expect(await week.evaluate((el) => el.scrollWidth === el.clientWidth)).toBe(true);
+	await expect(week.getByTestId('day-column-unscheduled')).toHaveCount(0);
 
+	await toggle.click();
+	await expect(rail).toBeVisible();
 	await expect(page.getByTestId('day-column-unscheduled')).toHaveCount(1);
-	const unscheduled = page.getByTestId('context-rail').getByTestId('day-column-unscheduled');
-	await expect(unscheduled).toBeVisible();
+	const unscheduled = rail.getByTestId('day-column-unscheduled');
 	await expect(unscheduled).toContainText('Clean the fridge');
+	const backlog = rail.getByTestId('backlog-rail');
+	await expect(backlog).toContainText('Book a physio appointment');
+	expect((await box(unscheduled)).y).toBeLessThan((await box(backlog)).y);
+});
+
+// Docked, the rail is a sticky grid column; as an overlay it is a fixed panel behind a toggle.
+async function expectDocked(page: Page, docked: boolean) {
+	await settled(page);
+	const rail = page.getByTestId('context-rail');
+	if (docked) {
+		await expect(rail).toBeVisible();
+		await expect(rail).toHaveCSS('position', 'sticky');
+		await expect(page.getByTestId('rail-toggle')).toBeHidden();
+	} else {
+		await expect(rail).toBeHidden();
+		await expect(rail).toHaveCSS('position', 'fixed');
+		await expect(page.getByTestId('rail-toggle')).toBeVisible();
+	}
+}
+
+test('Scenario: Switching Week and Board swaps overlay and docked rail', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [...ASPECTS],
+		sprint: { state: 'active', weekStart: WEEK },
+		todos: [{ title: 'Clean the fridge', aspect: 2, inSprint: true }, { title: 'Book a physio appointment', aspect: 0 }]
+	});
+	await page.goto('/sprint?view=board');
+	const views = page.getByRole('navigation', { name: 'Sprint view' });
+	await expectDocked(page, true);
+
+	await views.getByRole('link', { name: 'Week' }).click();
+	await expect(page).toHaveURL(/view=week$/);
+	await expectDocked(page, false);
+
+	await views.getByRole('link', { name: 'Board' }).click();
+	await expect(page).toHaveURL(/view=board$/);
+	await expectDocked(page, true);
+});
+
+test('Scenario: Open week overlay closes when leaving Week', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [...ASPECTS],
+		sprint: { state: 'active', weekStart: WEEK },
+		todos: [{ title: 'Clean the fridge', aspect: 2, inSprint: true }, { title: 'Book a physio appointment', aspect: 0 }]
+	});
+	await page.goto('/sprint?view=week');
+	await settled(page);
+	const views = page.getByRole('navigation', { name: 'Sprint view' });
+	const toggle = page.getByTestId('rail-toggle');
+	await toggle.click();
+	await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+	await expect(page.getByTestId('context-rail')).toBeVisible();
+
+	await views.getByRole('link', { name: 'Board' }).click();
+	await expect(page).toHaveURL(/view=board$/);
+	await settled(page);
+	await views.getByRole('link', { name: 'Week' }).click();
+	await expect(page).toHaveURL(/view=week$/);
+	await settled(page);
+
+	await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+	await expect(page.getByTestId('context-rail')).toBeHidden();
 });
 
 test('Scenario: Busy day scrolls inside its column', async ({ page, request }) => {
@@ -508,6 +581,8 @@ test('Scenario: Assign a todo to a day by drag', async ({ page, request }) => {
 		todos: [{ title: 'Clean the fridge', aspect: 2, inSprint: true }]
 	});
 	await page.goto('/sprint?view=week');
+	await settled(page);
+	await page.getByTestId('rail-toggle').click();
 	await expect(day(page, 'unscheduled')).toContainText('Clean the fridge');
 
 	await row(page, 'Clean the fridge').dragTo(day(page, '2026-10-06'));
