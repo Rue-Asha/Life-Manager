@@ -141,6 +141,7 @@ all of them in one weekly sprint, with a planning and review ritual.
 - Planning: drag between backlog panel and sprint on desktop, picker on touch.
 - Gate 1: Today's overdue list includes backlog todos; "back to backlog" at review resets status and
   day (as S12); planned todos sit in a draft sprint until started; test-only routes behind `LM_TEST=1` — planner's interpretations, approved by Rue.
+- Taste gate (2.5, 2026-10-03): palette C "Forest & stone" (forest-green accent #1f5a44, cream/stone neutrals, moss-and-clay aspects) chosen out of five options in design/palettes/; the rest of design/brief.md (Bricolage Grotesque, layout, aspect-coloured done checkbox) approved with it. Unchecked-checkbox outline raised to ≥3:1 contrast.
 - Design grounded in Mobbin (Things 3, Sunsama/Akiflow), cited in `design-refs.md` — Rue's standing instruction.
 
 ## Done when
