@@ -1,35 +1,36 @@
-verified-at: 7d39939
+verified-at: 64c8c84
 
 ## Layer 1 — proof-full (`PORT=4700 npm run proof:full`): green
 
 ```
-  ✓  137 e2e/today.test.ts:77:1 › An overdue todo planned for today is listed once, under Overdue (121ms)
-  ✓  138 e2e/today.test.ts:89:1 › Scenario: Status toggle on Today (298ms)
-  ✓  139 e2e/today.test.ts:116:1 › Scenario: Overdue todos outside the sprint offer the sprint instead of a checkbox (220ms)
-  ✓  140 e2e/today.test.ts:136:1 › Scenario: Quick add on Today adds to the sprint on today (532ms)
-  ✓  141 e2e/today.test.ts:156:1 › No quick add on the Sunday before next week's sprint starts (140ms)
-  ✓  142 e2e/today.test.ts:165:1 › Scenario: Today without an active sprint prompts to plan (116ms)
-  ✓  143 e2e/today.test.ts:177:1 › Scenario: Today with a pending review prompts to review (154ms)
-  ✓  144 e2e/today.test.ts:201:1 › Scenario: Nothing today shows a calm empty state (121ms)
-  ✓  145 e2e/today.test.ts:219:1 › Scenario: Sunday after the review prompts to plan next week (298ms)
-  ✓  146 e2e/todos.test.ts:28:1 › GET /todos redirects to the backlog (129ms)
-  ✓  147 e2e/todos.test.ts:34:1 › Scenario: Quick add creates a todo in the backlog (481ms)
-  ✓  148 e2e/todos.test.ts:53:1 › Quick add rejects an empty title inline (451ms)
-  ✓  149 e2e/todos.test.ts:63:1 › Scenario: Past due date is allowed and shown overdue (460ms)
-  ✓  150 e2e/todos.test.ts:74:1 › Quick add on phone opens a sheet (589ms)
-  ✓  151 e2e/todos.test.ts:92:1 › Scenario: Edit every field of a todo (697ms)
-  ✓  152 e2e/todos.test.ts:127:1 › Scenario: Checklist items are added, renamed, toggled and deleted (837ms)
-  ✓  153 e2e/todos.test.ts:163:1 › Scenario: Deleting a todo asks for confirmation (1.5s)
-  ✓  154 e2e/todos.test.ts:184:1 › Editing on phone uses a sheet (590ms)
+  ✓  137 e2e/today.test.ts:77:1 › An overdue todo planned for today is listed once, under Overdue (106ms)
+  ✓  138 e2e/today.test.ts:89:1 › Scenario: Status toggle on Today (274ms)
+  ✓  139 e2e/today.test.ts:116:1 › Scenario: Overdue todos outside the sprint offer the sprint instead of a checkbox (229ms)
+  ✓  140 e2e/today.test.ts:136:1 › Scenario: Quick add on Today adds to the sprint on today (466ms)
+  ✓  141 e2e/today.test.ts:156:1 › No quick add on the Sunday before next week's sprint starts (107ms)
+  ✓  142 e2e/today.test.ts:165:1 › Scenario: Today without an active sprint prompts to plan (131ms)
+  ✓  143 e2e/today.test.ts:177:1 › Scenario: Today with a pending review prompts to review (168ms)
+  ✓  144 e2e/today.test.ts:201:1 › Scenario: Nothing today shows a calm empty state (116ms)
+  ✓  145 e2e/today.test.ts:219:1 › Scenario: Sunday after the review prompts to plan next week (315ms)
+  ✓  146 e2e/todos.test.ts:28:1 › GET /todos redirects to the backlog (95ms)
+  ✓  147 e2e/todos.test.ts:34:1 › Scenario: Quick add creates a todo in the backlog (473ms)
+  ✓  148 e2e/todos.test.ts:53:1 › Quick add rejects an empty title inline (419ms)
+  ✓  149 e2e/todos.test.ts:63:1 › Scenario: Past due date is allowed and shown overdue (440ms)
+  ✓  150 e2e/todos.test.ts:74:1 › Quick add on phone opens a sheet (595ms)
+  ✓  151 e2e/todos.test.ts:92:1 › Scenario: Edit every field of a todo (677ms)
+  ✓  152 e2e/todos.test.ts:127:1 › Scenario: Checklist items are added, renamed, toggled and deleted (806ms)
+  ✓  153 e2e/todos.test.ts:163:1 › Scenario: Deleting a todo asks for confirmation (1.6s)
+  ✓  154 e2e/todos.test.ts:184:1 › Editing on phone uses a sheet (574ms)
 
   154 passed (1.4m)
 ```
 
-Unit (vitest) and e2e (Playwright, 154 passed) all green; check and build clean.
+svelte-check and build clean; unit (vitest) 79 passed in 8 files; e2e (Playwright) 154 passed.
 
 ## Layer 2 — spec coverage
 
 83 scenarios: 80 with a passing test named `Scenario: <title>` (unit 11, e2e 69), 3 manual, 0 gaps.
+Round 2 delta vs 7d39939: "Board columns share the width at 1280" THEN reworded to "bottom of the page content area (viewport bottom less bottom padding, ±1 px)"; its test now asserts |column bottom − (800 − --space-9)| ≤ 1 for each column and passes.
 
 | Scenario | proof | Evidence |
 |---|---|---|
@@ -118,9 +119,8 @@ Unit (vitest) and e2e (Playwright, 154 passed) all green; check and build clean.
 | Done todos stay on their day (sprint-views) | e2e | `e2e/sprint-views.test.ts` › "Scenario: Done todos stay on their day" ✓ |
 
 Notes on gate2_notes vs scenarios: none contradicts a scenario. The overlay-band note (1024–1279) is
-already resolved — the delta spec now says 768–1279. The U6 note "Mon–Fri visible at 1280, in-week
-horizontal scroll" is superseded by the Week-overlay decision; "Week shows the whole week in one row at
-1280" asserts seven columns ≥120 px with scrollWidth = clientWidth and passes.
+resolved — the delta spec says 768–1279. The U6 note "Mon–Fri visible at 1280, in-week horizontal scroll"
+is superseded by the Week-overlay decision; "Week shows the whole week in one row at 1280" passes.
 
 ## Manual checklist (Gate 2)
 
@@ -131,14 +131,16 @@ Start with `npm run dev` → http://localhost:5173, a sprint running with backlo
 - [ ] Brief documents motion and the three-column layout with references: read `design/brief.md` §8 Motion and §9 Layout (incl. the Week overlay paragraph) — Mobbin references cited, matches the app.
 - [ ] Cross-fade look on route changes and Board/Week/By aspect switches (gate2 note U3).
 - [ ] Board/week cards: ~40 px blank band under the meta line — `shots/sprint-board-1280.png` (gate2 note U9).
+- [ ] Board columns end at the page content bottom (56 px above the viewport edge), not the viewport bottom — `shots/sprint-board-1280.png`; confirm or veto the round-1 spec rewording (S10).
 
 ## Diffstat
 
-`git diff --stat flow/build-life-manager...flow/sprint-management`: 63 files changed, 5192 insertions(+),
-352 deletions(-) — src/lib/components 13, e2e 13, src/routes 14 (aspects 5, sprint 3, backlog 2, …),
-src/lib/server 5, src/lib (motion.ts, dnd.ts, types.ts, styles), openspec change dir 6, design/brief.md.
+`git diff --stat flow/build-life-manager...flow/sprint-management`: 101 files changed, 5369 insertions(+), 352 deletions(-).
+Excluding screenshots: 64 files — src/lib 22 (components, server, motion.ts, dnd.ts, types, styles), src/routes 14, e2e 13, openspec change dir 14 (proposal/design/tasks/scope/flow/verification + 7 delta specs), design/brief.md.
 
 ## Screenshots
+
+Refreshed from this run (37 files, from `test-results/shots/`):
 
 - `shots/aspect-page-375.png`
 - `shots/aspect-page-1280.png`
