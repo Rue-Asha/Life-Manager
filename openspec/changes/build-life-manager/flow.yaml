@@ -18,3 +18,5 @@ learnings:
   - "SvelteKit 3 CSRF: a POST without content type and Origin gets 403 — e2e posting to form actions must send `origin: baseURL`"
   - "adapter-node 6 ignores runtime ORIGIN and assumes https — form actions 403 over plain http unless PROTOCOL_HEADER + X-Forwarded-Proto; set it in playwright.config.ts in the harness unit"
   - "SvelteKit 3 enhance: update() resets the form and clears bind:group radios → update({ reset: false }); SubmitFunction comes from $app/forms; `cp` is also aliased interactive"
+  - "e2e after client-side navigation: wait for URL or heading before the next locator, else it matches the old page"
+  - "zsh: an unmatched glob aborts the whole command — name files explicitly in rm"
