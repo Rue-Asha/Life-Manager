@@ -25,7 +25,7 @@ const row = (page: Page, title: string) => page.getByTestId('todo-row').filter({
 async function expectStarted(page: Page, inSprint: string[], inBacklog: string[]) {
 	await expect(page).toHaveURL(/\/sprint$/);
 	await expect(page.getByTestId('sprint-week')).toHaveText('Mon 5 – Sun 11 Oct');
-	await expect(page.getByTestId('todo-row')).toHaveCount(inSprint.length);
+	await expect(page.getByTestId('sprint-list').getByTestId('todo-row')).toHaveCount(inSprint.length);
 	for (const title of inSprint) await expect(row(page, title)).toHaveAttribute('data-status', 'todo');
 	await page.goto('/backlog');
 	for (const title of inSprint) await expect(row(page, title)).toHaveCount(0);

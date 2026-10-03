@@ -116,7 +116,7 @@ test('Scenario: Add a backlog todo to the active sprint', async ({ page, request
 	const added = page.getByTestId('todo-row').filter({ hasText: 'Clean the fridge' });
 	await expect(added).toHaveAttribute('data-status', 'todo');
 	await expect(added.getByLabel('Status')).toHaveValue('todo');
-	await expect(page.getByTestId('todo-row').filter({ hasText: 'Water the plants' })).toHaveCount(0);
+	await expect(page.getByTestId('sprint-list').getByTestId('todo-row').filter({ hasText: 'Water the plants' })).toHaveCount(0);
 });
 
 test('No "Add to sprint" without an active sprint', async ({ page, request }) => {
