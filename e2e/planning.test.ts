@@ -20,15 +20,14 @@ const ASPECTS = [
 
 const row = (page: Page, title: string) => page.getByTestId('todo-row').filter({ hasText: title });
 
-// The sprint views come with U11; the sidebar's sprint count and the backlog show the result.
+// Starting lands on the sprint view; what wasn't pulled stays in the backlog, and planning is over.
 async function expectStarted(page: Page, inSprint: string[], inBacklog: string[]) {
 	await expect(page).toHaveURL(/\/sprint$/);
+	await expect(page.getByTestId('todo-row')).toHaveCount(inSprint.length);
+	for (const title of inSprint) await expect(row(page, title)).toHaveAttribute('data-status', 'todo');
 	await page.goto('/backlog');
 	for (const title of inSprint) await expect(row(page, title)).toHaveCount(0);
 	for (const title of inBacklog) await expect(row(page, title)).toBeVisible();
-	await page.setViewportSize({ width: 1280, height: 800 });
-	const sprint = page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Sprint' });
-	await expect(sprint).toContainText(String(inSprint.length));
 	await page.goto('/sprint/plan');
 	await expect(page).toHaveURL(/\/sprint$/);
 }

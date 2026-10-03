@@ -338,14 +338,13 @@ test('Scenario: Todo created in a day column is assigned to that day', async ({ 
 });
 
 test('Scenario: Recurring instances appear in the week view', async ({ page, request }) => {
-	// The sprint start that generates the instance is U10's planning screen; here the instance is
-	// seeded the way startSprint writes it (generateInstances has its own unit tests).
 	await seed(request, {
 		aspects: [...ASPECTS],
-		sprint: { state: 'active', weekStart: WEEK },
-		rules: [{ title: 'Gym', aspect: 0, weekdays: [2] }],
-		todos: [{ title: 'Gym', aspect: 0, inSprint: true, rule: 0, day: '2026-10-06' }]
+		rules: [{ title: 'Gym', aspect: 0, weekdays: [2] }]
 	});
+	await page.goto('/sprint/plan');
+	await page.getByRole('button', { name: 'Start sprint' }).click();
+	await expect(page).toHaveURL(/\/sprint$/);
 	await page.goto('/sprint?view=week');
 
 	await expect(day(page, '2026-10-06').getByTestId('todo-row')).toContainText('Gym');
