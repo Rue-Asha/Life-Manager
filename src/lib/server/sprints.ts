@@ -15,6 +15,7 @@ import type {
 import { addDays, reviewState, targetWeek } from '$lib/week';
 import { now } from './clock';
 import { generateInstances } from './recurring';
+import { deleteTodo } from './todos';
 
 type Row = Record<string, SQLInputValue>;
 
@@ -199,6 +200,18 @@ export function aspectProgress(db: DatabaseSync, sprintId: Id): Record<Id, Aspec
 export function moveToBacklog(db: DatabaseSync, todoId: Id): Result<Todo> {
 	if (!inSprint(db, todoId, 'active')) return { ok: false, error: 'not-found' };
 	return { ok: true, value: toBacklog(db, todoId) };
+}
+
+// Recurring instances have no backlog, so removing one deletes it.
+export function removeFromSprint(db: DatabaseSync, todoId: Id): Result<{ deleted: boolean; todo: Todo }> {
+	const todo = getTodo(db, todoId);
+	if (!todo?.recurring) {
+		const moved = moveToBacklog(db, todoId);
+		return moved.ok ? { ok: true, value: { deleted: false, todo: moved.value } } : moved;
+	}
+	if (!inSprint(db, todoId, 'active')) return { ok: false, error: 'not-found' };
+	const deleted = deleteTodo(db, todoId);
+	return deleted.ok ? { ok: true, value: { deleted: true, todo } } : deleted;
 }
 
 const STATUSES: Status[] = ['todo', 'doing', 'done'];

@@ -11,6 +11,7 @@ import {
 	moveToBacklog,
 	openPlanning,
 	pullTodo,
+	removeFromSprint,
 	reviewSummary,
 	setDay,
 	setStatus,
@@ -211,6 +212,33 @@ describe('mid-sprint changes', () => {
 		expect(addToActiveSprint(db, doing, '2026-10-07')).toEqual({ ok: false, error: 'not-found' });
 		expect(row(done)).toMatchObject({ sprint_id: closed, status: 'done', day: '2026-09-30' });
 		expect(row(doing)).toMatchObject({ sprint_id: s, status: 'doing', day: '2026-10-07' });
+	});
+
+	it('Scenario: Removing a recurring instance deletes only that instance', () => {
+		const s = sprint('active', '2026-10-05');
+		const rule = Number(
+			db
+				.prepare(
+					"INSERT INTO recurring_rules (title, aspect_id, weekdays, created_at) VALUES ('Gym', ?, '[1,4]', '')"
+				)
+				.run(aspect).lastInsertRowid
+		);
+		const monday = todo('Gym', { sprintId: s, day: '2026-10-05', recurring: true });
+		const thursday = todo('Gym', { sprintId: s, day: '2026-10-08', recurring: true });
+		db.prepare('UPDATE todos SET rule_id = ? WHERE id IN (?, ?)').run(rule, monday, thursday);
+		const essay = todo('Write essay', { sprintId: s, status: 'doing', day: '2026-10-07' });
+
+		expect(removeFromSprint(db, monday)).toMatchObject({ ok: true, value: { deleted: true, todo: { id: monday } } });
+		expect(row(monday)).toBeUndefined();
+		expect(row(thursday)).toMatchObject({ sprint_id: s, day: '2026-10-08' });
+		expect(db.prepare('SELECT id FROM recurring_rules WHERE id = ?').get(rule)).toBeDefined();
+
+		expect(removeFromSprint(db, essay)).toMatchObject({
+			ok: true,
+			value: { deleted: false, todo: { sprintId: null, day: null, status: 'todo' } }
+		});
+		expect(row(essay)).toMatchObject({ sprint_id: null, day: null, status: 'todo' });
+		expect(removeFromSprint(db, essay)).toEqual({ ok: false, error: 'not-found' });
 	});
 
 	it('setStatus refuses an unknown status', () => {
