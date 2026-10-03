@@ -5,6 +5,7 @@
 	import RailLayout from '$lib/components/shell/RailLayout.svelte';
 	import AspectView from '$lib/components/sprint/AspectView.svelte';
 	import BoardView from '$lib/components/sprint/BoardView.svelte';
+	import ManageSheet from '$lib/components/sprint/ManageSheet.svelte';
 	import UnscheduledList from '$lib/components/sprint/UnscheduledList.svelte';
 	import ViewSwitch from '$lib/components/sprint/ViewSwitch.svelte';
 	import WeekView from '$lib/components/sprint/WeekView.svelte';
@@ -95,7 +96,10 @@
 		{/if}
 
 		{#if data.sprintDays}
-			<div class="bar"><ViewSwitch view={data.view} /></div>
+			<div class="bar">
+				<ViewSwitch view={data.view} />
+				<ManageSheet {backlog} aspects={data.aspects} {progress} onadd={(id) => move(id, 'sprint')} />
+			</div>
 
 			{#if data.view !== 'week'}
 				<div class="quick"><QuickAdd aspects={data.aspects} target={{ kind: 'sprint' }} /></div>
@@ -144,6 +148,14 @@
 	.prompt,
 	.bar {
 		margin-bottom: var(--space-5);
+	}
+
+	.bar {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-3);
 	}
 
 	.quick {

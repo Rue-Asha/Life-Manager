@@ -6,10 +6,11 @@ const NOW = '2026-10-07T10:00:00Z';
 const SUNDAY = '2026-10-11T10:00:00Z';
 const WEEK = '2026-10-05';
 
-test.beforeEach(async ({ request, page }) => {
+test.use({ viewport: { width: 1280, height: 800 } });
+
+test.beforeEach(async ({ request }) => {
 	await reset(request);
 	await setClock(request, NOW);
-	await page.setViewportSize({ width: 1280, height: 800 });
 });
 
 test.afterAll(async ({ request }) => {
@@ -344,4 +345,71 @@ test('Scenario: Aspect without backlog todos is omitted from the rail', async ({
 
 	await expect(page.getByTestId(`aspect-group-${aspects[0]}`)).toBeVisible();
 	await expect(page.getByTestId(`rail-group-${aspects[0]}`)).toHaveCount(0);
+});
+
+test('Scenario: Phone Sprint tab shows Manage instead of a rail', async ({ page, request }) => {
+	await page.setViewportSize({ width: 375, height: 812 });
+	await seedRunning(request, [{ title: 'Morning run', inSprint: true }, { title: 'Book a physio appointment' }]);
+	await page.goto('/sprint');
+
+	await expect(page.getByTestId('manage-button')).toBeVisible();
+	await expect(page.getByTestId('manage-button')).toHaveText('Manage');
+	await expect(page.getByTestId('context-rail')).toBeHidden();
+	await expect(page.getByTestId('rail-toggle')).toBeHidden();
+	await expect(row(page.getByTestId('backlog-rail'), 'Book a physio appointment')).toBeHidden();
+});
+
+test('Manage is not offered beside a docked rail', async ({ page, request }) => {
+	await seedRunning(request, [{ title: 'Morning run', inSprint: true }, { title: 'Book a physio appointment' }]);
+	await page.goto('/sprint');
+	await expect(page.getByTestId('context-rail')).toBeVisible();
+	await expect(page.getByTestId('manage-button')).toBeHidden();
+});
+
+test.describe('touch phone', () => {
+	test.use({ viewport: { width: 375, height: 812 }, hasTouch: true, isMobile: true });
+
+	test('Scenario: Manage sheet adds a todo to the sprint', async ({ page, request }) => {
+		const { aspects } = await seedRunning(request, [
+			{ title: 'Morning run', inSprint: true },
+			{ title: 'Book a physio appointment' },
+			{ title: 'Email the tutor', aspect: 1 }
+		]);
+		await page.goto('/sprint');
+
+		await page.getByTestId('manage-button').tap();
+		const sheet = page.getByTestId('manage-sheet');
+		await expect(sheet).toBeVisible();
+		await expect(sheet.getByTestId(`rail-group-${aspects[0]}`).getByTestId('todo-row')).toHaveText([
+			/Book a physio appointment/
+		]);
+		await expect(sheet.getByTestId(`rail-group-${aspects[1]}`).getByTestId('todo-row')).toHaveText([/Email the tutor/]);
+
+		await sheet.getByRole('button', { name: 'Add to sprint: Book a physio appointment' }).tap();
+		await expect(row(sheet, 'Book a physio appointment')).toHaveCount(0);
+		await expect(row(sheet, 'Email the tutor')).toBeVisible();
+		await page.getByRole('button', { name: 'Close' }).tap();
+		await expect(row(sprintList(page), 'Book a physio appointment')).toHaveAttribute('data-status', 'todo');
+
+		await page.reload();
+		await expect(row(sprintList(page), 'Book a physio appointment')).toBeVisible();
+	});
+
+	test('Scenario: Touch offers no drag in the rail', async ({ page, request }) => {
+		await seedRunning(request, [
+			{ title: 'Morning run', inSprint: true },
+			{ title: 'Book a physio appointment' },
+			{ title: 'Email the tutor', aspect: 1 }
+		]);
+		await page.goto('/sprint');
+		await page.getByTestId('manage-button').tap();
+
+		const items = page.getByTestId('manage-sheet').locator('.item');
+		await expect(items).toHaveCount(2);
+		for (const item of await items.all()) {
+			await expect(item).not.toHaveAttribute('draggable', 'true');
+			await expect(item.getByRole('button', { name: /^Add to sprint: / })).toBeVisible();
+		}
+		await expect(sprintList(page).locator('[draggable="true"]')).toHaveCount(0);
+	});
 });
