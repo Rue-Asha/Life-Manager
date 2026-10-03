@@ -10,6 +10,8 @@ learnings:
   - "U3: SvelteKit view-transition cross-fade (200 ms) silently swallows Playwright drags started during it — e2e helpers that switch views must wait for !document.documentElement.matches(':active-view-transition')"
   - "U5: Playwright drags from a row's centre break whenever a layout narrows (centre lands on a select) — drag helpers should grab a dedicated handle or the row's top-left"
   - "U5: units adding a list next to an existing one (rail beside sprint) break other units' count assertions — scope e2e counts to a container test id from the start"
+  - "U6: Svelte crossfade divides by target width — a display:none counterpart yields NaN and leaves the outgoing node stuck; guard in motion.ts (U6 guarded board/week only; AspectView/BacklogRail still raw)"
+  - "U6: during a 200 ms crossfade two copies of an element exist — page-wide strict locators fail; mark the outgoing copy aria-hidden and rename its test ids"
 gate2_notes:
   - "U3: manual check — overlay slide timing (320 ms, no scrim) and cross-fade look; at 768–1279 the rail toggle sits over the overlay's top area near its middle, not its right edge"
   - "U3: added ::view-transition { pointer-events: none } as a judgement call, not proven necessary"
@@ -17,3 +19,6 @@ gate2_notes:
   - "U7: clicking an aspect row/card now opens /aspects/<id> (S5); Edit/Delete moved into a per-aspect Actions menu, also on phone; aspect-row test id replaced by aspect-card"
   - "U5: BacklogRail got optional onadd prop (optimistic add); group header 'N open' replaced by done/total ProgressBar; /sprint progress computed client-side, loaded progress/backlogCounts unused"
   - "U8: Today rail hidden under review-required; aspect rows link to /aspects/<id>; brief §8 Motion + §9 Layout = manual check for Rue"
+  - "U6: Week at 1280 cannot fit Mon–Sun at ≥120 px (sidebar 248 + rail 340 + gutters leave ~628 px); built one row with in-week horizontal scroll, Mon–Fri visible at 1280, full week from ~1540 px — Rue decides"
+  - "U6: row menu in a scrolling week column is position:fixed — may not follow if the column scrolls while open"
+  - "U6: motion.ts crossfade NaN guard missing for AspectView/BacklogRail — candidate for verify/fixer"
