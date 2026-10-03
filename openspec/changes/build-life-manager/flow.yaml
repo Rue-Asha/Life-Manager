@@ -8,3 +8,7 @@ learnings:
   - "Mobbin: results carry image previews even at low limits — keep design research in a subagent, never the main session"
   - "repo-setup.md config snippet: the tasks rule containing ': ' must be single-quoted, else YAML makes it a mapping and openspec silently drops all tasks rules"
   - "openspec validate returns 'Unknown item' unless run from the repo root — briefs should say cwd = repo root"
+  - "SvelteKit 3: no svelte.config.js (build fails config_file_unsupported) — kit options go in vite.config.ts sveltekit({...}); tsconfig extends $app/tsconfig"
+  - "Shell aliases rm/mv are interactive (-i) and hang agents — use `command rm -f` / `command mv -f`"
+  - "pkill -f with a pattern matching the agent's own command line kills its shell — bound dev servers with `timeout` instead"
+  - "jq rewrites package.json with 2-space indent — use `jq --tab` to keep npm's format"

@@ -6,20 +6,20 @@ E2E tests start with `reset()` and set up data with `seed()` / `setClock()` from
 
 > unit: depends=none · scope=S1,S23 · files=package.json, package-lock.json, svelte.config.js, vite.config.ts, tsconfig.json, playwright.config.ts, .gitignore, src/app.html, src/app.d.ts, src/routes/+page.svelte, src/lib/sqlite.test.ts, src/lib/engines.test.ts, e2e/smoke.test.ts
 
-- [ ] 1.1 Scaffold SvelteKit (TypeScript, Vite, `@sveltejs/adapter-node`) with npm; `engines.node >= 22.5`; placeholder `src/routes/+page.svelte`; `npm run dev` serves it on :5173 and `npm run check` passes
-- [ ] 1.2 Add Vitest (`test:unit`: `vitest run --reporter=verbose`) and write `Scenario: Unit suite opens node:sqlite` in `src/lib/sqlite.test.ts`; if Vite rewrites `node:sqlite`, apply the fix from design.md Risks
-- [ ] 1.3 Add Playwright (`npx playwright install chromium`, `test:e2e`: `playwright test --reporter=list`); `playwright.config.ts` per design.md E2E isolation: `npm run build`-output served by `mkdir -p .e2e && rm -f .e2e/${port}.db* && node build` on `$PORT` (default 4173) with env `PORT`, `DATABASE_PATH=.e2e/${port}.db`, `LM_TEST=1`, `workers: 1`; `.e2e/`, `test-results/`, `data/` in `.gitignore`
-- [ ] 1.4 Write `Scenario: Package declares the Node engine` in `src/lib/engines.test.ts` (reads `package.json`, expects `engines.node` = `>=22.5`, set in 1.1)
-- [ ] 1.5 Write `Scenario: Built app serves a page in e2e` in `e2e/smoke.test.ts`; add `proof` (`npm run check && npm run build && npm run test:unit`) and `proof:full` (`npm run proof && npm run test:e2e`); run `npm run proof:full` green and confirm every passed test name is printed
+- [x] 1.1 Scaffold SvelteKit (TypeScript, Vite, `@sveltejs/adapter-node`) with npm; `engines.node >= 22.5`; placeholder `src/routes/+page.svelte`; `npm run dev` serves it on :5173 and `npm run check` passes
+- [x] 1.2 Add Vitest (`test:unit`: `vitest run --reporter=verbose`) and write `Scenario: Unit suite opens node:sqlite` in `src/lib/sqlite.test.ts`; if Vite rewrites `node:sqlite`, apply the fix from design.md Risks
+- [x] 1.3 Add Playwright (`npx playwright install chromium`, `test:e2e`: `playwright test --reporter=list`); `playwright.config.ts` per design.md E2E isolation: `npm run build`-output served by `mkdir -p .e2e && rm -f .e2e/${port}.db* && node build` on `$PORT` (default 4173) with env `PORT`, `DATABASE_PATH=.e2e/${port}.db`, `LM_TEST=1`, `workers: 1`; `.e2e/`, `test-results/`, `data/` in `.gitignore`
+- [x] 1.4 Write `Scenario: Package declares the Node engine` in `src/lib/engines.test.ts` (reads `package.json`, expects `engines.node` = `>=22.5`, set in 1.1)
+- [x] 1.5 Write `Scenario: Built app serves a page in e2e` in `e2e/smoke.test.ts`; add `proof` (`npm run check && npm run build && npm run test:unit`) and `proof:full` (`npm run proof && npm run test:e2e`); run `npm run proof:full` green and confirm every passed test name is printed
 
 ## 2. Design direction spike
 
 > unit: depends=none · scope=S2 · files=design/brief.md, design/style-tile.html, src/lib/styles/tokens.css, src/lib/aspect-style.ts
 
-- [ ] 2.1 Write `design/brief.md` from `design-refs.md` plus any further Mobbin searches (run them in a subagent; check app names in results, cite flow URL + screen ID); every aesthetic decision cites a Mobbin URL; apply scope.md Decisions over design-refs.md: light theme only, no dark mode, no keyboard shortcuts, no natural-language quick add
-- [ ] 2.2 Write `src/lib/styles/tokens.css`: `:root` custom properties for neutrals, one accent, overdue red, aspect palette, type scale, spacing, radius, row height, shadow, motion durations — light only
-- [ ] 2.3 Write `src/lib/aspect-style.ts` per design.md Contracts: `ASPECT_COLORS` (fixed palette, ~8), `ASPECT_ICONS` (fixed line-icon set as inline SVG path data, ~24, licence noted), `AspectColor`, `AspectIcon`, and `PRESET_ASPECTS` (Health, Uni, Job, Home, Finance, Social with colour + icon)
-- [ ] 2.4 Build `design/style-tile.html` (static, links `../src/lib/styles/tokens.css`, no raw colours): palette, type scale, aspect colours + icons, sample todo row (normal / overdue / done struck through), aspect group header, chips, button, quick-add field, empty state; readable at 375 px and desktop
+- [x] 2.1 Write `design/brief.md` from `design-refs.md` plus any further Mobbin searches (run them in a subagent; check app names in results, cite flow URL + screen ID); every aesthetic decision cites a Mobbin URL; apply scope.md Decisions over design-refs.md: light theme only, no dark mode, no keyboard shortcuts, no natural-language quick add
+- [x] 2.2 Write `src/lib/styles/tokens.css`: `:root` custom properties for neutrals, one accent, overdue red, aspect palette, type scale, spacing, radius, row height, shadow, motion durations — light only
+- [x] 2.3 Write `src/lib/aspect-style.ts` per design.md Contracts: `ASPECT_COLORS` (fixed palette, ~8), `ASPECT_ICONS` (fixed line-icon set as inline SVG path data, ~24, licence noted), `AspectColor`, `AspectIcon`, and `PRESET_ASPECTS` (Health, Uni, Job, Home, Finance, Social with colour + icon)
+- [x] 2.4 Build `design/style-tile.html` (static, links `../src/lib/styles/tokens.css`, no raw colours): palette, type scale, aspect colours + icons, sample todo row (normal / overdue / done struck through), aspect group header, chips, button, quick-add field, empty state; readable at 375 px and desktop
 - [ ] 2.5 ⚠ taste gate — stop here and return `blocked` with needs-human: "Rue approves `design/style-tile.html` and `design/brief.md`". The orchestrator asks Rue; revisions happen on this branch. No feature-UI unit (4, 7–13) starts before approval
 
 ## 3. Contract and runtime
