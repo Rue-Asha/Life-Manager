@@ -12,6 +12,7 @@ import type {
 } from '$lib/types';
 import { addDays, reviewState, targetWeek } from '$lib/week';
 import { now } from './clock';
+import { generateInstances } from './recurring';
 
 type Row = Record<string, SQLInputValue>;
 
@@ -153,12 +154,15 @@ export function startSprint(db: DatabaseSync, today: IsoDate, suggestedIds: Id[]
 		const draft = planningDraft(db);
 		const pull = db.prepare('UPDATE todos SET sprint_id = ?, day = NULL WHERE id = ? AND sprint_id IS NULL');
 		for (const id of suggestedIds) pull.run(draft.id, id);
+		const weekStart = targetWeek(today);
 		db.prepare("UPDATE sprints SET state = 'active', week_start = ?, started_at = ? WHERE id = ?").run(
-			targetWeek(today),
+			weekStart,
 			now().toISOString(),
 			draft.id
 		);
-		return { ok: true, value: getSprint(db, draft.id) };
+		const sprint = getSprint(db, draft.id);
+		generateInstances(db, sprint, weekStart);
+		return { ok: true, value: sprint };
 	});
 }
 
