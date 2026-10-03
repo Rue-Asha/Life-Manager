@@ -20,6 +20,7 @@
 		canAdd,
 		addAction,
 		addLabel = 'Add to sprint',
+		onadd,
 		onreturn,
 		testid = 'backlog-rail'
 	}: {
@@ -29,6 +30,7 @@
 		canAdd: boolean;
 		addAction: string;
 		addLabel?: string;
+		onadd?: (id: Id) => void;
 		onreturn?: (id: Id) => void;
 		testid?: string;
 	} = $props();
@@ -125,10 +127,16 @@
 						>
 							<ul><TodoRow {todo} {aspect} {today} context="planning" /></ul>
 							{#if canAdd}
+								<!-- With `onadd` the page posts the add itself, so it can move the todo before the reload. -->
 								<form
 									method="POST"
 									action={addAction}
-									use:enhance={submit({ onerror: failed(todo.id), onsuccess: () => (failure = null) })}
+									use:enhance={onadd
+										? ({ cancel }) => {
+												cancel();
+												onadd(todo.id);
+											}
+										: submit({ onerror: failed(todo.id), onsuccess: () => (failure = null) })}
 								>
 									<input type="hidden" name="id" value={todo.id} />
 									<button class="add" aria-label="{addLabel}: {todo.title}" title={addLabel}>
