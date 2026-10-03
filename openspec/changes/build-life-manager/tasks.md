@@ -20,7 +20,7 @@ E2E tests start with `reset()` and set up data with `seed()` / `setClock()` from
 - [x] 2.2 Write `src/lib/styles/tokens.css`: `:root` custom properties for neutrals, one accent, overdue red, aspect palette, type scale, spacing, radius, row height, shadow, motion durations — light only
 - [x] 2.3 Write `src/lib/aspect-style.ts` per design.md Contracts: `ASPECT_COLORS` (fixed palette, ~8), `ASPECT_ICONS` (fixed line-icon set as inline SVG path data, ~24, licence noted), `AspectColor`, `AspectIcon`, and `PRESET_ASPECTS` (Health, Uni, Job, Home, Finance, Social with colour + icon)
 - [x] 2.4 Build `design/style-tile.html` (static, links `../src/lib/styles/tokens.css`, no raw colours): palette, type scale, aspect colours + icons, sample todo row (normal / overdue / done struck through), aspect group header, chips, button, quick-add field, empty state; readable at 375 px and desktop
-- [ ] 2.5 ⚠ taste gate — stop here and return `blocked` with needs-human: "Rue approves `design/style-tile.html` and `design/brief.md`". The orchestrator asks Rue; revisions happen on this branch. No feature-UI unit (4, 7–13) starts before approval
+- [x] 2.5 ⚠ taste gate — stop here and return `blocked` with needs-human: "Rue approves `design/style-tile.html` and `design/brief.md`". The orchestrator asks Rue; revisions happen on this branch. No feature-UI unit (4, 7–13) starts before approval
 
 ## 3. Contract and runtime
 
