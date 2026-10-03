@@ -15,7 +15,12 @@ interface Server {
 }
 
 function startBuild(databasePath: string): Server {
-	const env = { ...process.env, PORT: String(runtimePort), DATABASE_PATH: databasePath };
+	const env = {
+		...process.env,
+		PORT: String(runtimePort),
+		DATABASE_PATH: databasePath,
+		PROTOCOL_HEADER: 'x-forwarded-proto'
+	};
 	delete env.LM_TEST;
 	const proc = spawn('node', ['build'], { env, stdio: 'ignore' });
 	const exited = new Promise<number | null>((resolve) => proc.on('exit', (code) => resolve(code)));
@@ -36,6 +41,19 @@ async function waitUntilHealthy(server: Server): Promise<void> {
 async function stop(server: Server): Promise<void> {
 	server.proc.kill();
 	await server.exited;
+}
+
+// What the browser sends through nginx: the form's own origin, and the proxy's protocol header.
+function createAspect(name: string, proto: string | null = 'http'): Promise<Response> {
+	return fetch(`${runtimeUrl}/aspects?/create`, {
+		method: 'POST',
+		headers: {
+			origin: runtimeUrl,
+			'x-sveltekit-action': 'true',
+			...(proto ? { 'x-forwarded-proto': proto } : {})
+		},
+		body: new URLSearchParams({ name, color: 'sage', icon: 'heart' })
+	});
 }
 
 let dir: string;
@@ -124,6 +142,39 @@ test('test hooks answer 404 without LM_TEST', async () => {
 			});
 			expect(response.status).toBe(404);
 		}
+	} finally {
+		await stop(server);
+	}
+});
+
+test('Scenario: Data survives a restart', async ({ page }) => {
+	const databasePath = join(dir, 'db.sqlite');
+	let server = startBuild(databasePath);
+	try {
+		await waitUntilHealthy(server);
+		const created = await createAspect('Health');
+		expect(created.status).toBe(200);
+		expect((await created.json()).type).toBe('success');
+	} finally {
+		await stop(server);
+	}
+
+	server = startBuild(databasePath);
+	try {
+		await waitUntilHealthy(server);
+		await page.goto(`${runtimeUrl}/aspects`);
+		await expect(page).toHaveURL(/\/aspects$/);
+		await expect(page.getByRole('main')).toContainText('Health');
+	} finally {
+		await stop(server);
+	}
+});
+
+test('form posts without the proxy protocol header fail the origin check', async () => {
+	const server = startBuild(join(dir, 'db.sqlite'));
+	try {
+		await waitUntilHealthy(server);
+		expect((await createAspect('Health', null)).status).toBe(403);
 	} finally {
 		await stop(server);
 	}
