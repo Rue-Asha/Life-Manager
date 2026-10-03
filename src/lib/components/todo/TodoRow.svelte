@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { tick } from 'svelte';
+	import { onDestroy, tick } from 'svelte';
 	import { enhance } from '$app/forms';
+	import { beforeNavigate, invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import { MediaQuery } from 'svelte/reactivity';
 	import { ASPECT_COLORS } from '$lib/aspect-style';
@@ -8,6 +9,7 @@
 	import type { Aspect, IsoDate, Todo } from '$lib/types';
 	import { UI_ICONS } from '../ui/icons';
 	import Button from '../ui/Button.svelte';
+	import Toast from '../ui/Toast.svelte';
 	import DayPicker from './DayPicker.svelte';
 	import StatusControl from './StatusControl.svelte';
 	import TodoEditor from './TodoEditor.svelte';
@@ -56,6 +58,32 @@
 		if (!menuOpen) return;
 		if (e instanceof KeyboardEvent ? e.key === 'Escape' : !actionsEl?.contains(e.target as Node)) menuOpen = false;
 	}
+
+	// A recurring instance has no backlog, so removing it deletes it. The delete waits behind the
+	// undo toast and is posted when the toast expires or Rue leaves the page.
+	let removal = $state<'none' | 'pending' | 'posted'>('none');
+
+	function remove() {
+		menuOpen = editing = false;
+		removal = 'pending';
+	}
+
+	async function postRemoval(refresh = true) {
+		if (removal !== 'pending') return;
+		removal = 'posted';
+		const body = new FormData();
+		body.set('id', String(todo.id));
+		await fetch('/todos?/removeFromSprint', {
+			method: 'POST',
+			body,
+			headers: { 'x-sveltekit-action': 'true' },
+			keepalive: true
+		});
+		if (refresh) await invalidateAll();
+	}
+
+	beforeNavigate(() => postRemoval(false));
+	onDestroy(() => postRemoval(false));
 </script>
 
 {#snippet moves()}
@@ -64,6 +92,8 @@
 			<input type="hidden" name="id" value={todo.id} />
 			<Button variant="secondary">Add to sprint</Button>
 		</form>
+	{:else if context === 'sprint' && todo.recurring}
+		<Button variant="secondary" onclick={remove}>Remove from sprint</Button>
 	{:else if context === 'sprint'}
 		<form method="POST" action="/todos?/moveToBacklog" use:enhance={submit({ onsuccess: close })}>
 			<input type="hidden" name="id" value={todo.id} />
@@ -74,6 +104,18 @@
 
 <svelte:window onpointerdown={closeMenu} onkeydown={closeMenu} />
 
+{#if removal !== 'none'}
+	<li class="removed">
+		{#if removal === 'pending'}
+			<Toast
+				message="Removed “{todo.title}” from the sprint"
+				actionLabel="Undo"
+				onaction={() => (removal = 'none')}
+				ontimeout={postRemoval}
+			/>
+		{/if}
+	</li>
+{:else}
 <li
 	class="row"
 	class:checkable
@@ -155,10 +197,14 @@
 					</button>
 					{#if menuOpen}
 						<div class="menu" role="menu" aria-label="Actions for {todo.title}">
-							<form method="POST" action="/todos?/moveToBacklog" use:enhance={submit()}>
-								<input type="hidden" name="id" value={todo.id} />
-								<button role="menuitem">Move to backlog</button>
-							</form>
+							{#if todo.recurring}
+								<button type="button" role="menuitem" onclick={remove}>Remove from sprint</button>
+							{:else}
+								<form method="POST" action="/todos?/moveToBacklog" use:enhance={submit()}>
+									<input type="hidden" name="id" value={todo.id} />
+									<button role="menuitem">Move to backlog</button>
+								</form>
+							{/if}
 						</div>
 					{/if}
 				</div>
@@ -175,6 +221,7 @@
 		</div>
 	{/if}
 </li>
+{/if}
 
 <style>
 	.row {
@@ -187,6 +234,10 @@
 		margin: 0 calc(-1 * var(--space-2));
 		border-radius: var(--radius-md);
 		transition: background-color var(--dur-fast) var(--ease-out);
+	}
+
+	.removed {
+		display: contents;
 	}
 
 	.expanded {
