@@ -1,7 +1,7 @@
 import { listAspects } from '$lib/server/aspects';
 import { today } from '$lib/server/clock';
 import { getDb } from '$lib/server/db';
-import { listSprintTodos, listToday, sprintPhase } from '$lib/server/sprints';
+import { aspectProgress, listSprintTodos, listToday, sprintPhase } from '$lib/server/sprints';
 import { listOverdue } from '$lib/server/todos';
 import { berlinToday, weekDays } from '$lib/week';
 import type { PageServerLoad } from './$types';
@@ -26,6 +26,7 @@ export const load: PageServerLoad = () => {
 		phase,
 		activeSprintId: active?.id ?? null,
 		sprintDays: active ? weekDays(active.weekStart!) : [],
+		progress: active ? aspectProgress(db, active.id) : {},
 		overdue,
 		todos: listToday(db, day).filter((t) => !overdue.some((o) => o.id === t.id))
 	};
