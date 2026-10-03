@@ -137,22 +137,27 @@ test('Scenario: Sprint at 1280 shows a context rail', async ({ page, request }) 
 		return box;
 	}
 
-	await page.goto('/sprint?view=aspect');
-	const box = await expectDockedRail();
-	const list = (await sprintList(page).boundingBox())!;
-	expect(list.width).toBeLessThanOrEqual(720);
-	const free = ((await sidebarRight()) + box.x) / 2;
-	expect(Math.abs(list.x + list.width / 2 - free)).toBeLessThanOrEqual(2);
-	expect(list.x + list.width).toBeLessThanOrEqual(box.x);
+	// At 1280 the track between sidebar and rail is narrower than the list cap, so only 1600 can tell a
+	// centred, capped column from a filled one.
+	for (const width of [1280, 1600]) {
+		await page.setViewportSize({ width, height: 800 });
+		await page.goto('/sprint?view=aspect');
+		const box = await expectDockedRail();
+		const list = (await sprintList(page).boundingBox())!;
+		expect(list.width).toBeLessThanOrEqual(720);
+		const free = ((await sidebarRight()) + box.x) / 2;
+		expect(Math.abs(list.x + list.width / 2 - free), `list off-centre at ${width}`).toBeLessThanOrEqual(2);
+		expect(list.x + list.width).toBeLessThanOrEqual(box.x);
 
-	// The board's columns widen past the list measure (wide board), but sit between sidebar and rail.
-	await page.goto('/sprint?view=board');
-	await page.waitForFunction(() => !document.documentElement.matches(':active-view-transition'));
-	const boardRail = await expectDockedRail();
-	const todo = (await page.getByTestId('board-column-todo').boundingBox())!;
-	const done = (await page.getByTestId('board-column-done').boundingBox())!;
-	expect(todo.x - (await sidebarRight())).toBeLessThanOrEqual(64);
-	expect(done.x + done.width).toBeLessThanOrEqual(boardRail.x);
+		await page.goto('/sprint?view=board');
+		await page.waitForFunction(() => !document.documentElement.matches(':active-view-transition'));
+		const boardRail = await expectDockedRail();
+		const todo = (await page.getByTestId('board-column-todo').boundingBox())!;
+		const done = (await page.getByTestId('board-column-done').boundingBox())!;
+		expect(todo.x - (await sidebarRight()), `board starts late at ${width}`).toBeLessThanOrEqual(64);
+		expect(done.x + done.width).toBeLessThanOrEqual(boardRail.x);
+		expect(boardRail.x - (done.x + done.width), `board stops short of the rail at ${width}`).toBeLessThanOrEqual(64);
+	}
 });
 
 test('Scenario: Rail becomes an overlay toggle below 1280', async ({ page, request }) => {

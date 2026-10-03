@@ -7,11 +7,12 @@ and a toggle overlay in Week even at ≥1280 px (with Unscheduled; see sprint-vi
 Today → this sprint's progress per aspect; aspect page → the aspect's details (colour, counts). Screens
 without a rail (Backlog, Plan, Review, Recurring, Aspects, Welcome) centre their column in the free space. Between 768
 and 1279 px the rail collapses into a toggle button that opens it as an overlay panel and every screen's
-column is centred in the space right of the sidebar; below 768 px the phone layout is unchanged. Board and
-Week fill the content width instead (see sprint-views "Wide board and week"). No screen scrolls horizontally at any width. (S9)
+column is centred in the space right of the sidebar; below 768 px the phone layout is unchanged. At ≥1280 px
+Board and Week fill the content width instead of centring a capped column (see sprint-views "Wide board and
+week"). No screen scrolls horizontally at any width. (S9)
 
 #### Scenario: Sprint at 1280 shows a context rail
-- **WHEN** Rue opens `/sprint` at 1280 px during a running sprint, in the By aspect view and in the Board view
+- **WHEN** Rue opens `/sprint` at 1280 px and at 1600 px during a running sprint, in the By aspect view and in the Board view
 - **THEN** the context rail is docked at the right edge with the `--paper-sunk` background, in By aspect the sprint list is at most 720 px wide and centred within 2 px in the space between sidebar and rail, and in Board the columns fill that space
 - **proof:** e2e
 
@@ -26,7 +27,7 @@ Week fill the content width instead (see sprint-views "Wide board and week"). No
 - **proof:** e2e
 
 #### Scenario: Screens without a rail centre their column
-- **WHEN** Backlog, Review, Recurring, Aspects and Welcome are opened at 1100 px and at 1600 px
+- **WHEN** Backlog, Plan, Review, Recurring, Aspects and Welcome are opened at 1100 px and at 1600 px
 - **THEN** on each the content column's centre lies within 8 px of the centre of the area right of the sidebar
 - **proof:** e2e
 

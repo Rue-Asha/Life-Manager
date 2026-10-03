@@ -35,6 +35,13 @@ test('Scenario: Screens without a rail centre their column', async ({ page, requ
 		await page.goto('/welcome');
 		await expectCentred(page, `welcome at ${width}`);
 
+		await seed(request, { aspects: [{ name: 'Health' }], todos: [{ title: 'Read chapter 4' }] });
+		await page.goto('/sprint/plan');
+		await expect(page).toHaveURL(/\/sprint\/plan$/);
+		await expectCentred(page, `plan at ${width}`);
+
+		await reset(request);
+
 		await setClock(request, SUNDAY);
 		await seedSunday(request);
 		for (const [path, name] of [

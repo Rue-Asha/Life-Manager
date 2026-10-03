@@ -102,7 +102,9 @@
 			align-items: start;
 		}
 
+		/* A grid item with auto margins shrinks to fit instead of stretching; the width keeps it filling. */
 		.content {
+			width: 100%;
 			max-width: calc(var(--content-max) + 2 * var(--gutter));
 			margin-inline: auto;
 			padding: var(--space-8) var(--gutter) var(--space-9);
