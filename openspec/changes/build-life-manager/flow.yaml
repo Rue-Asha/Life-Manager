@@ -2,6 +2,7 @@ triage: "feature — new app from scratch, new data model, home-server deploy ta
 base: main
 gate0: 2026-10-03
 gate1: 2026-10-03
+gate2: 2026-10-03
 learnings:
   - "Mobbin: a search for an app it doesn't have silently returns other apps — check app names in results before citing"
   - "Mobbin: flow screens come back as IDs without URLs — cite the flow URL + screen ID"
@@ -21,6 +22,10 @@ learnings:
   - "e2e after client-side navigation: wait for URL or heading before the next locator, else it matches the old page"
   - "zsh: an unmatched glob aborts the whole command — name files explicitly in rm"
   - "flow orchestrator: /clear does not stop background subagents — check ListAgents before treating uncommitted edits as an interrupted agent's leftovers (a duplicate fixer was spawned)"
+  - "Gate 2 correction: Rue expects the sprint to organise todos drawn from the aspects/backlog; scope modelled backlog and sprint as separate places with no aspect-side view — explore must check the user's mental model of how the core entities relate, not only the flows"
+  - "Gate 2 correction: desktop view left mostly empty whitespace — design research and screenshots must judge wide layouts (≥1280) as seriously as mobile"
+  - "Gate 2 correction: Rue wants more motion/transitions than the brief's 'motion only answers an action' stance — confirm the motion stance with Rue instead of letting the design agent set it"
 review_log:
   - "round 1 (reviewer at af15390, fixer 83e30de): 2 weak tests (today Sunday-after-review, smoke /) → rewritten; overdue-on-Today checkbox → backlog context + Add to sprint, new today scenario; overdue sprint todo vanished when ticked → stays struck through on the day ticked (deviation from 'until sprint closes' — confirm at Gate 2); addToActiveSprint kept Done → resets to todo; Sunday /sprint → spec clarified per Rue's decision, new e2e; quick add on Sunday before next sprint → hidden unless today is a sprint day; unvalidated review decisions → refused; Unicode case-fold → JS toLowerCase duplicate check; status/priority/aspectId 500s → service-layer refusals. All with tests."
   - "round 2 (reviewer at 4ebe184, fixer deeffa1): sidebar test → visits 6 screens, asserts aria-current moves; planning expectStarted → asserts sprint-week label; README build example → adds PROTOCOL_HEADER + note (adapter-node 6 can't do plain-http forms via env); recurring weekdays → integer 1–7 enforced; pullTodo/addToActiveSprint → only backlog (or draft) todos. Open for Gate 2: reviewer flagged the sprint-views Sunday spec rewrite as an orchestrator decision, not Rue's — Rue confirms or vetoes."
+  - "Gate 2 (2026-10-03, Rue approved as-is): overdue ticked → struck through on the day ticked, confirmed; Sunday /sprint spec rewrite confirmed; Today Overdue group → update spec to match code; backlog Add to sprint on a review-required sprint → deferred to sprint-management S7."
