@@ -136,3 +136,64 @@ test('Switching views keeps the sprint and marks the current view', async ({ pag
 	await expect(page).toHaveURL(/view=week$/);
 	await expect(row(page, 'Clean the fridge')).toBeVisible();
 });
+
+async function expectStatusInEveryView(page: Page, title: string, status: string) {
+	for (const view of ['aspect', 'board', 'week']) {
+		await page.goto(`/sprint?view=${view}`);
+		await page.reload();
+		await expect(row(page, title)).toHaveAttribute('data-status', status);
+		await expect(row(page, title).getByLabel('Status')).toHaveValue(status);
+		if (view === 'board') await expect(page.getByTestId(`board-column-${status}`)).toContainText(title);
+	}
+}
+
+test('Scenario: Change status from every sprint view', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [...ASPECTS],
+		sprint: { state: 'active', weekStart: WEEK },
+		todos: [{ title: 'Draft the cover letter', aspect: 1, inSprint: true, day: '2026-10-06' }]
+	});
+	const title = 'Draft the cover letter';
+
+	await page.goto('/sprint?view=aspect');
+	await row(page, title).getByLabel('Status').selectOption('doing');
+	await expect(row(page, title)).toHaveAttribute('data-status', 'doing');
+	await expectStatusInEveryView(page, title, 'doing');
+
+	await page.goto('/sprint?view=board');
+	await row(page, title).getByLabel('Status').selectOption('done');
+	await expect(page.getByTestId('board-column-done')).toContainText(title);
+	await expectStatusInEveryView(page, title, 'done');
+
+	await page.goto('/sprint?view=week');
+	await row(page, title).getByLabel('Status').selectOption('todo');
+	await expect(row(page, title)).toHaveAttribute('data-status', 'todo');
+	await expectStatusInEveryView(page, title, 'todo');
+});
+
+test('Scenario: Checkbox toggles done', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [...ASPECTS],
+		sprint: { state: 'active', weekStart: WEEK },
+		todos: [
+			{ title: 'Clean the fridge', aspect: 2, inSprint: true },
+			{ title: 'Book a physio appointment', aspect: 0, inSprint: true, status: 'doing' }
+		]
+	});
+
+	for (const [view, title] of [
+		['aspect', 'Clean the fridge'],
+		['board', 'Book a physio appointment']
+	]) {
+		await page.goto(`/sprint?view=${view}`);
+		await page.getByRole('checkbox', { name: `Done: ${title}` }).click();
+		await expect(row(page, title)).toHaveAttribute('data-status', 'done');
+		await page.reload();
+		await expect(row(page, title)).toBeVisible();
+		await expect(page.getByRole('checkbox', { name: `Done: ${title}` })).toHaveAttribute('aria-checked', 'true');
+		await expect(row(page, title).getByRole('button', { name: title })).toHaveCSS(
+			'text-decoration-line',
+			'line-through'
+		);
+	}
+});
