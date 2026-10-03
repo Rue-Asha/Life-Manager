@@ -7,6 +7,8 @@ import {
 	deleteChecklistItem,
 	deleteTodo,
 	getTodo,
+	listBacklog,
+	listOverdue,
 	renameChecklistItem,
 	toggleChecklistItem,
 	updateTodo
@@ -243,5 +245,64 @@ describe('checklist', () => {
 		expect(toggleChecklistItem(db, item.id + 99, true)).toEqual({ ok: false, error: 'not-found' });
 		expect(deleteChecklistItem(db, item.id + 99)).toEqual({ ok: false, error: 'not-found' });
 		expect(getTodo(db, t.id)!.checklist.map((i) => i.text)).toEqual(['Passport']);
+	});
+});
+
+describe('lists', () => {
+	function insert(
+		db: DatabaseSync,
+		title: string,
+		fields: { aspect: Id; priority?: number; dueDate?: string | null; sprintId?: Id | null; status?: string }
+	) {
+		db.prepare(
+			"INSERT INTO todos (title, aspect_id, priority, due_date, sprint_id, status, created_at) VALUES (?, ?, ?, ?, ?, ?, '')"
+		).run(title, fields.aspect, fields.priority ?? 0, fields.dueDate ?? null, fields.sprintId ?? null, fields.status ?? 'todo');
+	}
+
+	it('Scenario: Backlog lists only todos not in a sprint, in order', () => {
+		const { db, aspect } = setup();
+		const sprint = activeSprint(db);
+		insert(db, 'none-undated', { aspect });
+		insert(db, 'p3-late', { aspect, priority: 3, dueDate: '2026-10-20' });
+		insert(db, 'p1-undated', { aspect, priority: 1 });
+		insert(db, 'p1-early', { aspect, priority: 1, dueDate: '2026-10-02' });
+		insert(db, 'p2', { aspect, priority: 2, dueDate: '2026-10-01' });
+		insert(db, 'none-dated', { aspect, dueDate: '2026-12-01' });
+		insert(db, 'p1-in-sprint', { aspect, priority: 1, dueDate: '2026-09-01', sprintId: sprint });
+
+		expect(listBacklog(db).map((t) => t.title)).toEqual([
+			'p1-early',
+			'p1-undated',
+			'p2',
+			'p3-late',
+			'none-dated',
+			'none-undated'
+		]);
+	});
+
+	it('filters the backlog to one aspect', () => {
+		const { db, aspect } = setup();
+		const other = Number(
+			db
+				.prepare("INSERT INTO aspects (name, color, icon, position, created_at) VALUES ('Uni', 'sky', 'cap', 1, '')")
+				.run().lastInsertRowid
+		);
+		insert(db, 'health', { aspect });
+		insert(db, 'uni', { aspect: other });
+		expect(listBacklog(db, other).map((t) => t.title)).toEqual(['uni']);
+		expect(listBacklog(db)).toHaveLength(2);
+	});
+
+	it('Scenario: Overdue means due before today and not done', () => {
+		const { db, aspect } = setup();
+		const sprint = activeSprint(db);
+		insert(db, 'backlog-overdue', { aspect, dueDate: '2026-09-20' });
+		insert(db, 'sprint-overdue', { aspect, dueDate: '2026-09-29', sprintId: sprint, status: 'doing' });
+		insert(db, 'done-overdue', { aspect, dueDate: '2026-09-21', sprintId: sprint, status: 'done' });
+		insert(db, 'due-today', { aspect, dueDate: '2026-10-01' });
+		insert(db, 'future', { aspect, dueDate: '2026-10-05' });
+		insert(db, 'undated', { aspect });
+
+		expect(listOverdue(db, '2026-10-01').map((t) => t.title)).toEqual(['backlog-overdue', 'sprint-overdue']);
 	});
 });

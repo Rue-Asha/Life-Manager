@@ -160,9 +160,23 @@ export function deleteChecklistItem(db: DatabaseSync, itemId: Id): Result<void> 
 }
 
 export function listBacklog(db: DatabaseSync, aspectId?: Id): Todo[] {
-	throw new Error('not implemented');
+	const rows = db
+		.prepare(
+			`SELECT ${todoColumns} FROM todos
+			 WHERE sprint_id IS NULL AND (?1 IS NULL OR aspect_id = ?1)
+			 ORDER BY priority = 0, priority, due_date IS NULL, due_date, id`
+		)
+		.all(aspectId ?? null) as unknown as TodoRow[];
+	return withChecklists(db, rows);
 }
 
 export function listOverdue(db: DatabaseSync, today: IsoDate): Todo[] {
-	throw new Error('not implemented');
+	const rows = db
+		.prepare(
+			`SELECT ${todoColumns} FROM todos
+			 WHERE due_date < ? AND status != 'done'
+			 ORDER BY due_date, id`
+		)
+		.all(today) as unknown as TodoRow[];
+	return withChecklists(db, rows);
 }
