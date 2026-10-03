@@ -3,7 +3,7 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
-	plugins: [sveltekit({ adapter: adapter() })],
+	plugins: [sveltekit({ adapter: adapter(), alias: { $lib: 'src/lib' } })],
 	test: {
 		include: ['src/**/*.test.ts']
 	}
