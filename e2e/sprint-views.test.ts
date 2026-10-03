@@ -229,7 +229,7 @@ test('Scenario: Move a todo between board columns by drag', async ({ page, reque
 	});
 	await page.goto('/sprint?view=board');
 
-	await row(page, 'Draft the cover letter').dragTo(page.getByTestId('board-column-doing'));
+	await row(page, 'Draft the cover letter').dragTo(page.getByTestId('board-column-doing'), { sourcePosition: { x: 8, y: 8 } });
 	await expect(page.getByTestId('board-column-doing')).toContainText('Draft the cover letter');
 
 	await page.reload();

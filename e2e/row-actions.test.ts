@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { reset, seed, setClock, type SeedInput } from './helpers';
 
 // Wednesday 7 October 2026 in Berlin; the active sprint runs Monday 5 to Sunday 11 October.
@@ -16,7 +16,7 @@ test.afterAll(async ({ request }) => {
 
 const ASPECTS: SeedInput['aspects'] = [{ name: 'Health', color: 'sage', icon: 'heart' }];
 
-const row = (page: Page, title: string) => page.getByTestId('todo-row').filter({ hasText: title });
+const row = (scope: Page | Locator, title: string) => scope.getByTestId('todo-row').filter({ hasText: title });
 
 async function openActions(page: Page, title: string) {
 	await row(page, title).getByTestId('row-actions').click();
@@ -37,7 +37,7 @@ test('Scenario: Move a sprint todo back to the backlog from its row', async ({ p
 	const menu = await openActions(page, 'Book a physio appointment');
 	await menu.getByRole('menuitem', { name: 'Move to backlog' }).click();
 
-	await expect(row(page, 'Book a physio appointment')).toHaveCount(0);
+	await expect(row(page.getByTestId('sprint-list'), 'Book a physio appointment')).toHaveCount(0);
 	await expect(row(page, 'Stretch for ten minutes')).toBeVisible();
 	await expect(page).toHaveURL(/\/sprint$/);
 
@@ -58,7 +58,7 @@ test('Scenario: Done todo goes back without a question', async ({ page, request 
 	const menu = await openActions(page, 'Book a physio appointment');
 	await menu.getByRole('menuitem', { name: 'Move to backlog' }).click();
 
-	await expect(row(page, 'Book a physio appointment')).toHaveCount(0);
+	await expect(row(page.getByTestId('sprint-list'), 'Book a physio appointment')).toHaveCount(0);
 	await expect(page.getByRole('dialog')).toHaveCount(0);
 	await expect(page.getByRole('alertdialog')).toHaveCount(0);
 

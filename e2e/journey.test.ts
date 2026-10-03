@@ -86,7 +86,7 @@ test('Done-when journey', async ({ page, request }) => {
 	await shot(page, 'sprint-aspect');
 
 	await switchView(page, 'Board', 'board');
-	await row(page, 'Read chapter 4').dragTo(page.getByTestId('board-column-doing'));
+	await row(page, 'Read chapter 4').dragTo(page.getByTestId('board-column-doing'), { sourcePosition: { x: 8, y: 8 } });
 	await expect(page.getByTestId('board-column-doing')).toContainText('Read chapter 4');
 	await expect(page.getByTestId('board-column-done')).toContainText('Book a physio appointment');
 	await shot(page, 'sprint-board');
@@ -96,7 +96,10 @@ test('Done-when journey', async ({ page, request }) => {
 		await expect(day(page, gymDay).getByTestId('todo-row')).toContainText('Gym');
 		await expect(day(page, gymDay).getByTestId('todo-row')).toContainText('Recurring');
 	}
-	await row(page, 'Submit lab report').dragTo(day(page, '2026-10-07'));
+	// Beside the rail the week wraps past 800 px; a drag that has to scroll picks up whatever lands under the press.
+	await page.setViewportSize({ width: 1280, height: 1200 });
+	await row(page, 'Submit lab report').dragTo(day(page, '2026-10-07'), { sourcePosition: { x: 8, y: 8 } });
+	await page.setViewportSize({ width: 1280, height: 800 });
 	await expect(day(page, '2026-10-07')).toContainText('Submit lab report');
 	await shot(page, 'sprint-week');
 
@@ -131,6 +134,7 @@ test('Done-when journey', async ({ page, request }) => {
 	for (const gymDay of ['2026-10-13', '2026-10-15']) {
 		await expect(day(page, gymDay).getByTestId('todo-row')).toContainText('Gym');
 	}
-	await expect(page.getByTestId('todo-row')).toHaveCount(4);
+	await expect(page.getByTestId('context-rail').getByTestId('todo-row')).toHaveText([/Submit lab report/]);
+	await expect(page.getByTestId('todo-row')).toHaveCount(5);
 	await shot(page, 'next-week');
 });
