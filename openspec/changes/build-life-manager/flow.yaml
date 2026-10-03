@@ -1,0 +1,10 @@
+triage: "feature — new app from scratch, new data model, home-server deploy target, multi-session. Appetite: 5–7 sessions."
+base: main
+gate0: 2026-10-03
+gate1: 2026-10-03
+learnings:
+  - "Mobbin: a search for an app it doesn't have silently returns other apps — check app names in results before citing"
+  - "Mobbin: flow screens come back as IDs without URLs — cite the flow URL + screen ID"
+  - "Mobbin: results carry image previews even at low limits — keep design research in a subagent, never the main session"
+  - "repo-setup.md config snippet: the tasks rule containing ': ' must be single-quoted, else YAML makes it a mapping and openspec silently drops all tasks rules"
+  - "openspec validate returns 'Unknown item' unless run from the repo root — briefs should say cwd = repo root"
