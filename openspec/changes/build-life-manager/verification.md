@@ -210,3 +210,24 @@ Committed references (not copied):
 - `design/shots/final-today-375.png`
 - `design/shots/final-welcome-1280.png`
 - `design/shots/final-welcome-375.png`
+
+## Review
+
+Three rounds of fresh-context review (Layer 3); the round limit is reached, so open items go to Gate 2.
+
+**Round 1** (at af15390, fixed in 83e30de) — all resolved with tests:
+- weak: "Sunday after the review prompts to plan next week" → rewritten to close a real review on Sun 2026-10-11 and assert the plan week; smoke test → asserts `/` answers 200 with `maxRedirects: 0`.
+- spec: overdue todos outside the sprint were checkable on Today → backlog context with "Add to sprint", new today scenario; ticked overdue sprint todo vanished → stays struck through **on the day it was ticked** (fixer's reading; brief suggested "until the sprint closes" — Rue to confirm); addToActiveSprint kept Done → resets to To do.
+- spec: Sunday `/sprint` showed views under the review prompt → spec clarified to match the code (orchestrator decision recorded in scope.md, **Rue to confirm or veto**), new e2e scenario.
+- correctness: quick add on the Sunday before next week's sprint → hidden unless today is a sprint day; unknown review decisions → refused; Unicode case-insensitive aspect names → JS duplicate check; unknown status/priority/aspect → service-layer refusals instead of 500s (error `required`, existing convention).
+
+**Round 2** (at 4ebe184, fixed in deeffa1) — all resolved:
+- weak: sidebar test → visits 6 screens, asserts aria-current; planning `expectStarted` → asserts the started sprint's week.
+- spec (low): README build example failed form posts over plain http → example sets `PROTOCOL_HEADER`, with a note (adapter-node 6 offers no env-only plain-http option).
+- correctness: recurring weekdays → integer 1–7 enforced; pullTodo/addToActiveSprint → only backlog (or draft) todos.
+- weakened (spec edit): the Sunday sprint-views rewrite above → Gate 2 decision, not a fix.
+
+**Round 3** (at 93a87b4) — **open, not fixed (round limit):**
+- correctness: backlog offers and accepts "Add to sprint" for an active sprint whose week is over and whose review is required (`src/routes/backlog/+page.server.ts:13-19`, `sprints.ts:182`); the todo disappears into the stale sprint until the review. Small fix: same phase guard Today uses.
+- spec mismatch: Today shows overdue todos in one "Overdue" group, not under their aspect as the scenario "Today shows today's sprint todos and overdue todos" says; design.md justifies the group per the approved brief, the spec was never updated. Decision: update the spec to the Overdue group, or change the code.
+- weakened: removed `empty-state toHaveCount(0)` in the Sunday-after-review test → justified (THEN doesn't require it; test is stronger overall). No action.
