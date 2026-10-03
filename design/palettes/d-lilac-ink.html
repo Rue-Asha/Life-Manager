@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="en" data-palette="d">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Life Manager palette D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..700&display=swap">
+<link rel="stylesheet" href="../../src/lib/styles/tokens.css">
+<link rel="stylesheet" href="d-lilac-ink.css">
+<style>
+	/* Palette D variant of design/style-tile.html: colours come from d-lilac-ink.css, everything else from tokens.css. */
+	*, *::before, *::after { box-sizing: border-box; }
+	html { -webkit-text-size-adjust: 100%; }
+	body {
+		margin: 0;
+		background: var(--paper);
+		color: var(--ink);
+		font-family: var(--font-sans);
+		font-size: var(--text-md);
+		line-height: var(--leading-body);
+		letter-spacing: var(--tracking-body);
+		font-optical-sizing: auto;
+		-webkit-font-smoothing: antialiased;
+	}
+	h1, h2, h3, p { margin: 0; }
+	svg.i { width: var(--icon-md); height: var(--icon-md); flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+	svg.i-sm { width: var(--icon-sm); height: var(--icon-sm); stroke-width: 1.75; }
+	svg.i-lg { width: var(--icon-lg); height: var(--icon-lg); stroke-width: 2; }
+	button { font: inherit; letter-spacing: inherit; color: inherit; }
+	:focus-visible { outline: none; box-shadow: var(--ring-focus); }
+	.num { font-variant-numeric: tabular-nums; }
+
+	/* Aspect hooks: one class sets the aspect's colour pair for everything inside. */
+	.a-sage { --a: var(--aspect-sage); --a-tint: var(--aspect-sage-tint); }
+	.a-sky { --a: var(--aspect-sky); --a-tint: var(--aspect-sky-tint); }
+	.a-lavender { --a: var(--aspect-lavender); --a-tint: var(--aspect-lavender-tint); }
+	.a-ochre { --a: var(--aspect-ochre); --a-tint: var(--aspect-ochre-tint); }
+	.a-berry { --a: var(--aspect-berry); --a-tint: var(--aspect-berry-tint); }
+	.a-lagoon { --a: var(--aspect-lagoon); --a-tint: var(--aspect-lagoon-tint); }
+	.a-tangerine { --a: var(--aspect-tangerine); --a-tint: var(--aspect-tangerine-tint); }
+	.a-slate { --a: var(--aspect-slate); --a-tint: var(--aspect-slate-tint); }
+
+	/* ---------- App frame (the hero) ---------- */
+	.frame {
+		display: grid;
+		grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+		min-height: 640px;
+		border-bottom: 1px solid var(--line);
+	}
+	.sidebar {
+		background: var(--paper-sunk);
+		padding: var(--space-5) var(--space-3);
+		display: flex;
+		flex-direction: column;
+		gap: var(--space-0);
+	}
+	.brand {
+		font-size: var(--text-md);
+		font-weight: var(--weight-bold);
+		letter-spacing: var(--tracking-title);
+		padding: 0 var(--space-3) var(--space-5);
+	}
+	.nav-item {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		height: var(--control-height);
+		padding: 0 var(--space-3);
+		border-radius: var(--radius-md);
+		color: var(--ink);
+		text-decoration: none;
+		font-size: var(--text-md);
+	}
+	.nav-item svg { color: var(--ink-2); }
+	.nav-item .count { margin-left: auto; color: var(--ink-3); font-size: var(--text-sm); }
+	.nav-item .count.late { color: var(--overdue); font-weight: var(--weight-semibold); }
+	.nav-item:hover { background: var(--paper-hover); }
+	.nav-item[aria-current='page'] { background: var(--paper); font-weight: var(--weight-medium); }
+	.nav-item[aria-current='page'] svg { color: var(--accent); }
+	.nav-item.aspect svg { color: var(--a); }
+	.nav-label {
+		font-size: var(--text-sm);
+		color: var(--ink-3);
+		padding: var(--space-6) var(--space-3) var(--space-2);
+	}
+
+	.page {
+		padding: var(--space-8) var(--gutter) var(--space-9);
+		max-width: calc(var(--content-max) + 2 * var(--gutter));
+		width: 100%;
+	}
+	.back {
+		display: none;
+		align-items: center;
+		gap: var(--space-1);
+		color: var(--accent);
+		text-decoration: none;
+		font-size: var(--text-md);
+		margin: 0 0 var(--space-4) calc(-1 * var(--space-1));
+	}
+	.page-title {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		font-size: var(--text-3xl);
+		font-weight: var(--weight-bold);
+		line-height: var(--leading-tight);
+		letter-spacing: var(--tracking-title);
+	}
+	.page-title svg { color: var(--accent); }
+	.page-sub { color: var(--ink-3); font-size: var(--text-md); margin: var(--space-1) 0 var(--space-6) calc(var(--icon-lg) + var(--space-3)); }
+
+	.quick {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		height: var(--row-height);
+		padding: 0 var(--space-3);
+		background: var(--paper-sunk);
+		border-radius: var(--radius-md);
+		color: var(--ink-3);
+		margin-bottom: var(--space-7);
+	}
+
+	.group + .group { margin-top: var(--space-7); }
+	.group-head {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		padding-bottom: var(--space-2);
+		border-bottom: 1px solid var(--line);
+		font-size: var(--text-lg);
+		font-weight: var(--weight-semibold);
+		line-height: var(--leading-snug);
+	}
+	.group-head svg { color: var(--a); }
+	.group-head .count { margin-left: auto; font-size: var(--text-sm); font-weight: var(--weight-regular); color: var(--ink-3); }
+	.group-head.late { color: var(--overdue); }
+	.group-head.late svg { color: var(--overdue); }
+
+	ul.rows { list-style: none; margin: 0; padding: 0; }
+	.row {
+		display: grid;
+		grid-template-columns: var(--checkbox-size) minmax(0, 1fr) auto;
+		align-items: start;
+		column-gap: var(--space-3);
+		min-height: var(--row-height);
+		padding: var(--space-3) var(--space-2);
+		margin: 0 calc(-1 * var(--space-2));
+		border-radius: var(--radius-md);
+		transition: background-color var(--dur-fast) var(--ease-out);
+	}
+	.row:hover { background: var(--paper-hover); }
+	.check {
+		width: var(--checkbox-size);
+		height: var(--checkbox-size);
+		margin-top: 2px;
+		border: 1.5px solid var(--line-strong);
+		border-radius: var(--radius-xs);
+		background: var(--paper);
+		display: grid;
+		place-items: center;
+		padding: 0;
+		cursor: pointer;
+		transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+	}
+	.check svg { width: 12px; height: 12px; stroke-width: 3; color: var(--ink-on-accent); opacity: 0; }
+	.check[aria-checked='true'] { background: var(--a); border-color: var(--a); }
+	.check[aria-checked='true'] svg { opacity: 1; }
+	.row-title { line-height: var(--leading-snug); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.row-meta {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-3);
+		margin-top: var(--space-0);
+		font-size: var(--text-sm);
+		color: var(--ink-3);
+	}
+	.row-meta span { display: inline-flex; align-items: center; gap: var(--space-1); }
+	.dot { width: 7px; height: 7px; border-radius: var(--radius-pill); background: var(--a); }
+	.row-end { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); color: var(--ink-2); padding-top: 1px; }
+	.row-end .late { color: var(--overdue); font-weight: var(--weight-medium); }
+	.row.done .row-title {
+		color: var(--ink-3);
+		text-decoration: line-through;
+		text-decoration-color: var(--ink-3);
+	}
+	.prio { display: inline-flex; align-items: flex-end; gap: 2px; height: 12px; }
+	.prio i { display: block; width: 3px; border-radius: 1px; background: var(--line-strong); }
+	.prio i:nth-child(1) { height: 5px; }
+	.prio i:nth-child(2) { height: 8px; }
+	.prio i:nth-child(3) { height: 12px; }
+	.prio[data-p='1'] i, .prio[data-p='2'] i:nth-child(-n+2), .prio[data-p='3'] i:nth-child(1) { background: var(--ink-2); }
+
+	/* ---------- Specimen ---------- */
+	.specimen { padding: var(--space-9) var(--gutter) var(--space-10); max-width: 1200px; margin: 0 auto; }
+	.specimen > section + section { margin-top: var(--space-9); }
+	.sec-title { font-size: var(--text-xl); font-weight: var(--weight-semibold); letter-spacing: -0.01em; margin-bottom: var(--space-2); }
+	.sec-note { color: var(--ink-2); max-width: 62ch; margin-bottom: var(--space-6); }
+
+	.swatches { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: var(--space-4); }
+	.swatch .chip-color { height: 56px; border-radius: var(--radius-md); border: 1px solid var(--line); }
+	.swatch b { display: block; font-weight: var(--weight-medium); margin-top: var(--space-2); font-size: var(--text-sm); }
+	.swatch small { color: var(--ink-3); font-size: var(--text-xs); }
+
+	.aspects { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: var(--space-4); }
+	.aspect-card { border-radius: var(--radius-md); background: var(--a-tint); padding: var(--space-4); }
+	.aspect-card svg { color: var(--a); }
+	.aspect-card b { display: block; margin-top: var(--space-5); font-weight: var(--weight-semibold); }
+	.aspect-card small { color: var(--ink-2); font-size: var(--text-sm); }
+
+	.icons { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: var(--space-1); }
+	.icons figure { margin: 0; display: grid; justify-items: center; gap: var(--space-2); padding: var(--space-4) var(--space-1) var(--space-3); border-radius: var(--radius-md); color: var(--ink); }
+	.icons figure:hover { background: var(--paper-sunk); }
+	.icons figcaption { font-size: var(--text-xs); color: var(--ink-3); }
+
+	.type-row { display: grid; grid-template-columns: 120px 1fr; gap: var(--space-4); align-items: baseline; padding: var(--space-3) 0; border-top: 1px solid var(--line); }
+	.type-row small { color: var(--ink-3); font-size: var(--text-sm); }
+	.t-3xl { font-size: var(--text-3xl); font-weight: var(--weight-bold); letter-spacing: var(--tracking-title); line-height: var(--leading-tight); }
+	.t-2xl { font-size: var(--text-2xl); font-weight: var(--weight-bold); letter-spacing: var(--tracking-title); line-height: var(--leading-tight); }
+	.t-xl { font-size: var(--text-xl); font-weight: var(--weight-semibold); }
+	.t-lg { font-size: var(--text-lg); font-weight: var(--weight-semibold); }
+	.t-md { font-size: var(--text-md); }
+	.t-sm { font-size: var(--text-sm); color: var(--ink-3); }
+
+	.components { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-7) var(--space-8); }
+	.comp h3 { font-size: var(--text-sm); font-weight: var(--weight-medium); color: var(--ink-2); margin-bottom: var(--space-3); }
+	.inline { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+
+	.tag {
+		display: inline-flex; align-items: center; gap: var(--space-1);
+		height: 26px; padding: 0 var(--space-2) 0 6px;
+		border-radius: var(--radius-sm);
+		background: var(--a-tint);
+		color: var(--ink);
+		font-size: var(--text-sm);
+		font-weight: var(--weight-medium);
+	}
+	.tag svg { color: var(--a); }
+	.pchip {
+		display: inline-flex; align-items: center; gap: var(--space-1);
+		height: 30px; padding: 0 var(--space-3) 0 var(--space-2);
+		border-radius: var(--radius-sm);
+		border: 1px solid var(--line-strong);
+		background: var(--paper);
+		color: var(--ink-2);
+		font-size: var(--text-sm);
+		cursor: pointer;
+	}
+	.pchip[aria-pressed='true'] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+	.pchip.late { color: var(--overdue); border-color: color-mix(in oklch, var(--overdue) 35%, var(--paper)); background: var(--overdue-soft); }
+
+	.btn {
+		display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+		height: var(--control-height); padding: 0 var(--space-4);
+		border-radius: var(--radius-md);
+		border: 0;
+		font-size: var(--text-md);
+		font-weight: var(--weight-medium);
+		cursor: pointer;
+		transition: background-color var(--dur-fast) var(--ease-out);
+	}
+	.btn-primary { background: var(--accent); color: var(--ink-on-accent); }
+	.btn-primary:hover { background: var(--accent-hover); }
+	.btn-secondary { background: var(--paper-sunk); color: var(--ink); }
+	.btn-secondary:hover { background: var(--line); }
+	.btn-quiet { background: none; color: var(--ink-2); padding: 0 var(--space-2); }
+
+	.qa-card {
+		border-radius: var(--radius-lg);
+		background: var(--paper);
+		box-shadow: var(--shadow-float);
+		padding: var(--space-4) var(--space-4) var(--space-3);
+	}
+	.qa-card .qa-title { font-size: var(--text-md); font-weight: var(--weight-medium); }
+	.qa-card .qa-notes { color: var(--ink-3); margin: var(--space-1) 0 var(--space-4); }
+	.qa-foot { display: flex; justify-content: flex-end; gap: var(--space-2); border-top: 1px solid var(--line); margin-top: var(--space-4); padding-top: var(--space-3); }
+
+	.board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
+	.col { background: var(--paper-sunk); border-radius: var(--radius-md); padding: var(--space-3); min-height: 180px; }
+	.col-head { display: flex; justify-content: space-between; font-size: var(--text-sm); font-weight: var(--weight-semibold); margin-bottom: var(--space-3); }
+	.col-head span { color: var(--ink-3); font-weight: var(--weight-regular); }
+	.card { background: var(--paper); border-radius: var(--radius-md); padding: var(--space-3); font-size: var(--text-sm); line-height: var(--leading-snug); }
+	.card + .card { margin-top: var(--space-2); }
+	.card p { margin-bottom: var(--space-2); font-size: var(--text-md); }
+	.card.lifted { box-shadow: var(--shadow-float); transform: rotate(-1.5deg); }
+	.card.done p { text-decoration: line-through; color: var(--ink-3); }
+	.placeholder { border: 1px dashed var(--line-strong); border-radius: var(--radius-md); height: 64px; display: grid; place-items: center; color: var(--ink-3); font-size: var(--text-sm); }
+
+	.empty { text-align: center; color: var(--ink-3); padding: var(--space-8) var(--space-4); }
+	.empty a { color: var(--accent); text-decoration: none; font-weight: var(--weight-medium); }
+	.empty-box { display: flex; align-items: center; gap: var(--space-3); background: var(--paper-sunk); border-radius: var(--radius-md); padding: var(--space-4); color: var(--ink-2); }
+
+	.homelist { border-radius: var(--radius-lg); border: 1px solid var(--line); padding: var(--space-2) var(--space-2); }
+	.homelist .nav-item { height: var(--row-height); }
+	.homelist hr { border: 0; border-top: 1px solid var(--line); margin: var(--space-2) var(--space-3); }
+
+	/* ---------- Phone ---------- */
+	@media (max-width: 767px) {
+		.frame { grid-template-columns: minmax(0, 1fr); min-height: 0; }
+		.sidebar { display: none; }
+		.page { padding-top: var(--space-5); }
+		.back { display: inline-flex; }
+		.page-title { font-size: var(--text-2xl); }
+		.page-sub { margin-left: 0; }
+		.components { grid-template-columns: 1fr; }
+		.type-row { grid-template-columns: 1fr; gap: var(--space-1); }
+		.board { grid-template-columns: 1fr; }
+		.col { min-height: 0; }
+		.swatches, .aspects { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3); }
+		.aspect-card { padding: var(--space-3); }
+	}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position: absolute" aria-hidden="true">
+	<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+	<symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14 M12 5v14"/></symbol>
+	<symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="M0 0m15 18-6-6 6-6"/></symbol>
+	<symbol id="i-calendar" viewBox="0 0 24 24"><path d="M8 2v3 M16 2v3 M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2Z M3 9h18"/></symbol>
+	<symbol id="i-calendar-days" viewBox="0 0 24 24"><path d="M8 2v3 M16 2v3 M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2Z M3 9h18 M8 13h.01 M12 13h.01 M16 13h.01 M8 17h.01 M12 17h.01 M16 17h.01"/></symbol>
+	<symbol id="i-list-checks" viewBox="0 0 24 24"><path d="M13 5h8 M13 12h8 M13 19h8 M0 0m3 17 2 2 4-4 M0 0m3 7 2 2 4-4"/></symbol>
+	<symbol id="i-repeat" viewBox="0 0 24 24"><path d="M0 0m17 2 4 4-4 4 M3 11v-1a4 4 0 0 1 4-4h14 M0 0m7 22-4-4 4-4 M21 13v1a4 4 0 0 1-4 4H3"/></symbol>
+	<symbol id="i-inbox" viewBox="0 0 24 24"><path d="M22 12L16 12L14 15L10 15L8 12L2 12 M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></symbol>
+	<symbol id="i-layers" viewBox="0 0 24 24"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12 M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/></symbol>
+	<symbol id="i-flag" viewBox="0 0 24 24"><path d="M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.333 2q2 0 3.067-.8A1 1 0 0 1 20 4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.528"/></symbol>
+	<symbol id="i-heart" viewBox="0 0 24 24"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5 M3.22 13H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/></symbol>
+	<symbol id="i-cap" viewBox="0 0 24 24"><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z M22 10v6 M6 12.5V16a6 3 0 0 0 12 0v-3.5"/></symbol>
+	<symbol id="i-briefcase" viewBox="0 0 24 24"><path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16 M4 6h16a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-16a2 2 0 0 1 -2 -2v-10a2 2 0 0 1 2 -2Z"/></symbol>
+	<symbol id="i-house" viewBox="0 0 24 24"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8 M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+	<symbol id="i-wallet" viewBox="0 0 24 24"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1 M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></symbol>
+	<symbol id="i-people" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M16 3.128a4 4 0 0 1 0 7.744 M22 21v-2a4 4 0 0 0-3-3.87 M5 7a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"/></symbol>
+	<symbol id="i-dumbbell" viewBox="0 0 24 24"><path d="M17.596 12.768a2 2 0 1 0 2.829-2.829l-1.768-1.767a2 2 0 0 0 2.828-2.829l-2.828-2.828a2 2 0 0 0-2.829 2.828l-1.767-1.768a2 2 0 1 0-2.829 2.829z M0 0m2.5 21.5 1.4-1.4 M0 0m20.1 3.9 1.4-1.4 M5.343 21.485a2 2 0 1 0 2.829-2.828l1.767 1.768a2 2 0 1 0 2.829-2.829l-6.364-6.364a2 2 0 1 0-2.829 2.829l1.768 1.767a2 2 0 0 0-2.828 2.829z M0 0m9.6 14.4 4.8-4.8"/></symbol>
+	<symbol id="i-book" viewBox="0 0 24 24"><path d="M12 5v16 M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z"/></symbol>
+	<symbol id="i-leaf" viewBox="0 0 24 24"><path d="M11 20a10 10 0 0010-10 25.9 25.9 0 00-1.04-7.281 1 1 0 00-1.755-.325C15.833 5.5 13 5.5 9.8 6.1A7 7 0 0011 20 M2 21a5 5 0 012.911-4.544C7.613 15.212 8.351 15.24 11 13"/></symbol>
+	<symbol id="i-sprout" viewBox="0 0 24 24"><path d="M14 9.536V7a4 4 0 0 1 4-4h1.5a.5.5 0 0 1 .5.5V5a4 4 0 0 1-4 4 4 4 0 0 0-4 4c0 2 1 3 1 5a5 5 0 0 1-1 3 M4 9a5 5 0 0 1 8 4 5 5 0 0 1-8-4 M5 21h14"/></symbol>
+	<symbol id="i-utensils" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2 M7 2v20 M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></symbol>
+	<symbol id="i-plane" viewBox="0 0 24 24"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></symbol>
+	<symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13 M3 18a3 3 0 1 0 6 0a3 3 0 1 0 -6 0 M15 16a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"/></symbol>
+	<symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z M13 6.5a0.5 0.5 0 1 0 1 0a0.5 0.5 0 1 0 -1 0 M17 10.5a0.5 0.5 0 1 0 1 0a0.5 0.5 0 1 0 -1 0 M6 12.5a0.5 0.5 0 1 0 1 0a0.5 0.5 0 1 0 -1 0 M8 7.5a0.5 0.5 0 1 0 1 0a0.5 0.5 0 1 0 -1 0"/></symbol>
+	<symbol id="i-code" viewBox="0 0 24 24"><path d="M0 0m16 18 6-6-6-6 M0 0m8 6-6 6 6 6"/></symbol>
+	<symbol id="i-pen" viewBox="0 0 24 24"><path d="M13 21h8 M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></symbol>
+	<symbol id="i-sun" viewBox="0 0 24 24"><path d="M8 12a4 4 0 1 0 8 0a4 4 0 1 0 -8 0 M12 2v2 M12 20v2 M0 0m4.93 4.93 1.41 1.41 M0 0m17.66 17.66 1.41 1.41 M2 12h2 M20 12h2 M0 0m6.34 17.66-1.41 1.41 M0 0m19.07 4.93-1.41 1.41"/></symbol>
+	<symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></symbol>
+	<symbol id="i-coffee" viewBox="0 0 24 24"><path d="M10 2v2 M14 2v2 M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1 M6 2v2"/></symbol>
+	<symbol id="i-car" viewBox="0 0 24 24"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2 M5 17a2 2 0 1 0 4 0a2 2 0 1 0 -4 0 M9 17h6 M15 17a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/></symbol>
+	<symbol id="i-baby" viewBox="0 0 24 24"><path d="M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5 M15 12h.01 M19.38 6.813A9 9 0 0 1 20.8 10.2a2 2 0 0 1 0 3.6 9 9 0 0 1-17.6 0 2 2 0 0 1 0-3.6A9 9 0 0 1 12 3c2 0 3.5 1.1 3.5 2.5s-.9 2.5-2 2.5c-.8 0-1.5-.4-1.5-1 M9 12h.01"/></symbol>
+	<symbol id="i-paw" viewBox="0 0 24 24"><path d="M9 4a2 2 0 1 0 4 0a2 2 0 1 0 -4 0 M16 8a2 2 0 1 0 4 0a2 2 0 1 0 -4 0 M18 16a2 2 0 1 0 4 0a2 2 0 1 0 -4 0 M9 10a5 5 0 0 1 5 5v3.5a3.5 3.5 0 0 1-6.84 1.045Q6.52 17.48 4.46 16.84A3.5 3.5 0 0 1 5.5 10Z"/></symbol>
+	<symbol id="i-flower" viewBox="0 0 24 24"><path d="M12 5a3 3 0 1 1 3 3m-3-3a3 3 0 1 0-3 3m3-3v1M9 8a3 3 0 1 0 3 3M9 8h1m5 0a3 3 0 1 1-3 3m3-3h-1m-2 3v-1 M10 8a2 2 0 1 0 4 0a2 2 0 1 0 -4 0 M12 10v12 M12 22c4.2 0 7-1.667 7-5-4.2 0-7 1.667-7 5Z M12 22c-4.2 0-7-1.667-7-5 4.2 0 7 1.667 7 5Z"/></symbol>
+	<symbol id="i-star" viewBox="0 0 24 24"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></symbol>
+</svg>
+
+<div class="frame">
+	<nav class="sidebar" aria-label="Main">
+		<div class="brand">Life Manager</div>
+		<a class="nav-item" href="#" aria-current="page"><svg class="i"><use href="#i-sun"/></svg>Today<span class="count late num">1</span></a>
+		<a class="nav-item" href="#"><svg class="i"><use href="#i-calendar-days"/></svg>Sprint<span class="count num">14</span></a>
+		<a class="nav-item" href="#"><svg class="i"><use href="#i-inbox"/></svg>Backlog<span class="count num">23</span></a>
+		<a class="nav-item" href="#"><svg class="i"><use href="#i-repeat"/></svg>Recurring<span class="count num">4</span></a>
+		<div class="nav-label">Aspects</div>
+		<a class="nav-item aspect a-sage" href="#"><svg class="i"><use href="#i-heart"/></svg>Health<span class="count num">5</span></a>
+		<a class="nav-item aspect a-lavender" href="#"><svg class="i"><use href="#i-cap"/></svg>Uni<span class="count num">8</span></a>
+		<a class="nav-item aspect a-sky" href="#"><svg class="i"><use href="#i-briefcase"/></svg>Job<span class="count num">6</span></a>
+		<a class="nav-item aspect a-ochre" href="#"><svg class="i"><use href="#i-house"/></svg>Home<span class="count num">3</span></a>
+		<a class="nav-item aspect a-lagoon" href="#"><svg class="i"><use href="#i-wallet"/></svg>Finance<span class="count num">2</span></a>
+		<a class="nav-item aspect a-berry" href="#"><svg class="i"><use href="#i-people"/></svg>Social<span class="count num">1</span></a>
+	</nav>
+
+	<main class="page">
+		<a class="back" href="#"><svg class="i"><use href="#i-chevron-left"/></svg>Lists</a>
+		<h1 class="page-title"><svg class="i i-lg"><use href="#i-sun"/></svg>Today</h1>
+		<p class="page-sub">Saturday, 3 October</p>
+
+		<div class="quick"><svg class="i"><use href="#i-plus"/></svg>Add a todo</div>
+
+		<section class="group">
+			<h2 class="group-head late">Overdue<span class="count num">1</span></h2>
+			<ul class="rows">
+				<li class="row a-lagoon">
+					<button class="check" role="checkbox" aria-checked="false" aria-label="Done"><svg class="i"><use href="#i-check"/></svg></button>
+					<div>
+						<div class="row-title">Send tax receipts to the accountant</div>
+						<div class="row-meta"><span><i class="dot"></i>Finance</span></div>
+					</div>
+					<div class="row-end"><span class="prio" data-p="1" aria-label="Priority 1"><i></i><i></i><i></i></span><span class="late num">2d late</span></div>
+				</li>
+			</ul>
+		</section>
+
+		<section class="group a-sage">
+			<h2 class="group-head"><svg class="i"><use href="#i-heart"/></svg>Health<span class="count num">2</span></h2>
+			<ul class="rows">
+				<li class="row done">
+					<button class="check" role="checkbox" aria-checked="true" aria-label="Done"><svg class="i"><use href="#i-check"/></svg></button>
+					<div>
+						<div class="row-title">Morning run, 5 km</div>
+						<div class="row-meta"><span><svg class="i i-sm"><use href="#i-repeat"/></svg>Every Mon, Wed, Sat</span></div>
+					</div>
+					<div class="row-end"></div>
+				</li>
+				<li class="row">
+					<button class="check" role="checkbox" aria-checked="false" aria-label="Done"><svg class="i"><use href="#i-check"/></svg></button>
+					<div>
+						<div class="row-title">Book a physio appointment</div>
+					</div>
+					<div class="row-end"><span class="prio" data-p="2" aria-label="Priority 2"><i></i><i></i><i></i></span></div>
+				</li>
+			</ul>
+		</section>
+
+		<section class="group a-lavender">
+			<h2 class="group-head"><svg class="i"><use href="#i-cap"/></svg>Uni<span class="count num">2</span></h2>
+			<ul class="rows">
+				<li class="row">
+					<button class="check" role="checkbox" aria-checked="false" aria-label="Done"><svg class="i"><use href="#i-check"/></svg></button>
+					<div>
+						<div class="row-title">Read chapter 4 of Distributed Systems</div>
+						<div class="row-meta"><span><svg class="i i-sm"><use href="#i-list-checks"/></svg><span class="num">2/5</span></span><span>Notes</span></div>
+					</div>
+					<div class="row-end"><span class="prio" data-p="1" aria-label="Priority 1"><i></i><i></i><i></i></span><span class="num">Tomorrow</span></div>
+				</li>
+				<li class="row">
+					<button class="check" role="checkbox" aria-checked="false" aria-label="Done"><svg class="i"><use href="#i-check"/></svg></button>
+					<div>
+						<div class="row-title">Email the seminar group about Tuesday</div>
+					</div>
+					<div class="row-end"></div>
+				</li>
+			</ul>
+		</section>
+	</main>
+</div>
+
+<div class="specimen">
+	<section>
+		<h2 class="sec-title">Colour</h2>
+		<p class="sec-note">Palette D, lilac and ink. Soft and kind: white with a lilac haze, near-black ink buttons, pastel-leaning aspects with fuller tints. Red only when something is late.</p>
+		<div class="swatches">
+			<div class="swatch"><div class="chip-color" style="background: var(--paper)"></div><b>Paper</b><small>--paper</small></div>
+			<div class="swatch"><div class="chip-color" style="background: var(--paper-sunk)"></div><b>Paper sunk</b><small>--paper-sunk</small></div>
+			<div class="swatch"><div class="chip-color" style="background: var(--line)"></div><b>Line</b><small>--line</small></div>
+			<div class="swatch"><div class="chip-color" style="background: var(--ink-3)"></div><b>Ink 3</b><small>--ink-3</small></div>
+			<div class="swatch"><div class="chip-color" style="background: var(--ink-2)"></div><b>Ink 2</b><small>--ink-2</small></div>
+			<div class="swatch"><div class="chip-color" style="background: var(--ink)"></div><b>Ink</b><small>--ink</small></div>
+			<div class="swatch"><div class="chip-color" style="background: var(--accent)"></div><b>Accent</b><small>--accent</small></div>
+			<div class="swatch"><div class="chip-color" style="background: var(--overdue)"></div><b>Overdue</b><small>--overdue</small></div>
+		</div>
+	</section>
+
+	<section>
+		<h2 class="sec-title">Aspect colours</h2>
+		<p class="sec-note">Eight fixed colours, each with a tint. The six presets take the first six; tangerine and slate wait for aspects you add yourself.</p>
+		<div class="aspects">
+			<div class="aspect-card a-sage"><svg class="i i-lg"><use href="#i-heart"/></svg><b>Sage</b><small>Health</small></div>
+			<div class="aspect-card a-lavender"><svg class="i i-lg"><use href="#i-cap"/></svg><b>Lavender</b><small>Uni</small></div>
+			<div class="aspect-card a-sky"><svg class="i i-lg"><use href="#i-briefcase"/></svg><b>Sky</b><small>Job</small></div>
+			<div class="aspect-card a-ochre"><svg class="i i-lg"><use href="#i-house"/></svg><b>Ochre</b><small>Home</small></div>
+			<div class="aspect-card a-lagoon"><svg class="i i-lg"><use href="#i-wallet"/></svg><b>Lagoon</b><small>Finance</small></div>
+			<div class="aspect-card a-berry"><svg class="i i-lg"><use href="#i-people"/></svg><b>Berry</b><small>Social</small></div>
+			<div class="aspect-card a-tangerine"><svg class="i i-lg"><use href="#i-dumbbell"/></svg><b>Tangerine</b><small>Custom</small></div>
+			<div class="aspect-card a-slate"><svg class="i i-lg"><use href="#i-code"/></svg><b>Slate</b><small>Custom</small></div>
+		</div>
+	</section>
+
+	<section>
+		<h2 class="sec-title">Icons</h2>
+		<p class="sec-note">24 Lucide line icons (ISC licence) at a 2 px stroke. Each one is drawn in its aspect's colour.</p>
+		<div class="icons">
+			<figure><svg class="i"><use href="#i-heart"/></svg><figcaption>heart</figcaption></figure>
+			<figure><svg class="i"><use href="#i-cap"/></svg><figcaption>cap</figcaption></figure>
+			<figure><svg class="i"><use href="#i-briefcase"/></svg><figcaption>briefcase</figcaption></figure>
+			<figure><svg class="i"><use href="#i-house"/></svg><figcaption>house</figcaption></figure>
+			<figure><svg class="i"><use href="#i-wallet"/></svg><figcaption>wallet</figcaption></figure>
+			<figure><svg class="i"><use href="#i-people"/></svg><figcaption>people</figcaption></figure>
+			<figure><svg class="i"><use href="#i-dumbbell"/></svg><figcaption>dumbbell</figcaption></figure>
+			<figure><svg class="i"><use href="#i-book"/></svg><figcaption>book</figcaption></figure>
+			<figure><svg class="i"><use href="#i-leaf"/></svg><figcaption>leaf</figcaption></figure>
+			<figure><svg class="i"><use href="#i-sprout"/></svg><figcaption>sprout</figcaption></figure>
+			<figure><svg class="i"><use href="#i-utensils"/></svg><figcaption>utensils</figcaption></figure>
+			<figure><svg class="i"><use href="#i-plane"/></svg><figcaption>plane</figcaption></figure>
+			<figure><svg class="i"><use href="#i-music"/></svg><figcaption>music</figcaption></figure>
+			<figure><svg class="i"><use href="#i-palette"/></svg><figcaption>palette</figcaption></figure>
+			<figure><svg class="i"><use href="#i-code"/></svg><figcaption>code</figcaption></figure>
+			<figure><svg class="i"><use href="#i-pen"/></svg><figcaption>pen</figcaption></figure>
+			<figure><svg class="i"><use href="#i-sun"/></svg><figcaption>sun</figcaption></figure>
+			<figure><svg class="i"><use href="#i-moon"/></svg><figcaption>moon</figcaption></figure>
+			<figure><svg class="i"><use href="#i-coffee"/></svg><figcaption>coffee</figcaption></figure>
+			<figure><svg class="i"><use href="#i-car"/></svg><figcaption>car</figcaption></figure>
+			<figure><svg class="i"><use href="#i-baby"/></svg><figcaption>baby</figcaption></figure>
+			<figure><svg class="i"><use href="#i-paw"/></svg><figcaption>paw</figcaption></figure>
+			<figure><svg class="i"><use href="#i-flower"/></svg><figcaption>flower</figcaption></figure>
+			<figure><svg class="i"><use href="#i-star"/></svg><figcaption>star</figcaption></figure>
+		</div>
+	</section>
+
+	<section>
+		<h2 class="sec-title">Type</h2>
+		<p class="sec-note">Bricolage Grotesque throughout. Its optical size gives titles their character and keeps rows quiet.</p>
+		<div class="type-row"><small>Title, desktop 36</small><div class="t-3xl">This week</div></div>
+		<div class="type-row"><small>Title, phone 30</small><div class="t-2xl">Backlog</div></div>
+		<div class="type-row"><small>Section 21</small><div class="t-xl">Review your sprint</div></div>
+		<div class="type-row"><small>Group 17</small><div class="t-lg">Health</div></div>
+		<div class="type-row"><small>Row 15</small><div class="t-md">Book a physio appointment</div></div>
+		<div class="type-row"><small>Meta 13</small><div class="t-sm num">Checklist 2/5, due Fri, 4d left</div></div>
+	</section>
+
+	<section>
+		<h2 class="sec-title">Components</h2>
+		<p class="sec-note">Shadows only on things that float. Radius grows with the surface.</p>
+		<div class="components">
+			<div class="comp">
+				<h3>Aspect tags</h3>
+				<div class="inline">
+					<span class="tag a-sage"><svg class="i i-sm"><use href="#i-heart"/></svg>Health</span>
+					<span class="tag a-lavender"><svg class="i i-sm"><use href="#i-cap"/></svg>Uni</span>
+					<span class="tag a-sky"><svg class="i i-sm"><use href="#i-briefcase"/></svg>Job</span>
+					<span class="tag a-berry"><svg class="i i-sm"><use href="#i-people"/></svg>Social</span>
+				</div>
+				<h3 style="margin-top: var(--space-5)">Property chips</h3>
+				<div class="inline">
+					<button class="pchip" aria-pressed="false"><svg class="i i-sm"><use href="#i-calendar"/></svg>Due</button>
+					<button class="pchip" aria-pressed="true"><svg class="i i-sm"><use href="#i-flag"/></svg>Priority 1</button>
+					<button class="pchip" aria-pressed="false"><svg class="i i-sm"><use href="#i-list-checks"/></svg>Checklist</button>
+					<button class="pchip late"><svg class="i i-sm"><use href="#i-calendar"/></svg>Thu, 2d late</button>
+				</div>
+			</div>
+
+			<div class="comp">
+				<h3>Buttons</h3>
+				<div class="inline">
+					<button class="btn btn-primary">Start sprint</button>
+					<button class="btn btn-secondary">Add to sprint</button>
+					<button class="btn btn-quiet">Cancel</button>
+				</div>
+				<h3 style="margin-top: var(--space-5)">With a count</h3>
+				<div class="inline">
+					<button class="btn btn-primary">Carry 4, return 2 and close</button>
+				</div>
+			</div>
+
+			<div class="comp">
+				<h3>Quick add, open</h3>
+				<div class="qa-card">
+					<div class="qa-title">Renew the bike insurance</div>
+					<div class="qa-notes">Notes</div>
+					<div class="inline">
+						<span class="tag a-lagoon"><svg class="i i-sm"><use href="#i-wallet"/></svg>Finance</span>
+						<button class="pchip" aria-pressed="false"><svg class="i i-sm"><use href="#i-flag"/></svg>Priority</button>
+						<button class="pchip" aria-pressed="true"><svg class="i i-sm"><use href="#i-calendar"/></svg>Fri 9 Oct</button>
+						<button class="pchip" aria-pressed="false"><svg class="i i-sm"><use href="#i-list-checks"/></svg>Checklist</button>
+					</div>
+					<div class="qa-foot">
+						<button class="btn btn-quiet">Cancel</button>
+						<button class="btn btn-primary">Add todo</button>
+					</div>
+				</div>
+			</div>
+
+			<div class="comp">
+				<h3>Board</h3>
+				<div class="board">
+					<div class="col">
+						<div class="col-head">To do<span class="num">2</span></div>
+						<div class="card"><p>Clean the fridge</p><span class="tag a-ochre"><svg class="i i-sm"><use href="#i-house"/></svg>Home</span></div>
+						<div class="card lifted"><p>Draft the cover letter</p><span class="tag a-sky"><svg class="i i-sm"><use href="#i-briefcase"/></svg>Job</span></div>
+					</div>
+					<div class="col">
+						<div class="col-head">Doing<span class="num">0</span></div>
+						<div class="placeholder">Nothing in progress</div>
+					</div>
+					<div class="col">
+						<div class="col-head">Done<span class="num">1</span></div>
+						<div class="card done"><p>Morning run, 5 km</p><span class="tag a-sage"><svg class="i i-sm"><use href="#i-heart"/></svg>Health</span></div>
+					</div>
+				</div>
+			</div>
+
+			<div class="comp">
+				<h3>Empty states</h3>
+				<div class="empty">Your backlog is empty. <a href="#">Add a todo</a> to start planning.</div>
+				<div class="empty-box"><svg class="i"><use href="#i-sun"/></svg>Nothing planned for today. The week view has the rest of your sprint.</div>
+			</div>
+
+			<div class="comp">
+				<h3>Home list on phone</h3>
+				<nav class="homelist" aria-label="Lists">
+					<a class="nav-item" href="#"><svg class="i" style="color: var(--accent)"><use href="#i-sun"/></svg>Today<span class="count late num">1</span></a>
+					<a class="nav-item" href="#"><svg class="i"><use href="#i-calendar-days"/></svg>Sprint<span class="count num">14</span></a>
+					<a class="nav-item" href="#"><svg class="i"><use href="#i-inbox"/></svg>Backlog<span class="count num">23</span></a>
+					<a class="nav-item" href="#"><svg class="i"><use href="#i-repeat"/></svg>Recurring<span class="count num">4</span></a>
+					<hr>
+					<a class="nav-item" href="#"><svg class="i"><use href="#i-layers"/></svg>Aspects<span class="count num">6</span></a>
+				</nav>
+			</div>
+		</div>
+	</section>
+</div>
+</body>
+</html>

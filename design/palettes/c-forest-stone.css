@@ -1,0 +1,56 @@
+/*
+ * Palette C — Forest and stone. A botanical journal: cream stone surfaces, a deep forest-green accent, moss-and-clay aspects.
+ * Overrides only the colour tokens of src/lib/styles/tokens.css, scoped to [data-palette='c'].
+ * Composite tokens (tints, scrim, shadows, focus ring) are restated so they resolve against
+ * this palette's paper and accent when the scope is not :root.
+ * — Lifesum diary, beige stone surface with dark forest-green brand and labels, https://mobbin.com/screens/7f1180e8-1839-4859-90cc-96b966c08c77
+ * — Lifesum diary, cream cards and monospaced figures, https://mobbin.com/screens/47f02898-978e-4ff9-a9d0-7d6b32a39a3f
+ * — Lifesum calendar, warm cream sheet with green-ringed today, https://mobbin.com/screens/3a530be6-95f5-4a70-8eb1-155b5da7275b
+ */
+
+[data-palette='c'] {
+	color-scheme: light;
+
+	/* Neutrals: cream page, stone-beige sunk surfaces, green-black ink (Lifesum). */
+	--paper: #fbf9f4;
+	--paper-sunk: #f0ece2;
+	--paper-hover: #f6f3ec;
+	--paper-scrim: rgb(35 45 38 / 0.18);
+	--line: #e4dfd3;
+	--line-strong: #d0c8b8;
+	--ink: #1f2a24;
+	--ink-2: #4f5a53;
+	--ink-3: #666d66;
+	--ink-on-accent: #ffffff;
+
+	/* Accent: deep forest green, for the primary action, focus and "today". */
+	--accent: #1f5a44;
+	--accent-hover: #174836;
+	--accent-soft: #e4ede6;
+
+	--overdue: #b8382a;
+	--overdue-soft: #f8e9e3;
+
+	/* Aspects: botanical, a little desaturated so they sit on cream without glowing. */
+	--aspect-sage: #4f8a43;
+	--aspect-sky: #3c7aa0;
+	--aspect-lavender: #7964a8;
+	--aspect-ochre: #a47718;
+	--aspect-berry: #a94866;
+	--aspect-lagoon: #237e74;
+	--aspect-tangerine: #bd5f26;
+	--aspect-slate: #6a7369;
+
+	--aspect-sage-tint: color-mix(in oklab, var(--aspect-sage) 16%, var(--paper));
+	--aspect-sky-tint: color-mix(in oklab, var(--aspect-sky) 16%, var(--paper));
+	--aspect-lavender-tint: color-mix(in oklab, var(--aspect-lavender) 16%, var(--paper));
+	--aspect-ochre-tint: color-mix(in oklab, var(--aspect-ochre) 16%, var(--paper));
+	--aspect-berry-tint: color-mix(in oklab, var(--aspect-berry) 16%, var(--paper));
+	--aspect-lagoon-tint: color-mix(in oklab, var(--aspect-lagoon) 16%, var(--paper));
+	--aspect-tangerine-tint: color-mix(in oklab, var(--aspect-tangerine) 16%, var(--paper));
+	--aspect-slate-tint: color-mix(in oklab, var(--aspect-slate) 16%, var(--paper));
+
+	--shadow-pop: 0 1px 2px rgb(35 45 38 / 0.06), 0 6px 16px -4px rgb(35 45 38 / 0.12);
+	--shadow-float: 0 1px 3px rgb(35 45 38 / 0.05), 0 18px 40px -12px rgb(35 45 38 / 0.22);
+	--ring-focus: 0 0 0 2px var(--paper), 0 0 0 4px var(--accent);
+}

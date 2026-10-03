@@ -1,0 +1,56 @@
+/*
+ * Palette E — Clear and vivid. Bright daylight: pure white, neutral greys with no tint, an azure accent and saturated, confident aspects.
+ * Overrides only the colour tokens of src/lib/styles/tokens.css, scoped to [data-palette='e'].
+ * Composite tokens (tints, scrim, shadows, focus ring) are restated so they resolve against
+ * this palette's paper and accent when the scope is not :root.
+ * — Amie web week view, white canvas with saturated-edge pastel event blocks and azure Share, https://mobbin.com/screens/ff9b0ff4-cdf3-465c-9959-eba67c46fa3f
+ * — Amie web event popover on the same palette, https://mobbin.com/screens/e0aa2b7a-da53-4755-a486-887651fc5e54
+ * — Things 3 Today, white with a bright blue add button and red only for deadlines, https://mobbin.com/screens/feadd020-045b-477e-b54f-d4c405995a58
+ */
+
+[data-palette='e'] {
+	color-scheme: light;
+
+	/* Neutrals: pure white and true greys, no blue or warm cast (Amie, Things 3). */
+	--paper: #ffffff;
+	--paper-sunk: #f4f4f5;
+	--paper-hover: #f9f9fa;
+	--paper-scrim: rgb(20 20 20 / 0.18);
+	--line: #e8e8ea;
+	--line-strong: #d4d4d8;
+	--ink: #141416;
+	--ink-2: #52525b;
+	--ink-3: #686870;
+	--ink-on-accent: #ffffff;
+
+	/* Accent: azure, brighter than A's indigo, as on Amie's Share button and Things' add button. */
+	--accent: #0b63d1;
+	--accent-hover: #0951ad;
+	--accent-soft: #e7f0fc;
+
+	--overdue: #c9281c;
+	--overdue-soft: #fdeceb;
+
+	/* Aspects: fully saturated; tints carry them as Amie's event blocks do. */
+	--aspect-sage: #16884a;
+	--aspect-sky: #0b7cb8;
+	--aspect-lavender: #7448e0;
+	--aspect-ochre: #b07400;
+	--aspect-berry: #d0246f;
+	--aspect-lagoon: #0a8478;
+	--aspect-tangerine: #d65a0b;
+	--aspect-slate: #5d6b80;
+
+	--aspect-sage-tint: color-mix(in oklab, var(--aspect-sage) 14%, var(--paper));
+	--aspect-sky-tint: color-mix(in oklab, var(--aspect-sky) 14%, var(--paper));
+	--aspect-lavender-tint: color-mix(in oklab, var(--aspect-lavender) 14%, var(--paper));
+	--aspect-ochre-tint: color-mix(in oklab, var(--aspect-ochre) 14%, var(--paper));
+	--aspect-berry-tint: color-mix(in oklab, var(--aspect-berry) 14%, var(--paper));
+	--aspect-lagoon-tint: color-mix(in oklab, var(--aspect-lagoon) 14%, var(--paper));
+	--aspect-tangerine-tint: color-mix(in oklab, var(--aspect-tangerine) 14%, var(--paper));
+	--aspect-slate-tint: color-mix(in oklab, var(--aspect-slate) 14%, var(--paper));
+
+	--shadow-pop: 0 1px 2px rgb(20 20 20 / 0.06), 0 6px 16px -4px rgb(20 20 20 / 0.12);
+	--shadow-float: 0 1px 3px rgb(20 20 20 / 0.05), 0 18px 40px -12px rgb(20 20 20 / 0.22);
+	--ring-focus: 0 0 0 2px var(--paper), 0 0 0 4px var(--accent);
+}

@@ -199,3 +199,51 @@ Applied: `design/style-tile.html` (screenshots in `design/shots/`).
 - Icons render as `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
   stroke-linecap="round" stroke-linejoin="round"><path d={ASPECT_ICONS[icon]} /></svg>`.
 - Focus is always visible as `box-shadow: var(--ring-focus)` on `:focus-visible`.
+
+## Palette options
+
+Taste-gate revision: Rue asked for alternative palettes. Five options sit side by side in
+`design/palettes/index.html` (screenshot `design/shots/palettes-index.png`), each with a full
+style tile (`design/palettes/<letter>-<slug>.html`, shots `design/shots/palettes-*.png`). Each
+`<letter>-<slug>.css` overrides only colour tokens, scoped to `[data-palette='<letter>']`; whichever
+is picked gets folded into `src/lib/styles/tokens.css`. All five keep the fixed decisions: light
+theme only, aspects carry the saturation, red only for overdue. New palettes mix tints
+`in oklab`, because `in oklch` swings an aspect's hue toward a warm paper's hue.
+
+`node design/palettes/check-contrast.mjs` checks 67 pairs per palette (ink levels on every
+paper, accent and overdue text, white on accent, ink on each aspect tint at 4.5:1; aspect icons on
+paper, sunk and tint, and the white tick on each aspect at 3:1). B–E pass. **A, as shipped in
+tokens.css, fails 8**: `--ink-3` is 2.8–3.1:1 on the papers (metadata text needs 4.5),
+`--overdue` is 4.2–4.4:1 on sunk and overdue-soft, ochre and tangerine sit just under 3:1 on
+their tints. If A is kept, these values pass (checked): `--ink-3` `#686e79`, `--overdue` `#c4342a`,
+`--aspect-ochre` `#a87712`, `--aspect-tangerine` `#cc6a1a`.
+Unchecked checkbox outlines (`--line-strong`) are 1.4–1.6:1 in every palette, a Things-like
+choice that falls short of WCAG 1.4.11's 3:1.
+
+- **A — Cool indigo** (`#3a4699`, cool neutrals). The current palette: white, cool greys, muted
+  indigo. — Things 3 Anytime, https://mobbin.com/screens/9f0d2a69-0445-4c6d-a4ab-94275b5be1b7;
+  Linear sidebar, https://mobbin.com/screens/610d34b6-6ad8-45ab-80fb-2107b31ed01e
+- **B — Warm paper** (`#7a4a2b` umber, warm neutrals). A writing desk: warm off-white `#fdfcfa`,
+  greige sunk surfaces, graphite ink with a brown undertone, earthy dusty aspects.
+  — Notion web warm-grey sidebar and earthy swatch set, https://mobbin.com/screens/f9ac8f67-4813-4e30-9a68-88bbceee49c8;
+  Notion muted tinted select chips, https://mobbin.com/screens/fffb95e6-b486-471e-936a-fdfec96f1039;
+  Bear Red Graphite theme, https://mobbin.com/screens/eb0ecb23-69b4-4edb-aa50-2057f0fb9567
+- **C — Forest and stone** (`#1f5a44` forest green, warm cream neutrals). A botanical journal:
+  cream page `#fbf9f4`, stone-beige sunk, green-black ink, moss-and-clay aspects.
+  — Lifesum diary on beige with forest-green brand, https://mobbin.com/screens/7f1180e8-1839-4859-90cc-96b966c08c77;
+  Lifesum cream cards, https://mobbin.com/screens/47f02898-978e-4ff9-a9d0-7d6b32a39a3f;
+  Lifesum calendar with green-ringed today, https://mobbin.com/screens/3a530be6-95f5-4a70-8eb1-155b5da7275b
+- **D — Lilac and ink** (`#1d1b26` near-black ink, lilac-tinted neutrals). Soft and kind: white
+  page, lilac-grey surfaces, black primary buttons, pastel-leaning aspects with fuller 18 % tints.
+  — Tiimo Today with time-of-day pills, https://mobbin.com/screens/f6a61b24-612d-4536-8ca0-375231808968;
+  Tiimo remaining tasks, lilac date pill and black counted CTA, https://mobbin.com/screens/f7678d38-0b0e-4451-a6fa-9b1952438e77;
+  Tiimo assistant on lilac haze, https://mobbin.com/screens/ed164b6c-6952-48e5-b56b-32a747e08c73
+- **E — Clear and vivid** (`#0b63d1` azure, true-neutral greys). Bright daylight: pure white,
+  no colour cast in the greys, saturated aspects carried by their tints.
+  — Amie web week view with pastel blocks and azure Share, https://mobbin.com/screens/ff9b0ff4-cdf3-465c-9959-eba67c46fa3f;
+  Amie event popover, https://mobbin.com/screens/e0aa2b7a-da53-4755-a486-887651fc5e54;
+  Things 3 Today, blue add button and red only for deadlines, https://mobbin.com/screens/feadd020-045b-477e-b54f-d4c405995a58
+
+Mobbin has no Craft, Daylio, Fantastical, Notion Calendar or Structured web; searches for them
+returned other apps and are not cited. Structured (iOS) was found but its coral accent
+collides with overdue red, so it was not used.

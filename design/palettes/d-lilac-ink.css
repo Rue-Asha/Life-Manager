@@ -1,0 +1,56 @@
+/*
+ * Palette D — Lilac and ink. Soft and kind: white with a lilac haze, near-black ink buttons, pastel-leaning aspects with fuller tints.
+ * Overrides only the colour tokens of src/lib/styles/tokens.css, scoped to [data-palette='d'].
+ * Composite tokens (tints, scrim, shadows, focus ring) are restated so they resolve against
+ * this palette's paper and accent when the scope is not :root.
+ * — Tiimo Today, lavender/peach/blue time-of-day pills on white, https://mobbin.com/screens/f6a61b24-612d-4536-8ca0-375231808968
+ * — Tiimo remaining tasks, lilac date pill and near-black primary button with a count, https://mobbin.com/screens/f7678d38-0b0e-4451-a6fa-9b1952438e77
+ * — Tiimo assistant, lilac haze on white and ink "Speak" button, https://mobbin.com/screens/ed164b6c-6952-48e5-b56b-32a747e08c73
+ */
+
+[data-palette='d'] {
+	color-scheme: light;
+
+	/* Neutrals: white page, lilac-grey sunk surfaces and hairlines, violet-black ink (Tiimo). */
+	--paper: #ffffff;
+	--paper-sunk: #f6f5fa;
+	--paper-hover: #faf9fd;
+	--paper-scrim: rgb(40 34 64 / 0.18);
+	--line: #ebe9f2;
+	--line-strong: #d8d5e4;
+	--ink: #1d1b26;
+	--ink-2: #57546a;
+	--ink-3: #6c697e;
+	--ink-on-accent: #ffffff;
+
+	/* Accent: the ink itself. Primary buttons and "today" are near-black, as in Tiimo; lilac is the soft accent. */
+	--accent: #1d1b26;
+	--accent-hover: #3a3748;
+	--accent-soft: #ece8fb;
+
+	--overdue: #c42f3a;
+	--overdue-soft: #fdecee;
+
+	/* Aspects: pastel-leaning hues at mid lightness; tints are fuller (18 %) so the colour lives in surfaces. */
+	--aspect-sage: #3f8f68;
+	--aspect-sky: #3b82c4;
+	--aspect-lavender: #7d62d6;
+	--aspect-ochre: #a87b14;
+	--aspect-berry: #c64b86;
+	--aspect-lagoon: #1f8a8a;
+	--aspect-tangerine: #c9682a;
+	--aspect-slate: #6f7491;
+
+	--aspect-sage-tint: color-mix(in oklab, var(--aspect-sage) 18%, var(--paper));
+	--aspect-sky-tint: color-mix(in oklab, var(--aspect-sky) 18%, var(--paper));
+	--aspect-lavender-tint: color-mix(in oklab, var(--aspect-lavender) 18%, var(--paper));
+	--aspect-ochre-tint: color-mix(in oklab, var(--aspect-ochre) 18%, var(--paper));
+	--aspect-berry-tint: color-mix(in oklab, var(--aspect-berry) 18%, var(--paper));
+	--aspect-lagoon-tint: color-mix(in oklab, var(--aspect-lagoon) 18%, var(--paper));
+	--aspect-tangerine-tint: color-mix(in oklab, var(--aspect-tangerine) 18%, var(--paper));
+	--aspect-slate-tint: color-mix(in oklab, var(--aspect-slate) 18%, var(--paper));
+
+	--shadow-pop: 0 1px 2px rgb(40 34 64 / 0.06), 0 6px 16px -4px rgb(40 34 64 / 0.12);
+	--shadow-float: 0 1px 3px rgb(40 34 64 / 0.05), 0 18px 40px -12px rgb(40 34 64 / 0.22);
+	--ring-focus: 0 0 0 2px var(--paper), 0 0 0 4px var(--accent);
+}
