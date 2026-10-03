@@ -172,6 +172,23 @@
 		font-size: var(--text-sm);
 	}
 
+	@media (min-width: 768px) {
+		/* Priority, due date and the row menu drop under the meta line instead of squeezing the
+		   title to nothing in a third-width column. */
+		.column :global(.row.checkable) {
+			grid-template-columns: var(--checkbox-size) minmax(0, 1fr);
+		}
+
+		.column :global(.row .end) {
+			grid-column: 2;
+			flex-wrap: wrap;
+		}
+
+		.column :global(.row .end:has(*)) {
+			margin-top: var(--space-2);
+		}
+	}
+
 	@media (min-width: 1280px) {
 		.column {
 			min-height: calc(100dvh - var(--top, 0px) - var(--space-9));

@@ -6,7 +6,7 @@
 </script>
 
 <span class="tag" style:background={ASPECT_COLORS[color].tint}>
-	<AspectIcon {icon} {color} size="sm" />{name}
+	<AspectIcon {icon} {color} size="sm" /><span class="name">{name}</span>
 </span>
 
 <style>
@@ -21,5 +21,12 @@
 		font-size: var(--text-sm);
 		font-weight: var(--weight-medium);
 		white-space: nowrap;
+		max-width: 100%;
+	}
+
+	/* A narrow week column clips a long aspect name instead of overflowing the card. */
+	.name {
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 </style>
