@@ -30,30 +30,30 @@ Scope e2e count assertions to container test ids, never page-wide (repo learning
 
 > unit: depends=1 · scope=S4,S5,S6,S7,S8,S9,S10,S14,S16 · files=src/lib/server/uni.ts, src/lib/server/uni.test.ts
 
-- [ ] 3.1 Write "Scenario: Empty semester name is rejected", "Scenario: Duplicate semester names are allowed", then implement `createSemester`, `renameSemester`, `listSemesters` (ordering per design.md)
-- [ ] 3.2 Write "Scenario: Archiving completes open todos", "Scenario: Archived semester refuses writes", "Scenario: Unarchive lifts read-only", "Scenario: Deleting a semester removes everything belonging to it", then implement `archiveSemester`, `unarchiveSemester`, `semesterCounts`, `deleteSemester` and the `archived` checks in every semester/class write
-- [ ] 3.3 Write "Scenario: Class fields round-trip", "Scenario: Invalid class input is rejected", "Scenario: Empty link rows are dropped", "Scenario: Deleting a class removes its todos and rules", then implement `getClass`, `createClass`, `updateClass`, `setClassNotes`, `classCounts`, `deleteClass` with the validation in the spec
-- [ ] 3.4 Write "Scenario: Card summary counts open todos and the next due date", "Scenario: Class todos are grouped Open, Planned, Done", then fill `ClassSummary` in `listSemesters` and implement `classTodos`, `classRules`
-- [ ] 3.5 Write "Scenario: Weighted average matches a hand calculation", "Scenario: Overall figures include archived semesters", "Scenario: Deadlines list todos and exams in date order", then implement `gradeSummary`, the per-semester / overall grades in `listSemesters`, and `listDeadlines`
-- [ ] 3.6 `npm run proof` green
+- [x] 3.1 Write "Scenario: Empty semester name is rejected", "Scenario: Duplicate semester names are allowed", then implement `createSemester`, `renameSemester`, `listSemesters` (ordering per design.md)
+- [x] 3.2 Write "Scenario: Archiving completes open todos", "Scenario: Archived semester refuses writes", "Scenario: Unarchive lifts read-only", "Scenario: Deleting a semester removes everything belonging to it", then implement `archiveSemester`, `unarchiveSemester`, `semesterCounts`, `deleteSemester` and the `archived` checks in every semester/class write
+- [x] 3.3 Write "Scenario: Class fields round-trip", "Scenario: Invalid class input is rejected", "Scenario: Empty link rows are dropped", "Scenario: Deleting a class removes its todos and rules", then implement `getClass`, `createClass`, `updateClass`, `setClassNotes`, `classCounts`, `deleteClass` with the validation in the spec
+- [x] 3.4 Write "Scenario: Card summary counts open todos and the next due date", "Scenario: Class todos are grouped Open, Planned, Done", then fill `ClassSummary` in `listSemesters` and implement `classTodos`, `classRules`
+- [x] 3.5 Write "Scenario: Weighted average matches a hand calculation", "Scenario: Overall figures include archived semesters", "Scenario: Deadlines list todos and exams in date order", then implement `gradeSummary`, the per-semester / overall grades in `listSemesters`, and `listDeadlines`
+- [x] 3.6 `npm run proof` green
 
 ## 4. Todo and recurring class fields, class badge
 
 > unit: depends=1,2 · scope=S5,S11,S13,S15 · files=src/lib/components/todo/QuickAdd.svelte, src/lib/components/todo/TodoFields.svelte, src/lib/components/todo/TodoEditor.svelte, src/lib/components/todo/TodoRow.svelte, src/lib/components/uni/ClassBadge.svelte, src/lib/components/recurring/RuleForm.svelte, src/routes/recurring/+page.svelte, e2e/todo-classes.test.ts, e2e/recurring-classes.test.ts
 
-- [ ] 4.1 Write e2e "Scenario: Quick add links a todo to a class", "Scenario: Class field appears only for the Uni aspect", "Scenario: Class field lists classes of active semesters", "Scenario: Class field is hidden without Uni aspect or classes", "Scenario: Switching the aspect away drops class and type" in `e2e/todo-classes.test.ts`
-- [ ] 4.2 Add the conditional Class select (`classId`, test id `class-field`, shown for the Uni aspect) and Type chip (`type`, test id `type-field`, default OTH, shown once a class is picked or preset) to `TodoFields`, fed from `page.data.classes` (not archived) / `page.data.uniAspectId`, bound in `QuickAdd` and `TodoEditor`; add `defaultAspectId` / `defaultClassId` / `defaultType` props to `QuickAdd`; when hidden, nothing is submitted for class/type on create, and empty values on edit
-- [ ] 4.3 Write e2e "Scenario: Linked todo shows the class badge", "Scenario: Todo without class shows no class badge", "Scenario: Class badge wraps under the title on a phone", "Scenario: Archived class todo edited via todos is rejected" (post to `/todos?/update` for a seeded archived class todo), then build `ClassBadge` (class icon in its colour + name + type, link to `/uni/classes/<id>`) and add it to `TodoRow`'s `.meta` (the detail page is unit 7, so assert the URL after the click, not the page content)
-- [ ] 4.4 Write e2e "Scenario: Rule with a class generates linked instances", "Scenario: Rule class fields appear only for the Uni aspect" in `e2e/recurring-classes.test.ts`, then add Class + Type to `RuleForm` (Uni aspect only) and show the class in the rule list on `/recurring`
-- [ ] 4.5 `npm run proof` green; `npm run build` then run `e2e/todo-classes.test.ts`, `e2e/recurring-classes.test.ts`, `e2e/todos.test.ts`, `e2e/recurring.test.ts`, `e2e/todo-projects.test.ts`, `e2e/backlog.test.ts` green
+- [x] 4.1 Write e2e "Scenario: Quick add links a todo to a class", "Scenario: Class field appears only for the Uni aspect", "Scenario: Class field lists classes of active semesters", "Scenario: Class field is hidden without Uni aspect or classes", "Scenario: Switching the aspect away drops class and type" in `e2e/todo-classes.test.ts`
+- [x] 4.2 Add the conditional Class select (`classId`, test id `class-field`, shown for the Uni aspect) and Type chip (`type`, test id `type-field`, default OTH, shown once a class is picked or preset) to `TodoFields`, fed from `page.data.classes` (not archived) / `page.data.uniAspectId`, bound in `QuickAdd` and `TodoEditor`; add `defaultAspectId` / `defaultClassId` / `defaultType` props to `QuickAdd`; when hidden, nothing is submitted for class/type on create, and empty values on edit
+- [x] 4.3 Write e2e "Scenario: Linked todo shows the class badge", "Scenario: Todo without class shows no class badge", "Scenario: Class badge wraps under the title on a phone", "Scenario: Archived class todo edited via todos is rejected" (post to `/todos?/update` for a seeded archived class todo), then build `ClassBadge` (class icon in its colour + name + type, link to `/uni/classes/<id>`) and add it to `TodoRow`'s `.meta` (the detail page is unit 7, so assert the URL after the click, not the page content)
+- [x] 4.4 Write e2e "Scenario: Rule with a class generates linked instances", "Scenario: Rule class fields appear only for the Uni aspect" in `e2e/recurring-classes.test.ts`, then add Class + Type to `RuleForm` (Uni aspect only) and show the class in the rule list on `/recurring`
+- [x] 4.5 `npm run proof` green; `npm run build` then run `e2e/todo-classes.test.ts`, `e2e/recurring-classes.test.ts`, `e2e/todos.test.ts`, `e2e/recurring.test.ts`, `e2e/todo-projects.test.ts`, `e2e/backlog.test.ts` green
 
 ## 5. Shared picker and class form
 
 > unit: depends=1,2 · scope=S7 · files=src/lib/components/ui/ColorIconPicker.svelte, src/lib/components/aspects/AspectForm.svelte, src/lib/components/uni/ClassForm.svelte
 
-- [ ] 5.1 Extract the colour/icon picker from `AspectForm` into `ui/ColorIconPicker.svelte` (ids from `$props.id()`, inputs `name="color"` / `name="icon"`), use it in `AspectForm` unchanged in look and behaviour; `npm run build` then `e2e/aspects.test.ts` and `e2e/aspect-page.test.ts` green
-- [ ] 5.2 Build `uni/ClassForm.svelte` per ## Contracts and the approved mockup: name, picker, lecturer, room, ECTS, repeatable link rows (label + URL, add/remove), exam date/time, exam room, grade select from `GRADES`; field errors from `UNI_MESSAGES` at the field named by `error.field` (its e2e scenarios are written in units 6 and 7, which own the forms that post it)
-- [ ] 5.3 `npm run proof` green
+- [x] 5.1 Extract the colour/icon picker from `AspectForm` into `ui/ColorIconPicker.svelte` (ids from `$props.id()`, inputs `name="color"` / `name="icon"`), use it in `AspectForm` unchanged in look and behaviour; `npm run build` then `e2e/aspects.test.ts` and `e2e/aspect-page.test.ts` green
+- [x] 5.2 Build `uni/ClassForm.svelte` per ## Contracts and the approved mockup: name, picker, lecturer, room, ECTS, repeatable link rows (label + URL, add/remove), exam date/time, exam room, grade select from `GRADES`; field errors from `UNI_MESSAGES` at the field named by `error.field` (its e2e scenarios are written in units 6 and 7, which own the forms that post it)
+- [x] 5.3 `npm run proof` green
 
 ## 6. Uni overview, Uni aspect setting, semesters, grades and deadlines
 
