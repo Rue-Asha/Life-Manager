@@ -219,7 +219,8 @@ test('Scenario: Class rules are listed with a link to Recurring', async ({ page,
 });
 
 test('Scenario: Quick add on class detail creates a linked todo', async ({ page, request }) => {
-	const id = await seedClass(request);
+	const ids = await seed(request, { aspects: ASPECTS, uniAspect: 1, semesters: [{ name: 'WS 26/27' }], classes: [CLASS] });
+	const id = ids.classes[0];
 	await page.setViewportSize({ width: 1280, height: 900 });
 	await page.goto(`/uni/classes/${id}`);
 
@@ -238,7 +239,7 @@ test('Scenario: Quick add on class detail creates a linked todo', async ({ page,
 
 	await page.goto('/backlog');
 	await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-	const row = page.getByTestId('todo-row').filter({ hasText: 'Rework lecture 5' });
+	const row = page.getByTestId(`aspect-group-${ids.aspects[1]}`).getByTestId('todo-row').filter({ hasText: 'Rework lecture 5' });
 	await expect(row.getByTestId('class-badge')).toContainText('Analysis II');
 	await expect(row.getByTestId('class-badge')).toContainText('LEC');
 });

@@ -252,7 +252,7 @@ export function listBacklog(db: DatabaseSync, aspectId?: Id): Todo[] {
 	const rows = db
 		.prepare(
 			`SELECT ${todoColumns} FROM todos
-			 WHERE sprint_id IS NULL AND (?1 IS NULL OR aspect_id = ?1)
+			 WHERE sprint_id IS NULL AND status != 'done' AND (?1 IS NULL OR aspect_id = ?1)
 			 ORDER BY priority = 0, priority, due_date IS NULL, due_date, id`
 		)
 		.all(aspectId ?? null) as unknown as TodoRow[];
@@ -261,7 +261,7 @@ export function listBacklog(db: DatabaseSync, aspectId?: Id): Todo[] {
 
 export function backlogCounts(db: DatabaseSync): Record<Id, number> {
 	const rows = db
-		.prepare('SELECT aspect_id, COUNT(*) AS n FROM todos WHERE sprint_id IS NULL GROUP BY aspect_id')
+		.prepare("SELECT aspect_id, COUNT(*) AS n FROM todos WHERE sprint_id IS NULL AND status != 'done' GROUP BY aspect_id")
 		.all() as unknown as { aspect_id: number; n: number }[];
 	return Object.fromEntries(rows.map((r) => [r.aspect_id, r.n]));
 }

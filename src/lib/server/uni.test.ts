@@ -3,7 +3,9 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { ClassInput, Id } from '$lib/types';
 import { setTestNow } from './clock';
 import { openDb } from './db';
-import { setRevisedAt } from './todos';
+import { targetWeek } from '$lib/week';
+import { listSprintTodos, pullTodo, startSprint, suggestedTodos, unpullTodo } from './sprints';
+import { backlogCounts, listBacklog, setRevisedAt } from './todos';
 import {
 	archiveSemester,
 	classWritable,
@@ -395,6 +397,36 @@ describe('archive and delete', () => {
 		function getSemester() {
 			return listSemesters(db).archived.map(({ classes: _c, grades: _g, ...s }) => s)[0];
 		}
+	});
+
+	it('Scenario: Archived todos leave the backlog', () => {
+		const today = '2026-10-07';
+		const ws = value(createSemester(db, 'WS'));
+		const cls = value(createClass(db, ws.id, base)).id;
+		const archived = todo(cls);
+		const unlinked = todo(null);
+		db.prepare('UPDATE todos SET due_date = ?').run(targetWeek(today));
+		value(archiveSemester(db, ws.id));
+
+		expect(listBacklog(db).map((t) => t.id)).toEqual([unlinked]);
+		expect(listBacklog(db, uni).map((t) => t.id)).toEqual([unlinked]);
+		expect(backlogCounts(db)).toEqual({ [uni]: 1 });
+		expect(suggestedTodos(db, today).map((t) => t.id)).toEqual([unlinked]);
+	});
+
+	it('Scenario: Sprint planning refuses archived class todos', () => {
+		const ws = value(createSemester(db, 'WS'));
+		const cls = value(createClass(db, ws.id, base)).id;
+		const inBacklog = todo(cls);
+		const planned = todo(cls);
+		value(pullTodo(db, planned));
+		value(archiveSemester(db, ws.id));
+
+		expect(pullTodo(db, inBacklog)).toEqual({ ok: false, error: 'archived' });
+		expect(unpullTodo(db, planned)).toEqual({ ok: false, error: 'archived' });
+		const sprint = value(startSprint(db, '2026-10-07', [inBacklog]));
+		expect(listSprintTodos(db, sprint.id).map((t) => t.id)).toEqual([planned]);
+		expect([row(inBacklog).status, row(planned).status]).toEqual(['done', 'done']);
 	});
 
 	it('Scenario: Unarchive lifts read-only', () => {

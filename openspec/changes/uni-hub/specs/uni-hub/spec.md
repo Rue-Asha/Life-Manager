@@ -125,8 +125,9 @@ confirming sets them done with `completed_at` now and archives the semester, can
 Without open todos no dialog is shown. An archived semester and its classes are read-only: classes cannot be
 added or edited, notes, metadata, todos and revised dates cannot be changed, and the semester cannot be
 renamed; delete and unarchive stay possible, and deleting a single todo of an archived class stays allowed.
-Every such write is refused on the server with error `archived`. Unarchiving lifts read-only; the todos stay
-done. (S5)
+Every such write is refused on the server with error `archived`, including pulling, unpulling and starting a
+sprint with such a todo in sprint planning. Done todos never appear in the backlog, its counts or the planning
+suggestions, so archived backlog todos leave it. Unarchiving lifts read-only; the todos stay done. (S5)
 
 #### Scenario: Archiving with open todos asks for confirmation
 - **WHEN** Rue archives a semester whose classes have two open todos and one done todo, and confirms the dialog
@@ -162,6 +163,16 @@ done. (S5)
 - **WHEN** a request to the `/todos` `delete` action is posted for one of two todos of a class of an archived semester
 - **THEN** the action succeeds, that todo is gone and the other is still there
 - **proof:** e2e
+
+#### Scenario: Archived todos leave the backlog
+- **WHEN** a semester whose class has an open backlog todo due in the coming sprint week is archived
+- **THEN** that todo is in neither the backlog list, the backlog counts nor the planning suggestions, and an unlinked backlog todo still is
+- **proof:** unit
+
+#### Scenario: Sprint planning refuses archived class todos
+- **WHEN** after archiving a semester, one of its class todos in the backlog is pulled, one already in the planning draft is unpulled, and the sprint is started with the first one's id as suggested
+- **THEN** pull and unpull fail with error `archived`, the sprint starts without the backlog todo, and both todos are still done
+- **proof:** unit
 
 #### Scenario: Unarchive lifts read-only
 - **WHEN** an archived semester whose todos were completed by archiving is unarchived and one of its classes is renamed

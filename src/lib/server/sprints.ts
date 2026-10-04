@@ -17,6 +17,7 @@ import { addDays, reviewState, targetWeek } from '$lib/week';
 import { now } from './clock';
 import { generateInstances } from './recurring';
 import { deleteTodo } from './todos';
+import { todoWritable } from './uni';
 
 type Row = Record<string, SQLInputValue>;
 
@@ -125,13 +126,15 @@ export function openPlanning(
 
 export function suggestedTodos(db: DatabaseSync, today: IsoDate): Todo[] {
 	const start = targetWeek(today);
-	return selectTodos(db, 'sprint_id IS NULL AND due_date BETWEEN ? AND ?', start, addDays(start, 6));
+	return selectTodos(db, "sprint_id IS NULL AND status != 'done' AND due_date BETWEEN ? AND ?", start, addDays(start, 6));
 }
 
 export function pullTodo(db: DatabaseSync, todoId: Id): Result<Todo> {
 	const todo = getTodo(db, todoId);
 	if (!todo || (todo.sprintId !== null && !inSprint(db, todoId, 'planning'))) return { ok: false, error: 'not-found' };
 	if (getActiveSprint(db)) return { ok: false, error: 'sprint-active' };
+	const writable = todoWritable(db, todoId);
+	if (!writable.ok) return writable;
 	db.prepare('UPDATE todos SET sprint_id = ?, day = NULL WHERE id = ?').run(planningDraft(db).id, todoId);
 	return { ok: true, value: getTodo(db, todoId)! };
 }
@@ -153,6 +156,8 @@ function inSprint(db: DatabaseSync, todoId: Id, state: Sprint['state']): boolean
 
 export function unpullTodo(db: DatabaseSync, todoId: Id): Result<Todo> {
 	if (!inSprint(db, todoId, 'planning')) return { ok: false, error: 'not-found' };
+	const writable = todoWritable(db, todoId);
+	if (!writable.ok) return writable;
 	return { ok: true, value: toBacklog(db, todoId) };
 }
 
@@ -162,7 +167,7 @@ export function startSprint(db: DatabaseSync, today: IsoDate, suggestedIds: Id[]
 	return transaction(db, () => {
 		const draft = planningDraft(db);
 		const pull = db.prepare('UPDATE todos SET sprint_id = ?, day = NULL WHERE id = ? AND sprint_id IS NULL');
-		for (const id of suggestedIds) pull.run(draft.id, id);
+		for (const id of suggestedIds) if (todoWritable(db, id).ok) pull.run(draft.id, id);
 		const weekStart = targetWeek(today);
 		db.prepare("UPDATE sprints SET state = 'active', week_start = ?, started_at = ? WHERE id = ?").run(
 			weekStart,
