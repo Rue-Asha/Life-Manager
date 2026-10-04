@@ -1,9 +1,11 @@
 import type { DatabaseSync, SQLInputValue } from 'node:sqlite';
-import type { Id, IsoDate, Priority, RecurringRule, Result, RuleInput, Sprint, Todo, Weekday } from '$lib/types';
+import type { ClassType, Id, IsoDate, Priority, RecurringRule, Result, RuleInput, Sprint, Todo, Weekday } from '$lib/types';
 import { isPriority } from '$lib/todo-utils';
+import { CLASS_TYPES } from '$lib/uni';
 import { addDays } from '$lib/week';
 import { now } from './clock';
 import { getActiveSprint, selectTodos, transaction } from './sprints';
+import { classWritable, getUniAspectId } from './uni';
 
 type Row = Record<string, SQLInputValue>;
 
@@ -15,7 +17,9 @@ function toRule(r: Row): RecurringRule {
 		weekdays: (r.weekdays as string).split(',').map(Number) as Weekday[],
 		notes: r.notes as string,
 		priority: Number(r.priority) as Priority,
-		checklist: JSON.parse(r.checklist as string)
+		checklist: JSON.parse(r.checklist as string),
+		classId: r.class_id === null ? null : Number(r.class_id),
+		type: r.type as ClassType | null
 	};
 }
 
@@ -33,17 +37,31 @@ function validate(db: DatabaseSync, input: RuleInput): { ok: false; error: strin
 		return { ok: false, error: 'weekdays-required', field: 'weekdays' };
 	}
 	if (input.priority !== undefined && !isPriority(input.priority)) return { ok: false, error: 'required', field: 'priority' };
+	if (input.type != null && !CLASS_TYPES.includes(input.type)) return { ok: false, error: 'invalid', field: 'type' };
+	const classId = classFor(db, input);
+	if (classId !== null) {
+		const writable = classWritable(db, classId);
+		if (!writable.ok) return { ok: false, error: writable.error, field: 'classId' };
+	}
 	return null;
 }
 
-function columns(input: RuleInput): SQLInputValue[] {
+// As on todos, the class link is kept only on rules of the Uni aspect.
+function classFor(db: DatabaseSync, input: RuleInput): Id | null {
+	return input.classId != null && getUniAspectId(db) === input.aspectId ? input.classId : null;
+}
+
+function columns(db: DatabaseSync, input: RuleInput): SQLInputValue[] {
+	const classId = classFor(db, input);
 	return [
 		input.title.trim(),
 		input.aspectId,
 		[...new Set(input.weekdays)].sort().join(','),
 		input.notes ?? '',
 		input.priority ?? 0,
-		JSON.stringify(input.checklist ?? [])
+		JSON.stringify(input.checklist ?? []),
+		classId,
+		classId === null ? null : (input.type ?? 'OTH')
 	];
 }
 
@@ -57,10 +75,10 @@ export function createRule(db: DatabaseSync, input: RuleInput, today: IsoDate): 
 	return transaction(db, () => {
 		const { lastInsertRowid } = db
 			.prepare(
-				`INSERT INTO recurring_rules (title, aspect_id, weekdays, notes, priority, checklist, created_at)
-				 VALUES (?, ?, ?, ?, ?, ?, ?)`
+				`INSERT INTO recurring_rules (title, aspect_id, weekdays, notes, priority, checklist, class_id, type, created_at)
+				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
 			)
-			.run(...columns(input), now().toISOString());
+			.run(...columns(db, input), now().toISOString());
 		const active = getActiveSprint(db);
 		if (active) generateInstances(db, active, today, Number(lastInsertRowid));
 		return { ok: true, value: getRule(db, Number(lastInsertRowid))! };
@@ -72,9 +90,9 @@ export function updateRule(db: DatabaseSync, id: Id, input: RuleInput): Result<R
 	if (invalid) return invalid;
 	if (!getRule(db, id)) return { ok: false, error: 'not-found' };
 	db.prepare(
-		`UPDATE recurring_rules SET title = ?, aspect_id = ?, weekdays = ?, notes = ?, priority = ?, checklist = ?
-		 WHERE id = ?`
-	).run(...columns(input), id);
+		`UPDATE recurring_rules SET title = ?, aspect_id = ?, weekdays = ?, notes = ?, priority = ?, checklist = ?,
+		 class_id = ?, type = ? WHERE id = ?`
+	).run(...columns(db, input), id);
 	return { ok: true, value: getRule(db, id)! };
 }
 
@@ -84,10 +102,22 @@ export function deleteRule(db: DatabaseSync, id: Id): Result<void> {
 }
 
 export function generateInstances(db: DatabaseSync, sprint: Sprint, fromDay: IsoDate, ruleId?: Id): Todo[] {
-	const rules = ruleId === undefined ? listRules(db) : [getRule(db, ruleId)!];
+	// Rules of an archived semester's classes are read-only and generate nothing; their carried
+	// instances were completed by the archive, so none is placed either.
+	const archived = new Set(
+		(
+			db
+				.prepare(
+					`SELECT r.id FROM recurring_rules r JOIN classes c ON c.id = r.class_id
+					 JOIN semesters s ON s.id = c.semester_id WHERE s.archived_at IS NOT NULL`
+				)
+				.all() as Row[]
+		).map((r) => Number(r.id))
+	);
+	const rules = (ruleId === undefined ? listRules(db) : [getRule(db, ruleId)!]).filter((r) => !archived.has(r.id));
 	const insertTodo = db.prepare(
-		`INSERT INTO todos (title, aspect_id, notes, priority, sprint_id, day, recurring, rule_id, created_at)
-		 VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)`
+		`INSERT INTO todos (title, aspect_id, notes, priority, sprint_id, day, recurring, rule_id, class_id, type, created_at)
+		 VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)`
 	);
 	const insertItem = db.prepare('INSERT INTO checklist_items (todo_id, text, position) VALUES (?, ?, ?)');
 	const carried = db.prepare("SELECT id FROM todos WHERE sprint_id = ? AND rule_id = ? AND status != 'done' ORDER BY id");
@@ -106,7 +136,18 @@ export function generateInstances(db: DatabaseSync, sprint: Sprint, fromDay: Iso
 				continue;
 			}
 			const id = Number(
-				insertTodo.run(rule.title, rule.aspectId, rule.notes, rule.priority, sprint.id, day, rule.id, createdAt)
+				insertTodo.run(
+					rule.title,
+					rule.aspectId,
+					rule.notes,
+					rule.priority,
+					sprint.id,
+					day,
+					rule.id,
+					rule.classId,
+					rule.type,
+					createdAt
+				)
 					.lastInsertRowid
 			);
 			rule.checklist.forEach((text, i) => insertItem.run(id, text, i));

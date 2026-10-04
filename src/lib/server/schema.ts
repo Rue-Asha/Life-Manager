@@ -99,4 +99,38 @@ export const migrations: string[] = [
 		WHERE id IN (SELECT id FROM todo_projects);
 	DROP TABLE todo_projects;
 	`
+,
+	`
+	CREATE TABLE semesters (
+		id INTEGER PRIMARY KEY,
+		name TEXT NOT NULL,
+		archived_at TEXT NULL,
+		created_at TEXT NOT NULL
+	);
+
+	CREATE TABLE classes (
+		id INTEGER PRIMARY KEY,
+		semester_id INTEGER NOT NULL REFERENCES semesters (id) ON DELETE CASCADE,
+		name TEXT NOT NULL,
+		color TEXT NOT NULL,
+		icon TEXT NOT NULL,
+		notes TEXT NOT NULL DEFAULT '',
+		lecturer TEXT NULL,
+		room TEXT NULL,
+		ects REAL NULL,
+		links TEXT NOT NULL DEFAULT '[]',
+		exam_at TEXT NULL,
+		exam_room TEXT NULL,
+		grade TEXT NULL,
+		created_at TEXT NOT NULL,
+		updated_at TEXT NOT NULL
+	);
+
+	-- The type CHECK is final: changing it later means rebuilding todos (see migration 3's TEMP-table pattern).
+	ALTER TABLE todos ADD COLUMN class_id INTEGER NULL REFERENCES classes (id) ON DELETE CASCADE;
+	ALTER TABLE todos ADD COLUMN type TEXT NULL CHECK (type IN ('LEC', 'EXC', 'OTH'));
+	ALTER TABLE todos ADD COLUMN revised_at TEXT NULL;
+	ALTER TABLE recurring_rules ADD COLUMN class_id INTEGER NULL REFERENCES classes (id) ON DELETE CASCADE;
+	ALTER TABLE recurring_rules ADD COLUMN type TEXT NULL CHECK (type IN ('LEC', 'EXC', 'OTH'));
+	`
 ];

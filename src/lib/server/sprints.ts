@@ -1,6 +1,7 @@
 import type { DatabaseSync, SQLInputValue } from 'node:sqlite';
 import type {
 	AspectProgress,
+	ClassType,
 	Id,
 	IsoDate,
 	Placement,
@@ -38,6 +39,9 @@ export function selectTodos(db: DatabaseSync, where: string, ...params: SQLInput
 		recurring: r.recurring === 1,
 		ruleId: r.rule_id === null ? null : Number(r.rule_id),
 		projectId: r.project_id === null ? null : Number(r.project_id),
+		classId: r.class_id === null ? null : Number(r.class_id),
+		type: r.type as ClassType | null,
+		revisedAt: r.revised_at as IsoDate | null,
 		checklist: (items.all(r.id) as Row[]).map((i) => ({
 			id: Number(i.id),
 			todoId: Number(i.todo_id),

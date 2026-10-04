@@ -10,12 +10,14 @@ import {
 	listBacklog,
 	listOverdue,
 	renameChecklistItem,
+	setRevisedAt,
 	toggleChecklistItem,
 	updateTodo
 } from './todos';
 import type { Id, Priority, Todo } from '$lib/types';
 import { createProject, setItAspectId } from './projects';
 import { listSprintTodos, listToday } from './sprints';
+import { setUniAspectId } from './uni';
 
 function setup() {
 	const db = openDb(':memory:');
@@ -390,5 +392,136 @@ describe('project link', () => {
 		expect(listSprintTodos(db, sprint).map((t) => t.projectId)).toEqual([project]);
 		expect(listToday(db, '2026-10-06').map((t) => t.projectId)).toEqual([project]);
 		expect(planned.projectId).toBe(project);
+	});
+});
+
+describe('class link', () => {
+	function uniSetup() {
+		const { db, aspect } = setup();
+		const uni = Number(
+			db
+				.prepare("INSERT INTO aspects (name, color, icon, position, created_at) VALUES ('Uni', 'sky', 'cap', 1, '')")
+				.run().lastInsertRowid
+		);
+		value(setUniAspectId(db, uni));
+		const insert = (sql: string, ...params: (string | number | null)[]) => Number(db.prepare(sql).run(...params).lastInsertRowid);
+		const semester = insert("INSERT INTO semesters (name, created_at) VALUES ('WS', 'c')");
+		const old = insert("INSERT INTO semesters (name, archived_at, created_at) VALUES ('SS', 'a', 'c')");
+		const cls = (s: Id, name: string) =>
+			insert("INSERT INTO classes (semester_id, name, color, icon, created_at, updated_at) VALUES (?, ?, 'sky', 'book', 'c', 'c')", s, name);
+		return { db, other: aspect, uni, analysis: cls(semester, 'Analysis'), physics: cls(old, 'Physics') };
+	}
+
+	const classFields = (t: Todo) => ({ classId: t.classId, type: t.type, revisedAt: t.revisedAt });
+
+	it('Scenario: Both todo read models carry the class fields', () => {
+		const { db, uni, analysis } = uniSetup();
+		const sprint = activeSprint(db, '2026-10-05');
+		const backlog = value(createTodo(db, { title: 'b', aspectId: uni, classId: analysis, type: 'LEC' }));
+		const planned = value(
+			createTodo(db, { title: 's', aspectId: uni, classId: analysis, type: 'LEC', target: { kind: 'day', day: '2026-10-06' } })
+		);
+		value(setRevisedAt(db, backlog.id, '2026-10-02'));
+		value(setRevisedAt(db, planned.id, '2026-10-03'));
+
+		expect(classFields(getTodo(db, backlog.id)!)).toEqual({ classId: analysis, type: 'LEC', revisedAt: '2026-10-02' });
+		expect(listBacklog(db).map(classFields)).toEqual([{ classId: analysis, type: 'LEC', revisedAt: '2026-10-02' }]);
+		const inSprint = { classId: analysis, type: 'LEC', revisedAt: '2026-10-03' };
+		expect(listSprintTodos(db, sprint).map(classFields)).toEqual([inSprint]);
+		expect(listToday(db, '2026-10-06').map(classFields)).toEqual([inSprint]);
+	});
+
+	it('Scenario: Aspect change removes class, type and revised date', () => {
+		const { db, other, uni, analysis } = uniSetup();
+		const sprint = activeSprint(db, '2026-09-28');
+		const todo = value(
+			createTodo(db, { title: 'x', aspectId: uni, classId: analysis, type: 'LEC', target: { kind: 'day', day: '2026-09-29' } })
+		);
+		db.prepare("UPDATE todos SET status = 'doing' WHERE id = ?").run(todo.id);
+		value(setRevisedAt(db, todo.id, '2026-09-30'));
+
+		const moved = value(updateTodo(db, todo.id, { aspectId: other }));
+		expect(moved).toMatchObject({ classId: null, type: null, revisedAt: null, sprintId: sprint, status: 'doing', day: '2026-09-29' });
+		expect(classFields(value(updateTodo(db, todo.id, { aspectId: uni })))).toEqual({ classId: null, type: null, revisedAt: null });
+		expect(classFields(value(updateTodo(db, todo.id, { aspectId: other, classId: analysis, type: 'LEC' })))).toEqual({
+			classId: null,
+			type: null,
+			revisedAt: null
+		});
+	});
+
+	it('keeps class fields across unrelated edits and clears them with the class', () => {
+		const { db, uni, analysis } = uniSetup();
+		const todo = value(createTodo(db, { title: 'x', aspectId: uni, classId: analysis, type: 'EXC' }));
+		value(setRevisedAt(db, todo.id, '2026-09-30'));
+		expect(classFields(value(updateTodo(db, todo.id, { title: 'y', aspectId: uni })))).toEqual({
+			classId: analysis,
+			type: 'EXC',
+			revisedAt: '2026-09-30'
+		});
+		expect(value(updateTodo(db, todo.id, { type: 'LEC' })).type).toBe('LEC');
+		expect(classFields(value(updateTodo(db, todo.id, { classId: null, type: 'LEC' })))).toEqual({
+			classId: null,
+			type: null,
+			revisedAt: null
+		});
+	});
+
+	it('Scenario: Class link on a non-Uni todo is not stored', () => {
+		const { db, other, analysis } = uniSetup();
+		const created = value(createTodo(db, { title: 'x', aspectId: other, classId: analysis, type: 'LEC' }));
+		expect(classFields(created)).toEqual({ classId: null, type: null, revisedAt: null });
+		const updated = value(updateTodo(db, created.id, { classId: analysis, type: 'LEC' }));
+		expect(classFields(updated)).toEqual({ classId: null, type: null, revisedAt: null });
+	});
+
+	it('Scenario: Type needs a class', () => {
+		const { db, uni, analysis } = uniSetup();
+		expect(value(createTodo(db, { title: 'a', aspectId: uni, type: 'LEC' })).type).toBeNull();
+		expect(value(createTodo(db, { title: 'b', aspectId: uni, classId: analysis })).type).toBe('OTH');
+	});
+
+	it('Scenario: Unknown or archived class id is rejected', () => {
+		const { db, uni, analysis, physics } = uniSetup();
+		const notFound = { ok: false, error: 'not-found', field: 'classId' };
+		const archived = { ok: false, error: 'archived', field: 'classId' };
+		expect(createTodo(db, { title: 'x', aspectId: uni, classId: analysis + 99 })).toEqual(notFound);
+		expect(createTodo(db, { title: 'x', aspectId: uni, classId: physics })).toEqual(archived);
+		expect(todoCount(db)).toBe(0);
+
+		const todo = value(createTodo(db, { title: 'x', aspectId: uni, classId: analysis, type: 'LEC' }));
+		expect(updateTodo(db, todo.id, { title: 'changed', classId: analysis + 99 })).toEqual(notFound);
+		expect(updateTodo(db, todo.id, { title: 'changed', classId: physics })).toEqual(archived);
+		expect(getTodo(db, todo.id)).toEqual(todo);
+	});
+
+	it('rejects a type outside LEC / EXC / OTH', () => {
+		const { db, uni, analysis } = uniSetup();
+		const invalid = { ok: false, error: 'invalid', field: 'type' };
+		expect(createTodo(db, { title: 'x', aspectId: uni, classId: analysis, type: 'XYZ' as never })).toEqual(invalid);
+		const todo = value(createTodo(db, { title: 'x', aspectId: uni, classId: analysis }));
+		expect(updateTodo(db, todo.id, { type: 'XYZ' as never })).toEqual(invalid);
+	});
+
+	it('Scenario: Revised date is stored only on class todos', () => {
+		const { db, uni, analysis } = uniSetup();
+		const linked = value(createTodo(db, { title: 'a', aspectId: uni, classId: analysis }));
+		const plain = value(createTodo(db, { title: 'b', aspectId: uni }));
+		expect(value(setRevisedAt(db, linked.id, '2026-10-04')).revisedAt).toBe('2026-10-04');
+		expect(setRevisedAt(db, plain.id, '2026-10-04')).toEqual({ ok: false, error: 'invalid', field: 'revisedAt' });
+		expect(getTodo(db, plain.id)).toEqual(plain);
+		expect(value(setRevisedAt(db, linked.id, null)).revisedAt).toBeNull();
+	});
+
+	it('refuses a revised date on an archived class and for a missing todo', () => {
+		const { db, uni, physics } = uniSetup();
+		const id = Number(
+			db
+				.prepare("INSERT INTO todos (title, aspect_id, class_id, type, created_at) VALUES ('p', ?, ?, 'OTH', 't')")
+				.run(uni, physics).lastInsertRowid
+		);
+		expect(setRevisedAt(db, id, '2026-10-04')).toEqual({ ok: false, error: 'archived' });
+		expect(getTodo(db, id)!.revisedAt).toBeNull();
+		expect(setRevisedAt(db, 999, '2026-10-04')).toEqual({ ok: false, error: 'not-found' });
 	});
 });
