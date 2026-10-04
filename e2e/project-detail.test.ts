@@ -301,3 +301,23 @@ test('Scenario: Project without linked todos explains linking', async ({ page, r
 	await expect(page.getByTestId('empty-state')).toContainText('Project field');
 	await expect(page.getByTestId('todo-row')).toHaveCount(0);
 });
+
+test('Scenario: Card opens the project detail', async ({ page, request }) => {
+	const id = await seedProject(
+		request,
+		{ sprint: { state: 'active', weekStart: WEEK }, todos: LINKED },
+		{ status: 'active', notes: 'Some **notes**' }
+	);
+	await page.setViewportSize({ width: 1280, height: 800 });
+	await page.goto('/projects');
+	await page.getByTestId('project-card').filter({ hasText: PROJECT.name }).click();
+
+	await expect(page).toHaveURL(new RegExp(`/projects/${id}$`));
+	await expect(heading(page)).toHaveText(PROJECT.name);
+	await expect(pill(page)).toContainText('Active');
+	await expect(page.getByText(PROJECT.description)).toBeVisible();
+	await expect(page.getByTestId('project-meta')).toContainText('SvelteKit');
+	await expect(page.locator('strong', { hasText: 'notes' })).toBeVisible();
+	await expect(page.getByTestId('project-todos-open').getByTestId('todo-row')).toHaveCount(1);
+	await expect(page.getByRole('link', { name: /rue-asha\/life-manager/ }).first()).toHaveAttribute('target', '_blank');
+});
