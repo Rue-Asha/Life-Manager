@@ -18,7 +18,9 @@ import {
 	deleteSemester,
 	getClass,
 	getUniAspectId,
+	gradeSummary,
 	listClassRefs,
+	listDeadlines,
 	listSemesters,
 	renameSemester,
 	semesterCounts,
@@ -510,5 +512,99 @@ describe('class summaries, todos and rules', () => {
 		rule('Other rule', other);
 		rule('Unlinked', null);
 		expect(classRules(db, cls)).toMatchObject([{ id: review, title: 'Lecture review', classId: cls, type: 'LEC', weekdays: [1, 3] }]);
+	});
+});
+
+describe('grades and deadlines', () => {
+	const base: ClassInput = { name: 'Analysis II', color: 'sky', icon: 'book' };
+
+	it('Scenario: Weighted average matches a hand calculation', () => {
+		const ws = value(createSemester(db, 'WS'));
+		for (const [grade, ects] of [
+			['1.3', '5'],
+			['2.7', '10'],
+			['passed', '5'],
+			['5.0', '5'],
+			['1.0', '']
+		]) {
+			value(createClass(db, ws.id, { ...base, grade, ects }));
+		}
+		value(createClass(db, ws.id, { ...base, ects: '5' }));
+
+		const { active, overall } = listSemesters(db);
+		expect(active[0].grades.average).toBeCloseTo((1.3 * 5 + 2.7 * 10) / 15, 10);
+		expect(active[0].grades.earnedEcts).toBe(20);
+		expect(overall).toEqual(active[0].grades);
+	});
+
+	it('Scenario: Overall figures include archived semesters', () => {
+		const ws = value(createSemester(db, 'WS'));
+		const ss = value(createSemester(db, 'SS'));
+		value(createClass(db, ss.id, { ...base, grade: '1.0', ects: '5' }));
+		value(createClass(db, ws.id, { ...base, grade: '3.0', ects: '5' }));
+		value(archiveSemester(db, ws.id));
+
+		const { active, archived, overall } = listSemesters(db);
+		expect(active[0].grades).toEqual({ average: 1, earnedEcts: 5 });
+		expect(archived[0].grades).toEqual({ average: 3, earnedEcts: 5 });
+		expect(overall).toEqual({ average: 2, earnedEcts: 10 });
+	});
+
+	it('has no average without a counting grade', () => {
+		expect(gradeSummary([])).toEqual({ average: null, earnedEcts: 0 });
+		expect(
+			gradeSummary([
+				{ grade: 'passed', ects: 5 },
+				{ grade: '5.0', ects: 5 },
+				{ grade: '2.0', ects: null },
+				{ grade: null, ects: 5 }
+			])
+		).toEqual({ average: null, earnedEcts: 5 });
+	});
+
+	function dated(classId: Id | null, title: string, status: string, due: string | null, type = 'EXC'): Id {
+		return insert(
+			'INSERT INTO todos (title, aspect_id, status, class_id, type, due_date, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+			title,
+			uni,
+			status,
+			classId,
+			type,
+			due,
+			't'
+		);
+	}
+
+	it('Scenario: Deadlines list todos and exams in date order', () => {
+		const ws = value(createSemester(db, 'WS'));
+		const ana = value(createClass(db, ws.id, { ...base, examAt: '2026-10-08T10:00' })).id;
+		const overdue = dated(ana, 'Sheet 3', 'todo', '2026-10-03');
+		const soon = dated(ana, 'Sheet 4', 'doing', '2026-10-06', 'LEC');
+		dated(ana, 'Undated', 'todo', null);
+		dated(ana, 'Done', 'done', '2026-10-05');
+		dated(null, 'Unlinked', 'todo', '2026-10-05');
+		const old = value(createSemester(db, 'SS'));
+		dated(value(createClass(db, old.id, { ...base, examAt: '2026-10-05' })).id, 'Archived todo', 'todo', '2026-10-05');
+		value(archiveSemester(db, old.id));
+
+		expect(listDeadlines(db, '2026-10-04')).toEqual([
+			{ kind: 'todo', date: '2026-10-03', title: 'Sheet 3', classId: ana, todoId: overdue, type: 'EXC', overdue: true },
+			{ kind: 'todo', date: '2026-10-06', title: 'Sheet 4', classId: ana, todoId: soon, type: 'LEC', overdue: false },
+			{ kind: 'exam', date: '2026-10-08', title: 'Exam', classId: ana, todoId: null, type: null, overdue: false }
+		]);
+	});
+
+	it('lists exams from today on, after todos on the same date', () => {
+		const ws = value(createSemester(db, 'WS'));
+		const late = value(createClass(db, ws.id, { ...base, examAt: '2026-10-04T14:00' })).id;
+		const early = value(createClass(db, ws.id, { ...base, examAt: '2026-10-04T09:00' })).id;
+		value(createClass(db, ws.id, { ...base, examAt: '2026-10-03' }));
+		const t = dated(late, 'Last revision', 'todo', '2026-10-04');
+
+		expect(listDeadlines(db, '2026-10-04').map((d) => [d.kind, d.classId, d.todoId])).toEqual([
+			['todo', late, t],
+			['exam', early, null],
+			['exam', late, null]
+		]);
 	});
 });

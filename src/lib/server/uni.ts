@@ -5,6 +5,7 @@ import type {
 	ClassRef,
 	ClassSummary,
 	ClassTodos,
+	ClassType,
 	Deadline,
 	Grade,
 	GradeSummary,
@@ -20,8 +21,6 @@ import { GRADES } from '$lib/uni';
 import { now } from './clock';
 import { listRules } from './recurring';
 import { selectTodos, transaction } from './sprints';
-
-const notImplemented = { ok: false, error: 'not-implemented' } as const;
 
 export function getUniAspectId(db: DatabaseSync): Id | null {
 	const row = db
@@ -105,8 +104,6 @@ export function todoWritable(db: DatabaseSync, todoId: Id): Result<void> {
 	return archived ? { ok: false, error: 'archived' } : { ok: true, value: undefined };
 }
 
-// Unit 3 fills in the functions below.
-
 const semesterColumns = 'id, name, archived_at AS archivedAt, created_at AS createdAt';
 
 function getSemester(db: DatabaseSync, id: Id): Semester | null {
@@ -131,13 +128,13 @@ export function listSemesters(db: DatabaseSync): { active: SemesterView[]; archi
 		(s): SemesterView => ({
 			...s,
 			classes: classes.filter((c) => c.semesterId === s.id),
-			grades: { average: null, earnedEcts: 0 }
+			grades: gradeSummary(classes.filter((c) => c.semesterId === s.id))
 		})
 	);
 	return {
 		active: views.filter((s) => s.archivedAt === null),
 		archived: views.filter((s) => s.archivedAt !== null),
-		overall: { average: null, earnedEcts: 0 }
+		overall: gradeSummary(classes)
 	};
 }
 
@@ -321,10 +318,49 @@ export function classRules(db: DatabaseSync, id: Id): RecurringRule[] {
 	return listRules(db).filter((r) => r.classId === id);
 }
 
+// 5.0 is a fail and earns nothing; "passed" earns ECTS but has no number to average.
 export function gradeSummary(classes: Pick<UniClass, 'ects' | 'grade'>[]): GradeSummary {
-	return { average: null, earnedEcts: 0 };
+	let earnedEcts = 0;
+	let weighted = 0;
+	let weight = 0;
+	for (const { ects, grade } of classes) {
+		if (ects === null || grade === null || grade === '5.0') continue;
+		earnedEcts += ects;
+		if (grade === 'passed') continue;
+		weighted += Number(grade) * ects;
+		weight += ects;
+	}
+	return { average: weight > 0 ? weighted / weight : null, earnedEcts };
 }
 
 export function listDeadlines(db: DatabaseSync, today: IsoDate): Deadline[] {
-	return [];
+	const todos = db
+		.prepare(
+			`SELECT t.id, t.title, t.due_date AS date, t.class_id AS classId, t.type FROM todos t
+			 JOIN classes c ON c.id = t.class_id JOIN semesters s ON s.id = c.semester_id
+			 WHERE s.archived_at IS NULL AND t.status != 'done' AND t.due_date IS NOT NULL
+			 ORDER BY t.due_date, t.id`
+		)
+		.all() as { id: Id; title: string; date: IsoDate; classId: Id; type: ClassType | null }[];
+	const exams = db
+		.prepare(
+			`SELECT c.id AS classId, substr(c.exam_at, 1, 10) AS date FROM classes c JOIN semesters s ON s.id = c.semester_id
+			 WHERE s.archived_at IS NULL AND c.exam_at IS NOT NULL AND substr(c.exam_at, 1, 10) >= ?
+			 ORDER BY c.exam_at, c.id`
+		)
+		.all(today) as { classId: Id; date: IsoDate }[];
+	const deadlines: Deadline[] = [
+		...todos.map((t): Deadline => ({
+			kind: 'todo',
+			date: t.date,
+			title: t.title,
+			classId: t.classId,
+			todoId: t.id,
+			type: t.type,
+			overdue: t.date < today
+		})),
+		...exams.map((e): Deadline => ({ kind: 'exam', date: e.date, title: 'Exam', classId: e.classId, todoId: null, type: null, overdue: false }))
+	];
+	// Stable sort keeps each list's own order within a date; todos come first.
+	return deadlines.sort((a, b) => a.date.localeCompare(b.date) || (a.kind === b.kind ? 0 : a.kind === 'todo' ? -1 : 1));
 }
