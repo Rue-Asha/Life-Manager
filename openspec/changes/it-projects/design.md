@@ -52,7 +52,7 @@ Technical choices for this change:
   `updateTodo` drop a posted `projectId` unless the (resulting) aspect is the IT aspect; an unknown id is
   `not-found` on `projectId`. Server-side, so the UI cannot get it wrong (S11).
 - **"Open" for counts and the implemented warning = linked and not done**, regardless of sprint. The
-  detail page splits that into Open (no sprint) and Planned (active sprint); Done = status done, ordered
+  detail page splits that into Open (no sprint) and Planned (any sprint, active or planning); Done = status done, ordered
   `completed_at DESC`.
 - **Project names reach `TodoRow` through layout data**, not a join in the todo read models: the layout
   load returns `projects: ProjectRef[]` and `itAspectId`; `TodoRow`, `QuickAdd` and `TodoFields` read
@@ -172,5 +172,5 @@ at `user_version` 2 (no down-migration). Take the usual SQLite file backup befor
 
 ## Open Questions
 
-None blocking. Planning-sprint (draft) todos are neither Open nor Planned per S13; see the planner's
-`additions` for Gate 1.
+None blocking. Planning-sprint (draft) todos count as Planned (a todo assigned to a not-yet-active
+sprint is planned), so the card count, the implemented warning and the detail lists agree.

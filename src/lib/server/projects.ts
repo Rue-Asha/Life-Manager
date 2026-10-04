@@ -103,12 +103,10 @@ export function projectLinkCounts(db: DatabaseSync, id: Id): { linked: number; o
 		.get(id) as { linked: number; open: number };
 }
 
-const ACTIVE_SPRINT = "(SELECT id FROM sprints WHERE state = 'active')";
-
 export function projectTodos(db: DatabaseSync, id: Id): ProjectTodos {
 	return {
 		open: selectTodos(db, "project_id = ? AND status != 'done' AND sprint_id IS NULL", id),
-		planned: selectTodos(db, `project_id = ? AND status != 'done' AND sprint_id = ${ACTIVE_SPRINT}`, id),
+		planned: selectTodos(db, "project_id = ? AND status != 'done' AND sprint_id IS NOT NULL", id),
 		done: selectTodos(db, "project_id = ? AND status = 'done'", id).sort((a, b) =>
 			(b.completedAt ?? '').localeCompare(a.completedAt ?? '')
 		)

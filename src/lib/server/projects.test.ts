@@ -85,6 +85,8 @@ describe('projects', () => {
 				tags: 'svelte, sqlite'
 			})
 		);
+		expect(created.createdAt).toBe(created.updatedAt);
+		expect(created).toMatchObject({ notes: '', status: 'backlog' });
 		value(setProjectNotes(db, created.id, '## Ideas'));
 		const read = getProject(db, created.id)!;
 		expect(read).toMatchObject({
@@ -95,7 +97,7 @@ describe('projects', () => {
 			notes: '## Ideas',
 			status: 'backlog'
 		});
-		expect(created.createdAt).toBe(created.updatedAt);
+		expect(read.createdAt).toBe(created.createdAt);
 		expect(getProject(db, created.id + 1)).toBeNull();
 	});
 
@@ -218,10 +220,9 @@ describe('projects', () => {
 
 		const groups = projectTodos(db, p.id);
 		expect(ids(groups.open)).toEqual([backlog]);
-		expect(ids(groups.planned)).toEqual([planned]);
+		expect(ids(groups.planned)).toEqual([planned, inDraft]);
 		expect(ids(groups.done)).toEqual([later, earlier]);
 		expect(projectLinkCounts(db, p.id)).toEqual({ linked: 5, open: 3 });
 		expect(listProjects(db)[0].openTodos).toBe(3);
-		expect(inDraft).toBeGreaterThan(0);
 	});
 });

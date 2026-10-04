@@ -245,13 +245,13 @@ the count; with no links no dialog is shown. With no aspects at all, `/projects`
 
 ### Requirement: Linked todos on the project
 The detail page SHALL list linked todos in three groups: Open (not in a sprint, not done), Planned (in
-the active sprint, not done) and Done (collapsed by default, newest completion first — the project's
+a sprint, active or still in planning, not done) and Done (collapsed by default, newest completion first — the project's
 history). With no linked todos a short empty state explains how to link one (IT aspect + Project
 field). (S13)
 
 #### Scenario: Linked todos are grouped Open, Planned, Done
-- **WHEN** a project has a backlog todo, a todo in the active sprint, and two done todos completed on different days
-- **THEN** the project's todos come back as Open with the backlog todo, Planned with the sprint todo, and Done with the later completion first
+- **WHEN** a project has a backlog todo, a todo in the active sprint, a todo in a sprint still in planning, and two done todos completed on different days
+- **THEN** the project's todos come back as Open with the backlog todo, Planned with both sprint todos, and Done with the later completion first
 - **proof:** unit
 
 #### Scenario: Done group starts collapsed

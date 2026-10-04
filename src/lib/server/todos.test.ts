@@ -340,7 +340,13 @@ describe('project link', () => {
 		const todo = value(createTodo(db, { title: 'x', aspectId: it, projectId: project }));
 		expect(todo.projectId).toBe(project);
 
-		expect(value(updateTodo(db, todo.id, { aspectId: other })).projectId).toBeNull();
+		const sprint = Number(
+			db.prepare("INSERT INTO sprints (week_start, state, started_at) VALUES ('2026-09-28', 'active', '')").run()
+				.lastInsertRowid
+		);
+		db.prepare("UPDATE todos SET sprint_id = ?, status = 'doing', day = '2026-09-29' WHERE id = ?").run(sprint, todo.id);
+		const moved = value(updateTodo(db, todo.id, { aspectId: other }));
+		expect(moved).toMatchObject({ projectId: null, sprintId: sprint, status: 'doing', day: '2026-09-29' });
 		expect(value(updateTodo(db, todo.id, { aspectId: it })).projectId).toBeNull();
 
 		value(updateTodo(db, todo.id, { projectId: project }));

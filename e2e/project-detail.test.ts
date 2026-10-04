@@ -122,10 +122,21 @@ test('Scenario: Edit metadata on the detail page', async ({ page, request }) => 
 		await expect(meta).toContainText('Node');
 		await expect(meta).toContainText('Vite');
 		await expect(meta).not.toContainText('SvelteKit');
+		await expect(meta.getByText('Node')).toHaveCount(1);
 	};
 	await check();
 	await page.reload();
 	await check();
+
+	await page.goto('/projects');
+	const card = page.getByTestId('project-card');
+	await expect(card).toHaveCount(1);
+	await expect(card).toContainText('Life Manager 2');
+	await expect(card).toContainText('A new description');
+	await expect(card).toContainText('Node');
+	await expect(card).toContainText('Vite');
+	await expect(card).not.toContainText('SvelteKit');
+	await expect(card.getByText('Node')).toHaveCount(1);
 });
 
 test('Scenario: Notes are edited as Markdown and shown rendered', async ({ page, request }) => {
