@@ -1,35 +1,40 @@
-verified-at: 8997fc3
+verified-at: 36b35a5
 
 ## Layer 1 — proof-full
 
-`npm run build` then `npm run proof:full`: green. Unit: 11 files, 145 tests passed. e2e: 255 passed. svelte-check: 0 errors, 0 warnings.
+`npm run build` then `npm run proof:full`: green. Unit: 11 files, 147 tests passed. e2e: 255 passed. svelte-check: 0 errors, 0 warnings.
 
 ```
-  ✓  238 e2e/uni.test.ts:170:1 › Scenario: Phone shows one class card per row (108ms)
-  ✓  239 e2e/uni.test.ts:195:1 › Scenario: Wide desktop class grid fills the content column (162ms)
-  ✓  240 e2e/uni.test.ts:227:1 › Scenario: Card shows the class summary (157ms)
-  ✓  241 e2e/uni.test.ts:270:1 › Scenario: Exam today and past exams (144ms)
-  ✓  242 e2e/uni.test.ts:288:1 › Scenario: Sparse card keeps the row height (159ms)
-  ✓  243 e2e/uni.test.ts:319:1 › Scenario: New semester appears among the active ones (223ms)
-  ✓  244 e2e/uni.test.ts:337:1 › Scenario: Rename a semester (275ms)
+  ✓  233 e2e/uni.test.ts:85:1 › Scenario: Changing the Uni aspect without links needs no confirmation (300ms)
+  ✓  234 e2e/uni.test.ts:103:1 › Scenario: Without aspects Uni leads to creating one (87ms)
+  ✓  235 e2e/uni.test.ts:110:1 › Scenario: Semesters are listed newest first with archived ones collapsed (218ms)
+  ✓  236 e2e/uni.test.ts:148:1 › Scenario: No semesters shows an empty state (118ms)
+  ✓  237 e2e/uni.test.ts:156:1 › Scenario: Semester without classes offers New class (116ms)
+  ✓  238 e2e/uni.test.ts:170:1 › Scenario: Phone shows one class card per row (114ms)
+  ✓  239 e2e/uni.test.ts:195:1 › Scenario: Wide desktop class grid fills the content column (138ms)
+  ✓  240 e2e/uni.test.ts:227:1 › Scenario: Card shows the class summary (131ms)
+  ✓  241 e2e/uni.test.ts:270:1 › Scenario: Exam today and past exams (126ms)
+  ✓  242 e2e/uni.test.ts:288:1 › Scenario: Sparse card keeps the row height (151ms)
+  ✓  243 e2e/uni.test.ts:319:1 › Scenario: New semester appears among the active ones (244ms)
+  ✓  244 e2e/uni.test.ts:337:1 › Scenario: Rename a semester (302ms)
   ✓  245 e2e/uni.test.ts:355:1 › Scenario: Add a class from the semester section (303ms)
-  ✓  246 e2e/uni.test.ts:393:1 › Scenario: Field errors show on the class form (262ms)
-  ✓  247 e2e/uni.test.ts:412:1 › Scenario: Archiving with open todos asks for confirmation (599ms)
-  ✓  248 e2e/uni.test.ts:446:1 › Scenario: Cancelling the archive warning changes nothing (561ms)
-  ✓  249 e2e/uni.test.ts:466:1 › Scenario: Archiving without open todos needs no confirmation (254ms)
-  ✓  250 e2e/uni.test.ts:482:1 › Scenario: Deleting a semester asks for confirmation naming counts (867ms)
-  ✓  251 e2e/uni.test.ts:514:1 › Scenario: Deleting an empty semester uses a plain confirm (489ms)
-  ✓  252 e2e/uni.test.ts:530:1 › Scenario: Grades are shown on the overview (162ms)
-  ✓  253 e2e/uni.test.ts:552:1 › Scenario: No grades shows a dash (150ms)
-  ✓  254 e2e/uni.test.ts:565:1 › Scenario: Deadline overview sits in the rail at 1280 (174ms)
-  ✓  255 e2e/uni.test.ts:603:1 › Scenario: Nothing due shows an empty line (164ms)
+  ✓  246 e2e/uni.test.ts:393:1 › Scenario: Field errors show on the class form (240ms)
+  ✓  247 e2e/uni.test.ts:412:1 › Scenario: Archiving with open todos asks for confirmation (601ms)
+  ✓  248 e2e/uni.test.ts:446:1 › Scenario: Cancelling the archive warning changes nothing (505ms)
+  ✓  249 e2e/uni.test.ts:466:1 › Scenario: Archiving without open todos needs no confirmation (239ms)
+  ✓  250 e2e/uni.test.ts:482:1 › Scenario: Deleting a semester asks for confirmation naming counts (851ms)
+  ✓  251 e2e/uni.test.ts:514:1 › Scenario: Deleting an empty semester uses a plain confirm (492ms)
+  ✓  252 e2e/uni.test.ts:530:1 › Scenario: Grades are shown on the overview (134ms)
+  ✓  253 e2e/uni.test.ts:552:1 › Scenario: No grades shows a dash (127ms)
+  ✓  254 e2e/uni.test.ts:565:1 › Scenario: Deadline overview sits in the rail at 1280 (193ms)
+  ✓  255 e2e/uni.test.ts:603:1 › Scenario: Nothing due shows an empty line (129ms)
 
   255 passed (2.0m)
 ```
 
 ## Layer 2 — spec coverage
 
-101 scenarios: 29 unit ✓, 69 e2e ✓, 3 manual, 0 gaps.
+103 scenarios: 31 unit ✓, 69 e2e ✓, 3 manual, 0 gaps.
 
 | Scenario | proof | Evidence |
 |---|---|---|
@@ -94,6 +99,8 @@ verified-at: 8997fc3
 | Archived semester refuses writes (uni-hub) | unit | `src/lib/server/uni.test.ts` › "Scenario: Archived semester refuses writes" ✓ |
 | Archived class todo edited via todos is rejected (uni-hub) | e2e | `e2e/todo-classes.test.ts` › "Scenario: Archived class todo edited via todos is rejected" ✓ |
 | Deleting a single todo of an archived class is allowed (uni-hub) | e2e | `e2e/todo-classes.test.ts` › "Scenario: Deleting a single todo of an archived class is allowed" ✓ |
+| Archived todos leave the backlog (uni-hub) | unit | `src/lib/server/uni.test.ts` › "Scenario: Archived todos leave the backlog" ✓ |
+| Sprint planning refuses archived class todos (uni-hub) | unit | `src/lib/server/uni.test.ts` › "Scenario: Sprint planning refuses archived class todos" ✓ |
 | Unarchive lifts read-only (uni-hub) | unit | `src/lib/server/uni.test.ts` › "Scenario: Unarchive lifts read-only" ✓ |
 | Deleting a semester asks for confirmation naming counts (uni-hub) | e2e | `e2e/uni.test.ts` › "Scenario: Deleting a semester asks for confirmation naming counts" ✓ |
 | Deleting a semester removes everything belonging to it (uni-hub) | unit | `src/lib/server/uni.test.ts` › "Scenario: Deleting a semester removes everything belonging to it" ✓ |
@@ -144,21 +151,21 @@ verified-at: 8997fc3
 
 ## Diffstat
 
- 121 files changed, 8862 insertions(+), 232 deletions(-)
+ 121 files changed, 8916 insertions(+), 236 deletions(-)
 
 ## Screenshots
 
-- `shots/aspect-page-1280.png`
 - `shots/aspect-page-375.png`
-- `shots/aspects-1280.png`
+- `shots/aspect-page-1280.png`
 - `shots/aspects-375.png`
-- `shots/backlog-1280.png`
+- `shots/aspects-1280.png`
 - `shots/backlog-375.png`
-- `shots/class-detail-1280.png`
+- `shots/backlog-1280.png`
 - `shots/class-detail-375.png`
+- `shots/class-detail-1280.png`
 - `shots/journey-backlog-1280.png`
-- `shots/journey-manage-aspect-1280.png`
 - `shots/journey-manage-aspect-375.png`
+- `shots/journey-manage-aspect-1280.png`
 - `shots/journey-manage-week-1280.png`
 - `shots/journey-next-week-1280.png`
 - `shots/journey-plan-1280.png`
@@ -169,27 +176,27 @@ verified-at: 8997fc3
 - `shots/journey-sprint-week-1280.png`
 - `shots/journey-today-1280.png`
 - `shots/journey-welcome-1280.png`
-- `shots/plan-1280.png`
 - `shots/plan-375.png`
-- `shots/project-detail-1280.png`
+- `shots/plan-1280.png`
 - `shots/project-detail-375.png`
-- `shots/projects-1280.png`
+- `shots/project-detail-1280.png`
 - `shots/projects-375.png`
-- `shots/recurring-1280.png`
+- `shots/projects-1280.png`
 - `shots/recurring-375.png`
-- `shots/review-1280.png`
+- `shots/recurring-1280.png`
 - `shots/review-375.png`
-- `shots/sprint-aspect-1280.png`
+- `shots/review-1280.png`
 - `shots/sprint-aspect-375.png`
-- `shots/sprint-board-1280.png`
+- `shots/sprint-aspect-1280.png`
 - `shots/sprint-board-375.png`
+- `shots/sprint-board-1280.png`
 - `shots/sprint-manage-375.png`
 - `shots/sprint-overlay-rail-1100.png`
-- `shots/sprint-week-1280.png`
 - `shots/sprint-week-375.png`
-- `shots/today-1280.png`
+- `shots/sprint-week-1280.png`
 - `shots/today-375.png`
-- `shots/uni-1280.png`
+- `shots/today-1280.png`
 - `shots/uni-375.png`
-- `shots/welcome-1280.png`
+- `shots/uni-1280.png`
 - `shots/welcome-375.png`
+- `shots/welcome-1280.png`
