@@ -9,6 +9,22 @@ describe('markdown', () => {
 		expect(out).toContain('&lt;img src=x onerror=alert(1)&gt;');
 	});
 
+	it('Scenario: Script-scheme link and image URLs are inert', () => {
+		for (const src of [
+			'[x](javascript:alert(1))',
+			'[x](JaVaScRiPt:alert(1))',
+			'[x](<java\tscript:alert(1)>)',
+			'[x](data:text/html,<b>)',
+			'![x](data:image/svg+xml,<svg>)',
+			'[x][r]\n\n[r]: javascript:alert(1)'
+		]) {
+			expect(renderMarkdown(src), src).not.toMatch(/javascript:|data:/i);
+		}
+		expect(renderMarkdown('[a](https://example.com) [b](/projects/1) [c](mailto:a@b.de)')).toMatch(
+			/href="https:\/\/example.com".*href="\/projects\/1".*href="mailto:a@b.de"/
+		);
+	});
+
 	it('renders headings, bold and lists', () => {
 		const out = renderMarkdown('## Ideas\n\n- **dark mode**');
 		expect(out).toContain('<h2>Ideas</h2>');
