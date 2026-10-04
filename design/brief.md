@@ -319,6 +319,36 @@ animation, no new durations. Mobbin shows Linear's project status taxonomy, not 
   Todoist Today with a project label per task, https://mobbin.com/screens/7ff218cf-1ddd-47ee-9123-72535e5f9283
 - **Navigation entry:** see section 6.
 
+## 11. Uni (uni-hub S18)
+
+### Mobbin research (uni-hub 2.1)
+
+Searched with `search_screens` (web and iOS) for semester sections with an archive group, course cards
+with countdown and grade, deadline lists, grade summaries, a revised marker, a type chip in a quick-add
+and a muted class badge. Every app name below was checked on the returned screen. Mobbin has no
+university-specific planner (Saturn Calendar is the only one, and it is a school timetable), so most
+patterns come from course platforms (Brilliant, Coursera), planners (Motion, Todoist, ClickUp) and
+grouped data views (Mercury, Airtable).
+
+- Brilliant course sections with a collapsed "Archived courses" row, https://mobbin.com/screens/4c4267e5-11b9-42e4-8d5d-85f31a207901
+- Saturn Calendar "My Classes": icon, class name, teacher line, https://mobbin.com/screens/e9572bcf-347b-4fd3-8680-eda6f59cb547
+- Eventbrite "Your event is in 39 days!" next to a date tile, https://mobbin.com/screens/899b1cf7-679b-44ba-9bd0-d9db9852a4ed
+- Coursera course timeline in the right column, "Your next two deadlines · Due in 11 days", https://mobbin.com/screens/b7931f44-6fa5-4920-b892-c9bd340e496a
+- Coursera iOS grades list, weight and grade right-aligned per row, https://mobbin.com/screens/58a40a06-8525-46ec-aeb2-d67f838ea306
+- Motion right panel of upcoming tasks by date, https://mobbin.com/screens/4ef5e33f-7a9e-4b62-a46a-1a56b3a4e08d
+- Todoist iOS "Overdue" group with dates in red, https://mobbin.com/screens/e3664e12-9fd4-4240-aca2-522f44003b9e
+- Mercury group headers with count and totals on the right, https://mobbin.com/screens/ee50b360-f122-40cf-8e96-61567d032bc0
+- Airtable group headers with an "Avg" figure, https://mobbin.com/screens/7612f4c4-4104-4dbc-8e5f-579dde687f2b
+- Handshake "Cumulative GPA: 4.00" as plain text, https://mobbin.com/screens/ed0b9a14-3ce0-4f05-886f-c602e4e0b6b6
+- Charma muted "Completed Oct 23, 2023" under each row, https://mobbin.com/screens/07096715-f6a3-4493-b5ac-8ac6bda166e1
+- ClickUp relative dates ("4 days ago") in a task list, https://mobbin.com/screens/27113b60-6baf-4b1e-bd2c-3deebad34c58
+- ClickUp create-task card: list chip plus a "Task" type chip above the title, https://mobbin.com/screens/f04da4a2-805f-49b3-b5c2-16f36799522e
+- Todoist web quick-add with chip row and project select, https://mobbin.com/screens/97edbdf7-2860-4176-9cb8-946b6d886b2a
+- Todoist web row with a label under the title, https://mobbin.com/screens/9172d8f0-f57b-4778-ab12-10efefe80c2c
+- ClickUp iOS "In Personal List · Today 9:00 PM" meta under the title, https://mobbin.com/screens/ecb1790e-e9b8-494c-8022-224b41476d34
+- Reused from section 10: Linear properties rail (ead350e6), Linear Mobile pill cluster (f8e3aa03),
+  Things 3 home list (70077bc2), Things 3 Today with project names (edf4fbc7).
+
 ## Hand-off notes for feature units
 
 - Components reference tokens only. Aspect colour comes from `ASPECT_COLORS[color].fg` / `.tint`,
