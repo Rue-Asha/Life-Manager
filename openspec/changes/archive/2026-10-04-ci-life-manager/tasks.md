@@ -20,7 +20,7 @@
 
 - [x] 3.1 Add `.github/workflows/ci.yml`: Node 22 (comment → Homelab `ansible/roles/nodejs/defaults/main.yml`), Playwright browsers, `npm ci`, `proof:full`, `package`, checksum, unpack, artifact e2e, upload artifact; `security-baseline` job calling `Rue-Asha/ci@<sha> # v1.0.0` (needs `ci-homelab` group 2)
 - [x] 3.2 Add `.github/dependabot.yml` for `github-actions` (and `npm`, weekly)
-- [ ] 3.3 Ask first: push a branch and open a PR; confirm `ci` and baseline checks green and the artifact is downloadable
+- [x] 3.3 Ask first: push a branch and open a PR; confirm `ci` and baseline checks green and the artifact is downloadable
 
 ## 4. Release workflow
 
@@ -28,13 +28,13 @@
 
 - [x] 4.1 Add `.github/workflows/release.yml` on `push: tags: ['v*']`: tag/version check, the CI steps, `gh release create` with tarball + `.sha256`, `actions/attest-build-provenance`; write permissions on the publish job only
 - [x] 4.2 Set `package.json` `version` to `0.1.0`
-- [ ] 4.3 ⚠ irreversible — publish: after merge, push tag `v0.1.0`; verify the Release assets, `sha256sum -c`, and `gh attestation verify`
+- [x] 4.3 ⚠ irreversible — publish: after merge, push tag `v0.1.0`; verify the Release assets, `sha256sum -c`, and `gh attestation verify`
 - [ ] 4.4 ⚠ irreversible — publish: push a mismatched tag, confirm no Release is created, delete the tag
 
 ## 5. Enforce and document
 
 > unit: depends=4 · files=CLAUDE.md, README.md
 
-- [ ] 5.1 Ask first: create a `main` ruleset requiring `ci` and the baseline checks
+- [x] 5.1 Ask first: create a `main` ruleset requiring `ci` and the baseline checks
 - [x] 5.2 Add the `package` command under `## Harness` and the new specs under `## Specs` in CLAUDE.md
-- [ ] 5.3 Run `update-docs` (README: how to cut a release)
+- [x] 5.3 Run `update-docs` (README: how to cut a release)

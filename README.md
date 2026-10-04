@@ -25,9 +25,37 @@ The first visit asks for your aspects; the database starts empty.
 | `npm run check` | Typecheck (svelte-check) |
 | `npm run proof` | `check`, `build` and the unit tests (Vitest) |
 | `npm run proof:full` | `proof`, then the Playwright e2e suite against `node build` |
+| `npm run package` | `build`, then the release tarball `dist/life-manager-<version>.tgz` and its `.sha256` |
 
 `proof:full` starts the build on `$PORT` (default 4173) with a throwaway database under `.e2e/`;
 the runtime tests start their own servers on `$PORT + 1000`. Set `PORT` if those ports are taken.
+Set `E2E_APP_DIR` to an unpacked release tarball to run the same e2e suite against it instead of
+the working tree's `build/`; CI does this on every PR.
+
+## Releases
+
+Each [GitHub Release](https://github.com/Rue-Asha/Life-Manager/releases) carries
+`life-manager-<version>.tgz`: `build/`, `package.json` and the production `node_modules`, so it
+runs with Node alone, no install or build step. Check it before unpacking:
+
+```sh
+sha256sum -c life-manager-<version>.tgz.sha256
+gh attestation verify life-manager-<version>.tgz --repo Rue-Asha/Life-Manager
+tar -xzf life-manager-<version>.tgz && cd life-manager-<version>
+```
+
+Then start it as in [Running the build](#running-the-build), skipping `npm run build`.
+
+To cut a release, bump `version` in `package.json` (and `package-lock.json` via
+`npm install --package-lock-only`), merge that to `main`, then tag the merge commit:
+
+```sh
+git tag -a v<version> -m v<version> && git push origin v<version>
+```
+
+The release workflow refuses a tag that doesn't match `package.json`, reruns the full CI gate on
+the tag, and publishes the tarball that gate tested, with its checksum and a build-provenance
+attestation.
 
 ## Running the build
 
