@@ -1,12 +1,12 @@
-verified-at: 43b36b0
+verified-at: 5a01d7b
 
 ## Layer 1: proof-full (green, exit 0)
 ```
-Test Files  10 passed (10) / Tests  98 passed (98) [unit]
+Test Files  10 passed (10) / Tests  99 passed (99) [unit]
   ✓  195 e2e/todos.test.ts:163:1 › Scenario: Deleting a todo asks for confirmation (1.8s)
   ✓  196 e2e/todos.test.ts:184:1 › Editing on phone uses a sheet (699ms)
 
-  196 passed (2.3m)
+  196 passed (2.1m)
 ```
 
 ## Layer 2: spec coverage
@@ -104,7 +104,7 @@ Gaps: none
  e2e/layout.test.ts                                 |  22 +-
  e2e/motion.test.ts                                 |  24 +
  e2e/navigation.test.ts                             |  69 ++-
- e2e/project-detail.test.ts                         | 323 +++++++++++
+ e2e/project-detail.test.ts                         | 334 +++++++++++
  e2e/project-journey.test.ts                        |  66 +++
  e2e/projects.test.ts                               | 230 ++++++++
  e2e/responsive.test.ts                             |  38 +-
@@ -114,11 +114,16 @@ Gaps: none
  openspec/changes/it-projects/flow.yaml             |   9 +
  openspec/changes/it-projects/proposal.md           |  70 +++
  openspec/changes/it-projects/scope.md              | 136 +++++
+ .../it-projects/shots/project-detail-1280.png      | Bin 0 -> 105815 bytes
+ .../it-projects/shots/project-detail-375.png       | Bin 0 -> 68752 bytes
+ .../changes/it-projects/shots/projects-1280.png    | Bin 0 -> 60934 bytes
+ .../changes/it-projects/shots/projects-375.png     | Bin 0 -> 35751 bytes
  .../it-projects/specs/design-direction/spec.md     |  25 +
  .../changes/it-projects/specs/it-projects/spec.md  | 279 +++++++++
  .../changes/it-projects/specs/navigation/spec.md   |  91 +++
  openspec/changes/it-projects/specs/todos/spec.md   |  72 +++
  openspec/changes/it-projects/tasks.md              |  66 +++
+ openspec/changes/it-projects/verification.md       | 169 ++++++
  package-lock.json                                  |  15 +
  package.json                                       |   3 +
  src/lib/components/projects/ItAspectPrompt.svelte  | 150 +++++
@@ -136,18 +141,18 @@ Gaps: none
  src/lib/components/todo/TodoFields.svelte          |  37 +-
  src/lib/components/todo/TodoRow.svelte             |  22 +-
  src/lib/components/ui/icons.ts                     |   4 +
- src/lib/markdown.test.ts                           |  21 +
- src/lib/markdown.ts                                |  11 +
+ src/lib/markdown.test.ts                           |  37 ++
+ src/lib/markdown.ts                                |  19 +
  src/lib/projects.ts                                |  22 +
  src/lib/server/aspects.test.ts                     |  24 +
  src/lib/server/aspects.ts                          |   4 +-
  src/lib/server/db.test.ts                          |  42 ++
  src/lib/server/db.ts                               |   2 +
- src/lib/server/projects.test.ts                    | 227 ++++++++
- src/lib/server/projects.ts                         | 154 +++++
+ src/lib/server/projects.test.ts                    | 228 ++++++++
+ src/lib/server/projects.ts                         | 152 +++++
  src/lib/server/schema.ts                           |  20 +
  src/lib/server/sprints.ts                          |   1 +
- src/lib/server/todos.test.ts                       |  67 +++
+ src/lib/server/todos.test.ts                       |  73 +++
  src/lib/server/todos.ts                            |  33 +-
  src/lib/types.ts                                   |  41 ++
  src/routes/+layout.server.ts                       |   6 +-
@@ -158,7 +163,7 @@ Gaps: none
  src/routes/projects/[id]/+page.server.ts           |  68 +++
  src/routes/projects/[id]/+page.svelte              | 239 ++++++++
  src/routes/todos/+page.server.ts                   |   5 +-
- 63 files changed, 5081 insertions(+), 42 deletions(-)
+ 68 files changed, 5290 insertions(+), 42 deletions(-)
 ```
 
 ## Screenshots
