@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onDestroy, tick } from 'svelte';
+	import { onDestroy, tick, type Snippet } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { beforeNavigate, invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
@@ -23,7 +23,8 @@
 		today,
 		context,
 		sprintDays,
-		mixed = false
+		mixed = false,
+		extra
 	}: {
 		todo: Todo;
 		aspect: Aspect;
@@ -31,6 +32,8 @@
 		context: 'backlog' | 'sprint' | 'today' | 'planning';
 		sprintDays?: IsoDate[];
 		mixed?: boolean;
+		// Takes the class badge's place: the class detail page passes it and already names the class.
+		extra?: Snippet<[Todo]>;
 	} = $props();
 
 	// Ticking a backlog or draft todo done would strand it there: done belongs to a running sprint.
@@ -165,7 +168,7 @@
 				{#if mixed}
 					<span><i class="dot"></i>{aspect.name}</span>
 				{/if}
-				{#if classRef}<ClassBadge {classRef} type={todo.type} />{/if}
+				{#if extra}{@render extra(todo)}{:else if classRef}<ClassBadge {classRef} type={todo.type} />{/if}
 				{#if context === 'sprint'}
 					<StatusControl todoId={todo.id} status={todo.status} />
 					{#if sprintDays}<DayPicker todoId={todo.id} day={todo.day} {sprintDays} />{/if}

@@ -1,10 +1,30 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import { page } from '$app/state';
-	import type { Aspect, IsoDate, ProjectTodos } from '$lib/types';
+	import type { Aspect, IsoDate, ProjectTodos, Todo } from '$lib/types';
 	import TodoRow from '../todo/TodoRow.svelte';
 	import { GLYPHS } from './glyphs';
 
-	let { todos, today, sprintDays }: { todos: ProjectTodos; today: IsoDate; sprintDays?: IsoDate[] } = $props();
+	// `top` sits between the heading and the groups (the class page's quick add); `extra` joins each row's meta line.
+	let {
+		todos,
+		today,
+		sprintDays,
+		title = 'Linked todos',
+		testidPrefix = 'project-todos',
+		emptyText = 'No linked todos yet. Choose the IT aspect on a todo, then pick this project in the Project field.',
+		top,
+		extra
+	}: {
+		todos: ProjectTodos;
+		today: IsoDate;
+		sprintDays?: IsoDate[];
+		title?: string;
+		testidPrefix?: string;
+		emptyText?: string;
+		top?: Snippet;
+		extra?: Snippet<[Todo]>;
+	} = $props();
 
 	const aspects = $derived(page.data.aspects as Aspect[]);
 	const aspectOf = (aspectId: number) => aspects.find((a) => a.id === aspectId) ?? aspects[0];
@@ -15,21 +35,20 @@
 </script>
 
 <section aria-labelledby="{uid}-h">
-	<h2 id="{uid}-h">Linked todos</h2>
+	<h2 id="{uid}-h">{title}</h2>
+	{@render top?.()}
 
 	{#if total === 0}
-		<p class="empty" data-testid="empty-state">
-			No linked todos yet. Choose the IT aspect on a todo, then pick this project in the Project field.
-		</p>
+		<p class="empty" data-testid="empty-state">{emptyText}</p>
 	{/if}
 
 	{#each [{ key: 'open', label: 'Open', context: 'backlog', list: todos.open }, { key: 'planned', label: 'Planned', context: 'sprint', list: todos.planned }] as const as group (group.key)}
 		{#if group.list.length}
-			<div class="group" data-testid="project-todos-{group.key}">
+			<div class="group" data-testid="{testidPrefix}-{group.key}">
 				<h3>{group.label}<span class="count num">{group.list.length}</span></h3>
 				<ul>
 					{#each group.list as todo (todo.id)}
-						<TodoRow {todo} aspect={aspectOf(todo.aspectId)} {today} context={group.context} {sprintDays} />
+						<TodoRow {todo} aspect={aspectOf(todo.aspectId)} {today} context={group.context} {sprintDays} {extra} />
 					{/each}
 				</ul>
 			</div>
@@ -37,7 +56,7 @@
 	{/each}
 
 	{#if todos.done.length}
-		<div class="group" data-testid="project-todos-done">
+		<div class="group" data-testid="{testidPrefix}-done">
 			<h3>
 				<button type="button" aria-expanded={showDone} onclick={() => (showDone = !showDone)}>
 					<svg class="chev" class:open={showDone} viewBox="0 0 24 24" aria-hidden="true"><path d={GLYPHS['chevron-right']} /></svg>
@@ -47,7 +66,7 @@
 			{#if showDone}
 				<ul>
 					{#each todos.done as todo (todo.id)}
-						<TodoRow {todo} aspect={aspectOf(todo.aspectId)} {today} context="sprint" {sprintDays} />
+						<TodoRow {todo} aspect={aspectOf(todo.aspectId)} {today} context="sprint" {sprintDays} {extra} />
 					{/each}
 				</ul>
 			{/if}
