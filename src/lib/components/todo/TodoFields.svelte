@@ -2,7 +2,8 @@
 	import type { Snippet } from 'svelte';
 	import { ASPECT_COLORS } from '$lib/aspect-style';
 	import { page } from '$app/state';
-	import type { Aspect, Id, IsoDate, Priority, ProjectRef } from '$lib/types';
+	import type { Aspect, ClassRef, ClassType, Id, IsoDate, Priority, ProjectRef } from '$lib/types';
+	import { CLASS_TYPES, TYPE_LABELS } from '$lib/uni';
 	import AspectIcon from '../ui/AspectIcon.svelte';
 	import { UI_ICONS } from '../ui/icons';
 	import { dateLabel } from './format';
@@ -15,8 +16,11 @@
 		priority = $bindable(),
 		dueDate = $bindable(),
 		projectId = $bindable(''),
+		classId = $bindable(''),
+		type = $bindable('OTH'),
 		linkedId = null,
 		clearProject = false,
+		clearClass = false,
 		children
 	}: {
 		aspects: Aspect[];
@@ -24,8 +28,11 @@
 		priority: Priority;
 		dueDate: IsoDate | '';
 		projectId?: Id | '';
+		classId?: Id | '';
+		type?: ClassType;
 		linkedId?: Id | null;
 		clearProject?: boolean;
+		clearClass?: boolean;
 		children?: Snippet;
 	} = $props();
 
@@ -37,6 +44,11 @@
 	);
 	const projectShown = $derived(aspectId === (page.data.itAspectId ?? null) && projects.length > 0);
 	const project = $derived(projects.find((p) => p.id === projectId));
+
+	const classes = $derived(((page.data.classes as ClassRef[] | undefined) ?? []).filter((c) => !c.archived));
+	const classShown = $derived(aspectId === (page.data.uniAspectId ?? null) && classes.length > 0);
+	const cls = $derived(classes.find((c) => c.id === classId));
+	const typeShown = $derived(classShown && cls !== undefined);
 </script>
 
 <div class="chips">
@@ -48,6 +60,32 @@
 			{/each}
 		</select>
 	</label>
+
+	{#if classShown}
+		<label class="chip" data-testid="class-field">
+			{#if cls}<AspectIcon icon={cls.icon} color={cls.color} size="sm" />{/if}
+			<span class="label">{cls?.name ?? 'No class'}</span>
+			<select name="classId" bind:value={classId} aria-label="Class">
+				<option value="">No class</option>
+				{#each classes as c (c.id)}
+					<option value={c.id}>{c.name}</option>
+				{/each}
+			</select>
+		</label>
+	{:else if clearClass}
+		<input type="hidden" name="classId" value="" />
+	{/if}
+
+	{#if typeShown}
+		<span class="seg" role="group" aria-label="Type" data-testid="type-field">
+			{#each CLASS_TYPES as t (t)}
+				<button type="button" aria-pressed={type === t} title={TYPE_LABELS[t]} onclick={() => (type = t)}>{t}</button>
+			{/each}
+		</span>
+		<input type="hidden" name="type" value={type} />
+	{:else if clearClass}
+		<input type="hidden" name="type" value="" />
+	{/if}
 
 	<label class="chip" class:pressed={priority}>
 		<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.flag} /></svg>
@@ -146,6 +184,34 @@
 		/* 16px keeps iOS from zooming in when the native picker opens. */
 		font-size: 16px;
 		cursor: pointer;
+	}
+
+	.seg {
+		display: inline-flex;
+		height: 30px;
+		border: 1px solid var(--line-strong);
+		border-radius: var(--radius-sm);
+		overflow: hidden;
+	}
+
+	.seg button {
+		padding: 0 var(--space-3);
+		border: 0;
+		background: var(--paper);
+		color: var(--ink-2);
+		font-size: var(--text-xs);
+		font-weight: var(--weight-semibold);
+		letter-spacing: 0.04em;
+		cursor: pointer;
+	}
+
+	.seg button + button {
+		border-left: 1px solid var(--line-strong);
+	}
+
+	.seg button[aria-pressed='true'] {
+		background: var(--ink);
+		color: var(--paper);
 	}
 
 	.label {

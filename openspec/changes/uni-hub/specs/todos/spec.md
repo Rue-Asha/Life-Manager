@@ -1,8 +1,9 @@
 ## ADDED Requirements
 
 ### Requirement: Link Uni todos to a class
-QuickAdd and the todo editor SHALL show an optional "Class" select and a Type chip (LEC / EXC / OTH, default
-OTH) only while the selected aspect is the Uni aspect. The select lists the classes of active semesters.
+QuickAdd and the todo editor SHALL show an optional "Class" select only while the selected aspect is the Uni
+aspect, and a Type chip (LEC / EXC / OTH, default OTH) only once a class is picked; with a preset class (class
+detail) the Type chip is shown immediately. The select lists the classes of active semesters.
 With no Uni aspect set or no classes in active semesters the fields are hidden. Switching the aspect away
 from the Uni aspect in the form hides them and submits no class or type. A type is only stored on a
 class-linked todo. (uni-hub S11)
@@ -14,7 +15,7 @@ class-linked todo. (uni-hub S11)
 
 #### Scenario: Class field appears only for the Uni aspect
 - **WHEN** Rue opens quick add and the todo editor with a non-Uni aspect selected, then selects the Uni aspect
-- **THEN** the Class select and Type chip are hidden first and shown after selecting the Uni aspect
+- **THEN** the Class select is hidden first and shown after selecting the Uni aspect, and the Type chip is shown only after a class is picked
 - **proof:** e2e
 
 #### Scenario: Class field lists classes of active semesters

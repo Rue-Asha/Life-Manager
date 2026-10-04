@@ -6,7 +6,8 @@
 	import { MediaQuery } from 'svelte/reactivity';
 	import { ASPECT_COLORS } from '$lib/aspect-style';
 	import { isOverdue } from '$lib/todo-utils';
-	import type { Aspect, IsoDate, ProjectRef, Todo } from '$lib/types';
+	import type { Aspect, ClassRef, IsoDate, ProjectRef, Todo } from '$lib/types';
+	import ClassBadge from '../uni/ClassBadge.svelte';
 	import { UI_ICONS } from '../ui/icons';
 	import Button from '../ui/Button.svelte';
 	import Toast from '../ui/Toast.svelte';
@@ -42,6 +43,9 @@
 	const aspects = $derived((page.data.aspects as Aspect[] | undefined) ?? [aspect]);
 	const project = $derived(
 		todo.projectId === null ? undefined : (page.data.projects as ProjectRef[] | undefined)?.find((p) => p.id === todo.projectId)
+	);
+	const classRef = $derived(
+		todo.classId === null ? undefined : (page.data.classes as ClassRef[] | undefined)?.find((c) => c.id === todo.classId)
 	);
 	const desktop = new MediaQuery('min-width: 768px');
 	let editing = $state(false);
@@ -161,6 +165,7 @@
 				{#if mixed}
 					<span><i class="dot"></i>{aspect.name}</span>
 				{/if}
+				{#if classRef}<ClassBadge {classRef} type={todo.type} />{/if}
 				{#if context === 'sprint'}
 					<StatusControl todoId={todo.id} status={todo.status} />
 					{#if sprintDays}<DayPicker todoId={todo.id} day={todo.day} {sprintDays} />{/if}
