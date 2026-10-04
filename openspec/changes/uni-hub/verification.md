@@ -1,35 +1,35 @@
-verified-at: bc3ee17
+verified-at: 2e5062e
 
 ## Layer 1 — proof-full
 
-`npm run build` then `npm run proof:full`: green. Unit: 11 files, 145 tests passed. e2e: 252 passed.
+`npm run build` then `npm run proof:full`: green. Unit: 11 files, 145 tests passed. e2e: 254 passed.
 
 ```
-  ✓  235 e2e/uni.test.ts:170:1 › Scenario: Phone shows one class card per row (154ms)
-  ✓  236 e2e/uni.test.ts:195:1 › Scenario: Wide desktop class grid fills the content column (198ms)
-  ✓  237 e2e/uni.test.ts:227:1 › Scenario: Card shows the class summary (189ms)
-  ✓  238 e2e/uni.test.ts:270:1 › Scenario: Exam today and past exams (183ms)
-  ✓  239 e2e/uni.test.ts:288:1 › Scenario: Sparse card keeps the row height (229ms)
-  ✓  240 e2e/uni.test.ts:319:1 › Scenario: New semester appears among the active ones (262ms)
-  ✓  241 e2e/uni.test.ts:337:1 › Scenario: Rename a semester (320ms)
-  ✓  242 e2e/uni.test.ts:355:1 › Scenario: Add a class from the semester section (410ms)
-  ✓  243 e2e/uni.test.ts:393:1 › Scenario: Field errors show on the class form (333ms)
-  ✓  244 e2e/uni.test.ts:417:1 › Scenario: Archiving with open todos asks for confirmation (618ms)
-  ✓  245 e2e/uni.test.ts:451:1 › Scenario: Cancelling the archive warning changes nothing (533ms)
-  ✓  246 e2e/uni.test.ts:471:1 › Scenario: Archiving without open todos needs no confirmation (309ms)
-  ✓  247 e2e/uni.test.ts:487:1 › Scenario: Deleting a semester asks for confirmation naming counts (852ms)
-  ✓  248 e2e/uni.test.ts:519:1 › Scenario: Deleting an empty semester uses a plain confirm (491ms)
-  ✓  249 e2e/uni.test.ts:535:1 › Scenario: Grades are shown on the overview (172ms)
-  ✓  250 e2e/uni.test.ts:557:1 › Scenario: No grades shows a dash (154ms)
-  ✓  251 e2e/uni.test.ts:570:1 › Scenario: Deadline overview sits in the rail at 1280 (198ms)
-  ✓  252 e2e/uni.test.ts:608:1 › Scenario: Nothing due shows an empty line (147ms)
+  ✓  237 e2e/uni.test.ts:170:1 › Scenario: Phone shows one class card per row (130ms)
+  ✓  238 e2e/uni.test.ts:195:1 › Scenario: Wide desktop class grid fills the content column (153ms)
+  ✓  239 e2e/uni.test.ts:227:1 › Scenario: Card shows the class summary (162ms)
+  ✓  240 e2e/uni.test.ts:270:1 › Scenario: Exam today and past exams (147ms)
+  ✓  241 e2e/uni.test.ts:288:1 › Scenario: Sparse card keeps the row height (164ms)
+  ✓  242 e2e/uni.test.ts:319:1 › Scenario: New semester appears among the active ones (276ms)
+  ✓  243 e2e/uni.test.ts:337:1 › Scenario: Rename a semester (286ms)
+  ✓  244 e2e/uni.test.ts:355:1 › Scenario: Add a class from the semester section (306ms)
+  ✓  245 e2e/uni.test.ts:393:1 › Scenario: Field errors show on the class form (247ms)
+  ✓  246 e2e/uni.test.ts:412:1 › Scenario: Archiving with open todos asks for confirmation (595ms)
+  ✓  247 e2e/uni.test.ts:446:1 › Scenario: Cancelling the archive warning changes nothing (493ms)
+  ✓  248 e2e/uni.test.ts:466:1 › Scenario: Archiving without open todos needs no confirmation (254ms)
+  ✓  249 e2e/uni.test.ts:482:1 › Scenario: Deleting a semester asks for confirmation naming counts (869ms)
+  ✓  250 e2e/uni.test.ts:514:1 › Scenario: Deleting an empty semester uses a plain confirm (494ms)
+  ✓  251 e2e/uni.test.ts:530:1 › Scenario: Grades are shown on the overview (148ms)
+  ✓  252 e2e/uni.test.ts:552:1 › Scenario: No grades shows a dash (149ms)
+  ✓  253 e2e/uni.test.ts:565:1 › Scenario: Deadline overview sits in the rail at 1280 (218ms)
+  ✓  254 e2e/uni.test.ts:603:1 › Scenario: Nothing due shows an empty line (126ms)
 
-  252 passed (2.0m)
+  254 passed (2.0m)
 ```
 
 ## Layer 2 — spec coverage
 
-98 scenarios: 29 unit ✓, 66 e2e ✓, 3 manual, 0 gaps.
+100 scenarios: 29 unit ✓, 68 e2e ✓, 3 manual, 0 gaps.
 
 | Scenario | proof | Evidence |
 |---|---|---|
@@ -55,6 +55,7 @@ verified-at: bc3ee17
 | Rule leaving the Uni aspect loses its class (recurring) | unit | `src/lib/server/recurring.test.ts` › "Scenario: Rule leaving the Uni aspect loses its class" ✓ |
 | Rules of archived classes generate nothing (recurring) | unit | `src/lib/server/recurring.test.ts` › "Scenario: Rules of archived classes generate nothing" ✓ |
 | Rule with an unknown or archived class is rejected (recurring) | unit | `src/lib/server/recurring.test.ts` › "Scenario: Rule with an unknown or archived class is rejected" ✓ |
+| Editing a rule of an archived class keeps its class (recurring) | e2e | `e2e/recurring-classes.test.ts` › "Scenario: Editing a rule of an archived class keeps its class" ✓ |
 | Quick add links a todo to a class (todos) | e2e | `e2e/todo-classes.test.ts` › "Scenario: Quick add links a todo to a class" ✓ |
 | Class field appears only for the Uni aspect (todos) | e2e | `e2e/todo-classes.test.ts` › "Scenario: Class field appears only for the Uni aspect" ✓ |
 | Class field lists classes of active semesters (todos) | e2e | `e2e/todo-classes.test.ts` › "Scenario: Class field lists classes of active semesters" ✓ |
@@ -91,6 +92,7 @@ verified-at: bc3ee17
 | Archiving completes open todos (uni-hub) | unit | `src/lib/server/uni.test.ts` › "Scenario: Archiving completes open todos" ✓ |
 | Archived semester refuses writes (uni-hub) | unit | `src/lib/server/uni.test.ts` › "Scenario: Archived semester refuses writes" ✓ |
 | Archived class todo edited via todos is rejected (uni-hub) | e2e | `e2e/todo-classes.test.ts` › "Scenario: Archived class todo edited via todos is rejected" ✓ |
+| Deleting a single todo of an archived class is allowed (uni-hub) | e2e | `e2e/todo-classes.test.ts` › "Scenario: Deleting a single todo of an archived class is allowed" ✓ |
 | Unarchive lifts read-only (uni-hub) | unit | `src/lib/server/uni.test.ts` › "Scenario: Unarchive lifts read-only" ✓ |
 | Deleting a semester asks for confirmation naming counts (uni-hub) | e2e | `e2e/uni.test.ts` › "Scenario: Deleting a semester asks for confirmation naming counts" ✓ |
 | Deleting a semester removes everything belonging to it (uni-hub) | unit | `src/lib/server/uni.test.ts` › "Scenario: Deleting a semester removes everything belonging to it" ✓ |
@@ -141,7 +143,7 @@ verified-at: bc3ee17
 
 ## Diffstat
 
- 75 files changed, 8540 insertions(+), 223 deletions(-)
+ 121 files changed, 8841 insertions(+), 232 deletions(-)
 
 ## Screenshots
 
