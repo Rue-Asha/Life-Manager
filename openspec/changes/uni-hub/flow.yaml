@@ -2,6 +2,7 @@ triage: "feature — new tables + migration 4, new module UI, todo/recurring/nav
 base: main
 gate0: 2026-10-04
 gate1: 2026-10-04
+gate2: 2026-10-04
 learnings:
   - "Previewing a component in a worktree via dev server → set DATABASE_PATH to .e2e/<port>.db (weil: plain npm run dev creates data/life-manager.db in the worktree; /welcome redirect without aspects blocked the preview anyway) [U5]"
   - "Formatting in this repo → don't run npx prettier --write (weil: no prettier config; it rewrote files to double quotes/spaces, needed a revert commit) [U6]"
