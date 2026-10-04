@@ -114,7 +114,7 @@ export function projectTodos(db: DatabaseSync, id: Id): ProjectTodos {
 }
 
 export function countActiveProjects(db: DatabaseSync): number {
-	return (db.prepare("SELECT count(*) AS n FROM it_projects WHERE status = 'active'").get() as { n: number }).n;
+	return (db.prepare("SELECT count(*) AS n FROM it_projects WHERE status IN ('active', 'in_progress')").get() as { n: number }).n;
 }
 
 export function countProjectLinks(db: DatabaseSync): number {

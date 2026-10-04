@@ -1,12 +1,13 @@
 import type { ProjectStatus } from './types';
 
-export const PROJECT_STATUSES: ProjectStatus[] = ['backlog', 'active', 'paused', 'implemented'];
+export const PROJECT_STATUSES: ProjectStatus[] = ['backlog', 'active', 'in_progress', 'paused', 'implemented'];
 
-export const OVERVIEW_GROUPS: ProjectStatus[] = ['active', 'backlog', 'paused'];
+export const OVERVIEW_GROUPS: ProjectStatus[] = ['in_progress', 'active', 'backlog', 'paused'];
 
 export const STATUS_LABELS: Record<ProjectStatus, string> = {
 	backlog: 'Backlog',
 	active: 'Active',
+	in_progress: 'In progress',
 	paused: 'Paused',
 	implemented: 'Implemented'
 };

@@ -20,7 +20,7 @@
 		)
 	);
 	const implemented = $derived(data.projects.filter((p) => p.status === 'implemented'));
-	const active = $derived(data.projects.filter((p) => p.status === 'active').length);
+	const active = $derived(data.projects.filter((p) => p.status === 'active' || p.status === 'in_progress').length);
 	const itAspect = $derived(data.aspects.find((a) => a.id === data.itAspectId));
 	const prompting = $derived(!itAspect || changing);
 </script>
@@ -36,6 +36,9 @@
 		{:else if status === 'active'}
 			<circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.75" />
 			<path d="M8 4a4 4 0 0 1 0 8Z" fill="currentColor" />
+		{:else if status === 'in_progress'}
+			<circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.75" />
+			<path d="M8 8V4a4 4 0 1 1-4 4Z" fill="currentColor" />
 		{:else if status === 'paused'}
 			<circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.75" />
 			<path d="M6.4 5.6v4.8 M9.6 5.6v4.8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
@@ -185,7 +188,8 @@
 		color: var(--ink-3);
 	}
 
-	.s-active {
+	.s-active,
+	.s-in_progress {
 		color: var(--accent);
 	}
 

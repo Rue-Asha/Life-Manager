@@ -189,13 +189,13 @@ const OPEN_TODOS: NonNullable<SeedInput['todos']> = [
 const menuItems = (page: Page) => page.getByRole('menuitem');
 const confirmDialog = (page: Page) => page.getByRole('dialog');
 
-test('Scenario: Status pill offers the four states', async ({ page, request }) => {
+test('Scenario: Status pill offers the five states', async ({ page, request }) => {
 	const id = await seedProject(request);
 	await page.goto(`/projects/${id}`);
 
 	await expect(pill(page)).toContainText('Backlog');
 	await pill(page).click();
-	await expect(menuItems(page)).toHaveText(['Backlog', 'Active', 'Paused', 'Implemented']);
+	await expect(menuItems(page)).toHaveText(['Backlog', 'Active', 'In progress', 'Paused', 'Implemented']);
 	await menuItems(page).filter({ hasText: 'Active' }).click();
 
 	await expect(pill(page)).toContainText('Active');

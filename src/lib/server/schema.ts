@@ -75,5 +75,28 @@ export const migrations: string[] = [
 	);
 
 	ALTER TABLE todos ADD COLUMN project_id INTEGER NULL REFERENCES it_projects (id) ON DELETE SET NULL;
+	`,
+	`
+	CREATE TEMP TABLE todo_projects AS SELECT id, project_id FROM todos WHERE project_id IS NOT NULL;
+
+	CREATE TABLE it_projects_new (
+		id INTEGER PRIMARY KEY,
+		name TEXT NOT NULL,
+		description TEXT NOT NULL DEFAULT '',
+		repo_url TEXT NULL,
+		tags TEXT NOT NULL DEFAULT '[]',
+		notes TEXT NOT NULL DEFAULT '',
+		status TEXT NOT NULL DEFAULT 'backlog' CHECK (status IN ('backlog', 'active', 'in_progress', 'paused', 'implemented')),
+		created_at TEXT NOT NULL,
+		updated_at TEXT NOT NULL
+	);
+	INSERT INTO it_projects_new SELECT * FROM it_projects;
+
+	-- Dropping the parent fires todos.project_id ON DELETE SET NULL; the links are restored below.
+	DROP TABLE it_projects;
+	ALTER TABLE it_projects_new RENAME TO it_projects;
+	UPDATE todos SET project_id = (SELECT project_id FROM todo_projects WHERE todo_projects.id = todos.id)
+		WHERE id IN (SELECT id FROM todo_projects);
+	DROP TABLE todo_projects;
 	`
 ];
