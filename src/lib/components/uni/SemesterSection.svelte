@@ -29,7 +29,7 @@
 
 	const archived = $derived(semester.archivedAt !== null);
 	const uid = $props.id();
-	const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
+	const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : word.endsWith('s') ? 'es' : 's'}`;
 
 	let expanded = $state(false);
 	let menuOpen = $state(false);
