@@ -15,6 +15,7 @@
 		{ label: 'Backlog', href: '/backlog', icon: 'inbox', count: 'backlog' },
 		{ label: 'Recurring', href: '/recurring', icon: 'repeat', count: 'recurring' },
 		{ label: 'Projects', href: '/projects', icon: 'folder', count: 'projects' },
+		{ label: 'Uni', href: '/uni', icon: 'graduation-cap', count: 'uni' },
 		{ label: 'Aspects', href: '/aspects', icon: 'layers', count: 'aspects' }
 	];
 
