@@ -13,6 +13,7 @@ import type {
 	SemesterView,
 	UniClass
 } from '$lib/types';
+import { now } from './clock';
 import { transaction } from './sprints';
 
 const notImplemented = { ok: false, error: 'not-implemented' } as const;
@@ -101,16 +102,42 @@ export function todoWritable(db: DatabaseSync, todoId: Id): Result<void> {
 
 // Unit 3 fills in the functions below.
 
+const semesterColumns = 'id, name, archived_at AS archivedAt, created_at AS createdAt';
+
+function getSemester(db: DatabaseSync, id: Id): Semester | null {
+	const row = db.prepare(`SELECT ${semesterColumns} FROM semesters WHERE id = ?`).get(id) as Semester | undefined;
+	return row ? { ...row } : null;
+}
+
 export function listSemesters(db: DatabaseSync): { active: SemesterView[]; archived: SemesterView[]; overall: GradeSummary } {
-	return { active: [], archived: [], overall: { average: null, earnedEcts: 0 } };
+	const semesters = db
+		.prepare(`SELECT ${semesterColumns} FROM semesters ORDER BY created_at DESC, id DESC`)
+		.all() as unknown as Semester[];
+	const views = semesters.map((s): SemesterView => ({ ...s, classes: [], grades: { average: null, earnedEcts: 0 } }));
+	return {
+		active: views.filter((s) => s.archivedAt === null),
+		archived: views.filter((s) => s.archivedAt !== null),
+		overall: { average: null, earnedEcts: 0 }
+	};
 }
 
 export function createSemester(db: DatabaseSync, name: string): Result<Semester> {
-	return notImplemented;
+	const trimmed = name.trim();
+	if (!trimmed) return { ok: false, error: 'required', field: 'name' };
+	const { lastInsertRowid } = db
+		.prepare('INSERT INTO semesters (name, created_at) VALUES (?, ?)')
+		.run(trimmed, now().toISOString());
+	return { ok: true, value: getSemester(db, Number(lastInsertRowid))! };
 }
 
 export function renameSemester(db: DatabaseSync, id: Id, name: string): Result<Semester> {
-	return notImplemented;
+	const semester = getSemester(db, id);
+	if (!semester) return { ok: false, error: 'not-found' };
+	const trimmed = name.trim();
+	if (!trimmed) return { ok: false, error: 'required', field: 'name' };
+	if (semester.archivedAt !== null) return { ok: false, error: 'archived' };
+	db.prepare('UPDATE semesters SET name = ? WHERE id = ?').run(trimmed, id);
+	return { ok: true, value: getSemester(db, id)! };
 }
 
 export function archiveSemester(db: DatabaseSync, id: Id): Result<{ completed: number }> {

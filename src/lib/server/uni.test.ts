@@ -1,13 +1,17 @@
 import type { DatabaseSync } from 'node:sqlite';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { Id } from '$lib/types';
+import { setTestNow } from './clock';
 import { openDb } from './db';
 import {
 	classWritable,
 	countClassLinks,
 	countOpenClassTodos,
+	createSemester,
 	getUniAspectId,
 	listClassRefs,
+	listSemesters,
+	renameSemester,
 	setUniAspectId,
 	todoWritable
 } from './uni';
@@ -45,12 +49,20 @@ function todo(classId: Id | null, status = 'todo', type: string | null = null, r
 	);
 }
 
+function value<T>(r: { ok: true; value: T } | { ok: false; error: string }): T {
+	if (!r.ok) throw new Error(r.error);
+	return r.value;
+}
+
 beforeEach(() => {
+	process.env.LM_TEST = '1';
 	db = openDb(':memory:');
 	const aspect = db.prepare("INSERT INTO aspects (name, color, icon, position, created_at) VALUES (?, 'sage', 'heart', ?, '')");
 	health = Number(aspect.run('Health', 0).lastInsertRowid);
 	uni = Number(aspect.run('Uni', 1).lastInsertRowid);
 });
+
+afterEach(() => setTestNow(null));
 
 describe('uni aspect setting', () => {
 	it('Scenario: Changing the Uni aspect clears class, type and revised date', () => {
@@ -125,5 +137,40 @@ describe('class refs, counts and writability', () => {
 		expect(todoWritable(db, todo(active))).toEqual(ok);
 		expect(todoWritable(db, todo(null))).toEqual(ok);
 		expect(todoWritable(db, todo(archived))).toEqual({ ok: false, error: 'archived' });
+	});
+});
+
+describe('semesters', () => {
+	it('Scenario: Empty semester name is rejected', () => {
+		expect(createSemester(db, '')).toEqual({ ok: false, error: 'required', field: 'name' });
+		expect(createSemester(db, '   ')).toEqual({ ok: false, error: 'required', field: 'name' });
+		expect(db.prepare('SELECT count(*) AS n FROM semesters').get()).toEqual({ n: 0 });
+
+		const ws = value(createSemester(db, 'WS 26/27'));
+		expect(renameSemester(db, ws.id, ' \t')).toEqual({ ok: false, error: 'required', field: 'name' });
+		expect(listSemesters(db).active.map((s) => s.name)).toEqual(['WS 26/27']);
+	});
+
+	it('Scenario: Duplicate semester names are allowed', () => {
+		const a = value(createSemester(db, 'SS 27'));
+		const b = value(createSemester(db, 'SS 27'));
+		expect(a.id).not.toBe(b.id);
+		expect(db.prepare('SELECT name FROM semesters ORDER BY id').all()).toEqual([{ name: 'SS 27' }, { name: 'SS 27' }]);
+	});
+
+	it('creates with a trimmed name, renames, and lists newest first', () => {
+		setTestNow(new Date('2026-04-01T10:00:00Z'));
+		const ss = value(createSemester(db, '  SS 26 '));
+		expect(ss).toEqual({ id: ss.id, name: 'SS 26', archivedAt: null, createdAt: '2026-04-01T10:00:00.000Z' });
+		setTestNow(new Date('2026-10-01T10:00:00Z'));
+		const ws = value(createSemester(db, 'WS 26/27'));
+		const tie = value(createSemester(db, 'Same instant'));
+
+		expect(renameSemester(db, ws.id, 'Winter 26/27')).toEqual({ ok: true, value: { ...ws, name: 'Winter 26/27' } });
+		expect(renameSemester(db, 999, 'X')).toEqual({ ok: false, error: 'not-found' });
+		const { active, archived } = listSemesters(db);
+		expect(active.map((s) => s.name)).toEqual(['Same instant', 'Winter 26/27', 'SS 26']);
+		expect(active[0]).toMatchObject({ id: tie.id, classes: [], grades: { average: null, earnedEcts: 0 } });
+		expect(archived).toEqual([]);
 	});
 });
