@@ -20,7 +20,7 @@
 
 - [x] 3.1 Add `.github/workflows/ci.yml`: Node 22 (comment → Homelab `ansible/roles/nodejs/defaults/main.yml`), Playwright browsers, `npm ci`, `proof:full`, `package`, checksum, unpack, artifact e2e, upload artifact; `security-baseline` job calling `Rue-Asha/ci@<sha> # v1.0.0` (needs `ci-homelab` group 2)
 - [x] 3.2 Add `.github/dependabot.yml` for `github-actions` (and `npm`, weekly)
-- [ ] 3.3 Ask first: push a branch and open a PR; confirm `ci` and baseline checks green and the artifact is downloadable
+- [x] 3.3 Ask first: push a branch and open a PR; confirm `ci` and baseline checks green and the artifact is downloadable
 
 ## 4. Release workflow
 
