@@ -36,6 +36,8 @@
 	}
 
 	.type {
+		flex: none;
+		overflow-wrap: normal;
 		padding: 1px 5px;
 		border-radius: var(--radius-xs);
 		background: var(--paper-sunk);
