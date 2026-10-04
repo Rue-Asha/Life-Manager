@@ -62,7 +62,8 @@ with `archived` on `classId`. (uni-hub S11)
 
 ### Requirement: Class badge on todo rows
 A class-linked todo SHALL show a muted class badge (class icon in its colour, class name and type) in
-`TodoRow` wherever the row renders; clicking it opens the class's detail page. Todos without a class show no
+`TodoRow` wherever the row renders, except on that class's own detail page, where rows show the type tag and
+the revised control instead; clicking it opens the class's detail page. Todos without a class show no
 badge. At 375 px the badge wraps under the title. (uni-hub S13)
 
 #### Scenario: Linked todo shows the class badge
@@ -78,4 +79,9 @@ badge. At 375 px the badge wraps under the title. (uni-hub S13)
 #### Scenario: Class badge wraps under the title on a phone
 - **WHEN** a class todo with a long title is shown on Backlog at 375 px
 - **THEN** the badge sits below the title and the page does not scroll horizontally
+- **proof:** e2e
+
+#### Scenario: Class detail rows show the type instead of the badge
+- **WHEN** a class todo of type EXC is shown on that class's detail page
+- **THEN** its row shows the type tag `EXC` and the revised control, and no row in the class's todo list has a class badge
 - **proof:** e2e

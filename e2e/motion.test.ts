@@ -126,8 +126,10 @@ test('Scenario: Opening a class uses only the route cross-fade', async ({ page, 
 
 	await page.goto('/uni');
 	await expect(page.getByRole('heading', { level: 1, name: 'Uni' })).toBeVisible();
-	await page.getByTestId('semester-archived-group').getByRole('button', { name: 'Archived (1)' }).click();
-	await expect(page.getByTestId('class-card').filter({ hasText: 'Analysis I' }).first()).toBeVisible();
+	const archivedGroup = page.getByTestId('semester-archived-group');
+	await archivedGroup.getByRole('button', { name: 'Archived (1)' }).click();
+	await archivedGroup.getByRole('button', { name: 'SS 26', exact: true }).click();
+	await expect(archivedGroup.getByTestId('class-card').filter({ has: page.getByText('Analysis I', { exact: true }) })).toBeVisible();
 	expect(await transitions(page)).toBe(0);
 	expect(await page.evaluate(() => document.getAnimations().length)).toBe(0);
 });

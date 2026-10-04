@@ -69,7 +69,7 @@
 {/snippet}
 
 {#snippet rowExtra(todo: Todo)}
-	{#if todo.type}<span class="type">{todo.type}</span>{/if}
+	{#if todo.type}<span class="type" data-testid="todo-type">{todo.type}</span>{/if}
 	<RevisedControl {todo} today={data.today} readonly={archived} />
 {/snippet}
 

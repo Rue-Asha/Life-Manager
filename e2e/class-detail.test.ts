@@ -129,7 +129,7 @@ test('Scenario: Edit a class on its detail page', async ({ page, request }) => {
 		await expect(page.getByTestId('class-tile')).toHaveAttribute('data-color', 'berry');
 		const meta = page.getByTestId('class-meta');
 		await expect(meta).toContainText('Dr. Weber');
-		await expect(meta).toContainText('10');
+		await expect(meta.locator('dt:text-is("ECTS") + dd')).toHaveText('10');
 		await expect(meta).toContainText('Mon 1 Mar 2027, 10:00');
 		await expect(meta).toContainText('2.3');
 		await expect(meta).not.toContainText('Prof. Kühn');
@@ -189,6 +189,17 @@ test('Scenario: Class Done group starts collapsed', async ({ page, request }) =>
 
 	await toggle.click();
 	await expect(rows('done')).toHaveText([/Sheet 3/, /Sheet 2/]);
+});
+
+test('Scenario: Class detail rows show the type instead of the badge', async ({ page, request }) => {
+	const id = await seedClass(request, { sprint: { state: 'active', weekStart: WEEK }, todos: CLASS_TODOS });
+	await page.goto(`/uni/classes/${id}`);
+
+	const row = page.getByTestId('class-todos-open').getByTestId('todo-row').filter({ hasText: 'Exercise sheet 4' });
+	await expect(row.getByTestId('todo-type')).toHaveText('EXC');
+	await expect(row.getByTestId('revised')).toBeVisible();
+	await expect(page.getByTestId('class-todos-open').getByTestId('class-badge')).toHaveCount(0);
+	await expect(page.getByTestId('class-todos-planned').getByTestId('class-badge')).toHaveCount(0);
 });
 
 test('Scenario: Class rules are listed with a link to Recurring', async ({ page, request }) => {
