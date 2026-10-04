@@ -14,7 +14,21 @@ test.afterAll(async ({ request }) => {
 const ASPECTS: SeedInput['aspects'] = [
 	{ name: 'Health', color: 'sage', icon: 'heart' },
 	{ name: 'University and exams', color: 'lavender', icon: 'cap' },
-	{ name: 'Home', color: 'ochre', icon: 'house' }
+	{ name: 'Home', color: 'ochre', icon: 'house' },
+	{ name: 'IT', color: 'sky', icon: 'briefcase' }
+];
+
+const PROJECTS: SeedInput['projects'] = [
+	{
+		name: 'A self-hosted weekly planner with an unreasonably long name',
+		description: 'Plans the week across several life aspects and keeps the notes next to the todos that belong to them',
+		repoUrl: 'https://github.com/rue-asha/a-very-long-repository-name-that-keeps-going',
+		tags: ['SvelteKit', 'SQLite', 'TypeScript', 'adapter-node', 'Playwright'],
+		notes: '## Plan\n\nhttps://example.com/a/very/long/link/that/should/wrap/instead/of/scrolling/sideways/at/any/width\n\n- one\n- two',
+		status: 'active'
+	},
+	{ name: 'Idea', status: 'backlog' },
+	{ name: 'Shipped', status: 'implemented' }
 ];
 
 // Long titles, every kind of meta and every status: the rows most likely to push a screen wide.
@@ -35,7 +49,10 @@ const TODOS: SeedInput['todos'] = [
 	{ title: 'Clean the fridge', aspect: 2, inSprint: true },
 	{ title: 'Pay the electricity bill before the reminder arrives', aspect: 2, dueDate: '2026-10-09', priority: 2 },
 	{ title: 'Read chapter 4', aspect: 1, priority: 3 },
-	{ title: 'Book a physio appointment' }
+	{ title: 'Book a physio appointment' },
+	{ title: 'Wire the projects overview into the sidebar navigation', aspect: 3, project: 0, inSprint: true },
+	{ title: 'Write the migration', aspect: 3, project: 0 },
+	{ title: 'Design the mockup', aspect: 3, project: 0, inSprint: true, status: 'done', completedAt: '2026-10-06T09:00:00Z' }
 ];
 
 async function expectFits(page: Page, name: string, shot = true) {
@@ -63,11 +80,13 @@ const seedSunday = (request: Parameters<typeof seed>[0]) =>
 		aspects: ASPECTS,
 		sprint: { state: 'active', weekStart: WEEK },
 		rules: [{ title: 'Gym', weekdays: [1, 4], checklist: ['Warm up'] }],
+		itAspect: 3,
+		projects: PROJECTS,
 		todos: TODOS
 	});
 
 // Every screen but Welcome and Plan, which need an empty app and a closed review.
-const screens = (aspect: number) => [
+const screens = (aspect: number, project: number) => [
 	['/', 'today'],
 	['/sprint?view=aspect', 'sprint-aspect'],
 	['/sprint?view=board', 'sprint-board'],
@@ -76,7 +95,9 @@ const screens = (aspect: number) => [
 	['/backlog', 'backlog'],
 	['/aspects', 'aspects'],
 	[`/aspects/${aspect}`, 'aspect-page'],
-	['/recurring', 'recurring']
+	['/recurring', 'recurring'],
+	['/projects', 'projects'],
+	[`/projects/${project}`, 'project-detail']
 ];
 
 test('Scenario: Every screen fits 375 px without horizontal scroll', async ({ page, request }) => {
@@ -85,8 +106,8 @@ test('Scenario: Every screen fits 375 px without horizontal scroll', async ({ pa
 	await expectFits(page, 'welcome');
 
 	await setClock(request, SUNDAY);
-	const { aspects } = await seedSunday(request);
-	for (const [path, name] of screens(aspects[1])) {
+	const { aspects, projects } = await seedSunday(request);
+	for (const [path, name] of screens(aspects[1], projects[0])) {
 		await page.goto(path);
 		await expectFits(page, name);
 	}
@@ -120,10 +141,10 @@ test.describe('on desktop', () => {
 		}
 
 		await setClock(request, SUNDAY);
-		const { aspects } = await seedSunday(request);
+		const { aspects, projects } = await seedSunday(request);
 		for (const width of WIDTHS) {
 			await page.setViewportSize({ width, height: 800 });
-			for (const [path, name] of screens(aspects[1])) {
+			for (const [path, name] of screens(aspects[1], projects[0])) {
 				await page.goto(path);
 				await fits(page, name);
 			}
@@ -156,6 +177,7 @@ test('Scenario: Phone home list drills into each list', async ({ page, request }
 		['Sprint', '/sprint'],
 		['Backlog', '/backlog'],
 		['Recurring', '/recurring'],
+		['Projects', '/projects'],
 		['Aspects', '/aspects']
 	]) {
 		await page.getByRole('navigation', { name: 'Lists' }).getByRole('link', { name, exact: true }).tap();

@@ -36,6 +36,16 @@ test('Scenario: Desktop shows a sidebar', async ({ page }) => {
 	}
 });
 
+test('Scenario: Desktop sidebar marks Projects on a project detail page', async ({ page, request }) => {
+	await reset(request);
+	const { projects } = await seed(request, { aspects: [{ name: 'IT' }], itAspect: 0, projects: [{ name: 'Life Manager' }] });
+	await page.setViewportSize({ width: 1280, height: 800 });
+	await page.goto(`/projects/${projects[0]}`);
+	const sidebar = page.getByRole('navigation', { name: 'Main' });
+	await expect(sidebar.getByRole('link', { name: 'Projects', exact: true })).toHaveAttribute('aria-current', 'page');
+	await expect(sidebar.locator('[aria-current="page"]')).toHaveCount(1);
+});
+
 test('Scenario: Phone home list shows the six lists', async ({ page }) => {
 	await page.setViewportSize({ width: 375, height: 812 });
 	await page.goto('/menu');
