@@ -22,7 +22,7 @@ function startBuild(databasePath: string): Server {
 		PROTOCOL_HEADER: 'x-forwarded-proto'
 	};
 	delete env.LM_TEST;
-	const proc = spawn('node', ['build'], { env, stdio: 'ignore' });
+	const proc = spawn('node', ['build'], { cwd: process.env.E2E_APP_DIR, env, stdio: 'ignore' });
 	const exited = new Promise<number | null>((resolve) => proc.on('exit', (code) => resolve(code)));
 	return { proc, exited };
 }

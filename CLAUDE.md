@@ -8,17 +8,20 @@ Single user, no auth; light theme only.
 - proof: `npm run proof`
 - proof-full: `npm run proof:full`
 - run: `npm run dev` → http://localhost:5173
+- package: `npm run package` → `dist/life-manager-<version>.tgz` + `.sha256`
 - ship: ask
 
 ## Specs
 - Before changing app-runtime, read openspec/specs/app-runtime/spec.md.
 - Before changing aspects, read openspec/specs/aspects/spec.md.
 - Before changing backlog, read openspec/specs/backlog/spec.md.
+- Before changing ci-pipeline, read openspec/specs/ci-pipeline/spec.md.
 - Before changing design-direction, read openspec/specs/design-direction/spec.md.
 - Before changing it-projects, read openspec/specs/it-projects/spec.md.
 - Before changing motion, read openspec/specs/motion/spec.md.
 - Before changing navigation, read openspec/specs/navigation/spec.md.
 - Before changing recurring, read openspec/specs/recurring/spec.md.
+- Before changing release-artifact, read openspec/specs/release-artifact/spec.md.
 - Before changing sprint-lifecycle, read openspec/specs/sprint-lifecycle/spec.md.
 - Before changing sprint-views, read openspec/specs/sprint-views/spec.md.
 - Before changing today, read openspec/specs/today/spec.md.
