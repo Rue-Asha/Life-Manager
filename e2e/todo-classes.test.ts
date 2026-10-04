@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { reset, seed, type SeedInput } from './helpers';
+import { reset, seed, setClock, type SeedInput } from './helpers';
 
 test.beforeEach(async ({ request, page }) => {
 	await reset(request);
@@ -113,4 +113,79 @@ test('Scenario: Switching the aspect away drops class and type', async ({ page, 
 	await editor.getByLabel('Aspect').selectOption({ label: 'Uni' });
 	await expect(editor.getByLabel('Class')).toHaveValue('');
 	await expect(editor.getByTestId('type-field')).toHaveCount(0);
+});
+
+test.describe('class badge', () => {
+	// Wednesday 7 October 2026 in Berlin; its sprint week starts Monday 5 October.
+	test.beforeEach(async ({ request }) => {
+		await setClock(request, '2026-10-07T10:00:00Z');
+	});
+
+	test.afterAll(async ({ request }) => {
+		await setClock(request, null);
+	});
+
+	test('Scenario: Linked todo shows the class badge', async ({ page, request }) => {
+		const { classes } = await seed(request, {
+			...UNI,
+			sprint: { state: 'active', weekStart: '2026-10-05' },
+			todos: [
+				{ title: 'Read chapter 2', aspect: 1, class: 0, type: 'LEC' },
+				{ title: 'Exercise sheet 4', aspect: 1, class: 1, type: 'EXC', inSprint: true, day: '2026-10-07' }
+			]
+		});
+		await page.goto('/backlog');
+		const backlogBadge = page.getByTestId('todo-row').filter({ hasText: 'Read chapter 2' }).getByTestId('class-badge');
+		await expect(backlogBadge).toHaveText('Analysis · LEC');
+		await expect(backlogBadge.locator('svg')).toBeVisible();
+
+		for (const path of ['/', '/sprint']) {
+			await page.goto(path);
+			const badge = page.getByTestId('todo-row').filter({ hasText: 'Exercise sheet 4' }).getByTestId('class-badge');
+			await expect(badge).toHaveText('Algorithms · EXC');
+			await expect(badge.locator('svg')).toBeVisible();
+		}
+
+		await page.goto('/backlog');
+		await page.getByTestId('todo-row').filter({ hasText: 'Read chapter 2' }).getByTestId('class-badge').click();
+		await expect(page).toHaveURL(new RegExp(`/uni/classes/${classes[0]}$`));
+	});
+
+	test('Scenario: Todo without class shows no class badge', async ({ page, request }) => {
+		await seed(request, { ...UNI, todos: [{ title: 'Plain uni todo', aspect: 1 }] });
+		await page.goto('/backlog');
+		const group = page.locator('main');
+		await expect(group.getByTestId('todo-row')).toHaveCount(1);
+		await expect(group.getByTestId('class-badge')).toHaveCount(0);
+	});
+
+	test('Scenario: Class badge wraps under the title on a phone', async ({ page, request }) => {
+		await seed(request, {
+			...UNI,
+			todos: [{ title: 'A very long todo title that cannot possibly fit on one line of a phone screen', aspect: 1, class: 0 }]
+		});
+		await page.setViewportSize({ width: 375, height: 800 });
+		await page.goto('/backlog');
+		const row = page.getByTestId('todo-row');
+		const title = (await row.locator('.title').boundingBox())!;
+		const badge = (await row.getByTestId('class-badge').boundingBox())!;
+		expect(badge.y).toBeGreaterThanOrEqual(title.y + title.height - 1);
+		expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+	});
+
+	test('Scenario: Archived class todo edited via todos is rejected', async ({ page, request, baseURL }) => {
+		const { todos, aspects } = await seed(request, { ...UNI, todos: [{ title: 'Old lab report', aspect: 1, class: 2 }] });
+		const response = await request.post('/todos?/update', {
+			headers: { origin: baseURL!, 'x-sveltekit-action': 'true' },
+			form: { id: String(todos[0]), title: 'Renamed report', aspectId: String(aspects[1]), priority: '0' }
+		});
+		const result = await response.json();
+		expect(result.type).toBe('failure');
+		expect(result.status).toBe(409);
+		expect(result.data).toContain('archived');
+
+		await page.goto('/backlog');
+		await expect(page.getByTestId('todo-row').filter({ hasText: 'Old lab report' })).toBeVisible();
+		await expect(page.getByTestId('todo-row').filter({ hasText: 'Renamed report' })).toHaveCount(0);
+	});
 });
