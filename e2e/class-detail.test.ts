@@ -165,3 +165,85 @@ test('Scenario: Class without notes or todos shows placeholders', async ({ page,
 	await expect(page.getByTestId('empty-state')).toContainText('No todos for this class yet');
 	await expect(page.getByTestId('todo-row')).toHaveCount(0);
 });
+
+const CLASS_TODOS: NonNullable<SeedInput['todos']> = [
+	{ title: 'Exercise sheet 4', aspect: 1, class: 0, type: 'EXC' },
+	{ title: 'Lecture 6 notes', aspect: 1, class: 0, type: 'LEC', inSprint: true },
+	{ title: 'Sheet 2', aspect: 1, class: 0, inSprint: true, status: 'done', completedAt: '2026-10-05T09:00:00Z' },
+	{ title: 'Sheet 3', aspect: 1, class: 0, inSprint: true, status: 'done', completedAt: '2026-10-06T09:00:00Z' }
+];
+
+test('Scenario: Class Done group starts collapsed', async ({ page, request }) => {
+	const id = await seedClass(request, { sprint: { state: 'active', weekStart: WEEK }, todos: CLASS_TODOS });
+	await page.goto(`/uni/classes/${id}`);
+
+	const rows = (group: string) => page.getByTestId(`class-todos-${group}`).getByTestId('todo-row');
+	await expect(rows('open')).toHaveText([/Exercise sheet 4/]);
+	await expect(rows('planned')).toHaveText([/Lecture 6 notes/]);
+
+	const done = page.getByTestId('class-todos-done');
+	const toggle = done.getByRole('button', { name: /Done/ });
+	await expect(toggle).toContainText('2');
+	await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+	await expect(rows('done')).toHaveCount(0);
+
+	await toggle.click();
+	await expect(rows('done')).toHaveText([/Sheet 3/, /Sheet 2/]);
+});
+
+test('Scenario: Class rules are listed with a link to Recurring', async ({ page, request }) => {
+	const id = await seedClass(request, {
+		rules: [
+			{ title: 'Lecture review', aspect: 1, weekdays: [1], class: 0, type: 'LEC' },
+			{ title: 'Gym', aspect: 0, weekdays: [2] }
+		]
+	});
+	await page.goto(`/uni/classes/${id}`);
+
+	const rules = page.getByTestId('class-rules');
+	await expect(rules.getByRole('listitem')).toHaveText([/Lecture review/]);
+	await expect(rules.getByRole('listitem')).toContainText(['LEC']);
+	await rules.getByRole('link', { name: 'Edit in Recurring' }).click();
+	await expect(page).toHaveURL(/\/recurring$/);
+});
+
+test('Scenario: Quick add on class detail creates a linked todo', async ({ page, request }) => {
+	const id = await seedClass(request);
+	await page.setViewportSize({ width: 1280, height: 900 });
+	await page.goto(`/uni/classes/${id}`);
+
+	await page.getByRole('button', { name: 'Add a todo' }).click();
+	const form = page.getByRole('form', { name: 'New todo' });
+	await expect(form.getByLabel('Aspect').locator('option:checked')).toHaveText('Uni');
+	await expect(form.getByLabel('Class')).toHaveValue(String(id));
+	await form.getByTestId('type-field').getByRole('button', { name: 'LEC' }).click();
+	await form.getByLabel('Title').fill('Rework lecture 5');
+	await form.getByLabel('Due date', { exact: true }).fill('2026-10-09');
+	await form.getByRole('button', { name: 'Add todo' }).click();
+
+	const open = page.getByTestId('class-todos-open').getByTestId('todo-row');
+	await expect(open).toHaveText([/Rework lecture 5/]);
+	await expect(open).toContainText('LEC');
+
+	await page.goto('/backlog');
+	await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+	const row = page.getByTestId('todo-row').filter({ hasText: 'Rework lecture 5' });
+	await expect(row.getByTestId('class-badge')).toContainText('Analysis II');
+	await expect(row.getByTestId('class-badge')).toContainText('LEC');
+});
+
+test('Scenario: Type defaults to OTH', async ({ page, request }) => {
+	const id = await seedClass(request);
+	await page.setViewportSize({ width: 1280, height: 900 });
+	await page.goto(`/uni/classes/${id}`);
+
+	await page.getByRole('button', { name: 'Add a todo' }).click();
+	const form = page.getByRole('form', { name: 'New todo' });
+	await expect(form.getByTestId('type-field').getByRole('button', { name: 'OTH' })).toHaveAttribute('aria-pressed', 'true');
+	await form.getByLabel('Title').fill('Summarise chapter 3');
+	await form.getByRole('button', { name: 'Add todo' }).click();
+	await expect(page.getByTestId('class-todos-open').getByTestId('todo-row')).toHaveText([/Summarise chapter 3/]);
+
+	await page.goto('/backlog');
+	await expect(page.getByTestId('todo-row').filter({ hasText: 'Summarise chapter 3' }).getByTestId('class-badge')).toContainText('OTH');
+});

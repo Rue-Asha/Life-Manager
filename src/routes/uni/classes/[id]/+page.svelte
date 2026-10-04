@@ -6,11 +6,14 @@
 	import LinkedTodos from '$lib/components/projects/LinkedTodos.svelte';
 	import ProjectNotes from '$lib/components/projects/ProjectNotes.svelte';
 	import ClassForm from '$lib/components/uni/ClassForm.svelte';
+	import QuickAdd from '$lib/components/todo/QuickAdd.svelte';
 	import ClassMeta from '$lib/components/uni/ClassMeta.svelte';
+	import ClassRules from '$lib/components/uni/ClassRules.svelte';
 	import AspectIcon from '$lib/components/ui/AspectIcon.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Sheet from '$lib/components/ui/Sheet.svelte';
 	import { UI_ICONS } from '$lib/components/ui/icons';
+	import type { Todo } from '$lib/types';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -30,6 +33,24 @@
 <svelte:head>
 	<title>{cls.name} · Life Manager</title>
 </svelte:head>
+
+{#snippet quickAdd()}
+	{#if data.uniAspectId !== null}
+		<div class="quick">
+			<QuickAdd
+				aspects={data.aspects}
+				target={{ kind: 'backlog' }}
+				defaultAspectId={data.uniAspectId}
+				defaultClassId={cls.id}
+				defaultType="OTH"
+			/>
+		</div>
+	{/if}
+{/snippet}
+
+{#snippet rowExtra(todo: Todo)}
+	{#if todo.type}<span class="type">{todo.type}</span>{/if}
+{/snippet}
 
 {#snippet rail()}
 	<ClassMeta {cls} todos={data.todos} today={data.today} mode="rail" onedit={edit} />
@@ -64,7 +85,11 @@
 		title="Todos"
 		testidPrefix="class-todos"
 		emptyText="No todos for this class yet. Add one above."
+		top={quickAdd}
+		extra={rowExtra}
 	/>
+
+	<ClassRules rules={data.rules} />
 </RailLayout>
 
 <Sheet open={editing} title="Edit details" onclose={() => (editing = false)}>
@@ -139,6 +164,21 @@
 	.sub {
 		margin-top: var(--space-1);
 		color: var(--ink-3);
+	}
+
+	.quick {
+		margin-bottom: var(--space-5);
+	}
+
+	.type {
+		padding: 1px 5px;
+		border-radius: var(--radius-xs);
+		background: var(--paper-sunk);
+		color: var(--ink-2);
+		font-size: 11px;
+		font-weight: var(--weight-semibold);
+		letter-spacing: 0.04em;
+		line-height: 16px;
 	}
 
 	footer {
