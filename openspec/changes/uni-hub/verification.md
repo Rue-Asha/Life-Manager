@@ -1,35 +1,35 @@
-verified-at: 2e5062e
+verified-at: 8997fc3
 
 ## Layer 1 — proof-full
 
-`npm run build` then `npm run proof:full`: green. Unit: 11 files, 145 tests passed. e2e: 254 passed.
+`npm run build` then `npm run proof:full`: green. Unit: 11 files, 145 tests passed. e2e: 255 passed. svelte-check: 0 errors, 0 warnings.
 
 ```
-  ✓  237 e2e/uni.test.ts:170:1 › Scenario: Phone shows one class card per row (130ms)
-  ✓  238 e2e/uni.test.ts:195:1 › Scenario: Wide desktop class grid fills the content column (153ms)
-  ✓  239 e2e/uni.test.ts:227:1 › Scenario: Card shows the class summary (162ms)
-  ✓  240 e2e/uni.test.ts:270:1 › Scenario: Exam today and past exams (147ms)
-  ✓  241 e2e/uni.test.ts:288:1 › Scenario: Sparse card keeps the row height (164ms)
-  ✓  242 e2e/uni.test.ts:319:1 › Scenario: New semester appears among the active ones (276ms)
-  ✓  243 e2e/uni.test.ts:337:1 › Scenario: Rename a semester (286ms)
-  ✓  244 e2e/uni.test.ts:355:1 › Scenario: Add a class from the semester section (306ms)
-  ✓  245 e2e/uni.test.ts:393:1 › Scenario: Field errors show on the class form (247ms)
-  ✓  246 e2e/uni.test.ts:412:1 › Scenario: Archiving with open todos asks for confirmation (595ms)
-  ✓  247 e2e/uni.test.ts:446:1 › Scenario: Cancelling the archive warning changes nothing (493ms)
-  ✓  248 e2e/uni.test.ts:466:1 › Scenario: Archiving without open todos needs no confirmation (254ms)
-  ✓  249 e2e/uni.test.ts:482:1 › Scenario: Deleting a semester asks for confirmation naming counts (869ms)
-  ✓  250 e2e/uni.test.ts:514:1 › Scenario: Deleting an empty semester uses a plain confirm (494ms)
-  ✓  251 e2e/uni.test.ts:530:1 › Scenario: Grades are shown on the overview (148ms)
-  ✓  252 e2e/uni.test.ts:552:1 › Scenario: No grades shows a dash (149ms)
-  ✓  253 e2e/uni.test.ts:565:1 › Scenario: Deadline overview sits in the rail at 1280 (218ms)
-  ✓  254 e2e/uni.test.ts:603:1 › Scenario: Nothing due shows an empty line (126ms)
+  ✓  238 e2e/uni.test.ts:170:1 › Scenario: Phone shows one class card per row (108ms)
+  ✓  239 e2e/uni.test.ts:195:1 › Scenario: Wide desktop class grid fills the content column (162ms)
+  ✓  240 e2e/uni.test.ts:227:1 › Scenario: Card shows the class summary (157ms)
+  ✓  241 e2e/uni.test.ts:270:1 › Scenario: Exam today and past exams (144ms)
+  ✓  242 e2e/uni.test.ts:288:1 › Scenario: Sparse card keeps the row height (159ms)
+  ✓  243 e2e/uni.test.ts:319:1 › Scenario: New semester appears among the active ones (223ms)
+  ✓  244 e2e/uni.test.ts:337:1 › Scenario: Rename a semester (275ms)
+  ✓  245 e2e/uni.test.ts:355:1 › Scenario: Add a class from the semester section (303ms)
+  ✓  246 e2e/uni.test.ts:393:1 › Scenario: Field errors show on the class form (262ms)
+  ✓  247 e2e/uni.test.ts:412:1 › Scenario: Archiving with open todos asks for confirmation (599ms)
+  ✓  248 e2e/uni.test.ts:446:1 › Scenario: Cancelling the archive warning changes nothing (561ms)
+  ✓  249 e2e/uni.test.ts:466:1 › Scenario: Archiving without open todos needs no confirmation (254ms)
+  ✓  250 e2e/uni.test.ts:482:1 › Scenario: Deleting a semester asks for confirmation naming counts (867ms)
+  ✓  251 e2e/uni.test.ts:514:1 › Scenario: Deleting an empty semester uses a plain confirm (489ms)
+  ✓  252 e2e/uni.test.ts:530:1 › Scenario: Grades are shown on the overview (162ms)
+  ✓  253 e2e/uni.test.ts:552:1 › Scenario: No grades shows a dash (150ms)
+  ✓  254 e2e/uni.test.ts:565:1 › Scenario: Deadline overview sits in the rail at 1280 (174ms)
+  ✓  255 e2e/uni.test.ts:603:1 › Scenario: Nothing due shows an empty line (164ms)
 
-  254 passed (2.0m)
+  255 passed (2.0m)
 ```
 
 ## Layer 2 — spec coverage
 
-100 scenarios: 29 unit ✓, 68 e2e ✓, 3 manual, 0 gaps.
+101 scenarios: 29 unit ✓, 69 e2e ✓, 3 manual, 0 gaps.
 
 | Scenario | proof | Evidence |
 |---|---|---|
@@ -68,6 +68,7 @@ verified-at: 2e5062e
 | Linked todo shows the class badge (todos) | e2e | `e2e/todo-classes.test.ts` › "Scenario: Linked todo shows the class badge" ✓ |
 | Todo without class shows no class badge (todos) | e2e | `e2e/todo-classes.test.ts` › "Scenario: Todo without class shows no class badge" ✓ |
 | Class badge wraps under the title on a phone (todos) | e2e | `e2e/todo-classes.test.ts` › "Scenario: Class badge wraps under the title on a phone" ✓ |
+| Class detail rows show the type instead of the badge (todos) | e2e | `e2e/class-detail.test.ts` › "Scenario: Class detail rows show the type instead of the badge" ✓ |
 | Migration 4 adds the Uni tables without touching existing data (uni-hub) | unit | `src/lib/server/db.test.ts` › "Scenario: Migration 4 adds the Uni tables without touching existing data" ✓ |
 | Reset clears the Uni tables (uni-hub) | unit | `src/lib/server/db.test.ts` › "Scenario: Reset clears the Uni tables" ✓ |
 | Both todo read models carry the class fields (uni-hub) | unit | `src/lib/server/todos.test.ts` › "Scenario: Both todo read models carry the class fields" ✓ |
@@ -143,7 +144,7 @@ verified-at: 2e5062e
 
 ## Diffstat
 
- 121 files changed, 8841 insertions(+), 232 deletions(-)
+ 121 files changed, 8862 insertions(+), 232 deletions(-)
 
 ## Screenshots
 
