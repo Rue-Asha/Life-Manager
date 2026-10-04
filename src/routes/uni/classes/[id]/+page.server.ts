@@ -50,7 +50,7 @@ const status = (error: string) => (error === 'archived' ? 409 : 400);
 export const actions: Actions = {
 	update: async ({ request, params }) => {
 		const result = updateClass(getDb(), Number(params.id), classInput(await request.formData()));
-		if (!result.ok) return fail(status(result.error), { error: result.error, field: result.field });
+		if (!result.ok) return fail(status(result.error), { error: result.error, field: result.field, fields: result.fields });
 	},
 	notes: async ({ request, params }) => {
 		const notes = String((await request.formData()).get('notes') ?? '');

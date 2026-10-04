@@ -7,7 +7,7 @@
 	import { UI_ICONS } from '../ui/icons';
 
 	// Only the fields: the overview and the class detail each own the <form> and its action.
-	let { cls, error }: { cls?: UniClass; error?: { error: string; field?: string } } = $props();
+	let { cls, error }: { cls?: UniClass; error?: { error: string; field?: string; fields?: Record<string, string> } } = $props();
 
 	const uid = $props.id();
 	// The form is re-created for every open, so the initial values are all it needs from `cls`.
@@ -24,7 +24,10 @@
 	let examTime = $state(cls?.examAt?.slice(11, 16) ?? '');
 	const examAt = $derived(examDate ? (examTime ? `${examDate}T${examTime}` : examDate) : '');
 
-	const message = (field: string) => (error?.field === field ? uniMessage(error.error, field) : null);
+	const message = (field: string) => {
+		const code = error?.fields?.[field] ?? (error?.field === field ? error.error : undefined);
+		return code ? uniMessage(code, field) : null;
+	};
 	const errorId = (field: string) => (message(field) ? `${uid}-${field}-error` : undefined);
 </script>
 

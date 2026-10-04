@@ -32,7 +32,7 @@
 	let editing = $state(false);
 	let deleting = $state(false);
 	let deleteForm = $state<HTMLFormElement>();
-	let error = $state<{ error: string; field?: string }>();
+	let error = $state<{ error: string; field?: string; fields?: Record<string, string> }>();
 
 	const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 	const deleteMessage = $derived.by(() => {
@@ -114,6 +114,7 @@
 		emptyText="No todos for this class yet. Add one above."
 		top={quickAdd}
 		extra={rowExtra}
+		readonly={archived}
 	/>
 
 	<ClassRules rules={data.rules} />
@@ -144,7 +145,7 @@
 			use:enhance={() =>
 				async ({ result, update }) => {
 					if (result.type === 'failure') {
-						error = result.data as unknown as { error: string; field?: string };
+						error = result.data as unknown as { error: string; field?: string; fields?: Record<string, string> };
 						return;
 					}
 					await update({ reset: false });

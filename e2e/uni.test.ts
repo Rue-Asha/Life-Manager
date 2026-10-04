@@ -403,14 +403,9 @@ test('Scenario: Field errors show on the class form', async ({ page, request }) 
 	await section.getByLabel('ECTS').fill('-1');
 	await section.getByRole('button', { name: 'Add class' }).click();
 	await expect(section.getByLabel('Name')).toHaveAttribute('aria-invalid', 'true');
-	await expect(section.getByRole('alert')).toHaveText('Give it a name.');
-
-	// The server reports one field at a time; with the name fixed, ECTS is next.
-	await section.getByLabel('Name').fill('Analysis II');
-	await section.getByRole('button', { name: 'Add class' }).click();
 	await expect(section.getByLabel('ECTS')).toHaveAttribute('aria-invalid', 'true');
-	await expect(section.getByRole('alert')).toHaveText(/ECTS/);
-	await expect(section.getByLabel('Name')).toHaveValue('Analysis II');
+	await expect(section.getByRole('alert')).toHaveText(['Give it a name.', /ECTS/]);
+	await expect(section.getByLabel('ECTS')).toHaveValue('-1');
 	await expect(section.getByTestId('class-card')).toHaveCount(0);
 });
 

@@ -232,6 +232,7 @@ describe('classes', () => {
 		expect(cls).toEqual(expected);
 		expect(getClass(db, cls.id)).toEqual({ ...expected, semester: ws });
 		expect(getClass(db, 999)).toBeNull();
+		expect(value(createClass(db, ws.id, { ...input, ects: '7,5' })).ects).toBe(7.5);
 	});
 
 	it('stores blank optional fields as null, accepts a date-only exam, and edits keep notes', () => {
@@ -269,6 +270,7 @@ describe('classes', () => {
 			[{ ects: '-1' }, 'invalid', 'ects'],
 			[{ ects: 'abc' }, 'invalid', 'ects'],
 			[{ ects: '2.3' }, 'invalid', 'ects'],
+			[{ ects: '2,3' }, 'invalid', 'ects'],
 			[{ links: [{ label: 'Files', url: 'ftp://x' }] }, 'invalid', 'links'],
 			[{ links: [{ label: 'No url', url: '' }] }, 'invalid', 'links'],
 			[{ examAt: 'next week' }, 'invalid', 'examAt'],
@@ -278,9 +280,16 @@ describe('classes', () => {
 			[{ grade: '2.5' }, 'invalid', 'grade']
 		];
 		for (const [patch, error, field] of cases) {
-			expect(createClass(db, ws.id, { ...base, ...patch }), field).toEqual({ ok: false, error, field });
-			expect(updateClass(db, cls.id, { ...base, ...patch }), field).toEqual({ ok: false, error, field });
+			const failure = { ok: false, error, field, fields: { [field]: error } };
+			expect(createClass(db, ws.id, { ...base, ...patch }), field).toEqual(failure);
+			expect(updateClass(db, cls.id, { ...base, ...patch }), field).toEqual(failure);
 		}
+		expect(updateClass(db, cls.id, { ...base, name: ' ', ects: '-1', grade: '2.5' })).toEqual({
+			ok: false,
+			error: 'required',
+			field: 'name',
+			fields: { name: 'required', ects: 'invalid', grade: 'invalid' }
+		});
 		expect(db.prepare('SELECT count(*) AS n FROM classes').get()).toEqual({ n: 1 });
 		expect(getClass(db, cls.id)).toEqual({ ...cls, semester: ws });
 	});

@@ -40,7 +40,8 @@ function failed(result: Result<unknown>) {
 	if (!result.ok)
 		return fail(result.error === 'not-found' ? 404 : result.error === 'archived' ? 409 : 400, {
 			error: result.error,
-			field: result.field
+			field: result.field,
+			fields: result.fields
 		});
 }
 

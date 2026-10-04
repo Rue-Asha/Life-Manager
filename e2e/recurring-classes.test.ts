@@ -61,3 +61,27 @@ test('Scenario: Rule class fields appear only for the Uni aspect', async ({ page
 	await expect(form.getByTestId('class-field')).toBeVisible();
 	await expect(form.getByTestId('type-field')).toBeVisible();
 });
+
+test('Scenario: Editing a rule of an archived class keeps its class', async ({ page, request }) => {
+	await reset(request);
+	await seed(request, {
+		aspects: [
+			{ name: 'Health', color: 'sage', icon: 'heart' },
+			{ name: 'Uni', color: 'lavender', icon: 'cap' }
+		],
+		uniAspect: 1,
+		semesters: [{ name: 'SS 26', archivedAt: '2026-09-30T10:00:00Z' }],
+		classes: [{ semester: 0, name: 'Statistics', color: 'sky', icon: 'book' }],
+		rules: [{ title: 'Stats review', aspect: 1, weekdays: [2], class: 0, type: 'LEC' }]
+	});
+	await page.goto('/recurring');
+	await page.getByTestId('rule-row').filter({ hasText: 'Stats review' }).getByRole('button').click();
+	const form = page.getByRole('dialog', { name: 'Edit rule' });
+	await form.getByLabel('Title').fill('Stats recap');
+	await form.getByRole('button', { name: 'Save rule' }).click();
+	await expect(form).toBeHidden();
+
+	await page.reload();
+	const rule = page.getByTestId('rule-row').filter({ hasText: 'Stats recap' });
+	await expect(rule.getByTestId('class-badge')).toHaveText('Statistics · LEC');
+});

@@ -188,4 +188,23 @@ test.describe('class badge', () => {
 		await expect(page.getByTestId('todo-row').filter({ hasText: 'Old lab report' })).toBeVisible();
 		await expect(page.getByTestId('todo-row').filter({ hasText: 'Renamed report' })).toHaveCount(0);
 	});
+
+	test('Scenario: Deleting a single todo of an archived class is allowed', async ({ page, request, baseURL }) => {
+		const { todos } = await seed(request, {
+			...UNI,
+			todos: [
+				{ title: 'Old lab report', aspect: 1, class: 2 },
+				{ title: 'Old lab notes', aspect: 1, class: 2 }
+			]
+		});
+		const response = await request.post('/todos?/delete', {
+			headers: { origin: baseURL!, 'x-sveltekit-action': 'true' },
+			form: { id: String(todos[0]) }
+		});
+		expect((await response.json()).type).toBe('success');
+
+		await page.goto('/backlog');
+		await expect(page.getByTestId('todo-row').filter({ hasText: 'Old lab report' })).toHaveCount(0);
+		await expect(page.getByTestId('todo-row').filter({ hasText: 'Old lab notes' })).toBeVisible();
+	});
 });

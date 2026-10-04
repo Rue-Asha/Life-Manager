@@ -38,7 +38,7 @@
 	let confirm = $state<'archive' | 'delete' | null>(null);
 	let action = $state<'archive' | 'unarchive' | 'deleteSemester'>('archive');
 	let renameError = $state<{ error: string; field?: string } | null>(null);
-	let classError = $state<{ error: string; field?: string } | undefined>();
+	let classError = $state<{ error: string; field?: string; fields?: Record<string, string> } | undefined>();
 	let form = $state<HTMLFormElement>();
 	let wrap = $state<HTMLElement>();
 
@@ -178,7 +178,7 @@
 			use:enhance={() =>
 				async ({ result, update }) => {
 					if (result.type === 'failure') {
-						classError = result.data as { error: string; field?: string };
+						classError = result.data as { error: string; field?: string; fields?: Record<string, string> };
 						return;
 					}
 					adding = false;

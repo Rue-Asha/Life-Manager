@@ -296,12 +296,21 @@ test('Scenario: Deleting a class asks for confirmation naming the todo count', a
 });
 
 test('Scenario: Archived class has no edit controls', async ({ page, request }) => {
+	// Archiving completes open todos; the open and planned rows are seeded to prove they'd be locked too.
 	const id = await seedClass(
 		request,
-		{ todos: [{ title: 'Old sheet', aspect: 1, class: 0, type: 'EXC' }] },
+		{
+			sprint: { state: 'active', weekStart: WEEK },
+			todos: [
+				{ title: 'Old sheet', aspect: 1, class: 0, type: 'EXC' },
+				{ title: 'Old notes', aspect: 1, class: 0, inSprint: true, day: '2026-10-07' },
+				{ title: 'Old exam prep', aspect: 1, class: 0, inSprint: true, status: 'done', completedAt: '2026-09-29T09:00:00Z' }
+			]
+		},
 		{ notes: 'Formula sheet allowed.' },
 		{ name: 'WS 25/26', archivedAt: '2026-09-30T10:00:00Z' }
 	);
+	const todos = page.getByTestId('class-todos-open').or(page.getByTestId('class-todos-planned')).or(page.getByTestId('class-todos-done'));
 	for (const width of [1600, 375]) {
 		await page.setViewportSize({ width, height: 900 });
 		await page.goto(`/uni/classes/${id}`);
@@ -309,12 +318,20 @@ test('Scenario: Archived class has no edit controls', async ({ page, request }) 
 		await expect(heading(page)).toHaveText('Analysis II');
 		await expect(page.getByText('WS 25/26 is archived. This class is read-only.')).toBeVisible();
 		await expect(page.getByTestId('class-notes')).toContainText('Formula sheet allowed.');
-		await expect(page.getByTestId('todo-row')).toHaveCount(1);
-		await expect(page.getByTestId('revised')).toHaveText('Not revised');
+		await page.getByTestId('class-todos-done').getByRole('button', { name: /Done/ }).click();
+		await expect(todos.getByTestId('todo-row')).toHaveCount(3);
+		await expect(todos.getByTestId('revised')).toHaveText(['Not revised', 'Not revised', 'Not revised']);
 		await expect(page.getByRole('button', { name: 'Edit details' })).toHaveCount(0);
 		await expect(page.getByRole('button', { name: 'Edit notes' })).toHaveCount(0);
 		await expect(page.getByRole('button', { name: 'Add a todo' })).toHaveCount(0);
 		await expect(page.getByRole('button', { name: /Revised today/ })).toHaveCount(0);
+		const rows = todos.getByTestId('todo-row');
+		await expect(rows.getByRole('button')).toHaveCount(0);
+		await expect(rows.getByRole('checkbox')).toHaveCount(0);
+		await expect(rows.getByRole('combobox')).toHaveCount(0);
+		await expect(rows.getByRole('link')).toHaveCount(0);
+		await rows.filter({ hasText: 'Old sheet' }).getByText('Old sheet').click();
+		await expect(page.getByLabel('Edit todo')).toHaveCount(0);
 		await expect(page.getByRole('button', { name: 'Delete class' })).toBeVisible();
 	}
 });

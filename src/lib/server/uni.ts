@@ -222,23 +222,26 @@ function isExamAt(s: string): boolean {
 	return !!time && new Date(time).toISOString().startsWith(m[1]);
 }
 
+// Collects every field's error so the form can mark them all after one save.
 function validate(input: ClassInput): Result<ClassValues> {
+	const fields: Record<string, string> = {};
 	const name = input.name.trim();
-	if (!name) return { ok: false, error: 'required', field: 'name' };
-	if (!Object.hasOwn(ASPECT_COLORS, input.color)) return { ok: false, error: 'invalid', field: 'color' };
-	if (!Object.hasOwn(ASPECT_ICONS, input.icon)) return { ok: false, error: 'invalid', field: 'icon' };
-	const ects = optional(input.ects);
-	if (ects !== null && (!/^\d+(\.\d+)?$/.test(ects) || !Number.isInteger(Number(ects) * 2))) {
-		return { ok: false, error: 'invalid', field: 'ects' };
-	}
+	if (!name) fields.name = 'required';
+	if (!Object.hasOwn(ASPECT_COLORS, input.color)) fields.color = 'invalid';
+	if (!Object.hasOwn(ASPECT_ICONS, input.icon)) fields.icon = 'invalid';
+	// Rue types German decimals; "7,5" is 7.5.
+	const ects = optional(input.ects)?.replace(',', '.') ?? null;
+	if (ects !== null && (!/^\d+(\.\d+)?$/.test(ects) || !Number.isInteger(Number(ects) * 2))) fields.ects = 'invalid';
 	const links = (input.links ?? [])
 		.map((l) => ({ label: l.label.trim(), url: l.url.trim() }))
 		.filter((l) => l.label || l.url);
-	if (links.some((l) => !URL.parse(l.url)?.protocol.match(/^https?:$/))) return { ok: false, error: 'invalid', field: 'links' };
+	if (links.some((l) => !URL.parse(l.url)?.protocol.match(/^https?:$/))) fields.links = 'invalid';
 	const examAt = optional(input.examAt);
-	if (examAt !== null && !isExamAt(examAt)) return { ok: false, error: 'invalid', field: 'examAt' };
+	if (examAt !== null && !isExamAt(examAt)) fields.examAt = 'invalid';
 	const grade = optional(input.grade);
-	if (grade !== null && !GRADES.includes(grade as Grade)) return { ok: false, error: 'invalid', field: 'grade' };
+	if (grade !== null && !GRADES.includes(grade as Grade)) fields.grade = 'invalid';
+	const [first] = Object.entries(fields);
+	if (first) return { ok: false, error: first[1], field: first[0], fields };
 	return {
 		ok: true,
 		value: [

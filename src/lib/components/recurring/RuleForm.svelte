@@ -67,7 +67,10 @@
 	let classId = $state<Id | ''>(rule?.classId ?? '');
 	// svelte-ignore state_referenced_locally
 	let type = $state<ClassType>(rule?.type ?? 'OTH');
-	const classes = $derived(((page.data.classes as ClassRef[] | undefined) ?? []).filter((c) => !c.archived));
+	// A rule keeps its archived class as an option, so saving other edits doesn't unlink it.
+	const classes = $derived(
+		((page.data.classes as ClassRef[] | undefined) ?? []).filter((c) => !c.archived || c.id === rule?.classId)
+	);
 	const classShown = $derived(aspectId === (page.data.uniAspectId ?? null) && classes.length > 0);
 </script>
 
@@ -129,7 +132,7 @@
 			>
 				<option value="">No class</option>
 				{#each classes as c (c.id)}
-					<option value={c.id}>{c.name}</option>
+					<option value={c.id}>{c.name}{c.archived ? ' (archived)' : ''}</option>
 				{/each}
 			</select>
 			{#if fieldError('classId')}

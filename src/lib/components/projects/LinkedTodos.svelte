@@ -14,7 +14,8 @@
 		testidPrefix = 'project-todos',
 		emptyText = 'No linked todos yet. Choose the IT aspect on a todo, then pick this project in the Project field.',
 		top,
-		extra
+		extra,
+		readonly = false
 	}: {
 		todos: ProjectTodos;
 		today: IsoDate;
@@ -24,6 +25,7 @@
 		emptyText?: string;
 		top?: Snippet;
 		extra?: Snippet<[Todo]>;
+		readonly?: boolean;
 	} = $props();
 
 	const aspects = $derived(page.data.aspects as Aspect[]);
@@ -48,7 +50,7 @@
 				<h3>{group.label}<span class="count num">{group.list.length}</span></h3>
 				<ul>
 					{#each group.list as todo (todo.id)}
-						<TodoRow {todo} aspect={aspectOf(todo.aspectId)} {today} context={group.context} {sprintDays} {extra} />
+						<TodoRow {todo} aspect={aspectOf(todo.aspectId)} {today} context={group.context} {sprintDays} {extra} {readonly} />
 					{/each}
 				</ul>
 			</div>
@@ -66,7 +68,7 @@
 			{#if showDone}
 				<ul>
 					{#each todos.done as todo (todo.id)}
-						<TodoRow {todo} aspect={aspectOf(todo.aspectId)} {today} context="sprint" {sprintDays} {extra} />
+						<TodoRow {todo} aspect={aspectOf(todo.aspectId)} {today} context="sprint" {sprintDays} {extra} {readonly} />
 					{/each}
 				</ul>
 			{/if}

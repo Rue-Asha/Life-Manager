@@ -9,7 +9,7 @@ export type ReviewState = 'running' | 'review-available' | 'review-required';
 export type SprintPhase = 'none' | 'planning' | ReviewState; // 'none' = no active/planning sprint
 export type ReviewDecision = 'carry' | 'backlog' | 'drop';
 export type Target = { kind: 'backlog' } | { kind: 'sprint' } | { kind: 'day'; day: IsoDate };
-export type Result<T> = { ok: true; value: T } | { ok: false; error: string; field?: string };
+export type Result<T> = { ok: true; value: T } | { ok: false; error: string; field?: string; fields?: Record<string, string> };
 // 'review-required': adding to the sprint while its review is required.
 export type AddToSprintError = 'no-active-sprint' | 'review-required' | 'not-found' | 'day-outside-sprint';
 

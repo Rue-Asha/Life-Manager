@@ -124,8 +124,9 @@ Archiving a semester whose classes have open todos (not done) SHALL show a dialo
 confirming sets them done with `completed_at` now and archives the semester, cancelling changes nothing.
 Without open todos no dialog is shown. An archived semester and its classes are read-only: classes cannot be
 added or edited, notes, metadata, todos and revised dates cannot be changed, and the semester cannot be
-renamed; delete and unarchive stay possible. Every such write is refused on the server with error
-`archived`. Unarchiving lifts read-only; the todos stay done. (S5)
+renamed; delete and unarchive stay possible, and deleting a single todo of an archived class stays allowed.
+Every such write is refused on the server with error `archived`. Unarchiving lifts read-only; the todos stay
+done. (S5)
 
 #### Scenario: Archiving with open todos asks for confirmation
 - **WHEN** Rue archives a semester whose classes have two open todos and one done todo, and confirms the dialog
@@ -155,6 +156,11 @@ renamed; delete and unarchive stay possible. Every such write is refused on the 
 #### Scenario: Archived class todo edited via todos is rejected
 - **WHEN** a request to the `/todos` `update` action is posted for a class todo of an archived semester
 - **THEN** the action fails with error `archived` and the todo is unchanged
+- **proof:** e2e
+
+#### Scenario: Deleting a single todo of an archived class is allowed
+- **WHEN** a request to the `/todos` `delete` action is posted for one of two todos of a class of an archived semester
+- **THEN** the action succeeds, that todo is gone and the other is still there
 - **proof:** e2e
 
 #### Scenario: Unarchive lifts read-only
@@ -254,7 +260,8 @@ wrapping row under the title below (no rail toggle), the Markdown notes rendered
 projects (placeholder when empty), the class todos in Open (no sprint, not done), Planned (in a sprint, not
 done) and Done (collapsed, newest completion first) with an empty state when there are none, and the class's
 recurring rules listed by title with a link to `/recurring`. An unknown id shows the 404 page. An archived
-class shows no edit controls. (S9)
+class shows no edit controls; its todo rows are read-only (no editor, done or status control, day picker or
+sprint actions). (S9)
 
 #### Scenario: Class metadata sits in the rail at 1280
 - **WHEN** a class with lecturer, room, ECTS, a link, exam and grade is opened at 1280 px and at 1600 px
@@ -298,7 +305,7 @@ class shows no edit controls. (S9)
 
 #### Scenario: Archived class has no edit controls
 - **WHEN** Rue opens a class of an archived semester
-- **THEN** no edit, notes-edit, quick-add or "Revised today" control is shown, and delete is still offered
+- **THEN** no edit, notes-edit, quick-add or "Revised today" control is shown, the open, planned and done todo rows have no control and their title opens no editor, and delete is still offered
 - **proof:** e2e
 
 ### Requirement: Delete a class

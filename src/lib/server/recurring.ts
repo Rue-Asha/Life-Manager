@@ -28,7 +28,8 @@ function getRule(db: DatabaseSync, id: Id): RecurringRule | null {
 	return r ? toRule(r) : null;
 }
 
-function validate(db: DatabaseSync, input: RuleInput): { ok: false; error: string; field: string } | null {
+// `keptClassId` is the rule's current class: keeping it is no new link, even once its semester is archived.
+function validate(db: DatabaseSync, input: RuleInput, keptClassId: Id | null = null): { ok: false; error: string; field: string } | null {
 	if (!input.title.trim()) return { ok: false, error: 'required', field: 'title' };
 	if (!db.prepare('SELECT 1 FROM aspects WHERE id = ?').get(input.aspectId)) {
 		return { ok: false, error: 'no-aspect', field: 'aspectId' };
@@ -39,7 +40,7 @@ function validate(db: DatabaseSync, input: RuleInput): { ok: false; error: strin
 	if (input.priority !== undefined && !isPriority(input.priority)) return { ok: false, error: 'required', field: 'priority' };
 	if (input.type != null && !CLASS_TYPES.includes(input.type)) return { ok: false, error: 'invalid', field: 'type' };
 	const classId = classFor(db, input);
-	if (classId !== null) {
+	if (classId !== null && classId !== keptClassId) {
 		const writable = classWritable(db, classId);
 		if (!writable.ok) return { ok: false, error: writable.error, field: 'classId' };
 	}
@@ -86,9 +87,10 @@ export function createRule(db: DatabaseSync, input: RuleInput, today: IsoDate): 
 }
 
 export function updateRule(db: DatabaseSync, id: Id, input: RuleInput): Result<RecurringRule> {
-	const invalid = validate(db, input);
+	const rule = getRule(db, id);
+	const invalid = validate(db, input, rule?.classId ?? null);
 	if (invalid) return invalid;
-	if (!getRule(db, id)) return { ok: false, error: 'not-found' };
+	if (!rule) return { ok: false, error: 'not-found' };
 	db.prepare(
 		`UPDATE recurring_rules SET title = ?, aspect_id = ?, weekdays = ?, notes = ?, priority = ?, checklist = ?,
 		 class_id = ?, type = ? WHERE id = ?`

@@ -4,9 +4,10 @@
 RuleForm SHALL show a Class select (classes of active semesters) and a Type chip while the rule's aspect is
 the Uni aspect; the server stores class and type only on Uni-aspect rules, with the same validation as todos
 (`not-found` / `archived` on `classId`, OTH when a class has no type). Generated instances inherit the rule's
-class and type. A rule whose aspect changes away from the Uni aspect loses class and type. Rules whose class
-belongs to an archived semester generate nothing; their carried-over instances are already done by the
-archive, so nothing is placed. (uni-hub S15)
+class and type. A rule whose aspect changes away from the Uni aspect loses class and type. Editing a rule
+whose class belongs to an archived semester keeps that class unless Rue picks another one; the form lists it
+marked as archived. Rules whose class belongs to an archived semester generate nothing; their carried-over
+instances are already done by the archive, so nothing is placed. (uni-hub S15)
 
 #### Scenario: Rule with a class generates linked instances
 - **WHEN** Rue creates on `/recurring` a rule for the Uni aspect on Tuesday with class "Analysis" and type EXC, then starts a sprint
@@ -37,3 +38,8 @@ archive, so nothing is placed. (uni-hub S15)
 - **WHEN** a Uni rule is created with a `classId` that does not exist, or with a class of an archived semester
 - **THEN** it fails with `not-found` or `archived` on field `classId` and nothing is stored
 - **proof:** unit
+
+#### Scenario: Editing a rule of an archived class keeps its class
+- **WHEN** Rue renames on `/recurring` a rule whose class "Statistics" (type LEC) belongs to an archived semester and saves
+- **THEN** after reload the rule still shows the class badge "Statistics · LEC"
+- **proof:** e2e
