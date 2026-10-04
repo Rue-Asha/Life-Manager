@@ -247,3 +247,74 @@ test('Scenario: Type defaults to OTH', async ({ page, request }) => {
 	await page.goto('/backlog');
 	await expect(page.getByTestId('todo-row').filter({ hasText: 'Summarise chapter 3' }).getByTestId('class-badge')).toContainText('OTH');
 });
+
+const revised = (page: Page, title: string) =>
+	page.getByTestId('class-todos-open').getByTestId('todo-row').filter({ hasText: title }).getByTestId('revised');
+
+test('Scenario: Revised today sets the date', async ({ page, request }) => {
+	const id = await seedClass(request, { todos: [{ title: 'Exercise sheet 4', aspect: 1, class: 0, type: 'EXC' }] });
+	await page.goto(`/uni/classes/${id}`);
+
+	await expect(revised(page, 'Exercise sheet 4')).toHaveText('Not revised');
+	await page.getByRole('button', { name: 'Revised today: Exercise sheet 4' }).click();
+	await expect(revised(page, 'Exercise sheet 4')).toHaveText('Revised today');
+	await page.reload();
+	await expect(revised(page, 'Exercise sheet 4')).toHaveText('Revised today');
+});
+
+test('Scenario: Revised date can be cleared', async ({ page, request }) => {
+	const id = await seedClass(request, {
+		todos: [{ title: 'Rework lecture 5', aspect: 1, class: 0, type: 'LEC', revisedAt: '2026-10-04' }]
+	});
+	await page.goto(`/uni/classes/${id}`);
+
+	await expect(revised(page, 'Rework lecture 5')).toHaveText('Revised 3 days ago');
+	await page.getByRole('button', { name: 'Clear revised date: Rework lecture 5' }).click();
+	await expect(revised(page, 'Rework lecture 5')).toHaveText('Not revised');
+	await page.reload();
+	await expect(revised(page, 'Rework lecture 5')).toHaveText('Not revised');
+});
+
+test('Scenario: Deleting a class asks for confirmation naming the todo count', async ({ page, request }) => {
+	const todos = ['One', 'Two', 'Three'].map((title) => ({ title, aspect: 1, class: 0 }));
+	const id = await seedClass(request, { todos });
+	await page.goto(`/uni/classes/${id}`);
+
+	const dialog = page.getByRole('dialog');
+	await page.getByRole('button', { name: 'Delete class' }).click();
+	await expect(dialog).toContainText('3 todos');
+	await dialog.getByRole('button', { name: 'Cancel' }).click();
+	await expect(dialog).toBeHidden();
+	await page.reload();
+	await expect(heading(page)).toHaveText('Analysis II');
+
+	await page.getByRole('button', { name: 'Delete class' }).click();
+	await dialog.getByRole('button', { name: 'Delete class' }).click();
+	await expect(page).toHaveURL(/\/uni$/);
+	const response = await page.goto(`/uni/classes/${id}`);
+	expect(response?.status()).toBe(404);
+});
+
+test('Scenario: Archived class has no edit controls', async ({ page, request }) => {
+	const id = await seedClass(
+		request,
+		{ todos: [{ title: 'Old sheet', aspect: 1, class: 0, type: 'EXC' }] },
+		{ notes: 'Formula sheet allowed.' },
+		{ name: 'WS 25/26', archivedAt: '2026-09-30T10:00:00Z' }
+	);
+	for (const width of [1600, 375]) {
+		await page.setViewportSize({ width, height: 900 });
+		await page.goto(`/uni/classes/${id}`);
+
+		await expect(heading(page)).toHaveText('Analysis II');
+		await expect(page.getByText('WS 25/26 is archived. This class is read-only.')).toBeVisible();
+		await expect(page.getByTestId('class-notes')).toContainText('Formula sheet allowed.');
+		await expect(page.getByTestId('todo-row')).toHaveCount(1);
+		await expect(page.getByTestId('revised')).toHaveText('Not revised');
+		await expect(page.getByRole('button', { name: 'Edit details' })).toHaveCount(0);
+		await expect(page.getByRole('button', { name: 'Edit notes' })).toHaveCount(0);
+		await expect(page.getByRole('button', { name: 'Add a todo' })).toHaveCount(0);
+		await expect(page.getByRole('button', { name: /Revised today/ })).toHaveCount(0);
+		await expect(page.getByRole('button', { name: 'Delete class' })).toBeVisible();
+	}
+});

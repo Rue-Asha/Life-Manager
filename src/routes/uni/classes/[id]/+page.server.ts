@@ -1,8 +1,9 @@
-import { error, fail } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 import { today } from '$lib/server/clock';
 import { getDb } from '$lib/server/db';
 import { sprintPhase } from '$lib/server/sprints';
-import { classCounts, classRules, classTodos, getClass, setClassNotes, updateClass } from '$lib/server/uni';
+import { setRevisedAt } from '$lib/server/todos';
+import { classCounts, classRules, classTodos, deleteClass, getClass, setClassNotes, updateClass } from '$lib/server/uni';
 import { renderMarkdown } from '$lib/markdown';
 import type { ClassInput } from '$lib/types';
 import { weekDays } from '$lib/week';
@@ -55,5 +56,16 @@ export const actions: Actions = {
 		const notes = String((await request.formData()).get('notes') ?? '');
 		const result = setClassNotes(getDb(), Number(params.id), notes);
 		if (!result.ok) return fail(status(result.error), { error: result.error, field: result.field });
+	},
+	revised: async ({ request }) => {
+		const form = await request.formData();
+		const date = String(form.get('date') ?? '');
+		const result = setRevisedAt(getDb(), Number(form.get('todoId')), date || null);
+		if (!result.ok) return fail(status(result.error), { error: result.error, field: result.field });
+	},
+	delete: ({ params }) => {
+		const result = deleteClass(getDb(), Number(params.id));
+		if (!result.ok) return fail(400, { error: result.error });
+		redirect(303, '/uni');
 	}
 };

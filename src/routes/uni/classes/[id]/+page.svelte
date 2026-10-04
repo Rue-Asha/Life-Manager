@@ -9,6 +9,9 @@
 	import QuickAdd from '$lib/components/todo/QuickAdd.svelte';
 	import ClassMeta from '$lib/components/uni/ClassMeta.svelte';
 	import ClassRules from '$lib/components/uni/ClassRules.svelte';
+	import RevisedControl from '$lib/components/uni/RevisedControl.svelte';
+	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
+	import { GLYPHS } from '$lib/components/projects/glyphs';
 	import AspectIcon from '$lib/components/ui/AspectIcon.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Sheet from '$lib/components/ui/Sheet.svelte';
@@ -20,11 +23,28 @@
 
 	const cls = $derived(data.cls);
 	const wide = new MediaQuery('min-width: 1280px');
+	// Lucide "lock" (ISC licence, https://lucide.dev).
+	const LOCK = 'M5 11h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2Z M7 11V7a5 5 0 0 1 10 0v4';
+
+	const archived = $derived(cls.semester.archivedAt !== null);
+	const edit = $derived(archived ? undefined : openEdit);
 
 	let editing = $state(false);
+	let deleting = $state(false);
+	let deleteForm = $state<HTMLFormElement>();
 	let error = $state<{ error: string; field?: string }>();
 
-	function edit() {
+	const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+	const deleteMessage = $derived.by(() => {
+		const parts = [
+			data.counts.todos ? plural(data.counts.todos, 'todo', 'todos') : '',
+			data.rules.length ? plural(data.rules.length, 'recurring rule', 'recurring rules') : ''
+		].filter(Boolean);
+		const what = parts.length ? `This deletes its ${parts.join(' and ')}.` : 'It has no todos or recurring rules.';
+		return `${what} This can’t be undone.`;
+	});
+
+	function openEdit() {
 		error = undefined;
 		editing = true;
 	}
@@ -35,7 +55,7 @@
 </svelte:head>
 
 {#snippet quickAdd()}
-	{#if data.uniAspectId !== null}
+	{#if !archived && data.uniAspectId !== null}
 		<div class="quick">
 			<QuickAdd
 				aspects={data.aspects}
@@ -50,6 +70,7 @@
 
 {#snippet rowExtra(todo: Todo)}
 	{#if todo.type}<span class="type">{todo.type}</span>{/if}
+	<RevisedControl {todo} today={data.today} readonly={archived} />
 {/snippet}
 
 {#snippet rail()}
@@ -67,6 +88,11 @@
 		<h1>{cls.name}</h1>
 	</div>
 	<p class="sub">{cls.semester.name}</p>
+	{#if archived}
+		<p class="ro">
+			<svg viewBox="0 0 24 24" aria-hidden="true"><path d={LOCK} /></svg>{cls.semester.name} is archived. This class is read-only.
+		</p>
+	{/if}
 	{#if !wide.current}
 		<ClassMeta {cls} todos={data.todos} today={data.today} mode="row" onedit={edit} />
 	{/if}
@@ -76,6 +102,7 @@
 		notes={cls.notes}
 		testid="class-notes"
 		placeholder="No notes yet. Collect exam topics, formulas or links here."
+		editable={!archived}
 	/>
 
 	<LinkedTodos
@@ -90,7 +117,24 @@
 	/>
 
 	<ClassRules rules={data.rules} />
+
+	<div class="danger">
+		<button type="button" onclick={() => (deleting = true)}>
+			<svg viewBox="0 0 24 24" aria-hidden="true"><path d={GLYPHS.trash} /></svg>Delete class
+		</button>
+	</div>
 </RailLayout>
+
+<form method="POST" action="?/delete" hidden bind:this={deleteForm} use:enhance></form>
+
+<ConfirmDialog
+	open={deleting}
+	title="Delete {cls.name}?"
+	message={deleteMessage}
+	confirmLabel="Delete class"
+	onconfirm={() => deleteForm?.requestSubmit()}
+	oncancel={() => (deleting = false)}
+/>
 
 <Sheet open={editing} title="Edit details" onclose={() => (editing = false)}>
 	{#if editing}
@@ -164,6 +208,44 @@
 	.sub {
 		margin-top: var(--space-1);
 		color: var(--ink-3);
+	}
+
+	.ro {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		margin-top: var(--space-3);
+		color: var(--ink-2);
+	}
+
+	.ro svg,
+	.danger svg {
+		width: var(--icon-sm);
+		height: var(--icon-sm);
+		stroke-width: 1.75;
+	}
+
+	.danger {
+		display: flex;
+		margin-top: var(--space-9);
+	}
+
+	.danger button {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-2);
+		height: var(--control-height);
+		padding: 0 var(--space-3) 0 var(--space-2);
+		border: 0;
+		border-radius: var(--radius-md);
+		background: none;
+		color: var(--ink-2);
+		font-weight: var(--weight-medium);
+		cursor: pointer;
+	}
+
+	.danger button:hover {
+		color: var(--ink);
 	}
 
 	.quick {
