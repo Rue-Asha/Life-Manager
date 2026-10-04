@@ -3,7 +3,9 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { ClassInput, Id } from '$lib/types';
 import { setTestNow } from './clock';
 import { openDb } from './db';
+import { setRevisedAt } from './todos';
 import {
+	archiveSemester,
 	classWritable,
 	countClassLinks,
 	classCounts,
@@ -11,14 +13,17 @@ import {
 	createClass,
 	createSemester,
 	deleteClass,
+	deleteSemester,
 	getClass,
 	getUniAspectId,
 	listClassRefs,
 	listSemesters,
 	renameSemester,
+	semesterCounts,
 	setClassNotes,
 	setUniAspectId,
 	todoWritable,
+	unarchiveSemester,
 	updateClass
 } from './uni';
 
@@ -315,5 +320,112 @@ describe('classes', () => {
 		expect(db.prepare('SELECT count(*) AS n FROM checklist_items').get()).toEqual({ n: 0 });
 		expect(db.prepare('SELECT count(*) AS n FROM recurring_rules').get()).toEqual({ n: 0 });
 		expect(deleteClass(db, ana)).toEqual({ ok: false, error: 'not-found' });
+	});
+});
+
+describe('archive and delete', () => {
+	const base: ClassInput = { name: 'Analysis II', color: 'sky', icon: 'book' };
+
+	function sprint(state: string): Id {
+		return insert('INSERT INTO sprints (week_start, state) VALUES (?, ?)', state === 'active' ? '2026-09-28' : null, state);
+	}
+
+	const row = (id: Id) =>
+		db.prepare('SELECT status, completed_at AS completedAt FROM todos WHERE id = ?').get(id) as {
+			status: string;
+			completedAt: string | null;
+		};
+
+	it('Scenario: Archiving completes open todos', () => {
+		const ws = value(createSemester(db, 'WS'));
+		const cls = value(createClass(db, ws.id, base)).id;
+		const inSprint = todo(cls, 'doing');
+		db.prepare('UPDATE todos SET sprint_id = ? WHERE id = ?').run(sprint('active'), inSprint);
+		const inBacklog = todo(cls);
+		const done = todo(cls, 'done');
+		db.prepare("UPDATE todos SET completed_at = '2026-09-01T08:00:00.000Z' WHERE id = ?").run(done);
+		const unlinked = todo(null);
+
+		expect(semesterCounts(db, ws.id)).toEqual({ classes: 1, todos: 3, openTodos: 2 });
+		setTestNow(new Date('2026-10-04T12:00:00Z'));
+		expect(archiveSemester(db, ws.id)).toEqual({ ok: true, value: { completed: 2 } });
+
+		const at = '2026-10-04T12:00:00.000Z';
+		expect(row(inSprint)).toEqual({ status: 'done', completedAt: at });
+		expect(row(inBacklog)).toEqual({ status: 'done', completedAt: at });
+		expect(row(done)).toEqual({ status: 'done', completedAt: '2026-09-01T08:00:00.000Z' });
+		expect(row(unlinked)).toEqual({ status: 'todo', completedAt: null });
+		expect(listSemesters(db).archived).toMatchObject([{ id: ws.id, archivedAt: at }]);
+		expect(semesterCounts(db, ws.id)).toEqual({ classes: 1, todos: 3, openTodos: 0 });
+		expect(archiveSemester(db, 999)).toEqual({ ok: false, error: 'not-found' });
+	});
+
+	it('Scenario: Archived semester refuses writes', () => {
+		const ws = value(createSemester(db, 'WS'));
+		const cls = value(createClass(db, ws.id, { ...base, lecturer: 'Weber' }));
+		const t = todo(cls.id, 'todo', 'LEC');
+		value(archiveSemester(db, ws.id));
+		const archived = getSemester();
+
+		expect(renameSemester(db, ws.id, 'Renamed')).toEqual({ ok: false, error: 'archived' });
+		expect(createClass(db, ws.id, { ...base, name: 'New' })).toEqual({ ok: false, error: 'archived', field: 'semesterId' });
+		expect(updateClass(db, cls.id, { ...base, name: 'Edited' })).toEqual({ ok: false, error: 'archived', field: 'classId' });
+		expect(setClassNotes(db, cls.id, 'Notes')).toEqual({ ok: false, error: 'archived', field: 'classId' });
+		expect(setRevisedAt(db, t, '2026-10-04')).toMatchObject({ ok: false, error: 'archived' });
+		expect(todoWritable(db, t)).toEqual({ ok: false, error: 'archived' });
+
+		expect(getSemester()).toEqual(archived);
+		expect(getClass(db, cls.id)).toEqual({ ...cls, semester: archived });
+		expect(db.prepare('SELECT count(*) AS n FROM classes').get()).toEqual({ n: 1 });
+		expect(db.prepare('SELECT revised_at AS r FROM todos WHERE id = ?').get(t)).toEqual({ r: null });
+
+		function getSemester() {
+			return listSemesters(db).archived.map(({ classes: _c, grades: _g, ...s }) => s)[0];
+		}
+	});
+
+	it('Scenario: Unarchive lifts read-only', () => {
+		const ws = value(createSemester(db, 'WS'));
+		const cls = value(createClass(db, ws.id, base)).id;
+		const a = todo(cls);
+		const b = todo(cls, 'doing');
+		value(archiveSemester(db, ws.id));
+
+		expect(unarchiveSemester(db, ws.id)).toEqual({ ok: true, value: { ...ws, archivedAt: null } });
+		expect(listSemesters(db).active.map((s) => s.id)).toEqual([ws.id]);
+		expect(updateClass(db, cls, { ...base, name: 'Analysis III' })).toMatchObject({ ok: true, value: { name: 'Analysis III' } });
+		expect(renameSemester(db, ws.id, 'WS 26/27')).toMatchObject({ ok: true });
+		expect([row(a).status, row(b).status]).toEqual(['done', 'done']);
+		expect(unarchiveSemester(db, 999)).toEqual({ ok: false, error: 'not-found' });
+	});
+
+	it('Scenario: Deleting a semester removes everything belonging to it', () => {
+		const ws = value(createSemester(db, 'WS'));
+		const ana = value(createClass(db, ws.id, base)).id;
+		const phy = value(createClass(db, ws.id, { ...base, name: 'Physics' })).id;
+		const open = todo(ana, 'todo', 'LEC');
+		const done = todo(phy, 'done', 'EXC');
+		insert('INSERT INTO checklist_items (todo_id, text, position) VALUES (?, ?, 0)', open, 'Open step');
+		insert('INSERT INTO checklist_items (todo_id, text, position) VALUES (?, ?, 0)', done, 'Done step');
+		insert(
+			"INSERT INTO recurring_rules (title, aspect_id, weekdays, class_id, type, created_at) VALUES ('R', ?, '1', ?, 'LEC', 'r')",
+			uni,
+			ana
+		);
+		const ss = value(createSemester(db, 'SS'));
+		const keptClass = value(createClass(db, ss.id, base)).id;
+		const kept = todo(keptClass);
+		const keptItem = insert('INSERT INTO checklist_items (todo_id, text, position) VALUES (?, ?, 0)', kept, 'Kept');
+
+		expect(semesterCounts(db, ws.id)).toEqual({ classes: 2, todos: 2, openTodos: 1 });
+		expect(deleteSemester(db, ws.id)).toEqual({ ok: true, value: { classes: 2, todos: 2 } });
+
+		expect(db.prepare('SELECT id FROM semesters').all()).toEqual([{ id: ss.id }]);
+		expect(db.prepare('SELECT id FROM classes').all()).toEqual([{ id: keptClass }]);
+		expect(db.prepare('SELECT id FROM todos').all()).toEqual([{ id: kept }]);
+		expect(db.prepare('SELECT id FROM checklist_items').all()).toEqual([{ id: keptItem }]);
+		expect(db.prepare('SELECT count(*) AS n FROM recurring_rules').get()).toEqual({ n: 0 });
+		expect(deleteSemester(db, ws.id)).toEqual({ ok: false, error: 'not-found' });
+		expect(semesterCounts(db, ws.id)).toEqual({ classes: 0, todos: 0, openTodos: 0 });
 	});
 });

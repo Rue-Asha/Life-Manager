@@ -144,19 +144,42 @@ export function renameSemester(db: DatabaseSync, id: Id, name: string): Result<S
 }
 
 export function archiveSemester(db: DatabaseSync, id: Id): Result<{ completed: number }> {
-	return notImplemented;
+	const semester = getSemester(db, id);
+	if (!semester) return { ok: false, error: 'not-found' };
+	if (semester.archivedAt !== null) return { ok: true, value: { completed: 0 } };
+	const at = now().toISOString();
+	return transaction(db, () => {
+		const { changes } = db
+			.prepare(
+				`UPDATE todos SET status = 'done', completed_at = ?
+				 WHERE status != 'done' AND class_id IN (SELECT id FROM classes WHERE semester_id = ?)`
+			)
+			.run(at, id);
+		db.prepare('UPDATE semesters SET archived_at = ? WHERE id = ?').run(at, id);
+		return { ok: true, value: { completed: Number(changes) } };
+	});
 }
 
 export function unarchiveSemester(db: DatabaseSync, id: Id): Result<Semester> {
-	return notImplemented;
+	const { changes } = db.prepare('UPDATE semesters SET archived_at = NULL WHERE id = ?').run(id);
+	return changes ? { ok: true, value: getSemester(db, id)! } : { ok: false, error: 'not-found' };
 }
 
 export function semesterCounts(db: DatabaseSync, id: Id): { classes: number; todos: number; openTodos: number } {
-	return { classes: 0, todos: 0, openTodos: 0 };
+	return db
+		.prepare(
+			`SELECT (SELECT count(*) FROM classes WHERE semester_id = ?) AS classes, count(t.id) AS todos,
+			        coalesce(sum(t.status != 'done'), 0) AS openTodos
+			 FROM todos t JOIN classes c ON c.id = t.class_id WHERE c.semester_id = ?`
+		)
+		.get(id, id) as { classes: number; todos: number; openTodos: number };
 }
 
 export function deleteSemester(db: DatabaseSync, id: Id): Result<{ classes: number; todos: number }> {
-	return notImplemented;
+	if (!getSemester(db, id)) return { ok: false, error: 'not-found' };
+	const { classes, todos } = semesterCounts(db, id);
+	db.prepare('DELETE FROM semesters WHERE id = ?').run(id);
+	return { ok: true, value: { classes, todos } };
 }
 
 type ClassRow = Omit<UniClass, 'links'> & { links: string };
