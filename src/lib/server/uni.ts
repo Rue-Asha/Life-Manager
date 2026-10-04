@@ -3,6 +3,7 @@ import { ASPECT_COLORS, ASPECT_ICONS } from '$lib/aspect-style';
 import type {
 	ClassInput,
 	ClassRef,
+	ClassSummary,
 	ClassTodos,
 	Deadline,
 	Grade,
@@ -17,7 +18,8 @@ import type {
 } from '$lib/types';
 import { GRADES } from '$lib/uni';
 import { now } from './clock';
-import { transaction } from './sprints';
+import { listRules } from './recurring';
+import { selectTodos, transaction } from './sprints';
 
 const notImplemented = { ok: false, error: 'not-implemented' } as const;
 
@@ -116,7 +118,22 @@ export function listSemesters(db: DatabaseSync): { active: SemesterView[]; archi
 	const semesters = db
 		.prepare(`SELECT ${semesterColumns} FROM semesters ORDER BY created_at DESC, id DESC`)
 		.all() as unknown as Semester[];
-	const views = semesters.map((s): SemesterView => ({ ...s, classes: [], grades: { average: null, earnedEcts: 0 } }));
+	const rows = db
+		.prepare(
+			`SELECT ${classColumns.replace('notes, ', '')},
+			        (SELECT count(*) FROM todos WHERE class_id = classes.id AND status != 'done') AS openTodos,
+			        (SELECT min(due_date) FROM todos WHERE class_id = classes.id AND status != 'done') AS nextDue
+			 FROM classes ORDER BY id`
+		)
+		.all() as unknown as (Omit<ClassSummary, 'links'> & { links: string })[];
+	const classes = rows.map((r): ClassSummary => ({ ...r, links: JSON.parse(r.links) }));
+	const views = semesters.map(
+		(s): SemesterView => ({
+			...s,
+			classes: classes.filter((c) => c.semesterId === s.id),
+			grades: { average: null, earnedEcts: 0 }
+		})
+	);
 	return {
 		active: views.filter((s) => s.archivedAt === null),
 		archived: views.filter((s) => s.archivedAt !== null),
@@ -291,11 +308,17 @@ export function deleteClass(db: DatabaseSync, id: Id): Result<{ todos: number }>
 }
 
 export function classTodos(db: DatabaseSync, id: Id): ClassTodos {
-	return { open: [], planned: [], done: [] };
+	return {
+		open: selectTodos(db, "class_id = ? AND status != 'done' AND sprint_id IS NULL", id),
+		planned: selectTodos(db, "class_id = ? AND status != 'done' AND sprint_id IS NOT NULL", id),
+		done: selectTodos(db, "class_id = ? AND status = 'done'", id).sort((a, b) =>
+			(b.completedAt ?? '').localeCompare(a.completedAt ?? '')
+		)
+	};
 }
 
 export function classRules(db: DatabaseSync, id: Id): RecurringRule[] {
-	return [];
+	return listRules(db).filter((r) => r.classId === id);
 }
 
 export function gradeSummary(classes: Pick<UniClass, 'ects' | 'grade'>[]): GradeSummary {

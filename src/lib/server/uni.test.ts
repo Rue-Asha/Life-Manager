@@ -9,6 +9,8 @@ import {
 	classWritable,
 	countClassLinks,
 	classCounts,
+	classRules,
+	classTodos,
 	countOpenClassTodos,
 	createClass,
 	createSemester,
@@ -427,5 +429,86 @@ describe('archive and delete', () => {
 		expect(db.prepare('SELECT count(*) AS n FROM recurring_rules').get()).toEqual({ n: 0 });
 		expect(deleteSemester(db, ws.id)).toEqual({ ok: false, error: 'not-found' });
 		expect(semesterCounts(db, ws.id)).toEqual({ classes: 0, todos: 0, openTodos: 0 });
+	});
+});
+
+describe('class summaries, todos and rules', () => {
+	const base: ClassInput = { name: 'Analysis II', color: 'sky', icon: 'book' };
+
+	function dated(classId: Id, status: string, due: string | null): Id {
+		const id = todo(classId, status);
+		db.prepare('UPDATE todos SET due_date = ? WHERE id = ?').run(due, id);
+		return id;
+	}
+
+	it('Scenario: Card summary counts open todos and the next due date', () => {
+		const ws = value(createSemester(db, 'WS'));
+		const cls = value(createClass(db, ws.id, { ...base, lecturer: 'Weber', ects: '5' }));
+		value(setClassNotes(db, cls.id, 'Long notes'));
+		const empty = value(createClass(db, ws.id, { ...base, name: 'Physics' }));
+		dated(cls.id, 'done', '2026-10-03');
+		dated(cls.id, 'todo', null);
+		dated(cls.id, 'doing', '2026-10-09');
+		dated(cls.id, 'todo', '2026-10-07');
+
+		const [view] = listSemesters(db).active;
+		expect(view.classes.map((c) => c.id)).toEqual([cls.id, empty.id]);
+		const { notes: _notes, semester: _semester, ...summary } = getClass(db, cls.id)!;
+		expect(view.classes[0]).toEqual({ ...summary, openTodos: 3, nextDue: '2026-10-07' });
+		expect(view.classes[0]).not.toHaveProperty('notes');
+		expect(view.classes[1]).toMatchObject({ name: 'Physics', openTodos: 0, nextDue: null });
+	});
+
+	it('lists classes under their own semester, archived ones too', () => {
+		const ws = value(createSemester(db, 'WS'));
+		const ss = value(createSemester(db, 'SS'));
+		const a = value(createClass(db, ws.id, base)).id;
+		const b = value(createClass(db, ss.id, base)).id;
+		value(archiveSemester(db, ws.id));
+		const { active, archived } = listSemesters(db);
+		expect(active.map((s) => s.classes.map((c) => c.id))).toEqual([[b]]);
+		expect(archived.map((s) => s.classes.map((c) => c.id))).toEqual([[a]]);
+	});
+
+	it('Scenario: Class todos are grouped Open, Planned, Done', () => {
+		const ws = value(createSemester(db, 'WS'));
+		const cls = value(createClass(db, ws.id, base)).id;
+		const active = insert("INSERT INTO sprints (week_start, state) VALUES ('2026-09-28', 'active')");
+		const planning = insert("INSERT INTO sprints (week_start, state) VALUES (NULL, 'planning')");
+		const backlog = todo(cls);
+		const inActive = todo(cls, 'doing');
+		const inPlanning = todo(cls);
+		db.prepare('UPDATE todos SET sprint_id = ? WHERE id = ?').run(active, inActive);
+		db.prepare('UPDATE todos SET sprint_id = ? WHERE id = ?').run(planning, inPlanning);
+		const earlier = todo(cls, 'done');
+		const later = todo(cls, 'done');
+		db.prepare("UPDATE todos SET completed_at = '2026-10-01T08:00:00.000Z' WHERE id = ?").run(earlier);
+		db.prepare("UPDATE todos SET completed_at = '2026-10-03T08:00:00.000Z' WHERE id = ?").run(later);
+		todo(null);
+		todo(value(createClass(db, ws.id, { ...base, name: 'Other' })).id);
+
+		const groups = classTodos(db, cls);
+		expect(groups.open.map((t) => t.id)).toEqual([backlog]);
+		expect(groups.planned.map((t) => t.id).sort()).toEqual([inActive, inPlanning].sort());
+		expect(groups.done.map((t) => t.id)).toEqual([later, earlier]);
+		expect(groups.open[0]).toMatchObject({ classId: cls });
+	});
+
+	it('lists the rules of a class only', () => {
+		const ws = value(createSemester(db, 'WS'));
+		const cls = value(createClass(db, ws.id, base)).id;
+		const other = value(createClass(db, ws.id, { ...base, name: 'Other' })).id;
+		const rule = (title: string, classId: Id | null) =>
+			insert(
+				"INSERT INTO recurring_rules (title, aspect_id, weekdays, class_id, type, created_at) VALUES (?, ?, '1,3', ?, ?, 'r')",
+				title,
+				uni,
+				classId,
+				classId === null ? null : 'LEC'
+			);
+		const review = rule('Lecture review', cls);
+		rule('Other rule', other);
+		rule('Unlinked', null);
+		expect(classRules(db, cls)).toMatchObject([{ id: review, title: 'Lecture review', classId: cls, type: 'LEC', weekdays: [1, 3] }]);
 	});
 });
