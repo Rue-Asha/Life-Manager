@@ -2,7 +2,7 @@ verified-at: bc3ee17
 
 ## Layer 1 — proof-full
 
-`npm run build` then `npm run proof:full`: green. Unit: Test Files  11 passed (11), Tests  145 passed (145). e2e: 252 passed.
+`npm run build` then `npm run proof:full`: green. Unit: 11 files, 145 tests passed. e2e: 252 passed.
 
 ```
   ✓  235 e2e/uni.test.ts:170:1 › Scenario: Phone shows one class card per row (154ms)
@@ -33,8 +33,8 @@ verified-at: bc3ee17
 
 | Scenario | proof | Evidence |
 |---|---|---|
-| Brief cites Mobbin references for the Uni screens (design-direction) | manual (taste document, judged by Rue) |  § 11 Uni (uni-hub S18) |
-| Uni mockup shows overview and class detail at both widths (design-direction) | manual (visual judgement) | ,  |
+| Brief cites Mobbin references for the Uni screens (design-direction) | manual (taste document, judged by Rue) | `design/brief.md` § 11 Uni (uni-hub S18) |
+| Uni mockup shows overview and class detail at both widths (design-direction) | manual (visual judgement) | `design/uni-mockup.html`, `design/shots/uni-*.png` |
 | Uni UI waits for the approved mockup (design-direction) | manual (human taste gate, recorded by the orchestrator) | commit b8a0947 "mockup approved by Rue (2.5)" precedes the first Uni UI commit (a5062cc, 5.1) |
 | Desktop shows a sidebar (navigation) | e2e | `e2e/navigation.test.ts` › "Scenario: Desktop shows a sidebar" ✓ |
 | Phone home list shows the seven lists (navigation) | e2e | `e2e/navigation.test.ts` › "Scenario: Phone home list shows the seven lists" ✓ |
@@ -134,10 +134,10 @@ verified-at: bc3ee17
 
 ## Manual (Gate 2)
 
-- [ ] Open  § 11 Uni: every decision cites a Mobbin URL and adds no motion beyond the route cross-fade.
-- [ ] Open  and : overview and class detail at 1600 px and 375 px, tokens only.
-- [ ] Confirm the Uni mockup approval (commit b8a0947) was yours and came before the Uni UI units (first: a5062cc).
-- [ ] `npm run dev` → http://localhost:5173/uni: compare overview and a class detail against the mockup at desktop and phone width (shots below).
+- [ ] Open `design/brief.md` § 11 Uni: every decision cites a Mobbin URL and adds no motion beyond the route cross-fade.
+- [ ] Open `design/uni-mockup.html` and `design/shots/uni-*.png`: overview and class detail at 1600 px and 375 px, tokens only.
+- [ ] Confirm the mockup approval (commit b8a0947) was yours and came before the Uni UI units (first: a5062cc).
+- [ ] `npm run dev` → http://localhost:5173/uni: compare the overview and one class detail with the mockup at desktop and phone width (or `shots/uni-*.png`, `shots/class-detail-*.png`).
 
 ## Diffstat
 
@@ -145,48 +145,48 @@ verified-at: bc3ee17
 
 ## Screenshots
 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
-- 
+- `shots/aspect-page-1280.png`
+- `shots/aspect-page-375.png`
+- `shots/aspects-1280.png`
+- `shots/aspects-375.png`
+- `shots/backlog-1280.png`
+- `shots/backlog-375.png`
+- `shots/class-detail-1280.png`
+- `shots/class-detail-375.png`
+- `shots/journey-backlog-1280.png`
+- `shots/journey-manage-aspect-1280.png`
+- `shots/journey-manage-aspect-375.png`
+- `shots/journey-manage-week-1280.png`
+- `shots/journey-next-week-1280.png`
+- `shots/journey-plan-1280.png`
+- `shots/journey-recurring-1280.png`
+- `shots/journey-review-1280.png`
+- `shots/journey-sprint-aspect-1280.png`
+- `shots/journey-sprint-board-1280.png`
+- `shots/journey-sprint-week-1280.png`
+- `shots/journey-today-1280.png`
+- `shots/journey-welcome-1280.png`
+- `shots/plan-1280.png`
+- `shots/plan-375.png`
+- `shots/project-detail-1280.png`
+- `shots/project-detail-375.png`
+- `shots/projects-1280.png`
+- `shots/projects-375.png`
+- `shots/recurring-1280.png`
+- `shots/recurring-375.png`
+- `shots/review-1280.png`
+- `shots/review-375.png`
+- `shots/sprint-aspect-1280.png`
+- `shots/sprint-aspect-375.png`
+- `shots/sprint-board-1280.png`
+- `shots/sprint-board-375.png`
+- `shots/sprint-manage-375.png`
+- `shots/sprint-overlay-rail-1100.png`
+- `shots/sprint-week-1280.png`
+- `shots/sprint-week-375.png`
+- `shots/today-1280.png`
+- `shots/today-375.png`
+- `shots/uni-1280.png`
+- `shots/uni-375.png`
+- `shots/welcome-1280.png`
+- `shots/welcome-375.png`
