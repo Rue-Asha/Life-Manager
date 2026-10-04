@@ -172,6 +172,12 @@ Lifesum calendar with green-ringed today, https://mobbin.com/screens/3a530be6-95
   *active* projects (0 is shown like any other zero).
   — Things 3 sidebar with project rows and counts, https://mobbin.com/screens/70077bc2-0d33-4247-845d-3b656f8fb324;
   Todoist Browse with per-project counts, https://mobbin.com/screens/7a1c1206-9f30-49c8-84e0-ec5f2d935574
+- **Uni is the seventh list (uni-hub S17).** It sits after Projects and before Aspects, in the sidebar
+  and in the phone home list, with the graduation-cap icon and a grey count of *open class todos in
+  active semesters* (0 is shown like any other zero). The sidebar marks Uni current on a class's
+  detail page too.
+  — Things 3 home list with list rows and counts, https://mobbin.com/screens/70077bc2-0d33-4247-845d-3b656f8fb324;
+  Saturn Calendar "My Classes" as its own list, https://mobbin.com/screens/e9572bcf-347b-4fd3-8680-eda6f59cb547
 - **Desktop: a 248 px sidebar on `--paper-sunk`.** It holds the same items with grey counts.
   The selected item gets a `--paper` rounded fill and an accent-tinted icon, with no border and
   no left bar. Aspects are listed under a small sentence-case "Aspects" label.
@@ -318,6 +324,131 @@ animation, no new durations. Mobbin shows Linear's project status taxonomy, not 
   — Things 3 Today with the project name under each task, https://mobbin.com/screens/edf4fbc7-d3e0-4666-a709-4fe12f672689;
   Todoist Today with a project label per task, https://mobbin.com/screens/7ff218cf-1ddd-47ee-9123-72535e5f9283
 - **Navigation entry:** see section 6.
+
+## 11. Uni (uni-hub S18)
+
+Mockup: `design/uni-mockup.html` (tokens only), screenshots `design/shots/uni-overview-1600.png`,
+`uni-overview-375.png`, `uni-class-1600.png`, `uni-class-375.png`. Its "Other states" section also shows the
+first-run Uni aspect prompt, the change-aspect confirm, the empty states, the semester menu, the archive and
+delete confirms, the expanded archived group, the class form with errors, both quick-add variants, the
+class badge, the archived class and the seven-entry home list. All copy is English. **Motion is
+unchanged**: the route cross-fade only; opening a card, expanding "Archived (n)" or an archived semester
+and pressing "Revised today" do not animate, and no duration is added.
+
+- **Layout follows section 9; nothing new.** `/uni` and the class detail dock the context rail at ≥1280
+  and centre the 720 px column between sidebar and rail, the same rule as Today, an aspect page and the
+  project detail. At 1600 px the rail is filled by the deadline list (overview) or the class details
+  (detail), so the page reads as sidebar | two-column card grid | deadlines, without an empty third.
+  Below 1280 px the rail content moves into the column (no rail toggle), as on the project detail.
+  — Linear project Properties rail, https://mobbin.com/screens/ead350e6-9cb3-4f96-9b57-605402828ef9;
+  Coursera course timeline in the right column, https://mobbin.com/screens/b7931f44-6fa5-4920-b892-c9bd340e496a
+- **Semesters are sections, newest first; the header carries the figures.** Name in 17 px semibold on
+  the left; on the right "Average 2.23 · 20 ECTS" in 13 px grey (the average in `--ink-2`, "—" without
+  grades) and a "…" menu (Rename, Archive, Delete; Unarchive and Delete on archived ones). One hairline
+  below, like the aspect group header. The overall figures are one line under the page title:
+  "Overall average 2.07 · 35 ECTS earned". Plain text, no gauge or chart.
+  — Mercury group headers with totals on the right, https://mobbin.com/screens/ee50b360-f122-40cf-8e96-61567d032bc0;
+  Airtable group headers with "Avg", https://mobbin.com/screens/7612f4c4-4104-4dbc-8e5f-579dde687f2b;
+  Handshake "Cumulative GPA: 4.00" as text, https://mobbin.com/screens/ed0b9a14-3ce0-4f05-886f-c602e4e0b6b6
+- **Archived semesters are one collapsed row, "Archived (n)",** under the last active section, with an
+  archive glyph. Expanded, each archived semester is again a collapsed row with its figures; opened,
+  it shows "Read-only. Unarchive" and its cards without any add or edit control.
+  — Brilliant collapsed "Archived courses" row below the course sections, https://mobbin.com/screens/4c4267e5-11b9-42e4-8d5d-85f31a207901;
+  Things 3 collapsed row below the project list, https://mobbin.com/screens/70077bc2-0d33-4247-845d-3b656f8fb324
+- **Class card: icon tile, name, lecturer; a footer for what is due.** Hairline-outlined on `--paper`,
+  no shadow, two per row in the 720 px column at 1600 px, one per row at 375 px (the Projects card grid).
+  Top: a 36 px tile in the class tint with the icon in the class colour, the name in 17 px semibold, the
+  lecturer in 13 px grey, and the grade right-aligned in 17 px tabular ink ("Passed" in 13 px). Footer:
+  "4 open", the next due date with a calendar glyph (red "Yesterday" when overdue) and, at the right
+  edge, a stone chip "Exam in 128 d" ("Exam today" in accent-soft; past exams show nothing). Missing
+  bits are left out; the card keeps a 128 px minimum height on desktop, so a sparse card ("Operating
+  Systems · 0 open") matches its neighbour. A dashed "New class" tile ends each active grid; a semester
+  without classes shows a sunk inline box "No classes yet. New class".
+  — Saturn Calendar class rows with icon and teacher line, https://mobbin.com/screens/e9572bcf-347b-4fd3-8680-eda6f59cb547;
+  Eventbrite "Your event is in 39 days!", https://mobbin.com/screens/899b1cf7-679b-44ba-9bd0-d9db9852a4ed;
+  Coursera grade right-aligned per row, https://mobbin.com/screens/58a40a06-8525-46ec-aeb2-d67f838ea306
+- **Deadline overview, "Due next".** At ≥1280 it fills the rail; below, it is the first section above the
+  semesters. Rows use the todo-row anatomy without a checkbox: title (or "Exam" in semibold) over the
+  class badge, the date at the right edge; exam rows add "10:00 · in 12 d" under the date. Overdue
+  todos show the date in `--overdue` with "Overdue" under it; nothing else is red. Empty: one grey line
+  "Nothing due. Dated class todos and exams show up here." The Uni aspect setting is a quiet line at the
+  bottom of the rail (or the page): "Todos of the aspect Uni can be linked to a class. Change".
+  — Motion right panel of upcoming tasks by date, https://mobbin.com/screens/4ef5e33f-7a9e-4b62-a46a-1a56b3a4e08d;
+  Todoist iOS Overdue group with red dates, https://mobbin.com/screens/e3664e12-9fd4-4240-aca2-522f44003b9e;
+  Coursera "Due in 11 days", https://mobbin.com/screens/b7931f44-6fa5-4920-b892-c9bd340e496a
+- **Class detail is a single scroll page, like the project detail.** A 44 px icon tile beside the 36 px
+  title, the semester name under it; then Notes (Markdown, Edit as a quiet button), Todos (quick-add field
+  "Add a todo to Analysis II", then Open, Planned and a collapsed Done), Recurring (rules by title with
+  type and cadence, "Edit in Recurring" link), and "Delete class" as a quiet button at the end.
+  — Linear project overview with description body, https://mobbin.com/screens/fed68772-ccc3-48be-8c28-3691a441728b;
+  Things 3 project detail, https://mobbin.com/screens/56745161-59bd-421d-93ac-e74fa5f7f1b8
+- **Metadata in the rail at ≥1280, a wrapping pill row below.** Rail "Details": Lecturer, Room, ECTS,
+  Links (open in a new tab, external glyph), Exam (date and time, room and countdown under it), Grade
+  ("—" when unset), Todos (counts), then "Edit details". Below 1280 px the same values are outlined
+  chips under the title: lecturer, room, ECTS, link chips in accent, one exam chip, grade ("No grade yet"),
+  "Edit details". No overlay toggle.
+  — Linear project Properties rail, https://mobbin.com/screens/ead350e6-9cb3-4f96-9b57-605402828ef9;
+  Linear Mobile pill cluster under the title, https://mobbin.com/screens/f8e3aa03-00f2-4985-a6ae-1055ae0f4144
+- **Revised marker sits in the row's meta line.** After the type tag: grey "Not revised" or a history
+  glyph with "Revised 3 days ago", then a small outlined "Revised today" button. Once revised today the
+  text turns accent with a tick, "Revised today", and the button becomes a quiet × ("Clear revised
+  date"). It wraps with the meta line on phone; no hover-only control.
+  — Charma muted completion date under each row, https://mobbin.com/screens/07096715-f6a3-4493-b5ac-8ac6bda166e1;
+  ClickUp relative dates, https://mobbin.com/screens/27113b60-6baf-4b1e-bd2c-3deebad34c58
+- **Type is a small stone tag (LEC / EXC / OTH)**, 11 px semibold caps on `--paper-sunk`, shown in rows,
+  rules and badges. It is never coloured.
+  — ClickUp "Task" type chip in the create card, https://mobbin.com/screens/f04da4a2-805f-49b3-b5c2-16f36799522e
+- **Class badge: muted, in the todo row's second line,** after the aspect dot: the class icon (14 px) in
+  the class colour, the name in grey and the type tag; it links to the class and turns ink on hover.
+  At 375 px it stays in the meta line under the title and wraps to the next line when it doesn't fit.
+  The class colour appears only on the glyph, like the aspect dot.
+  — Things 3 Today with the project name under each task, https://mobbin.com/screens/edf4fbc7-d3e0-4666-a709-4fe12f672689;
+  Todoist web label under the title, https://mobbin.com/screens/9172d8f0-f57b-4778-ab12-10efefe80c2c;
+  ClickUp iOS list name under the title, https://mobbin.com/screens/ecb1790e-e9b8-494c-8022-224b41476d34
+- **Class and Type in the quick-add chip row.** With the Uni aspect chosen, a Class chip (class icon in its
+  colour + name, menu of active-semester classes with "No class" first) and a three-part Type control
+  (LEC | EXC | OTH, the selected part ink-filled, OTH by default) join the chip row after the aspect.
+  On a class detail both are preset; elsewhere the Class chip starts at "No class" and Type appears
+  once a class is picked. Any other aspect hides both.
+  — Todoist web quick-add chip row with project select, https://mobbin.com/screens/97edbdf7-2860-4176-9cb8-946b6d886b2a;
+  ClickUp create card with list and type chips, https://mobbin.com/screens/f04da4a2-805f-49b3-b5c2-16f36799522e
+- **Confirms name what goes.** Archive: "9 class todos are still open. Archiving marks them done…" with
+  "Mark 9 done and archive"; delete semester names classes and todos ("This deletes 4 classes and 12
+  todos…"), an empty one asks plainly; delete class names its todos and rules; changing the Uni aspect
+  names the links ("Remove 3 links and change"). The count goes into the CTA (section 4).
+  — Tiimo "Move (5) to Friday", https://mobbin.com/screens/6fbbaf97-0b97-40cb-82c5-d53ea54f842b
+- **First run: the Uni aspect prompt replaces the overview**, the IT prompt pattern from Projects: one
+  question, the aspects as rows with "Uni" preselected by name, "Use Uni for classes".
+  — Finch choose-areas flow, https://mobbin.com/flows/19212698-61fe-43ca-9144-60c9e73bbcd2
+- **Navigation entry:** see section 6.
+
+### Mobbin research (uni-hub 2.1)
+
+Searched with `search_screens` (web and iOS) for semester sections with an archive group, course cards
+with countdown and grade, deadline lists, grade summaries, a revised marker, a type chip in a quick-add
+and a muted class badge. Every app name below was checked on the returned screen. Mobbin has no
+university-specific planner (Saturn Calendar is the only one, and it is a school timetable), so most
+patterns come from course platforms (Brilliant, Coursera), planners (Motion, Todoist, ClickUp) and
+grouped data views (Mercury, Airtable).
+
+- Brilliant course sections with a collapsed "Archived courses" row, https://mobbin.com/screens/4c4267e5-11b9-42e4-8d5d-85f31a207901
+- Saturn Calendar "My Classes": icon, class name, teacher line, https://mobbin.com/screens/e9572bcf-347b-4fd3-8680-eda6f59cb547
+- Eventbrite "Your event is in 39 days!" next to a date tile, https://mobbin.com/screens/899b1cf7-679b-44ba-9bd0-d9db9852a4ed
+- Coursera course timeline in the right column, "Your next two deadlines · Due in 11 days", https://mobbin.com/screens/b7931f44-6fa5-4920-b892-c9bd340e496a
+- Coursera iOS grades list, weight and grade right-aligned per row, https://mobbin.com/screens/58a40a06-8525-46ec-aeb2-d67f838ea306
+- Motion right panel of upcoming tasks by date, https://mobbin.com/screens/4ef5e33f-7a9e-4b62-a46a-1a56b3a4e08d
+- Todoist iOS "Overdue" group with dates in red, https://mobbin.com/screens/e3664e12-9fd4-4240-aca2-522f44003b9e
+- Mercury group headers with count and totals on the right, https://mobbin.com/screens/ee50b360-f122-40cf-8e96-61567d032bc0
+- Airtable group headers with an "Avg" figure, https://mobbin.com/screens/7612f4c4-4104-4dbc-8e5f-579dde687f2b
+- Handshake "Cumulative GPA: 4.00" as plain text, https://mobbin.com/screens/ed0b9a14-3ce0-4f05-886f-c602e4e0b6b6
+- Charma muted "Completed Oct 23, 2023" under each row, https://mobbin.com/screens/07096715-f6a3-4493-b5ac-8ac6bda166e1
+- ClickUp relative dates ("4 days ago") in a task list, https://mobbin.com/screens/27113b60-6baf-4b1e-bd2c-3deebad34c58
+- ClickUp create-task card: list chip plus a "Task" type chip above the title, https://mobbin.com/screens/f04da4a2-805f-49b3-b5c2-16f36799522e
+- Todoist web quick-add with chip row and project select, https://mobbin.com/screens/97edbdf7-2860-4176-9cb8-946b6d886b2a
+- Todoist web row with a label under the title, https://mobbin.com/screens/9172d8f0-f57b-4778-ab12-10efefe80c2c
+- ClickUp iOS "In Personal List · Today 9:00 PM" meta under the title, https://mobbin.com/screens/ecb1790e-e9b8-494c-8022-224b41476d34
+- Reused from section 10: Linear properties rail (ead350e6), Linear Mobile pill cluster (f8e3aa03),
+  Things 3 home list (70077bc2), Things 3 Today with project names (edf4fbc7).
 
 ## Hand-off notes for feature units
 

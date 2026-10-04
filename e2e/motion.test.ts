@@ -102,3 +102,34 @@ test('Scenario: Opening a project uses only the route cross-fade', async ({ page
 	expect(await transitions(page)).toBe(0);
 	expect(await page.evaluate(() => document.getAnimations().length)).toBe(0);
 });
+
+test('Scenario: Opening a class uses only the route cross-fade', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [{ name: 'Studies' }],
+		uniAspect: 0,
+		semesters: [{ name: 'WS 26/27' }, { name: 'SS 26', archivedAt: '2026-09-30T10:00:00Z' }],
+		classes: [
+			{ semester: 0, name: 'Analysis II' },
+			{ semester: 1, name: 'Analysis I' }
+		]
+	});
+	await spyOnViewTransitions(page);
+	await page.goto('/uni');
+	await expect(page.getByRole('heading', { level: 1, name: 'Uni' })).toBeVisible();
+	await page.waitForFunction(() => document.getAnimations().length === 0);
+
+	await page.getByTestId('class-card').filter({ hasText: 'Analysis II' }).click();
+	await expect(page.getByRole('heading', { level: 1, name: 'Analysis II' })).toBeVisible();
+	expect(await transitions(page)).toBe(1);
+	await page.waitForFunction(() => !document.documentElement.matches(':active-view-transition'));
+	expect(await page.evaluate(() => document.getAnimations().length)).toBe(0);
+
+	await page.goto('/uni');
+	await expect(page.getByRole('heading', { level: 1, name: 'Uni' })).toBeVisible();
+	const archivedGroup = page.getByTestId('semester-archived-group');
+	await archivedGroup.getByRole('button', { name: 'Archived (1)' }).click();
+	await archivedGroup.getByRole('button', { name: 'SS 26', exact: true }).click();
+	await expect(archivedGroup.getByTestId('class-card').filter({ has: page.getByText('Analysis I', { exact: true }) })).toBeVisible();
+	expect(await transitions(page)).toBe(0);
+	expect(await page.evaluate(() => document.getAnimations().length)).toBe(0);
+});

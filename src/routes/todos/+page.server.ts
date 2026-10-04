@@ -3,6 +3,7 @@ import { today } from '$lib/server/clock';
 import { getDb } from '$lib/server/db';
 import {
 	addChecklistItem,
+	checklistTodoId,
 	createTodo,
 	deleteChecklistItem,
 	deleteTodo,
@@ -18,7 +19,8 @@ import {
 	setStatus,
 	toggleDone
 } from '$lib/server/sprints';
-import type { Priority, Result, Status, Target, TodoPatch } from '$lib/types';
+import { todoWritable } from '$lib/server/uni';
+import type { ClassType, Id, Priority, Result, Status, Target, TodoPatch } from '$lib/types';
 import type { Actions, PageServerLoad } from './$types';
 
 // Every view posts here; the route itself has nothing to show.
@@ -34,6 +36,12 @@ const text = (data: FormData, key: string) => String(data.get(key) ?? '');
 const num = (data: FormData, key: string) => Number(data.get(key));
 const optionalDate = (data: FormData, key: string) => text(data, key) || null;
 const optionalId = (data: FormData, key: string) => (text(data, key) ? num(data, key) : null);
+const classType = (data: FormData) => (text(data, 'type') || null) as ClassType | null;
+
+// Todos of an archived semester's classes are read-only; every edit by todo id checks first.
+function readOnly(todoId: Id | null) {
+	if (todoId !== null && !todoWritable(getDb(), todoId).ok) return fail(409, { error: 'archived' });
+}
 
 function target(data: FormData): Target {
 	const kind = text(data, 'target');
@@ -53,7 +61,9 @@ export const actions: Actions = {
 			dueDate: optionalDate(data, 'dueDate'),
 			checklist: data.getAll('checklist').map(String),
 			target: target(data),
-			projectId: optionalId(data, 'projectId')
+			projectId: optionalId(data, 'projectId'),
+			classId: optionalId(data, 'classId'),
+			type: classType(data)
 		});
 		return respond(result, data);
 	},
@@ -66,7 +76,9 @@ export const actions: Actions = {
 		if (data.has('priority')) patch.priority = num(data, 'priority') as Priority;
 		if (data.has('dueDate')) patch.dueDate = optionalDate(data, 'dueDate');
 		if (data.has('projectId')) patch.projectId = optionalId(data, 'projectId');
-		return respond(updateTodo(getDb(), num(data, 'id'), patch), data);
+		if (data.has('classId')) patch.classId = optionalId(data, 'classId');
+		if (data.has('type')) patch.type = classType(data);
+		return readOnly(num(data, 'id')) ?? respond(updateTodo(getDb(), num(data, 'id'), patch), data);
 	},
 	delete: async ({ request }) => {
 		const data = await request.formData();
@@ -74,44 +86,65 @@ export const actions: Actions = {
 	},
 	checklistAdd: async ({ request }) => {
 		const data = await request.formData();
-		return respond(addChecklistItem(getDb(), num(data, 'todoId'), text(data, 'text')), data);
+		return (
+			readOnly(num(data, 'todoId')) ??
+			respond(addChecklistItem(getDb(), num(data, 'todoId'), text(data, 'text')), data)
+		);
 	},
 	checklistRename: async ({ request }) => {
 		const data = await request.formData();
-		return respond(renameChecklistItem(getDb(), num(data, 'itemId'), text(data, 'text')), data);
+		return (
+			readOnly(checklistTodoId(getDb(), num(data, 'itemId'))) ??
+			respond(renameChecklistItem(getDb(), num(data, 'itemId'), text(data, 'text')), data)
+		);
 	},
 	checklistToggle: async ({ request }) => {
 		const data = await request.formData();
-		return respond(toggleChecklistItem(getDb(), num(data, 'itemId'), text(data, 'done') === 'true'), data);
+		return (
+			readOnly(checklistTodoId(getDb(), num(data, 'itemId'))) ??
+			respond(toggleChecklistItem(getDb(), num(data, 'itemId'), text(data, 'done') === 'true'), data)
+		);
 	},
 	checklistDelete: async ({ request }) => {
 		const data = await request.formData();
-		return respond(deleteChecklistItem(getDb(), num(data, 'itemId')), data);
+		return (
+			readOnly(checklistTodoId(getDb(), num(data, 'itemId'))) ??
+			respond(deleteChecklistItem(getDb(), num(data, 'itemId')), data)
+		);
 	},
 	setStatus: async ({ request }) => {
 		const data = await request.formData();
-		return respond(setStatus(getDb(), num(data, 'id'), text(data, 'status') as Status), data);
+		return (
+			readOnly(num(data, 'id')) ??
+			respond(setStatus(getDb(), num(data, 'id'), text(data, 'status') as Status), data)
+		);
 	},
 	toggleDone: async ({ request }) => {
 		const data = await request.formData();
-		return respond(toggleDone(getDb(), num(data, 'id')), data);
+		return readOnly(num(data, 'id')) ?? respond(toggleDone(getDb(), num(data, 'id')), data);
 	},
 	setDay: async ({ request }) => {
 		const data = await request.formData();
-		return respond(setDay(getDb(), num(data, 'id'), optionalDate(data, 'day')), data);
+		return (
+			readOnly(num(data, 'id')) ??
+			respond(setDay(getDb(), num(data, 'id'), optionalDate(data, 'day')), data)
+		);
 	},
 	addToSprint: async ({ request }) => {
 		const data = await request.formData();
 		const status = data.has('status') ? (text(data, 'status') as Status) : undefined;
 		const placement = { day: optionalDate(data, 'day'), status };
-		return respond(addToActiveSprint(getDb(), num(data, 'id'), today(), placement), data);
+		return (
+			readOnly(num(data, 'id')) ??
+			respond(addToActiveSprint(getDb(), num(data, 'id'), today(), placement), data)
+		);
 	},
 	removeFromSprint: async ({ request }) => {
 		const data = await request.formData();
-		return respond(removeFromSprint(getDb(), num(data, 'id')), data);
+		return readOnly(num(data, 'id')) ?? respond(removeFromSprint(getDb(), num(data, 'id')), data);
 	},
 	moveToBacklog: async ({ request }) => {
 		const data = await request.formData();
-		return respond(moveToBacklog(getDb(), num(data, 'id')), data);
+		return readOnly(num(data, 'id')) ?? respond(moveToBacklog(getDb(), num(data, 'id')), data);
 	}
 };

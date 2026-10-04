@@ -23,12 +23,19 @@
 		'weekdays-required': 'Pick at least one day.',
 		'not-found': 'This rule no longer exists.'
 	};
+
+	const CLASS_MESSAGES: Record<string, string> = {
+		'not-found': 'That class no longer exists.',
+		archived: 'That class’s semester is archived.'
+	};
 </script>
 
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { page } from '$app/state';
 	import { ASPECT_COLORS } from '../../aspect-style';
-	import type { Aspect, RecurringRule } from '../../types';
+	import type { Aspect, ClassRef, ClassType, Id, RecurringRule } from '../../types';
+	import { CLASS_TYPES, TYPE_LABELS } from '../../uni';
 	import AspectIcon from '../ui/AspectIcon.svelte';
 	import Button from '../ui/Button.svelte';
 	import { UI_ICONS } from '../ui/icons';
@@ -53,6 +60,18 @@
 	// svelte-ignore state_referenced_locally
 	let checklist = $state([...(rule?.checklist ?? [])]);
 	const fieldError = (field: string) => (failure?.field === field ? failure : null);
+
+	// svelte-ignore state_referenced_locally
+	let aspectId = $state<Id>(rule?.aspectId ?? aspects[0].id);
+	// svelte-ignore state_referenced_locally
+	let classId = $state<Id | ''>(rule?.classId ?? '');
+	// svelte-ignore state_referenced_locally
+	let type = $state<ClassType>(rule?.type ?? 'OTH');
+	// A rule keeps its archived class as an option, so saving other edits doesn't unlink it.
+	const classes = $derived(
+		((page.data.classes as ClassRef[] | undefined) ?? []).filter((c) => !c.archived || c.id === rule?.classId)
+	);
+	const classShown = $derived(aspectId === (page.data.uniAspectId ?? null) && classes.length > 0);
 </script>
 
 <form
@@ -91,20 +110,47 @@
 	<fieldset class="field">
 		<legend class="label">Aspect</legend>
 		<div class="options">
-			{#each aspects as aspect, i (aspect.id)}
+			{#each aspects as aspect (aspect.id)}
 				<label class="aspect" style:--a={ASPECT_COLORS[aspect.color].fg} style:--a-tint={ASPECT_COLORS[aspect.color].tint}>
-					<input
-						class="hit"
-						type="radio"
-						name="aspectId"
-						value={aspect.id}
-						checked={rule ? rule.aspectId === aspect.id : i === 0}
-					/>
+					<input class="hit" type="radio" name="aspectId" value={aspect.id} bind:group={aspectId} />
 					<AspectIcon icon={aspect.icon} color={aspect.color} size="sm" />{aspect.name}
 				</label>
 			{/each}
 		</div>
 	</fieldset>
+
+	{#if classShown}
+		<div class="field" data-testid="class-field">
+			<label class="label" for="{id}-class">Class</label>
+			<select
+				id="{id}-class"
+				class="input"
+				name="classId"
+				bind:value={classId}
+				aria-invalid={fieldError('classId') ? true : undefined}
+				aria-describedby={fieldError('classId') ? `${id}-error` : undefined}
+			>
+				<option value="">No class</option>
+				{#each classes as c (c.id)}
+					<option value={c.id}>{c.name}{c.archived ? ' (archived)' : ''}</option>
+				{/each}
+			</select>
+			{#if fieldError('classId')}
+				<p class="error" id="{id}-error" role="alert">{CLASS_MESSAGES[failure!.error] ?? failure!.error}</p>
+			{/if}
+		</div>
+
+		<fieldset class="field" data-testid="type-field">
+			<legend class="label">Type</legend>
+			<div class="options">
+				{#each CLASS_TYPES as t (t)}
+					<label class="choice" title={TYPE_LABELS[t]}>
+						<input class="hit" type="radio" name="type" value={t} bind:group={type} />{t}
+					</label>
+				{/each}
+			</div>
+		</fieldset>
+	{/if}
 
 	<fieldset
 		class="field"

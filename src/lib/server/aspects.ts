@@ -74,11 +74,16 @@ export function deleteAspect(db: DatabaseSync, id: Id, targetId?: Id): Result<vo
 	db.exec('BEGIN');
 	try {
 		if (inUse) {
-			db.prepare('UPDATE todos SET aspect_id = ?, project_id = NULL WHERE aspect_id = ?').run(targetId!, id);
-			db.prepare('UPDATE recurring_rules SET aspect_id = ? WHERE aspect_id = ?').run(targetId!, id);
+			db.prepare(
+				'UPDATE todos SET aspect_id = ?, project_id = NULL, class_id = NULL, type = NULL, revised_at = NULL WHERE aspect_id = ?'
+			).run(targetId!, id);
+			db.prepare('UPDATE recurring_rules SET aspect_id = ?, class_id = NULL, type = NULL WHERE aspect_id = ?').run(
+				targetId!,
+				id
+			);
 		}
 		// A bare id left in settings could be handed to a later aspect that reuses the rowid.
-		db.prepare("DELETE FROM settings WHERE key = 'it_aspect_id' AND value = ?").run(String(id));
+		db.prepare("DELETE FROM settings WHERE key IN ('it_aspect_id', 'uni_aspect_id') AND value = ?").run(String(id));
 		db.prepare('DELETE FROM aspects WHERE id = ?').run(id);
 		db.exec('COMMIT');
 	} catch (err) {

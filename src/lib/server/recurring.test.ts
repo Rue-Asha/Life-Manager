@@ -4,6 +4,7 @@ import type { Id, Priority, RuleInput, Weekday } from '$lib/types';
 import { openDb } from './db';
 import { createRule, deleteRule, listRules, updateRule } from './recurring';
 import { closeReview, getActiveSprint, listSprintTodos, setStatus, startSprint } from './sprints';
+import { setUniAspectId } from './uni';
 
 let db: DatabaseSync;
 let aspect: Id;
@@ -150,7 +151,7 @@ describe('recurring rules', () => {
 		const rule = createRule(db, gym({ title: ' Gym ', weekdays: [4, 1, 4], notes: 'Legs', checklist: ['Warm up'] }), '2026-10-07');
 		expect(rule).toEqual({
 			ok: true,
-			value: { id: expect.any(Number), title: 'Gym', aspectId: aspect, weekdays: [1, 4], notes: 'Legs', priority: 0, checklist: ['Warm up'] }
+			value: { id: expect.any(Number), title: 'Gym', aspectId: aspect, weekdays: [1, 4], notes: 'Legs', priority: 0, checklist: ['Warm up'], classId: null, type: null }
 		});
 		expect(listRules(db)).toEqual([rule.ok && rule.value]);
 		expect(updateRule(db, 999, gym())).toEqual({ ok: false, error: 'not-found' });
@@ -198,5 +199,93 @@ describe('carried recurring instances', () => {
 			[first.id, '2026-10-12'],
 			[second.id, null]
 		]);
+	});
+});
+
+describe('rules per class', () => {
+	let uni: Id;
+	let semester: Id;
+	let analysis: Id;
+
+	beforeEach(() => {
+		uni = Number(
+			db.prepare("INSERT INTO aspects (name, color, icon, position, created_at) VALUES ('Uni', 'sky', 'cap', 1, '')").run()
+				.lastInsertRowid
+		);
+		setUniAspectId(db, uni);
+		semester = Number(db.prepare("INSERT INTO semesters (name, created_at) VALUES ('WS', '')").run().lastInsertRowid);
+		analysis = Number(
+			db
+				.prepare("INSERT INTO classes (semester_id, name, color, icon, created_at, updated_at) VALUES (?, 'Analysis', 'sky', 'book', '', '')")
+				.run(semester).lastInsertRowid
+		);
+	});
+
+	function lecture(input: Partial<RuleInput> = {}): RuleInput {
+		return gym({ title: 'Lecture review', aspectId: uni, classId: analysis, type: 'LEC', ...input });
+	}
+
+	function ruleCount() {
+		return (db.prepare('SELECT count(*) AS n FROM recurring_rules').get() as { n: number }).n;
+	}
+
+	it('Scenario: Generated instances inherit class and type', () => {
+		createRule(db, lecture({ weekdays: [1, 4] }), '2026-10-07');
+		startSprint(db, '2026-10-07', []);
+		const instances = activeTodos();
+		expect(instances.map((t) => [t.day, t.classId, t.type])).toEqual([
+			['2026-10-05', analysis, 'LEC'],
+			['2026-10-08', analysis, 'LEC']
+		]);
+	});
+
+	it('stores class and type on Uni rules only, with OTH as the default type', () => {
+		const rule = createRule(db, lecture({ type: undefined }), '2026-10-07');
+		expect(rule).toMatchObject({ ok: true, value: { classId: analysis, type: 'OTH' } });
+		expect(createRule(db, gym({ classId: analysis, type: 'LEC' }), '2026-10-07')).toMatchObject({
+			ok: true,
+			value: { classId: null, type: null }
+		});
+		expect(createRule(db, lecture({ classId: null }), '2026-10-07')).toMatchObject({ ok: true, value: { classId: null, type: null } });
+	});
+
+	it('Scenario: Rule leaving the Uni aspect loses its class', () => {
+		const rule = createRule(db, lecture(), '2026-10-07');
+		expect(rule).toMatchObject({ ok: true, value: { classId: analysis, type: 'LEC' } });
+		const id = rule.ok ? rule.value.id : 0;
+		const updated = updateRule(db, id, lecture({ aspectId: aspect }));
+		expect(updated).toMatchObject({ ok: true, value: { aspectId: aspect, classId: null, type: null } });
+		expect(listRules(db)[0]).toMatchObject({ classId: null, type: null });
+	});
+
+	it('Scenario: Rules of archived classes generate nothing', () => {
+		const rule = createRule(db, lecture({ weekdays: [4] }), '2026-10-01');
+		const id = rule.ok ? rule.value.id : 0;
+		startSprint(db, '2026-10-05', []);
+		const [carried] = activeTodos();
+		closeReview(db, '2026-10-11', {});
+		db.prepare("UPDATE semesters SET archived_at = 'a' WHERE id = ?").run(semester);
+		startSprint(db, '2026-10-11', []);
+		expect(activeTodos().filter((t) => t.ruleId === id).map((t) => [t.id, t.day])).toEqual([[carried.id, null]]);
+	});
+
+	it('Scenario: Rule with an unknown or archived class is rejected', () => {
+		expect(createRule(db, lecture({ classId: analysis + 99 }), '2026-10-07')).toEqual({
+			ok: false,
+			error: 'not-found',
+			field: 'classId'
+		});
+		db.prepare("UPDATE semesters SET archived_at = 'a' WHERE id = ?").run(semester);
+		expect(createRule(db, lecture(), '2026-10-07')).toEqual({ ok: false, error: 'archived', field: 'classId' });
+		expect(ruleCount()).toBe(0);
+	});
+
+	it('rejects a type outside LEC / EXC / OTH', () => {
+		expect(createRule(db, lecture({ type: 'XYZ' as never }), '2026-10-07')).toEqual({
+			ok: false,
+			error: 'invalid',
+			field: 'type'
+		});
+		expect(ruleCount()).toBe(0);
 	});
 });

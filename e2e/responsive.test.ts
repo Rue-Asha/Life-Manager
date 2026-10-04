@@ -52,7 +52,34 @@ const TODOS: SeedInput['todos'] = [
 	{ title: 'Book a physio appointment' },
 	{ title: 'Wire the projects overview into the sidebar navigation', aspect: 3, project: 0, inSprint: true },
 	{ title: 'Write the migration', aspect: 3, project: 0 },
-	{ title: 'Design the mockup', aspect: 3, project: 0, inSprint: true, status: 'done', completedAt: '2026-10-06T09:00:00Z' }
+	{ title: 'Design the mockup', aspect: 3, project: 0, inSprint: true, status: 'done', completedAt: '2026-10-06T09:00:00Z' },
+	{ title: 'Exercise sheet 3: eigenvalues and diagonalisation', aspect: 1, class: 0, type: 'EXC', inSprint: true, day: '2026-10-11', dueDate: '2026-10-13', revisedAt: '2026-10-08' },
+	{ title: 'Rewatch the lecture on spectral theory', aspect: 1, class: 0, type: 'LEC', dueDate: '2026-10-09' },
+	{ title: 'Prepare the seminar presentation', aspect: 1, class: 1, type: 'OTH', status: 'done', completedAt: '2026-10-07T09:00:00Z' }
+];
+
+const SEMESTERS: SeedInput['semesters'] = [
+	{ name: 'Winter semester 2026/27 with a long name', createdAt: '2026-10-01T09:00:00Z' },
+	{ name: 'Summer semester 2026', archivedAt: '2026-09-30T09:00:00Z', createdAt: '2026-04-01T09:00:00Z' }
+];
+
+const CLASSES: SeedInput['classes'] = [
+	{
+		semester: 0,
+		name: 'Linear Algebra and Analytic Geometry for Computer Scientists',
+		color: 'lavender',
+		icon: 'book',
+		lecturer: 'Prof. Dr. Maximiliane Schwarzenberger-Hohenstein',
+		room: 'Hörsaal 1 im Hauptgebäude, Erdgeschoss',
+		ects: 9,
+		links: [{ label: 'Moodle course page', url: 'https://moodle.example.edu/course/view.php?id=123456789&section=a-very-long-section' }],
+		examAt: '2027-02-10T09:00',
+		examRoom: 'Audimax',
+		notes: '## Notes\n\nhttps://example.edu/a/very/long/link/that/should/wrap/instead/of/scrolling/sideways/at/any/width',
+		grade: '1.3'
+	},
+	{ semester: 0, name: 'Seminar', color: 'sky', icon: 'cap', ects: 3 },
+	{ semester: 1, name: 'Programming I', color: 'sage', icon: 'briefcase', ects: 6, grade: 'passed' }
 ];
 
 async function expectFits(page: Page, name: string, shot = true) {
@@ -81,12 +108,15 @@ const seedSunday = (request: Parameters<typeof seed>[0]) =>
 		sprint: { state: 'active', weekStart: WEEK },
 		rules: [{ title: 'Gym', weekdays: [1, 4], checklist: ['Warm up'] }],
 		itAspect: 3,
+		uniAspect: 1,
+		semesters: SEMESTERS,
+		classes: CLASSES,
 		projects: PROJECTS,
 		todos: TODOS
 	});
 
 // Every screen but Welcome and Plan, which need an empty app and a closed review.
-const screens = (aspect: number, project: number) => [
+const screens = (aspect: number, project: number, cls: number) => [
 	['/', 'today'],
 	['/sprint?view=aspect', 'sprint-aspect'],
 	['/sprint?view=board', 'sprint-board'],
@@ -97,7 +127,9 @@ const screens = (aspect: number, project: number) => [
 	[`/aspects/${aspect}`, 'aspect-page'],
 	['/recurring', 'recurring'],
 	['/projects', 'projects'],
-	[`/projects/${project}`, 'project-detail']
+	[`/projects/${project}`, 'project-detail'],
+	['/uni', 'uni'],
+	[`/uni/classes/${cls}`, 'class-detail']
 ];
 
 test('Scenario: Every screen fits 375 px without horizontal scroll', async ({ page, request }) => {
@@ -106,8 +138,8 @@ test('Scenario: Every screen fits 375 px without horizontal scroll', async ({ pa
 	await expectFits(page, 'welcome');
 
 	await setClock(request, SUNDAY);
-	const { aspects, projects } = await seedSunday(request);
-	for (const [path, name] of screens(aspects[1], projects[0])) {
+	const { aspects, projects, classes } = await seedSunday(request);
+	for (const [path, name] of screens(aspects[1], projects[0], classes[0])) {
 		await page.goto(path);
 		await expectFits(page, name);
 	}
@@ -141,10 +173,10 @@ test.describe('on desktop', () => {
 		}
 
 		await setClock(request, SUNDAY);
-		const { aspects, projects } = await seedSunday(request);
+		const { aspects, projects, classes } = await seedSunday(request);
 		for (const width of WIDTHS) {
 			await page.setViewportSize({ width, height: 800 });
-			for (const [path, name] of screens(aspects[1], projects[0])) {
+			for (const [path, name] of screens(aspects[1], projects[0], classes[0])) {
 				await page.goto(path);
 				await fits(page, name);
 			}
@@ -178,6 +210,7 @@ test('Scenario: Phone home list drills into each list', async ({ page, request }
 		['Backlog', '/backlog'],
 		['Recurring', '/recurring'],
 		['Projects', '/projects'],
+		['Uni', '/uni'],
 		['Aspects', '/aspects']
 	]) {
 		await page.getByRole('navigation', { name: 'Lists' }).getByRole('link', { name, exact: true }).tap();

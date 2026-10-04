@@ -1,12 +1,13 @@
 <script lang="ts">
-	import { onDestroy, tick } from 'svelte';
+	import { onDestroy, tick, type Snippet } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { beforeNavigate, invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import { MediaQuery } from 'svelte/reactivity';
 	import { ASPECT_COLORS } from '$lib/aspect-style';
 	import { isOverdue } from '$lib/todo-utils';
-	import type { Aspect, IsoDate, ProjectRef, Todo } from '$lib/types';
+	import type { Aspect, ClassRef, IsoDate, ProjectRef, Todo } from '$lib/types';
+	import ClassBadge from '../uni/ClassBadge.svelte';
 	import { UI_ICONS } from '../ui/icons';
 	import Button from '../ui/Button.svelte';
 	import Toast from '../ui/Toast.svelte';
@@ -22,7 +23,9 @@
 		today,
 		context,
 		sprintDays,
-		mixed = false
+		mixed = false,
+		readonly = false,
+		extra
 	}: {
 		todo: Todo;
 		aspect: Aspect;
@@ -30,10 +33,15 @@
 		context: 'backlog' | 'sprint' | 'today' | 'planning';
 		sprintDays?: IsoDate[];
 		mixed?: boolean;
+		// An archived class's rows: shown, but nothing on them can be changed.
+		readonly?: boolean;
+		// Takes the class badge's place: the class detail page passes it and already names the class.
+		extra?: Snippet<[Todo]>;
 	} = $props();
 
 	// Ticking a backlog or draft todo done would strand it there: done belongs to a running sprint.
-	const checkable = $derived(context === 'sprint' || context === 'today');
+	const checkable = $derived(!readonly && (context === 'sprint' || context === 'today'));
+	const movable = $derived(!readonly && context === 'sprint');
 	const done = $derived(todo.status === 'done');
 	const overdue = $derived(isOverdue(todo, today));
 	const checked = $derived(todo.checklist.filter((i) => i.done).length);
@@ -42,6 +50,9 @@
 	const aspects = $derived((page.data.aspects as Aspect[] | undefined) ?? [aspect]);
 	const project = $derived(
 		todo.projectId === null ? undefined : (page.data.projects as ProjectRef[] | undefined)?.find((p) => p.id === todo.projectId)
+	);
+	const classRef = $derived(
+		todo.classId === null ? undefined : (page.data.classes as ClassRef[] | undefined)?.find((c) => c.id === todo.classId)
 	);
 	const desktop = new MediaQuery('min-width: 768px');
 	let editing = $state(false);
@@ -156,12 +167,17 @@
 		{/if}
 
 		<div class="main">
-			<button type="button" class="title" onclick={() => (editing = true)}>{todo.title}</button>
+			{#if readonly}
+				<span class="title">{todo.title}</span>
+			{:else}
+				<button type="button" class="title" onclick={() => (editing = true)}>{todo.title}</button>
+			{/if}
 			<div class="meta">
 				{#if mixed}
 					<span><i class="dot"></i>{aspect.name}</span>
 				{/if}
-				{#if context === 'sprint'}
+				{#if extra}{@render extra(todo)}{:else if classRef}<ClassBadge {classRef} type={todo.type} />{/if}
+				{#if movable}
 					<StatusControl todoId={todo.id} status={todo.status} />
 					{#if sprintDays}<DayPicker todoId={todo.id} day={todo.day} {sprintDays} />{/if}
 				{/if}
@@ -202,7 +218,7 @@
 					{dueLabel(todo.dueDate, today)}
 				</span>
 			{/if}
-			{#if context === 'sprint'}
+			{#if movable}
 				<div class="actions" bind:this={actionsEl}>
 					<button
 						type="button"
@@ -231,7 +247,7 @@
 					{/if}
 				</div>
 			{/if}
-			{#if context === 'backlog' && sprintDays}
+			{#if context === 'backlog' && sprintDays && !readonly}
 				<form method="POST" action="/todos?/addToSprint" use:enhance={submit({ onerror: addFailed })}>
 					<input type="hidden" name="id" value={todo.id} />
 					<button class="add" aria-label="Add to sprint: {todo.title}" title="Add to sprint">

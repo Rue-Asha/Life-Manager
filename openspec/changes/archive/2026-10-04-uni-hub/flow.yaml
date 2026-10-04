@@ -1,0 +1,11 @@
+triage: "feature — new tables + migration 4, new module UI, todo/recurring/navigation deltas, >1 session. Appetite: 3–4 sessions, one change."
+base: main
+gate0: 2026-10-04
+gate1: 2026-10-04
+gate2: 2026-10-04
+learnings:
+  - "Previewing a component in a worktree via dev server → set DATABASE_PATH to .e2e/<port>.db (weil: plain npm run dev creates data/life-manager.db in the worktree; /welcome redirect without aspects blocked the preview anyway) [U5]"
+  - "Formatting in this repo → don't run npx prettier --write (weil: no prettier config; it rewrote files to double quotes/spaces, needed a revert commit) [U6]"
+  - "e2e measurement at ≥1280 on RailLayout pages → wait for context-rail before measuring (weil: MediaQuery swap after hydration re-mounts the column; earlier measurements read a detached node) [U6]"
+  - "Builder tests-first → run each new scenario red before the code, even when tasks are bundled (weil: U6 wrote 6.2–6.5 after code, U7 never ran 7.2 red) [U6, U7]"
+  - "Writing files with backticks from a subagent shell → use the Write tool or a quoted heredoc (<<'EOF') (weil: an unquoted heredoc expanded backticks and garbled verification.md, needing a second commit) [verifier]"

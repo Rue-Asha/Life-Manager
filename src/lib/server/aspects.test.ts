@@ -10,6 +10,7 @@ import {
 } from './aspects';
 import type { AspectInput, Id } from '$lib/types';
 import { getItAspectId, setItAspectId } from './projects';
+import { getUniAspectId, setUniAspectId } from './uni';
 
 const health: AspectInput = { name: 'Health', color: 'sage', icon: 'heart' };
 const uni: AspectInput = { name: 'Uni', color: 'lavender', icon: 'cap' };
@@ -163,6 +164,41 @@ describe('aspects', () => {
 			const reused = create(db, { ...health, name: 'Later' });
 			expect(getItAspectId(db)).toBeNull();
 			expect(reused).not.toBe(a);
+		});
+
+		it('Scenario: Deleting the Uni aspect unsets the setting', () => {
+			const db = openDb(':memory:');
+			const a = create(db, health);
+			const b = create(db, uni);
+			setUniAspectId(db, b);
+			const semester = Number(db.prepare("INSERT INTO semesters (name, created_at) VALUES ('WS', '')").run().lastInsertRowid);
+			const cls = Number(
+				db
+					.prepare("INSERT INTO classes (semester_id, name, color, icon, created_at, updated_at) VALUES (?, 'Analysis', 'sky', 'book', '', '')")
+					.run(semester).lastInsertRowid
+			);
+			const t = insertTodo(db, b, null, 'todo', null);
+			db.prepare("UPDATE todos SET class_id = ?, type = 'LEC', revised_at = '2026-10-01' WHERE id = ?").run(cls, t);
+			const rule = insertRule(db, b);
+			db.prepare("UPDATE recurring_rules SET class_id = ?, type = 'EXC' WHERE id = ?").run(cls, rule);
+
+			expect(deleteAspect(db, b, a).ok).toBe(true);
+
+			expect(getUniAspectId(db)).toBeNull();
+			expect(db.prepare("SELECT count(*) AS n FROM settings WHERE key = 'uni_aspect_id'").get()).toEqual({ n: 0 });
+			expect({ ...db.prepare('SELECT aspect_id, class_id, type, revised_at FROM todos WHERE id = ?').get(t) }).toEqual({
+				aspect_id: a,
+				class_id: null,
+				type: null,
+				revised_at: null
+			});
+			expect({ ...db.prepare('SELECT aspect_id, class_id, type FROM recurring_rules WHERE id = ?').get(rule) }).toEqual({
+				aspect_id: a,
+				class_id: null,
+				type: null
+			});
+			create(db, { ...health, name: 'Later' });
+			expect(getUniAspectId(db)).toBeNull();
 		});
 
 		it('Scenario: Rule follows its deleted aspect', () => {

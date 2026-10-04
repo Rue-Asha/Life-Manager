@@ -196,7 +196,7 @@ test('Sprint management journey', async ({ page, request }) => {
 	await shot(page, 'manage-week');
 
 	// Its aspect page shows both sides of the pipeline
-	await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Uni' }).click();
+	await page.getByRole('navigation', { name: 'Main' }).getByRole('list', { name: 'Aspects' }).getByRole('link', { name: 'Uni' }).click();
 	await expectAspectPage(page, aspects[1]);
 	await shot(page, 'manage-aspect');
 });
