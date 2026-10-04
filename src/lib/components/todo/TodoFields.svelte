@@ -61,6 +61,32 @@
 		</select>
 	</label>
 
+	{#if classShown}
+		<label class="chip" data-testid="class-field">
+			{#if cls}<AspectIcon icon={cls.icon} color={cls.color} size="sm" />{/if}
+			<span class="label">{cls?.name ?? 'No class'}</span>
+			<select name="classId" bind:value={classId} aria-label="Class">
+				<option value="">No class</option>
+				{#each classes as c (c.id)}
+					<option value={c.id}>{c.name}</option>
+				{/each}
+			</select>
+		</label>
+	{:else if clearClass}
+		<input type="hidden" name="classId" value="" />
+	{/if}
+
+	{#if typeShown}
+		<span class="seg" role="group" aria-label="Type" data-testid="type-field">
+			{#each CLASS_TYPES as t (t)}
+				<button type="button" aria-pressed={type === t} title={TYPE_LABELS[t]} onclick={() => (type = t)}>{t}</button>
+			{/each}
+		</span>
+		<input type="hidden" name="type" value={type} />
+	{:else if clearClass}
+		<input type="hidden" name="type" value="" />
+	{/if}
+
 	<label class="chip" class:pressed={priority}>
 		<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.flag} /></svg>
 		{priority ? `Priority ${priority}` : 'Priority'}
@@ -104,32 +130,6 @@
 		</label>
 	{:else if clearProject}
 		<input type="hidden" name="projectId" value="" />
-	{/if}
-
-	{#if classShown}
-		<label class="chip" data-testid="class-field">
-			{#if cls}<AspectIcon icon={cls.icon} color={cls.color} size="sm" />{/if}
-			<span class="label">{cls?.name ?? 'No class'}</span>
-			<select name="classId" bind:value={classId} aria-label="Class">
-				<option value="">No class</option>
-				{#each classes as c (c.id)}
-					<option value={c.id}>{c.name}</option>
-				{/each}
-			</select>
-		</label>
-	{:else if clearClass}
-		<input type="hidden" name="classId" value="" />
-	{/if}
-
-	{#if typeShown}
-		<span class="seg" role="group" aria-label="Type" data-testid="type-field">
-			{#each CLASS_TYPES as t (t)}
-				<button type="button" aria-pressed={type === t} title={TYPE_LABELS[t]} onclick={() => (type = t)}>{t}</button>
-			{/each}
-		</span>
-		<input type="hidden" name="type" value={type} />
-	{:else if clearClass}
-		<input type="hidden" name="type" value="" />
 	{/if}
 
 	{@render children?.()}

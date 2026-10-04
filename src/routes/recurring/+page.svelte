@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import RuleForm, { WEEKDAYS } from '../../lib/components/recurring/RuleForm.svelte';
+	import ClassBadge from '../../lib/components/uni/ClassBadge.svelte';
 	import AspectTag from '../../lib/components/ui/AspectTag.svelte';
 	import Button from '../../lib/components/ui/Button.svelte';
 	import ConfirmDialog from '../../lib/components/ui/ConfirmDialog.svelte';
@@ -19,6 +20,7 @@
 	let deleteForm: HTMLFormElement;
 
 	const aspectById = $derived(new Map(data.aspects.map((a) => [a.id, a])));
+	const classById = $derived(new Map(data.classes.map((c) => [c.id, c])));
 
 	function openForm(rule: RecurringRule | null) {
 		editing = rule;
@@ -42,6 +44,7 @@
 	<ul class="rules">
 		{#each data.rules as rule (rule.id)}
 			{@const aspect = aspectById.get(rule.aspectId)!}
+			{@const classRef = rule.classId === null ? undefined : classById.get(rule.classId)}
 			<li data-testid="rule-row" data-rule-id={rule.id}>
 				<button type="button" class="row" onclick={() => openForm(rule)}>
 					<span class="title">{rule.title}</span>
@@ -49,6 +52,7 @@
 						<span data-testid="rule-aspect">
 							<AspectTag name={aspect.name} color={aspect.color} icon={aspect.icon} />
 						</span>
+						{#if classRef}<span class="class"><ClassBadge {classRef} type={rule.type} href={false} /></span>{/if}
 						{#each WEEKDAYS.filter((d) => rule.weekdays.includes(d.value)) as day (day.value)}
 							<span class="day" data-testid="rule-weekday" title={day.long}>{day.short}</span>
 						{/each}
@@ -168,7 +172,8 @@
 		gap: var(--space-1);
 	}
 
-	.meta > span:first-child {
+	.meta > span:first-child,
+	.class {
 		margin-right: var(--space-1);
 	}
 
