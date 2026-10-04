@@ -9,7 +9,7 @@ Single user, no auth; light theme only.
 - proof-full: `npm run proof:full`
 - run: `npm run dev` → http://localhost:5173
 - package: `npm run package` → `dist/life-manager-<version>.tgz` + `.sha256`
-- ship: ask
+- ship: merge
 
 ## Specs
 - Before changing app-runtime, read openspec/specs/app-runtime/spec.md.
