@@ -174,3 +174,19 @@ Note: `src/lib/markdown.test.ts` › "Scenario: Script-scheme link and image URL
 - openspec/changes/it-projects/shots/project-detail-1280.png
 - openspec/changes/it-projects/shots/projects-375.png
 - openspec/changes/it-projects/shots/projects-1280.png
+
+## Review
+
+Three rounds. Round 1 reviewer (fresh context) and the fixes, then round 2 and 3 on the fix diffs.
+
+| Finding | Resolution |
+|---|---|
+| Todo in a planning-sprint counted open but listed in neither Open nor Planned | fixed: Planned = in a sprint (active or planning), not done; delta spec, design.md and unit test updated (spec adjustment) |
+| Weak: "Edit metadata on the detail page" never checked the overview card or the dropped duplicate tag | test strengthened |
+| Weak: "Aspect change removes the project link" did not assert sprint/status/day | test strengthened |
+| Weak: "Project fields round-trip" compared the wrong object; no-op `inDraft > 0` | tests strengthened |
+| `[x](javascript:…)` live href in `{@html}` notes | fixed: script-scheme links/images blanked |
+| Round 2: HTML-entity bypass (`java&#115;cript:`, `&colon;`) of that fix | fixed: entities decoded, strict allowlist (relative, http, https, mailto); test red-first with entity variants. Round 3 reviewer: no findings after ~45 bypass attempts |
+| IT aspect preselected by name in ItAspectPrompt, not in any scenario | rejected: harmless convenience, listed at Gate 2 |
+| `setProjectNotes` bumps `updated_at`, not in any scenario | rejected: plausible, listed at Gate 2 |
+| Test "Scenario: Script-scheme link and image URLs are inert" has no matching scenario in the delta spec | open: not counted as evidence; user may want a scenario added |

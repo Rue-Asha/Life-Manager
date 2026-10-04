@@ -7,3 +7,4 @@ learnings:
   - "Repo path in args was wrong (00_Archive/Life-Managment-Dashboard vs Life-Manager) — resolve repo path with fd before flow-status."
   - "U2 builder: Mobbin may lack named Gate-0 reference screens (Todoist ff7aab78, Things feadd020) and Linear has no projects-grouped-by-status list — verify references exist before putting them in design.md."
   - "U1 builder: deviations to review in Verify — deleteAspect removes settings row; todos.ts↔projects.ts↔sprints.ts circular import; tests not run red-first."
+  - "Review: marked does not decode entities in hrefs and notes render via {@html} — a first-pass scheme blocklist was bypassed by &#115;/&colon;. Sanitize with an allowlist after entity decoding, and test entity variants red-first."
