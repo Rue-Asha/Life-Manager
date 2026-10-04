@@ -205,6 +205,8 @@ test('Scenario: Wide desktop class grid fills the content column', async ({ page
 	await page.setViewportSize({ width: 1600, height: 900 });
 	await page.goto('/uni');
 
+	// The docked rail only appears after hydration, which re-mounts the column; measure after it.
+	await expect(page.getByTestId('context-rail')).toBeVisible();
 	const grid = page.getByTestId('class-grid');
 	await expect(grid.getByTestId('class-card')).toHaveCount(4);
 	const { gridWidth, column, firstRow } = await grid.evaluate((el) => {
@@ -304,6 +306,7 @@ test('Scenario: Sparse card keeps the row height', async ({ page, request }) => 
 	await page.setViewportSize({ width: 1600, height: 900 });
 	await page.goto('/uni');
 
+	await expect(page.getByTestId('context-rail')).toBeVisible();
 	const cards = page.getByTestId('class-grid').getByTestId('class-card');
 	const sparse = cards.filter({ hasText: 'Operating Systems' });
 	await expect(sparse).toHaveText(/^\s*Operating Systems\s*0 open\s*$/);
@@ -527,4 +530,96 @@ test('Scenario: Deleting an empty semester uses a plain confirm', async ({ page,
 	await expect(dialog).not.toContainText(/\d+ (class|todo)/);
 	await dialog.getByRole('button', { name: 'Delete semester' }).click();
 	await expect(page.getByTestId('semester-section')).toHaveCount(0);
+});
+
+test('Scenario: Grades are shown on the overview', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [UNI],
+		uniAspect: 0,
+		semesters: [{ name: 'SS 26' }],
+		classes: [
+			{ semester: 0, name: 'A', grade: '1.3', ects: 5 },
+			{ semester: 0, name: 'B', grade: '2.7', ects: 10 },
+			{ semester: 0, name: 'C', grade: 'passed', ects: 5 },
+			{ semester: 0, name: 'D', grade: '5.0', ects: 5 },
+			{ semester: 0, name: 'E', grade: '1.0' }
+		]
+	});
+	await page.goto('/uni');
+
+	const header = page.getByTestId('semester-section').getByTestId('grade-summary');
+	await expect(header).toContainText('2.23');
+	await expect(header).toContainText('20 ECTS');
+	await expect(page.getByTestId('grade-overall')).toContainText('2.23');
+	await expect(page.getByTestId('grade-overall')).toContainText('20 ECTS');
+});
+
+test('Scenario: No grades shows a dash', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [UNI],
+		uniAspect: 0,
+		semesters: [{ name: 'SS 26' }],
+		classes: [{ semester: 0, name: 'A', ects: 5 }]
+	});
+	await page.goto('/uni');
+
+	await expect(page.getByTestId('semester-section').getByTestId('grade-summary')).toContainText('Average — ·');
+	await expect(page.getByTestId('grade-overall')).toContainText('Overall average — ·');
+});
+
+test('Scenario: Deadline overview sits in the rail at 1280', async ({ page, request }) => {
+	await setClock(request, NOW);
+	await seed(request, {
+		aspects: [UNI],
+		uniAspect: 0,
+		semesters: [{ name: 'WS 26/27' }],
+		classes: [{ semester: 0, name: 'Analysis II', examAt: '2026-10-17T10:00' }],
+		todos: [
+			{ title: 'Sheet 3', aspect: 0, class: 0, type: 'EXC', dueDate: '2026-10-04' },
+			{ title: 'Sheet 4', aspect: 0, class: 0, type: 'EXC', dueDate: '2026-10-08' }
+		]
+	});
+	await page.setViewportSize({ width: 1600, height: 900 });
+	await page.goto('/uni');
+
+	const rail = page.getByTestId('context-rail');
+	const rows = rail.getByTestId('deadline-row');
+	await expect(rows).toHaveCount(3);
+	await expect(rows.nth(0)).toContainText('Sheet 3');
+	await expect(rows.nth(0)).toContainText('Yesterday');
+	await expect(rows.nth(0)).toContainText('Overdue');
+	await expect(rows.nth(1)).toContainText('Sheet 4');
+	await expect(rows.nth(1)).toContainText('Thu 8 Oct');
+	await expect(rows.nth(1).getByTestId('class-badge')).toContainText('Analysis II · EXC');
+	await expect(rows.nth(2)).toContainText('Exam');
+	await expect(rows.nth(2)).toContainText('Sat 17 Oct');
+	await expect(rows.nth(2)).toContainText('10:00 · in 12 d');
+	await expect(rows.nth(2).getByTestId('class-badge')).toContainText('Analysis II');
+	await expect(page.getByTestId('deadline-row')).toHaveCount(3);
+
+	await page.setViewportSize({ width: 375, height: 812 });
+	await expect(page.getByTestId('context-rail')).toHaveCount(0);
+	const list = page.getByTestId('deadline-list');
+	await expect(list.getByTestId('deadline-row')).toHaveCount(3);
+	const [listBox, sectionBox] = [await list.boundingBox(), await page.getByTestId('semester-section').boundingBox()];
+	expect(listBox!.y + listBox!.height).toBeLessThanOrEqual(sectionBox!.y);
+});
+
+test('Scenario: Nothing due shows an empty line', async ({ page, request }) => {
+	await setClock(request, NOW);
+	await seed(request, {
+		aspects: [UNI],
+		uniAspect: 0,
+		semesters: [{ name: 'WS 26/27' }],
+		classes: [{ semester: 0, name: 'Algorithms', examAt: '2026-10-01' }],
+		todos: [
+			{ title: 'Undated', aspect: 0, class: 0 },
+			{ title: 'Done', aspect: 0, class: 0, dueDate: '2026-10-08', status: 'done' }
+		]
+	});
+	await page.goto('/uni');
+
+	const list = page.getByTestId('deadline-list');
+	await expect(list).toContainText('Nothing due.');
+	await expect(list.getByTestId('deadline-row')).toHaveCount(0);
 });
