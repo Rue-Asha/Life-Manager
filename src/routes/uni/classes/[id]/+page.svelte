@@ -1,9 +1,15 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import { MediaQuery } from 'svelte/reactivity';
 	import { ASPECT_COLORS } from '$lib/aspect-style';
 	import RailLayout from '$lib/components/shell/RailLayout.svelte';
+	import LinkedTodos from '$lib/components/projects/LinkedTodos.svelte';
+	import ProjectNotes from '$lib/components/projects/ProjectNotes.svelte';
+	import ClassForm from '$lib/components/uni/ClassForm.svelte';
 	import ClassMeta from '$lib/components/uni/ClassMeta.svelte';
 	import AspectIcon from '$lib/components/ui/AspectIcon.svelte';
+	import Button from '$lib/components/ui/Button.svelte';
+	import Sheet from '$lib/components/ui/Sheet.svelte';
 	import { UI_ICONS } from '$lib/components/ui/icons';
 	import type { PageProps } from './$types';
 
@@ -11,6 +17,14 @@
 
 	const cls = $derived(data.cls);
 	const wide = new MediaQuery('min-width: 1280px');
+
+	let editing = $state(false);
+	let error = $state<{ error: string; field?: string }>();
+
+	function edit() {
+		error = undefined;
+		editing = true;
+	}
 </script>
 
 <svelte:head>
@@ -18,7 +32,7 @@
 </svelte:head>
 
 {#snippet rail()}
-	<ClassMeta {cls} todos={data.todos} today={data.today} mode="rail" />
+	<ClassMeta {cls} todos={data.todos} today={data.today} mode="rail" onedit={edit} />
 {/snippet}
 
 <RailLayout railTitle="Details" rail={wide.current ? rail : undefined}>
@@ -26,16 +40,56 @@
 		<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS['chevron-left']} /></svg>Uni
 	</a>
 	<div class="title">
-		<span class="tile" style:background={ASPECT_COLORS[cls.color].tint}>
+		<span class="tile" data-testid="class-tile" data-color={cls.color} style:background={ASPECT_COLORS[cls.color].tint}>
 			<AspectIcon icon={cls.icon} color={cls.color} />
 		</span>
 		<h1>{cls.name}</h1>
 	</div>
 	<p class="sub">{cls.semester.name}</p>
 	{#if !wide.current}
-		<ClassMeta {cls} todos={data.todos} today={data.today} mode="row" />
+		<ClassMeta {cls} todos={data.todos} today={data.today} mode="row" onedit={edit} />
 	{/if}
+
+	<ProjectNotes
+		html={data.notesHtml}
+		notes={cls.notes}
+		testid="class-notes"
+		placeholder="No notes yet. Collect exam topics, formulas or links here."
+	/>
+
+	<LinkedTodos
+		todos={data.todos}
+		today={data.today}
+		sprintDays={data.sprintDays ?? undefined}
+		title="Todos"
+		testidPrefix="class-todos"
+		emptyText="No todos for this class yet. Add one above."
+	/>
 </RailLayout>
+
+<Sheet open={editing} title="Edit details" onclose={() => (editing = false)}>
+	{#if editing}
+		<form
+			method="POST"
+			action="?/update"
+			use:enhance={() =>
+				async ({ result, update }) => {
+					if (result.type === 'failure') {
+						error = result.data as unknown as { error: string; field?: string };
+						return;
+					}
+					await update({ reset: false });
+					editing = false;
+				}}
+		>
+			<ClassForm {cls} {error} />
+			<footer>
+				<Button type="button" variant="quiet" onclick={() => (editing = false)}>Cancel</Button>
+				<Button variant="primary">Save</Button>
+			</footer>
+		</form>
+	{/if}
+</Sheet>
 
 <style>
 	.back {
@@ -85,6 +139,13 @@
 	.sub {
 		margin-top: var(--space-1);
 		color: var(--ink-3);
+	}
+
+	footer {
+		display: flex;
+		justify-content: flex-end;
+		gap: var(--space-2);
+		margin-top: var(--space-5);
 	}
 
 	@media (min-width: 768px) {

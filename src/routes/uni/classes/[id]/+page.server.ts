@@ -1,11 +1,12 @@
-import { error } from '@sveltejs/kit';
+import { error, fail } from '@sveltejs/kit';
 import { today } from '$lib/server/clock';
 import { getDb } from '$lib/server/db';
 import { sprintPhase } from '$lib/server/sprints';
-import { classCounts, classRules, classTodos, getClass } from '$lib/server/uni';
+import { classCounts, classRules, classTodos, getClass, setClassNotes, updateClass } from '$lib/server/uni';
 import { renderMarkdown } from '$lib/markdown';
+import type { ClassInput } from '$lib/types';
 import { weekDays } from '$lib/week';
-import type { PageServerLoad } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ params }) => {
 	const db = getDb();
@@ -25,4 +26,34 @@ export const load: PageServerLoad = ({ params }) => {
 		today: day,
 		sprintDays: canAdd ? weekDays(sprint.weekStart!) : null
 	};
+};
+
+function classInput(form: FormData): ClassInput {
+	const urls = form.getAll('linkUrl').map(String);
+	return {
+		name: String(form.get('name') ?? ''),
+		color: String(form.get('color') ?? ''),
+		icon: String(form.get('icon') ?? ''),
+		lecturer: String(form.get('lecturer') ?? ''),
+		room: String(form.get('room') ?? ''),
+		ects: String(form.get('ects') ?? ''),
+		links: form.getAll('linkLabel').map((label, i) => ({ label: String(label), url: urls[i] ?? '' })),
+		examAt: String(form.get('examAt') ?? ''),
+		examRoom: String(form.get('examRoom') ?? ''),
+		grade: String(form.get('grade') ?? '')
+	};
+}
+
+const status = (error: string) => (error === 'archived' ? 409 : 400);
+
+export const actions: Actions = {
+	update: async ({ request, params }) => {
+		const result = updateClass(getDb(), Number(params.id), classInput(await request.formData()));
+		if (!result.ok) return fail(status(result.error), { error: result.error, field: result.field });
+	},
+	notes: async ({ request, params }) => {
+		const notes = String((await request.formData()).get('notes') ?? '');
+		const result = setClassNotes(getDb(), Number(params.id), notes);
+		if (!result.ok) return fail(status(result.error), { error: result.error, field: result.field });
+	}
 };

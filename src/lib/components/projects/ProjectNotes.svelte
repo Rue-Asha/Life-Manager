@@ -3,16 +3,22 @@
 	import Button from '../ui/Button.svelte';
 	import { GLYPHS } from './glyphs';
 
-	let { html, notes }: { html: string; notes: string } = $props();
+	let {
+		html,
+		notes,
+		testid = 'project-notes',
+		placeholder = 'No notes yet. Write down the plan, decisions or change requests.',
+		editable = true
+	}: { html: string; notes: string; testid?: string; placeholder?: string; editable?: boolean } = $props();
 
 	let editing = $state(false);
 	const uid = $props.id();
 </script>
 
-<section data-testid="project-notes" aria-labelledby="{uid}-h">
+<section data-testid={testid} aria-labelledby="{uid}-h">
 	<div class="head">
 		<h2 id="{uid}-h">Notes</h2>
-		{#if !editing}
+		{#if editable && !editing}
 			<button type="button" class="edit" aria-label="Edit notes" onclick={() => (editing = true)}>
 				<svg viewBox="0 0 24 24" aria-hidden="true"><path d={GLYPHS.pen} /></svg>Edit
 			</button>
@@ -43,7 +49,7 @@
 	{:else}
 		<p class="empty">
 			<svg viewBox="0 0 24 24" aria-hidden="true"><path d={GLYPHS.pen} /></svg>
-			No notes yet. Write down the plan, decisions or change requests.
+			{placeholder}
 		</p>
 	{/if}
 </section>

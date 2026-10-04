@@ -104,3 +104,64 @@ test('Scenario: Unknown class id shows 404', async ({ page, request }) => {
 	await expect(heading(page)).toHaveText('Class not found');
 	await expect(page.getByRole('main').getByRole('link', { name: 'Uni' })).toHaveAttribute('href', '/uni');
 });
+
+test('Scenario: Edit a class on its detail page', async ({ page, request }) => {
+	const id = await seedClass(request);
+	await page.setViewportSize({ width: 1600, height: 900 });
+	await page.goto(`/uni/classes/${id}`);
+
+	await page.getByRole('button', { name: 'Edit details' }).click();
+	const dialog = page.getByRole('dialog');
+	await dialog.getByLabel('Name').fill('Analysis III');
+	await dialog.getByRole('radio', { name: 'Berry' }).check();
+	await dialog.getByLabel('Lecturer').fill('Dr. Weber');
+	await dialog.getByLabel('ECTS').fill('-1');
+	await dialog.getByRole('button', { name: 'Save' }).click();
+	await expect(dialog.getByRole('alert')).toContainText('ECTS');
+	await dialog.getByLabel('ECTS').fill('10');
+	await dialog.getByLabel('Exam date').fill('2027-03-01');
+	await dialog.getByLabel('Grade').selectOption('2.3');
+	await dialog.getByRole('button', { name: 'Save' }).click();
+	await expect(dialog).toBeHidden();
+
+	const check = async () => {
+		await expect(heading(page)).toHaveText('Analysis III');
+		await expect(page.getByTestId('class-tile')).toHaveAttribute('data-color', 'berry');
+		const meta = page.getByTestId('class-meta');
+		await expect(meta).toContainText('Dr. Weber');
+		await expect(meta).toContainText('10');
+		await expect(meta).toContainText('Mon 1 Mar 2027, 10:00');
+		await expect(meta).toContainText('2.3');
+		await expect(meta).not.toContainText('Prof. Kühn');
+	};
+	await check();
+	await page.reload();
+	await check();
+});
+
+test('Scenario: Class notes are edited as Markdown and shown rendered', async ({ page, request }) => {
+	const id = await seedClass(request);
+	await page.goto(`/uni/classes/${id}`);
+
+	const notes = page.getByTestId('class-notes');
+	await notes.getByRole('button', { name: 'Edit notes' }).click();
+	await notes.getByRole('textbox', { name: 'Notes' }).fill('## Exam topics\n\n- **Fourier**');
+	await notes.getByRole('button', { name: 'Save' }).click();
+
+	await expect(notes.getByRole('heading', { level: 2, name: 'Exam topics' })).toBeVisible();
+	await expect(notes.getByRole('listitem').filter({ hasText: 'Fourier' }).locator('strong')).toHaveText('Fourier');
+	await expect(notes.getByRole('textbox', { name: 'Notes' })).toHaveCount(0);
+
+	await page.reload();
+	await notes.getByRole('button', { name: 'Edit notes' }).click();
+	await expect(notes.getByRole('textbox', { name: 'Notes' })).toHaveValue('## Exam topics\n\n- **Fourier**');
+});
+
+test('Scenario: Class without notes or todos shows placeholders', async ({ page, request }) => {
+	const id = await seedClass(request);
+	await page.goto(`/uni/classes/${id}`);
+
+	await expect(page.getByTestId('class-notes')).toContainText('No notes yet');
+	await expect(page.getByTestId('empty-state')).toContainText('No todos for this class yet');
+	await expect(page.getByTestId('todo-row')).toHaveCount(0);
+});
