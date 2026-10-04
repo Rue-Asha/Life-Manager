@@ -28,13 +28,13 @@
 
 - [x] 4.1 Add `.github/workflows/release.yml` on `push: tags: ['v*']`: tag/version check, the CI steps, `gh release create` with tarball + `.sha256`, `actions/attest-build-provenance`; write permissions on the publish job only
 - [x] 4.2 Set `package.json` `version` to `0.1.0`
-- [ ] 4.3 ⚠ irreversible — publish: after merge, push tag `v0.1.0`; verify the Release assets, `sha256sum -c`, and `gh attestation verify`
+- [x] 4.3 ⚠ irreversible — publish: after merge, push tag `v0.1.0`; verify the Release assets, `sha256sum -c`, and `gh attestation verify`
 - [ ] 4.4 ⚠ irreversible — publish: push a mismatched tag, confirm no Release is created, delete the tag
 
 ## 5. Enforce and document
 
 > unit: depends=4 · files=CLAUDE.md, README.md
 
-- [ ] 5.1 Ask first: create a `main` ruleset requiring `ci` and the baseline checks
+- [x] 5.1 Ask first: create a `main` ruleset requiring `ci` and the baseline checks
 - [x] 5.2 Add the `package` command under `## Harness` and the new specs under `## Specs` in CLAUDE.md
-- [ ] 5.3 Run `update-docs` (README: how to cut a release)
+- [x] 5.3 Run `update-docs` (README: how to cut a release)
