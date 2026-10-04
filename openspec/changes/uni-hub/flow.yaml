@@ -1,0 +1,5 @@
+triage: "feature — new tables + migration 4, new module UI, todo/recurring/navigation deltas, >1 session. Appetite: 3–4 sessions, one change."
+base: main
+gate0: 2026-10-04
+gate1: 2026-10-04
+learnings: []

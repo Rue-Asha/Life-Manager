@@ -1,0 +1,87 @@
+Harness exists (`npm run proof`, `npm run proof:full` in CLAUDE.md ## Harness), so no harness unit.
+Builders: `npm run proof` is the per-task gate. Before running any e2e, run `npm run build` first —
+Playwright's webServer runs `node build` (adapter-node), so without it the run tests the stale build.
+Run only your own e2e files with your unit's `PORT`, e.g. `npm run build && PORT=<port> npx playwright test e2e/<file>`.
+Scope e2e count assertions to container test ids, never page-wide (repo learning). Markdown goes only through
+`renderMarkdown` (sanitized, repo learning). Shared names, signatures, routes and test ids: design.md ## Contracts.
+
+## 1. Data layer, todo/recurring integration and contracts
+
+> unit: depends=none · scope=S1,S2,S5,S11,S12,S15,S17 · files=src/lib/server/schema.ts, src/lib/server/db.ts, src/lib/server/db.test.ts, src/lib/server/uni.ts, src/lib/server/uni.test.ts, src/lib/server/todos.ts, src/lib/server/todos.test.ts, src/lib/server/sprints.ts, src/lib/server/aspects.ts, src/lib/server/aspects.test.ts, src/lib/server/recurring.ts, src/lib/server/recurring.test.ts, src/lib/types.ts, src/lib/uni.ts, src/lib/components/ui/icons.ts, src/lib/components/shell/Sidebar.svelte, src/routes/+layout.server.ts, src/routes/todos/+page.server.ts, src/routes/recurring/+page.server.ts, src/routes/__test/seed/+server.ts
+
+- [ ] 1.1 ⚠ irreversible (schema migration; production DB moves to `user_version` 4 on next start, no down-migration) — Write "Scenario: Migration 4 adds the Uni tables without touching existing data" and "Scenario: Reset clears the Uni tables" in `db.test.ts` from their THEN clauses, then append migration 4 to `schema.ts` exactly as in design.md ## Contracts and extend `resetDb()` in the FK-safe order given there
+- [ ] 1.2 Add the contract types to `types.ts` (incl. the new fields on `Todo`, `NewTodo`, `TodoPatch`, `RecurringRule`, `RuleInput`), `src/lib/uni.ts` (`CLASS_TYPES`, `TYPE_LABELS`, `GRADES`, `UNI_MESSAGES`, `formatAverage`, `examCountdown`, `revisedLabel`), the `graduation-cap` icon, `NavCount` gaining `'uni'` in `Sidebar.svelte` (type only, no `NAV_ITEMS` entry), and `src/lib/server/uni.ts` with every unit-3 function as a typed stub; `npm run check` green
+- [ ] 1.3 Write "Scenario: Changing the Uni aspect clears class, type and revised date" in `uni.test.ts`, then implement the unit-1 functions of `uni.ts` (`getUniAspectId`, `setUniAspectId`, `countClassLinks`, `listClassRefs`, `countOpenClassTodos`, `classWritable`, `todoWritable`)
+- [ ] 1.4 Write "Scenario: Both todo read models carry the class fields", "Scenario: Aspect change removes class, type and revised date", "Scenario: Class link on a non-Uni todo is not stored", "Scenario: Type needs a class", "Scenario: Unknown or archived class id is rejected", "Scenario: Revised date is stored only on class todos" in `todos.test.ts`, then add `classId`/`type`/`revisedAt` to `todoColumns`, `selectTodos()`, `createTodo`, `updateTodo` and add `setRevisedAt`
+- [ ] 1.5 Write "Scenario: Deleting the Uni aspect unsets the setting" in `aspects.test.ts` and "Scenario: Generated instances inherit class and type", "Scenario: Rule leaving the Uni aspect loses its class", "Scenario: Rules of archived classes generate nothing", "Scenario: Rule with an unknown or archived class is rejected" in `recurring.test.ts`, then make `deleteAspect` clear class/type/revised on moved todos and rules, and give `createRule`/`updateRule`/`generateInstances` class + type handling and the archived filter
+- [ ] 1.6 Wire the app seams: `/todos` `create`/`update` parse `classId`/`type` and every todo-id write action (update, checklistAdd/Rename/Toggle/Delete, setStatus, toggleDone, setDay, addToSprint, removeFromSprint, moveToBacklog) runs `todoWritable` first (`fail(409, { error: 'archived' })`); `/recurring` `create`/`update` parse `classId`/`type`; `+layout.server.ts` returns `classes`, `uniAspectId` and `nav.counts.uni`; `__test/seed` gains the fields in ## Contracts. `npm run proof` green, and `npm run build && npx playwright test` still green (existing e2e unaffected)
+
+## 2. Uni mockup and design brief (design gate)
+
+> unit: depends=none · scope=S18 · files=design/brief.md, design/uni-mockup.html, design/shots/uni-overview-1600.png, design/shots/uni-overview-375.png, design/shots/uni-class-1600.png, design/shots/uni-class-375.png
+
+- [ ] 2.1 Research with the Mobbin MCP (`search_screens` / `search_flows`): semester/term sections with a collapsed archive group, course/class cards with exam countdown and grade, a deadline / upcoming list, a properties rail and its mobile pill row, a muted badge with coloured icon, a type chip in a quick-add; note the screen URLs used
+- [ ] 2.2 Build `design/uni-mockup.html` as a static page styled only through `src/lib/styles/tokens.css` (like `design/projects-mockup.html`): overview (sections, cards full and sparse, "Archived (n)" collapsed, grade line per semester and overall, deadline overview in the rail at 1600 / section above at 375, empty states, Uni aspect prompt) and class detail (icon + name header, metadata rail at 1600 / wrapping row at 375, notes rendered + placeholder, todos Open / Planned / Done collapsed with "Revised …" and "Revised today", rules list, archived read-only state), a todo row with the class badge, QuickAdd with Class select + Type chip, the sidebar with Uni after Projects
+- [ ] 2.3 Write the four screenshots (overview and class detail at 1600 px and 375 px) to `design/shots/uni-*.png`
+- [ ] 2.4 Add a "Uni" section to `design/brief.md` (and the Uni entry to the Navigation section) citing a Mobbin URL for every decision; state that motion is unchanged (route cross-fade only) and that copy is English
+- [ ] 2.5 ⏸ HUMAN APPROVAL STOP — Rue approves the mockup. Do not mark this done yourself: stop here and report `needs-human: Rue approves the Uni mockup (design/uni-mockup.html, design/shots/uni-*.png, brief.md Uni section)`. Units 4–8 must not start until Rue has approved.
+
+## 3. Uni server: semesters, classes, grades, deadlines
+
+> unit: depends=1 · scope=S4,S5,S6,S7,S8,S9,S10,S14,S16 · files=src/lib/server/uni.ts, src/lib/server/uni.test.ts
+
+- [ ] 3.1 Write "Scenario: Empty semester name is rejected", "Scenario: Duplicate semester names are allowed", then implement `createSemester`, `renameSemester`, `listSemesters` (ordering per design.md)
+- [ ] 3.2 Write "Scenario: Archiving completes open todos", "Scenario: Archived semester refuses writes", "Scenario: Unarchive lifts read-only", "Scenario: Deleting a semester removes everything belonging to it", then implement `archiveSemester`, `unarchiveSemester`, `semesterCounts`, `deleteSemester` and the `archived` checks in every semester/class write
+- [ ] 3.3 Write "Scenario: Class fields round-trip", "Scenario: Invalid class input is rejected", "Scenario: Empty link rows are dropped", "Scenario: Deleting a class removes its todos and rules", then implement `getClass`, `createClass`, `updateClass`, `setClassNotes`, `classCounts`, `deleteClass` with the validation in the spec
+- [ ] 3.4 Write "Scenario: Card summary counts open todos and the next due date", "Scenario: Class todos are grouped Open, Planned, Done", then fill `ClassSummary` in `listSemesters` and implement `classTodos`, `classRules`
+- [ ] 3.5 Write "Scenario: Weighted average matches a hand calculation", "Scenario: Overall figures include archived semesters", "Scenario: Deadlines list todos and exams in date order", then implement `gradeSummary`, the per-semester / overall grades in `listSemesters`, and `listDeadlines`
+- [ ] 3.6 `npm run proof` green
+
+## 4. Todo and recurring class fields, class badge
+
+> unit: depends=1,2 · scope=S5,S11,S13,S15 · files=src/lib/components/todo/QuickAdd.svelte, src/lib/components/todo/TodoFields.svelte, src/lib/components/todo/TodoEditor.svelte, src/lib/components/todo/TodoRow.svelte, src/lib/components/uni/ClassBadge.svelte, src/lib/components/recurring/RuleForm.svelte, src/routes/recurring/+page.svelte, e2e/todo-classes.test.ts, e2e/recurring-classes.test.ts
+
+- [ ] 4.1 Write e2e "Scenario: Quick add links a todo to a class", "Scenario: Class field appears only for the Uni aspect", "Scenario: Class field lists classes of active semesters", "Scenario: Class field is hidden without Uni aspect or classes", "Scenario: Switching the aspect away drops class and type" in `e2e/todo-classes.test.ts`
+- [ ] 4.2 Add the conditional Class select (`classId`, test id `class-field`) and Type chip (`type`, test id `type-field`, default OTH) to `TodoFields`, fed from `page.data.classes` (not archived) / `page.data.uniAspectId`, bound in `QuickAdd` and `TodoEditor`; add `defaultAspectId` / `defaultClassId` / `defaultType` props to `QuickAdd`; when hidden, nothing is submitted for class/type on create, and empty values on edit
+- [ ] 4.3 Write e2e "Scenario: Linked todo shows the class badge", "Scenario: Todo without class shows no class badge", "Scenario: Class badge wraps under the title on a phone", "Scenario: Archived class todo edited via todos is rejected" (post to `/todos?/update` for a seeded archived class todo), then build `ClassBadge` (class icon in its colour + name + type, link to `/uni/classes/<id>`) and add it to `TodoRow`'s `.meta` (the detail page is unit 7, so assert the URL after the click, not the page content)
+- [ ] 4.4 Write e2e "Scenario: Rule with a class generates linked instances", "Scenario: Rule class fields appear only for the Uni aspect" in `e2e/recurring-classes.test.ts`, then add Class + Type to `RuleForm` (Uni aspect only) and show the class in the rule list on `/recurring`
+- [ ] 4.5 `npm run proof` green; `npm run build` then run `e2e/todo-classes.test.ts`, `e2e/recurring-classes.test.ts`, `e2e/todos.test.ts`, `e2e/recurring.test.ts`, `e2e/todo-projects.test.ts`, `e2e/backlog.test.ts` green
+
+## 5. Shared picker and class form
+
+> unit: depends=1,2 · scope=S7 · files=src/lib/components/ui/ColorIconPicker.svelte, src/lib/components/aspects/AspectForm.svelte, src/lib/components/uni/ClassForm.svelte
+
+- [ ] 5.1 Extract the colour/icon picker from `AspectForm` into `ui/ColorIconPicker.svelte` (ids from `$props.id()`, inputs `name="color"` / `name="icon"`), use it in `AspectForm` unchanged in look and behaviour; `npm run build` then `e2e/aspects.test.ts` and `e2e/aspect-page.test.ts` green
+- [ ] 5.2 Build `uni/ClassForm.svelte` per ## Contracts and the approved mockup: name, picker, lecturer, room, ECTS, repeatable link rows (label + URL, add/remove), exam date/time, exam room, grade select from `GRADES`; field errors from `UNI_MESSAGES` at the field named by `error.field` (its e2e scenarios are written in units 6 and 7, which own the forms that post it)
+- [ ] 5.3 `npm run proof` green
+
+## 6. Uni overview, Uni aspect setting, semesters, grades and deadlines
+
+> unit: depends=1,2,3,4,5 · scope=S2,S3,S4,S5,S6,S7,S8,S14,S16 · files=src/routes/uni/+page.server.ts, src/routes/uni/+page.svelte, src/lib/components/uni/SemesterSection.svelte, src/lib/components/uni/ArchivedGroup.svelte, src/lib/components/uni/ClassCard.svelte, src/lib/components/uni/NewSemesterForm.svelte, src/lib/components/uni/UniAspectPrompt.svelte, src/lib/components/uni/DeadlineList.svelte, src/lib/components/uni/GradeLine.svelte, e2e/uni.test.ts
+
+- [ ] 6.1 Write e2e "Scenario: First run prompts for the Uni aspect", "Scenario: Changing the Uni aspect removes links after confirmation", "Scenario: Changing the Uni aspect without links needs no confirmation", "Scenario: Without aspects Uni leads to creating one" in `e2e/uni.test.ts`, then build the `/uni` load, `UniAspectPrompt` and the `setUniAspect` action (ConfirmDialog naming the link count only when > 0)
+- [ ] 6.2 Write e2e "Scenario: Semesters are listed newest first with archived ones collapsed", "Scenario: No semesters shows an empty state", "Scenario: Semester without classes offers New class", "Scenario: Phone shows one class card per row", "Scenario: Wide desktop class grid fills the content column" (assert at 1600 px, where the cap binds), "Scenario: Card shows the class summary", "Scenario: Exam today and past exams", "Scenario: Sparse card keeps the row height", then build the page, `SemesterSection`, `ArchivedGroup`, `ClassCard` per the approved mockup (deadline rail via RailLayout ≥1280 px, section above below)
+- [ ] 6.3 Write e2e "Scenario: New semester appears among the active ones", "Scenario: Rename a semester", "Scenario: Add a class from the semester section", "Scenario: Field errors show on the class form", then build `NewSemesterForm`, rename, and the `createSemester` / `renameSemester` / `createClass` actions (class form = `ClassForm` from unit 5)
+- [ ] 6.4 Write e2e "Scenario: Archiving with open todos asks for confirmation", "Scenario: Cancelling the archive warning changes nothing", "Scenario: Archiving without open todos needs no confirmation", "Scenario: Deleting a semester asks for confirmation naming counts", "Scenario: Deleting an empty semester uses a plain confirm", then build the `archive` / `unarchive` / `deleteSemester` actions with their ConfirmDialogs and the read-only rendering of archived semesters
+- [ ] 6.5 Write e2e "Scenario: Grades are shown on the overview", "Scenario: No grades shows a dash", "Scenario: Deadline overview sits in the rail at 1280", "Scenario: Nothing due shows an empty line", then build `GradeLine` (semester header + overall) and `DeadlineList` (rows with `ClassBadge`, overdue flag)
+- [ ] 6.6 `npm run proof` green; `npm run build` then run `e2e/uni.test.ts` green
+
+## 7. Class detail page
+
+> unit: depends=1,2,3,4,5 · scope=S5,S7,S9,S10,S11,S12 · files=src/routes/uni/classes/[id]/+page.server.ts, src/routes/uni/classes/[id]/+page.svelte, src/routes/uni/classes/[id]/+error.svelte, src/lib/components/uni/ClassMeta.svelte, src/lib/components/uni/ClassRules.svelte, src/lib/components/uni/RevisedControl.svelte, src/lib/components/projects/ProjectNotes.svelte, src/lib/components/projects/LinkedTodos.svelte, e2e/class-detail.test.ts
+
+- [ ] 7.1 Write e2e "Scenario: Class metadata sits in the rail at 1280", "Scenario: Class metadata wraps under the title below 1280", "Scenario: Unknown class id shows 404" (open the detail by URL from seeded ids — the overview is unit 6, so the card-click scenario is written in unit 8), then build the load, `+error.svelte`, page and `ClassMeta` (RailLayout rail ≥1280 px, wrapping row below, no rail toggle)
+- [ ] 7.2 Write e2e "Scenario: Edit a class on its detail page", "Scenario: Class notes are edited as Markdown and shown rendered", "Scenario: Class without notes or todos shows placeholders", then build the `update` action with `ClassForm` and the `notes` action, reusing `ProjectNotes` (testid/placeholder props, project defaults unchanged)
+- [ ] 7.3 Write e2e "Scenario: Class Done group starts collapsed", "Scenario: Class rules are listed with a link to Recurring", "Scenario: Quick add on class detail creates a linked todo", "Scenario: Type defaults to OTH", then render the todos through `LinkedTodos` (generalised: `testidPrefix`, `emptyText`, per-row `extra` snippet), `ClassRules`, and `QuickAdd` with the Uni aspect / class / OTH defaults
+- [ ] 7.4 Write e2e "Scenario: Revised today sets the date", "Scenario: Revised date can be cleared", "Scenario: Deleting a class asks for confirmation naming the todo count", "Scenario: Archived class has no edit controls", then build `RevisedControl` (`revised` action), delete (`delete` action, ConfirmDialog naming the todo count) and the archived read-only rendering
+- [ ] 7.5 `npm run proof` green; `npm run build` then run `e2e/class-detail.test.ts` and `e2e/project-detail.test.ts` (shared components) green
+
+## 8. Navigation entry, layout, responsive, motion and journey checks
+
+> unit: depends=6,7 · scope=S3,S9,S16,S17,S18 · files=src/lib/components/shell/Sidebar.svelte, src/lib/components/shell/HomeList.svelte, e2e/navigation.test.ts, e2e/layout.test.ts, e2e/responsive.test.ts, e2e/motion.test.ts, e2e/uni-journey.test.ts
+
+- [ ] 8.1 Update `e2e/navigation.test.ts` ("Scenario: Desktop shows a sidebar" with seven entries in order and Uni current on a class detail; rename to "Scenario: Phone home list shows the seven lists") and write "Scenario: Uni entry counts open class todos in active semesters", "Scenario: Zero open class todos is shown like other zero counts"; then add the Uni entry (`graduation-cap`, count `uni`) after Projects in `NAV_ITEMS` and adjust `HomeList` if needed
+- [ ] 8.2 Extend `e2e/layout.test.ts`: Uni and a class detail in "Scenario: Screens with a rail centre their column" (1600 px, where the cap binds, and 1100 px); prove the new assertions by a temporary mutation (e.g. shift the column) that makes them fail, then revert
+- [ ] 8.3 Extend `e2e/responsive.test.ts`: Uni and a class detail in "Scenario: Every screen fits 375 px without horizontal scroll" and "Scenario: No screen scrolls horizontally at any width", and Uni in "Scenario: Phone home list drills into each list"
+- [ ] 8.4 Write "Scenario: Opening a class uses only the route cross-fade" in `e2e/motion.test.ts`, and "Scenario: Class card opens the class detail" and "Scenario: Class todo moves through the class's groups" in `e2e/uni-journey.test.ts` (Done-criteria journey across class detail, Backlog, Sprint and Today)
+- [ ] 8.5 Any failure that needs an app fix goes into the file that owns it (report the extra file); `npm run build && npm run proof:full` green
