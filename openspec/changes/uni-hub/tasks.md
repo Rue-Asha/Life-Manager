@@ -24,7 +24,7 @@ Scope e2e count assertions to container test ids, never page-wide (repo learning
 - [x] 2.2 Build `design/uni-mockup.html` as a static page styled only through `src/lib/styles/tokens.css` (like `design/projects-mockup.html`): overview (sections, cards full and sparse, "Archived (n)" collapsed, grade line per semester and overall, deadline overview in the rail at 1600 / section above at 375, empty states, Uni aspect prompt) and class detail (icon + name header, metadata rail at 1600 / wrapping row at 375, notes rendered + placeholder, todos Open / Planned / Done collapsed with "Revised …" and "Revised today", rules list, archived read-only state), a todo row with the class badge, QuickAdd with Class select + Type chip, the sidebar with Uni after Projects
 - [x] 2.3 Write the four screenshots (overview and class detail at 1600 px and 375 px) to `design/shots/uni-*.png`
 - [x] 2.4 Add a "Uni" section to `design/brief.md` (and the Uni entry to the Navigation section) citing a Mobbin URL for every decision; state that motion is unchanged (route cross-fade only) and that copy is English
-- [ ] 2.5 ⏸ HUMAN APPROVAL STOP — Rue approves the mockup. Do not mark this done yourself: stop here and report `needs-human: Rue approves the Uni mockup (design/uni-mockup.html, design/shots/uni-*.png, brief.md Uni section)`. Units 4–8 must not start until Rue has approved.
+- [x] 2.5 ⏸ HUMAN APPROVAL STOP — Rue approves the mockup. Do not mark this done yourself: stop here and report `needs-human: Rue approves the Uni mockup (design/uni-mockup.html, design/shots/uni-*.png, brief.md Uni section)`. Units 4–8 must not start until Rue has approved.
 
 ## 3. Uni server: semesters, classes, grades, deadlines
 
