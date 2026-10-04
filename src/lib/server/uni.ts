@@ -1,9 +1,11 @@
 import type { DatabaseSync } from 'node:sqlite';
+import { ASPECT_COLORS, ASPECT_ICONS } from '$lib/aspect-style';
 import type {
 	ClassInput,
 	ClassRef,
 	ClassTodos,
 	Deadline,
+	Grade,
 	GradeSummary,
 	Id,
 	IsoDate,
@@ -13,6 +15,7 @@ import type {
 	SemesterView,
 	UniClass
 } from '$lib/types';
+import { GRADES } from '$lib/uni';
 import { now } from './clock';
 import { transaction } from './sprints';
 
@@ -156,28 +159,112 @@ export function deleteSemester(db: DatabaseSync, id: Id): Result<{ classes: numb
 	return notImplemented;
 }
 
+type ClassRow = Omit<UniClass, 'links'> & { links: string };
+
+const classColumns = `id, semester_id AS semesterId, name, color, icon, notes, lecturer, room, ects, links,
+	exam_at AS examAt, exam_room AS examRoom, grade, created_at AS createdAt, updated_at AS updatedAt`;
+
+const toClass = (row: ClassRow): UniClass => ({ ...row, links: JSON.parse(row.links) });
+
+function readClass(db: DatabaseSync, id: Id): UniClass {
+	return toClass(db.prepare(`SELECT ${classColumns} FROM classes WHERE id = ?`).get(id) as ClassRow);
+}
+
 export function getClass(db: DatabaseSync, id: Id): (UniClass & { semester: Semester }) | null {
-	return null;
+	const row = db.prepare(`SELECT ${classColumns} FROM classes WHERE id = ?`).get(id) as ClassRow | undefined;
+	return row ? { ...toClass(row), semester: getSemester(db, row.semesterId)! } : null;
+}
+
+type ClassValues = [string, string, string, string | null, string | null, number | null, string, string | null, string | null, string | null];
+
+const optional = (s: string | undefined) => s?.trim() || null;
+
+function isExamAt(s: string): boolean {
+	const m = /^(\d{4}-\d{2}-\d{2})(T([01]\d|2[0-3]):[0-5]\d)?$/.exec(s);
+	const time = m && Date.parse(`${m[1]}T00:00:00Z`);
+	return !!time && new Date(time).toISOString().startsWith(m[1]);
+}
+
+function validate(input: ClassInput): Result<ClassValues> {
+	const name = input.name.trim();
+	if (!name) return { ok: false, error: 'required', field: 'name' };
+	if (!Object.hasOwn(ASPECT_COLORS, input.color)) return { ok: false, error: 'invalid', field: 'color' };
+	if (!Object.hasOwn(ASPECT_ICONS, input.icon)) return { ok: false, error: 'invalid', field: 'icon' };
+	const ects = optional(input.ects);
+	if (ects !== null && (!/^\d+(\.\d+)?$/.test(ects) || !Number.isInteger(Number(ects) * 2))) {
+		return { ok: false, error: 'invalid', field: 'ects' };
+	}
+	const links = (input.links ?? [])
+		.map((l) => ({ label: l.label.trim(), url: l.url.trim() }))
+		.filter((l) => l.label || l.url);
+	if (links.some((l) => !URL.parse(l.url)?.protocol.match(/^https?:$/))) return { ok: false, error: 'invalid', field: 'links' };
+	const examAt = optional(input.examAt);
+	if (examAt !== null && !isExamAt(examAt)) return { ok: false, error: 'invalid', field: 'examAt' };
+	const grade = optional(input.grade);
+	if (grade !== null && !GRADES.includes(grade as Grade)) return { ok: false, error: 'invalid', field: 'grade' };
+	return {
+		ok: true,
+		value: [
+			name,
+			input.color,
+			input.icon,
+			optional(input.lecturer),
+			optional(input.room),
+			ects === null ? null : Number(ects),
+			JSON.stringify(links),
+			examAt,
+			optional(input.examRoom),
+			grade
+		]
+	};
 }
 
 export function createClass(db: DatabaseSync, semesterId: Id, input: ClassInput): Result<UniClass> {
-	return notImplemented;
+	const semester = getSemester(db, semesterId);
+	if (!semester) return { ok: false, error: 'not-found', field: 'semesterId' };
+	if (semester.archivedAt !== null) return { ok: false, error: 'archived', field: 'semesterId' };
+	const v = validate(input);
+	if (!v.ok) return v;
+	const at = now().toISOString();
+	const { lastInsertRowid } = db
+		.prepare(
+			`INSERT INTO classes (name, color, icon, lecturer, room, ects, links, exam_at, exam_room, grade,
+			                      semester_id, created_at, updated_at)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+		)
+		.run(...v.value, semesterId, at, at);
+	return { ok: true, value: readClass(db, Number(lastInsertRowid)) };
 }
 
 export function updateClass(db: DatabaseSync, id: Id, input: ClassInput): Result<UniClass> {
-	return notImplemented;
+	const writable = classWritable(db, id);
+	if (!writable.ok) return writable;
+	const v = validate(input);
+	if (!v.ok) return v;
+	db.prepare(
+		`UPDATE classes SET name = ?, color = ?, icon = ?, lecturer = ?, room = ?, ects = ?, links = ?, exam_at = ?,
+		                    exam_room = ?, grade = ?, updated_at = ?
+		 WHERE id = ?`
+	).run(...v.value, now().toISOString(), id);
+	return { ok: true, value: readClass(db, id) };
 }
 
 export function setClassNotes(db: DatabaseSync, id: Id, notes: string): Result<UniClass> {
-	return notImplemented;
+	const writable = classWritable(db, id);
+	if (!writable.ok) return writable;
+	db.prepare('UPDATE classes SET notes = ?, updated_at = ? WHERE id = ?').run(notes, now().toISOString(), id);
+	return { ok: true, value: readClass(db, id) };
 }
 
 export function classCounts(db: DatabaseSync, id: Id): { todos: number } {
-	return { todos: 0 };
+	return db.prepare('SELECT count(*) AS todos FROM todos WHERE class_id = ?').get(id) as { todos: number };
 }
 
 export function deleteClass(db: DatabaseSync, id: Id): Result<{ todos: number }> {
-	return notImplemented;
+	if (!db.prepare('SELECT 1 FROM classes WHERE id = ?').get(id)) return { ok: false, error: 'not-found' };
+	const { todos } = classCounts(db, id);
+	db.prepare('DELETE FROM classes WHERE id = ?').run(id);
+	return { ok: true, value: { todos } };
 }
 
 export function classTodos(db: DatabaseSync, id: Id): ClassTodos {
