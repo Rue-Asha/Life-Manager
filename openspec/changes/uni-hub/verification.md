@@ -200,3 +200,25 @@ verified-at: 36b35a5
 - `shots/uni-1280.png`
 - `shots/welcome-375.png`
 - `shots/welcome-1280.png`
+
+## Review
+
+Three fresh-context review rounds (diff `main...flow/uni-hub`). No weakened tests in any round; every edit to an existing test is backed by the spec (seven nav lists, migration-4 columns, rule read model, the "Uni" link collision in journey.test.ts).
+
+Round 1 → fixer 2e5062e
+- [spec/weak] Class form showed one field error per save → `validate()` collects all errors (`fields`), ClassForm shows each; e2e checks both errors from a single save. Fixed.
+- [spec] Archived class page offered row controls that always 409 → TodoRow `readonly` (no editor, status, day, sprint actions); e2e extended. Fixed.
+- [spec] `/todos?/delete` has no archived guard → kept by design (Gate 1: deleting a single todo of an archived class stays allowed); spec made explicit + scenario "Deleting a single todo of an archived class is allowed". Spec clarified.
+- [correctness] Editing a rule of an archived class silently unlinked it → RuleForm keeps the current archived class as an option, `updateRule` accepts the unchanged class; scenario "Editing a rule of an archived class keeps its class". Fixed.
+- [orchestrator] ECTS "7,5" rejected though the input is text/decimal → comma accepted as decimal separator. Fixed.
+
+Round 2 → fixer 8997fc3
+- [weak] ECTS assertion matched the exam time "10:00" → asserts the ECTS `<dd>`; proven by mutation. Fixed.
+- [weak] Motion test never expanded the archived semester → expands it and targets the archived card exactly; proven by mutation. Fixed.
+- [spec] Class-detail rows show type + revised instead of the badge → behaviour kept (approved mockup); todos delta reworded + scenario "Class detail rows show the type instead of the badge". Spec clarified.
+
+Round 3 → fixer 36b35a5
+- [correctness] Archived semester left done todos in the backlog; `/sprint/plan` pull/unpull could reopen them → backlog/counts/suggestions exclude done todos; pull/unpull/start refuse archived class todos (plan actions report `fail(400, {error:'archived'})` like the page's other errors); scenarios "Archived todos leave the backlog", "Sprint planning refuses archived class todos". Fixed.
+- [weak] Quick-add test found the backlog row page-wide → scoped to the Uni aspect group; proven by mutation. Fixed.
+
+Round-3 fixes were verified (Layers 1–2, verified-at 36b35a5) but not re-reviewed: the 3-round limit was reached.
