@@ -110,7 +110,7 @@ export interface RuleInput {
 	checklist?: string[];
 }
 
-export type ProjectStatus = 'backlog' | 'active' | 'paused' | 'implemented';
+export type ProjectStatus = 'backlog' | 'active' | 'in_progress' | 'paused' | 'implemented';
 
 export interface Project {
 	id: Id;

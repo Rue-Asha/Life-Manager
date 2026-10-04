@@ -49,12 +49,15 @@
 </script>
 
 {#snippet glyph(s: ProjectStatus)}
-	<svg class="s" class:accent={s === 'active'} viewBox="0 0 16 16" aria-hidden="true">
+	<svg class="s" class:accent={s === 'active' || s === 'in_progress'} viewBox="0 0 16 16" aria-hidden="true">
 		{#if s === 'backlog'}
 			<circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-dasharray="2.6 2.6" />
 		{:else if s === 'active'}
 			<circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.75" />
 			<path d="M8 4a4 4 0 0 1 0 8Z" fill="currentColor" />
+		{:else if s === 'in_progress'}
+			<circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.75" />
+			<path d="M8 8V4a4 4 0 1 1-4 4Z" fill="currentColor" />
 		{:else if s === 'paused'}
 			<circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.75" />
 			<path d="M6.4 5.6v4.8 M9.6 5.6v4.8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
