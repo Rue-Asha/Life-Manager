@@ -213,6 +213,10 @@ function getItem(db: DatabaseSync, id: Id): ChecklistItem | null {
 	return row ? toItem(row) : null;
 }
 
+export function checklistTodoId(db: DatabaseSync, itemId: Id): Id | null {
+	return getItem(db, itemId)?.todoId ?? null;
+}
+
 export function addChecklistItem(db: DatabaseSync, todoId: Id, text: string): Result<ChecklistItem> {
 	if (!db.prepare('SELECT 1 FROM todos WHERE id = ?').get(todoId)) return { ok: false, error: 'not-found' };
 	const trimmed = text.trim();
