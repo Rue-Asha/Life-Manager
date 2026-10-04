@@ -1,10 +1,9 @@
 triage: "feature — new tables + migration, new module UI, nav spec delta, >1 session. Appetite: 2–3 sessions"
 gate0: 2026-10-04
 gate1: 2026-10-04
+gate2: 2026-10-04
 base: main
 learnings:
   - "explore: a pre-decided brief ('bitte nicht neu aufrollen') still got reversed once Rue saw the entity model drawn out (ideas = backlog projects, no project_items) — show the entity diagram early, before detail questions."
   - "Repo path in args was wrong (00_Archive/Life-Managment-Dashboard vs Life-Manager) — resolve repo path with fd before flow-status."
-  - "U2 builder: Mobbin may lack named Gate-0 reference screens (Todoist ff7aab78, Things feadd020) and Linear has no projects-grouped-by-status list — verify references exist before putting them in design.md."
-  - "U1 builder: deviations to review in Verify — deleteAspect removes settings row; todos.ts↔projects.ts↔sprints.ts circular import; tests not run red-first."
   - "Review: marked does not decode entities in hrefs and notes render via {@html} — a first-pass scheme blocklist was bypassed by &#115;/&colon;. Sanitize with an allowlist after entity decoding, and test entity variants red-first."
