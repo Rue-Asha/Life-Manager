@@ -6,6 +6,7 @@ import { countActiveProjects, getItAspectId, listProjectRefs } from '$lib/server
 import { listRules } from '$lib/server/recurring';
 import { getActiveSprint, listSprintTodos, listToday } from '$lib/server/sprints';
 import { listBacklog, listOverdue } from '$lib/server/todos';
+import { countOpenClassTodos } from '$lib/server/uni';
 import type { NavData } from '$lib/components/shell/Sidebar.svelte';
 import type { LayoutServerLoad } from './$types';
 
@@ -25,7 +26,8 @@ export const load: LayoutServerLoad = ({ url }) => {
 			backlog: backlog.length,
 			recurring: listRules(db).length,
 			aspects: aspects.length,
-			projects: countActiveProjects(db)
+			projects: countActiveProjects(db),
+			uni: countOpenClassTodos(db)
 		},
 		aspects: aspects.map((a) => ({ ...a, backlog: backlog.filter((t) => t.aspectId === a.id).length }))
 	};

@@ -150,7 +150,7 @@ describe('recurring rules', () => {
 		const rule = createRule(db, gym({ title: ' Gym ', weekdays: [4, 1, 4], notes: 'Legs', checklist: ['Warm up'] }), '2026-10-07');
 		expect(rule).toEqual({
 			ok: true,
-			value: { id: expect.any(Number), title: 'Gym', aspectId: aspect, weekdays: [1, 4], notes: 'Legs', priority: 0, checklist: ['Warm up'] }
+			value: { id: expect.any(Number), title: 'Gym', aspectId: aspect, weekdays: [1, 4], notes: 'Legs', priority: 0, checklist: ['Warm up'], classId: null, type: null }
 		});
 		expect(listRules(db)).toEqual([rule.ok && rule.value]);
 		expect(updateRule(db, 999, gym())).toEqual({ ok: false, error: 'not-found' });
