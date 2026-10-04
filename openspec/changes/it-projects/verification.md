@@ -1,10 +1,10 @@
-verified-at: 5a01d7b
+verified-at: 5dca910
 
 ## Layer 1: proof-full (green, exit 0)
 ```
 Test Files  10 passed (10) / Tests  99 passed (99) [unit]
-  ✓  195 e2e/todos.test.ts:163:1 › Scenario: Deleting a todo asks for confirmation (1.8s)
-  ✓  196 e2e/todos.test.ts:184:1 › Editing on phone uses a sheet (699ms)
+  ✓  195 e2e/todos.test.ts:163:1 › Scenario: Deleting a todo asks for confirmation (1.7s)
+  ✓  196 e2e/todos.test.ts:184:1 › Editing on phone uses a sheet (735ms)
 
   196 passed (2.1m)
 ```
@@ -85,6 +85,8 @@ Test Files  10 passed (10) / Tests  99 passed (99) [unit]
 | Badge wraps under the title on a phone | e2e | `e2e/todo-projects.test.ts` › "Scenario: Badge wraps under the title on a phone" ✓ |
 Gaps: none
 
+Note: `src/lib/markdown.test.ts` › "Scenario: Script-scheme link and image URLs are inert" ✓ runs green but matches no scenario in the delta specs (extra test, not counted).
+
 ## Manual checklist
 
 \`npm run dev\` → http://localhost:5173
@@ -123,7 +125,7 @@ Gaps: none
  .../changes/it-projects/specs/navigation/spec.md   |  91 +++
  openspec/changes/it-projects/specs/todos/spec.md   |  72 +++
  openspec/changes/it-projects/tasks.md              |  66 +++
- openspec/changes/it-projects/verification.md       | 169 ++++++
+ openspec/changes/it-projects/verification.md       | 174 ++++++
  package-lock.json                                  |  15 +
  package.json                                       |   3 +
  src/lib/components/projects/ItAspectPrompt.svelte  | 150 +++++
@@ -141,8 +143,8 @@ Gaps: none
  src/lib/components/todo/TodoFields.svelte          |  37 +-
  src/lib/components/todo/TodoRow.svelte             |  22 +-
  src/lib/components/ui/icons.ts                     |   4 +
- src/lib/markdown.test.ts                           |  37 ++
- src/lib/markdown.ts                                |  19 +
+ src/lib/markdown.test.ts                           |  64 +++
+ src/lib/markdown.ts                                |  35 ++
  src/lib/projects.ts                                |  22 +
  src/lib/server/aspects.test.ts                     |  24 +
  src/lib/server/aspects.ts                          |   4 +-
@@ -163,7 +165,7 @@ Gaps: none
  src/routes/projects/[id]/+page.server.ts           |  68 +++
  src/routes/projects/[id]/+page.svelte              | 239 ++++++++
  src/routes/todos/+page.server.ts                   |   5 +-
- 68 files changed, 5290 insertions(+), 42 deletions(-)
+ 68 files changed, 5338 insertions(+), 42 deletions(-)
 ```
 
 ## Screenshots
