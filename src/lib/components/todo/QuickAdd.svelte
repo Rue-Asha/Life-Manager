@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { tick } from 'svelte';
 	import { MediaQuery } from 'svelte/reactivity';
-	import type { Aspect, Id, IsoDate, Priority, Target } from '$lib/types';
+	import type { Aspect, ClassType, Id, IsoDate, Priority, Target } from '$lib/types';
 	import Button from '../ui/Button.svelte';
 	import Chip from '../ui/Chip.svelte';
 	import Sheet from '../ui/Sheet.svelte';
@@ -14,8 +14,17 @@
 		aspects,
 		target,
 		defaultAspectId,
+		defaultClassId,
+		defaultType,
 		open = $bindable(false)
-	}: { aspects: Aspect[]; target: Target; defaultAspectId?: Id; open?: boolean } = $props();
+	}: {
+		aspects: Aspect[];
+		target: Target;
+		defaultAspectId?: Id;
+		defaultClassId?: Id;
+		defaultType?: ClassType;
+		open?: boolean;
+	} = $props();
 
 	const desktop = new MediaQuery('min-width: 768px');
 
@@ -25,11 +34,15 @@
 	let priority = $state<Priority>(0);
 	let dueDate = $state<IsoDate | ''>('');
 	let projectId = $state<Id | ''>('');
+	let chosenClassId = $state<Id | '' | null>(null);
+	let chosenType = $state<ClassType | null>(null);
 	let checklist = $state<string[]>([]);
 	let error = $state<ActionError | null>(null);
 	let titleInput = $state<HTMLInputElement>();
 
 	const aspectId = $derived(chosenAspectId ?? defaultAspectId ?? aspects[0].id);
+	const classId = $derived(chosenClassId ?? defaultClassId ?? '');
+	const type = $derived(chosenType ?? defaultType ?? 'OTH');
 
 	const MESSAGES: Record<string, string> = {
 		required: 'Give the todo a title.',
@@ -45,6 +58,8 @@
 		priority = 0;
 		dueDate = '';
 		projectId = '';
+		chosenClassId = null;
+		chosenType = null;
 		checklist = [];
 		error = null;
 	}
@@ -115,7 +130,15 @@
 			</ul>
 		{/if}
 
-		<TodoFields {aspects} bind:aspectId={() => aspectId, (id) => (chosenAspectId = id)} bind:priority bind:dueDate bind:projectId>
+		<TodoFields
+			{aspects}
+			bind:aspectId={() => aspectId, (id) => (chosenAspectId = id)}
+			bind:priority
+			bind:dueDate
+			bind:projectId
+			bind:classId={() => classId, (id) => (chosenClassId = id)}
+			bind:type={() => type, (t) => (chosenType = t)}
+		>
 			<Chip icon="list-checks" pressed={checklist.length > 0} onclick={() => (checklist = checklist.length ? [] : [''])}>
 				Checklist
 			</Chip>

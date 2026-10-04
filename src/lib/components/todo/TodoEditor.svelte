@@ -3,7 +3,7 @@
 	import { untrack, type Snippet } from 'svelte';
 	import { MediaQuery } from 'svelte/reactivity';
 	import { ASPECT_COLORS } from '$lib/aspect-style';
-	import type { Aspect, Id, IsoDate, Priority, Todo } from '$lib/types';
+	import type { Aspect, ClassType, Id, IsoDate, Priority, Todo } from '$lib/types';
 	import Button from '../ui/Button.svelte';
 	import ConfirmDialog from '../ui/ConfirmDialog.svelte';
 	import Sheet from '../ui/Sheet.svelte';
@@ -29,6 +29,8 @@
 	let priority = $state<Priority>(0);
 	let dueDate = $state<IsoDate | ''>('');
 	let projectId = $state<Id | ''>('');
+	let classId = $state<Id | ''>('');
+	let type = $state<ClassType>('OTH');
 	let error = $state<ActionError | null>(null);
 	let newItem = $state('');
 	let confirming = $state(false);
@@ -40,6 +42,8 @@
 			({ title, notes, aspectId, priority } = todo);
 			dueDate = todo.dueDate ?? '';
 			projectId = todo.projectId ?? '';
+			classId = todo.classId ?? '';
+			type = todo.type ?? 'OTH';
 			error = null;
 		});
 	});
@@ -72,7 +76,18 @@
 		<input class="title" name="title" aria-label="Title" autocomplete="off" bind:value={title} />
 		{#if error?.field === 'title'}<p class="error" role="alert">Give the todo a title.</p>{/if}
 		<textarea class="notes" name="notes" placeholder="Notes" aria-label="Notes" rows="1" bind:value={notes}></textarea>
-		<TodoFields {aspects} bind:aspectId bind:priority bind:dueDate bind:projectId linkedId={todo.projectId} clearProject />
+		<TodoFields
+			{aspects}
+			bind:aspectId
+			bind:priority
+			bind:dueDate
+			bind:projectId
+			bind:classId
+			bind:type
+			linkedId={todo.projectId}
+			clearProject
+			clearClass
+		/>
 		{#if error && error.field !== 'title'}
 			<p class="error" role="alert">Couldn’t save the todo ({error.error}).</p>
 		{/if}
