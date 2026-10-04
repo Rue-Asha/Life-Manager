@@ -1,14 +1,16 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { isPriority } from '$lib/todo-utils';
+import { CLASS_TYPES } from '$lib/uni';
 import { getItAspectId } from './projects';
-import type { ChecklistItem, Id, IsoDate, NewTodo, Result, Todo, TodoPatch } from '$lib/types';
+import { classWritable, getUniAspectId, todoWritable } from './uni';
+import type { ChecklistItem, ClassType, Id, IsoDate, NewTodo, Result, Todo, TodoPatch } from '$lib/types';
 
 type TodoRow = Omit<Todo, 'recurring' | 'checklist'> & { recurring: number };
 type ItemRow = Omit<ChecklistItem, 'done'> & { done: number };
 
 const todoColumns = `id, title, aspect_id AS aspectId, notes, priority, due_date AS dueDate,
-	sprint_id AS sprintId, status, day, recurring, rule_id AS ruleId, project_id AS projectId, created_at AS createdAt,
-	completed_at AS completedAt`;
+	sprint_id AS sprintId, status, day, recurring, rule_id AS ruleId, project_id AS projectId, class_id AS classId, type,
+	revised_at AS revisedAt, created_at AS createdAt, completed_at AS completedAt`;
 const itemColumns = 'id, todo_id AS todoId, text, done, position';
 
 function toItem(row: ItemRow): ChecklistItem {
@@ -43,6 +45,24 @@ function linkFor(db: DatabaseSync, projectId: Id | null | undefined, aspectId: I
 	return projectId != null && getItAspectId(db) === aspectId ? projectId : null;
 }
 
+type ClassLink = { classId: Id | null; type: ClassType | null; revisedAt: IsoDate | null };
+
+// Like the project link, a class link only lives on todos of the Uni aspect; elsewhere it is dropped.
+// A posted class must exist and be writable; a type needs a class and defaults to OTH.
+function classLinkFor(
+	db: DatabaseSync,
+	aspectId: Id,
+	classId: Id | null,
+	type: ClassType | null | undefined,
+	revisedAt: IsoDate | null
+): Result<ClassLink> {
+	if (type != null && !CLASS_TYPES.includes(type)) return { ok: false, error: 'invalid', field: 'type' };
+	if (classId === null || getUniAspectId(db) !== aspectId) {
+		return { ok: true, value: { classId: null, type: null, revisedAt: null } };
+	}
+	return { ok: true, value: { classId, type: type ?? 'OTH', revisedAt } };
+}
+
 export function createTodo(db: DatabaseSync, input: NewTodo): Result<Todo> {
 	const title = input.title.trim();
 	if (!title) return { ok: false, error: 'required', field: 'title' };
@@ -51,6 +71,12 @@ export function createTodo(db: DatabaseSync, input: NewTodo): Result<Todo> {
 
 	if (input.projectId != null && !projectExists(db, input.projectId)) {
 		return { ok: false, error: 'not-found', field: 'projectId' };
+	}
+	const link = classLinkFor(db, input.aspectId, input.classId ?? null, input.type, null);
+	if (!link.ok) return link;
+	if (link.value.classId !== null) {
+		const writable = classWritable(db, link.value.classId);
+		if (!writable.ok) return writable;
 	}
 
 	const target = input.target ?? { kind: 'backlog' };
@@ -74,8 +100,8 @@ export function createTodo(db: DatabaseSync, input: NewTodo): Result<Todo> {
 	try {
 		const { lastInsertRowid } = db
 			.prepare(
-				`INSERT INTO todos (title, aspect_id, notes, priority, due_date, sprint_id, day, project_id, created_at)
-				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+				`INSERT INTO todos (title, aspect_id, notes, priority, due_date, sprint_id, day, project_id, class_id, type, created_at)
+				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 			)
 			.run(
 				title,
@@ -86,6 +112,8 @@ export function createTodo(db: DatabaseSync, input: NewTodo): Result<Todo> {
 				sprintId,
 				day,
 				linkFor(db, input.projectId, input.aspectId),
+				link.value.classId,
+				link.value.type,
 				new Date().toISOString()
 			);
 		const insertItem = db.prepare('INSERT INTO checklist_items (todo_id, text, position) VALUES (?, ?, ?)');
@@ -112,6 +140,24 @@ export function updateTodo(db: DatabaseSync, id: Id, patch: TodoPatch): Result<T
 	}
 	const sets: string[] = [];
 	const values: (string | number | null)[] = [];
+	if (patch.aspectId !== undefined || patch.classId !== undefined || patch.type !== undefined) {
+		const classId = patch.classId !== undefined ? patch.classId : current.classId;
+		const sameClass = classId === current.classId;
+		const link = classLinkFor(
+			db,
+			patch.aspectId ?? current.aspectId,
+			classId,
+			patch.type !== undefined ? patch.type : sameClass ? current.type : null,
+			sameClass ? current.revisedAt : null
+		);
+		if (!link.ok) return link;
+		if (link.value.classId !== null && !sameClass) {
+			const writable = classWritable(db, link.value.classId);
+			if (!writable.ok) return writable;
+		}
+		sets.push('class_id = ?', 'type = ?', 'revised_at = ?');
+		values.push(link.value.classId, link.value.type, link.value.revisedAt);
+	}
 	if (patch.title !== undefined) {
 		const title = patch.title.trim();
 		if (!title) return { ok: false, error: 'required', field: 'title' };
@@ -144,6 +190,17 @@ export function updateTodo(db: DatabaseSync, id: Id, patch: TodoPatch): Result<T
 	}
 	if (sets.length > 0) db.prepare(`UPDATE todos SET ${sets.join(', ')} WHERE id = ?`).run(...values, id);
 	return { ok: true, value: getTodo(db, id)! };
+}
+
+export function setRevisedAt(db: DatabaseSync, todoId: Id, date: IsoDate | null): Result<Todo> {
+	const todo = getTodo(db, todoId);
+	if (!todo) return { ok: false, error: 'not-found' };
+	if (todo.classId === null) return { ok: false, error: 'invalid', field: 'revisedAt' };
+	if (date !== null && !/^\d{4}-\d{2}-\d{2}$/.test(date)) return { ok: false, error: 'invalid', field: 'revisedAt' };
+	const writable = todoWritable(db, todoId);
+	if (!writable.ok) return writable;
+	db.prepare('UPDATE todos SET revised_at = ? WHERE id = ?').run(date, todoId);
+	return { ok: true, value: getTodo(db, todoId)! };
 }
 
 export function deleteTodo(db: DatabaseSync, id: Id): Result<void> {
