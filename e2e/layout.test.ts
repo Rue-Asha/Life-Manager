@@ -22,12 +22,19 @@ async function expectCentred(page: Page, name: string, tolerance = 8) {
 
 const seedSunday = (request: Parameters<typeof seed>[0]) =>
 	seed(request, {
-		aspects: [{ name: 'Health' }, { name: 'IT' }],
+		aspects: [{ name: 'Health' }, { name: 'IT' }, { name: 'Studies' }],
 		itAspect: 1,
+		uniAspect: 2,
+		semesters: [{ name: 'WS 26/27' }],
+		classes: [{ semester: 0, name: 'Analysis I', lecturer: 'Prof. Weber', ects: 9, examAt: '2027-02-10T09:00' }],
 		projects: [{ name: 'Life Manager', status: 'active', tags: ['SvelteKit'], repoUrl: 'https://github.com/rue-asha/life-manager' }],
 		sprint: { state: 'active', weekStart: WEEK },
 		rules: [{ title: 'Gym', weekdays: [1, 4] }],
-		todos: [{ title: 'Morning run', inSprint: true, day: '2026-10-11' }, { title: 'Read chapter 4' }]
+		todos: [
+			{ title: 'Morning run', inSprint: true, day: '2026-10-11' },
+			{ title: 'Read chapter 4' },
+			{ title: 'Sheet 1', aspect: 2, class: 0, type: 'EXC', dueDate: '2026-10-14' }
+		]
 	});
 
 test('Scenario: Screens without a rail centre their column', async ({ page, request }) => {
@@ -63,13 +70,15 @@ test('Scenario: Screens without a rail centre their column', async ({ page, requ
 test('Scenario: Screens with a rail centre their column', async ({ page, request }) => {
 	await reset(request);
 	await setClock(request, SUNDAY);
-	const { aspects, projects } = await seedSunday(request);
+	const { aspects, projects, classes } = await seedSunday(request);
 	const screens = [
 		['/', 'today'],
 		['/sprint?view=aspect', 'sprint by aspect'],
-		[`/aspects/${aspects[0]}`, 'aspect page']
+		[`/aspects/${aspects[0]}`, 'aspect page'],
+		[`/projects/${projects[0]}`, 'project detail'],
+		['/uni', 'uni'],
+		[`/uni/classes/${classes[0]}`, 'class detail']
 	];
-	const detail = [`/projects/${projects[0]}`, 'project detail'];
 
 	// Docked rail: the column sits in the middle of the space between sidebar and rail.
 	await page.setViewportSize({ width: 1600, height: 900 });
@@ -87,19 +96,9 @@ test('Scenario: Screens with a rail centre their column', async ({ page, request
 		expect(Math.abs(column - free), `${name} column is off-centre`).toBeLessThanOrEqual(2);
 	}
 
-	await page.goto(detail[0]);
-	await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-	await expect(page.getByTestId('context-rail')).toBeVisible();
-	const { column, free } = await page.getByTestId('context-rail').evaluate((el) => {
-		const content = el.previousElementSibling!.getBoundingClientRect();
-		const sidebar = document.querySelector('main')!.previousElementSibling!.getBoundingClientRect();
-		return { column: content.left + content.width / 2, free: (sidebar.right + el.getBoundingClientRect().left) / 2 };
-	});
-	expect(Math.abs(column - free), 'project detail column is off-centre').toBeLessThanOrEqual(2);
-
 	// Overlay rail: the column is centred right of the sidebar like a screen without a rail.
 	await page.setViewportSize({ width: 1100, height: 900 });
-	for (const [path, name] of [...screens, detail]) {
+	for (const [path, name] of screens) {
 		await page.goto(path);
 		await expectCentred(page, `${name} at 1100`, 2);
 	}
