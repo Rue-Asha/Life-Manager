@@ -164,9 +164,14 @@ Lifesum calendar with green-ringed today, https://mobbin.com/screens/3a530be6-95
 ## 6. Navigation
 
 - **Phone: Things-style home list, no tab bar.** The home list has Today, Sprint, Backlog,
-  Aspects and Recurring as rows with tinted icons and right-aligned counts (red count for
+  Aspects, Recurring and Projects as rows with tinted icons and right-aligned counts (red count for
   overdue on Today). Rows drill down, and every page has a back chevron to the list.
   — Things 3 home list, https://mobbin.com/screens/70077bc2-0d33-4247-845d-3b656f8fb324
+- **Projects is the sixth list (it-projects S14).** It sits after Recurring and before the Aspects
+  divider, in the sidebar and in the phone home list, with a folder icon and a grey count of
+  *active* projects (0 is shown like any other zero).
+  — Things 3 sidebar with project rows and counts, https://mobbin.com/screens/70077bc2-0d33-4247-845d-3b656f8fb324;
+  Todoist Browse with per-project counts, https://mobbin.com/screens/7a1c1206-9f30-49c8-84e0-ec5f2d935574
 - **Desktop: a 248 px sidebar on `--paper-sunk`.** It holds the same items with grey counts.
   The selected item gets a `--paper` rounded fill and an accent-tinted icon, with no border and
   no left bar. Aspects are listed under a small sentence-case "Aspects" label.
@@ -267,6 +272,52 @@ Lifesum calendar with green-ringed today, https://mobbin.com/screens/3a530be6-95
   centre it in the space right of the sidebar, so no screen has an empty right third and
   switching tabs never shifts the column sideways (Rue at Gate 2). Board and Week are the
   exception: they fill the content width. No screen scrolls horizontally at any width.
+
+## 10. Projects (it-projects S15)
+
+Mockup: `design/projects-mockup.html` (tokens only), screenshots
+`design/shots/projects-overview-1600.png`, `projects-overview-375.png`, `projects-detail-1600.png`,
+`projects-detail-375.png`. It also shows the first-run IT aspect prompt, the empty state, the new-project
+form, the implemented confirm, the phone status sheet, the badge and the six-entry home list. All copy is
+English. **Motion is unchanged**: the route cross-fade only; no card-to-detail transition, no collapse
+animation, no new durations. Mobbin shows Linear's project status taxonomy, not timings.
+
+- **Overview: cards grouped by status sections.** Section headers (status glyph, 17 px semibold name,
+  grey count, one hairline) in the order Active, Backlog, Paused; an empty group is not rendered. Cards
+  are hairline-outlined on `--paper`, no shadow, in a grid that fills the centred 720 px column (two per
+  row on desktop, one at 375 px). A card shows name, one-line description, plain stone tags, a repo glyph
+  and the open-todo count.
+  — Linear grouped-by-status headers with counts, https://mobbin.com/screens/610d34b6-6ad8-45ab-80fb-2107b31ed01e;
+  Linear In Progress / Todo / Backlog with count badges, https://mobbin.com/screens/212fda35-366e-4dc0-a1d1-3b679659d6ab;
+  Linear project statuses as grouped headers, https://mobbin.com/flows/4677eaad-e0aa-4508-8923-bee5b412622d
+  (screen 67e3829a-23ce-4e20-a601-ba8959c04d9a);
+  Notion gallery of cards with property tags, https://mobbin.com/screens/0bd76f5f-9281-4d76-933e-cafe385ef965
+- **Implemented is one collapsed row, "Implemented (n)".** A chevron row under the last section; it
+  expands in place, instantly.
+  — Things 3 collapsed "2 later projects" row below the project list, https://mobbin.com/screens/70077bc2-0d33-4247-845d-3b656f8fb324
+  (the row there is not expandable; ours is)
+- **Detail is a single scroll page.** Title, status pill, description, notes rendered as Markdown, then
+  linked todos as Open, Planned and a collapsed Done; Delete is a quiet button at the end. No tabs.
+  — Linear project overview with description body, https://mobbin.com/screens/fed68772-ccc3-48be-8c28-3691a441728b;
+  Things 3 project detail, https://mobbin.com/screens/56745161-59bd-421d-93ac-e74fa5f7f1b8
+- **Status is a pill dropdown.** A pill with the state's glyph under the title; the menu lists the four
+  states with the current one ticked, any state reachable from any other. Active is the only glyph in
+  accent; the rest are grey, so status adds no saturation. On phone the menu is a bottom sheet.
+  — Linear "Changing project status" flow, https://mobbin.com/flows/babe3b2d-d8f7-4081-a6b9-c17097ea3e06
+  (screen 5bc1daea-c0a9-4e20-8f0d-77163691df63)
+- **Metadata sits in a right properties rail at 1280 px and up.** Repo, tags, todo counts, created,
+  updated, as label and value rows on `--paper-sunk` (`--rail-width`), the same rail as elsewhere
+  (section 9). The detail centres its column between sidebar and rail.
+  — Linear project Properties rail, https://mobbin.com/screens/ead350e6-9cb3-4f96-9b57-605402828ef9;
+  Linear project overview with rail, https://mobbin.com/screens/fed68772-ccc3-48be-8c28-3691a441728b
+- **Below 1280 px the same metadata is a wrapping pill row under the title**, with no overlay toggle:
+  repo link, tag chips, created and updated chips, "Edit details".
+  — Linear Mobile project pill cluster under the title, https://mobbin.com/screens/f8e3aa03-00f2-4985-a6ae-1055ae0f4144
+- **Project badge: muted text with a folder glyph** in the todo row's second line, next to the aspect
+  dot; it wraps under the title on phone and turns ink on hover.
+  — Things 3 Today with the project name under each task, https://mobbin.com/screens/edf4fbc7-d3e0-4666-a709-4fe12f672689;
+  Todoist Today with a project label per task, https://mobbin.com/screens/7ff218cf-1ddd-47ee-9123-72535e5f9283
+- **Navigation entry:** see section 6.
 
 ## Hand-off notes for feature units
 

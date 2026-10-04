@@ -14,6 +14,8 @@ import {
 	updateTodo
 } from './todos';
 import type { Id, Priority, Todo } from '$lib/types';
+import { createProject, setItAspectId } from './projects';
+import { listSprintTodos, listToday } from './sprints';
 
 function setup() {
 	const db = openDb(':memory:');
@@ -317,5 +319,76 @@ describe('lists', () => {
 		insert(db, 'undated', { aspect });
 
 		expect(listOverdue(db, '2026-10-01').map((t) => t.title)).toEqual(['backlog-overdue', 'sprint-overdue']);
+	});
+});
+
+describe('project link', () => {
+	function itSetup() {
+		const { db, aspect } = setup();
+		const other = Number(
+			db
+				.prepare("INSERT INTO aspects (name, color, icon, position, created_at) VALUES ('Uni', 'sage', 'heart', 1, '')")
+				.run().lastInsertRowid
+		);
+		value(setItAspectId(db, aspect));
+		const project = value(createProject(db, { name: 'P' })).id;
+		return { db, it: aspect, other, project };
+	}
+
+	it('Scenario: Aspect change removes the project link', () => {
+		const { db, it, other, project } = itSetup();
+		const todo = value(createTodo(db, { title: 'x', aspectId: it, projectId: project }));
+		expect(todo.projectId).toBe(project);
+
+		const sprint = Number(
+			db.prepare("INSERT INTO sprints (week_start, state, started_at) VALUES ('2026-09-28', 'active', '')").run()
+				.lastInsertRowid
+		);
+		db.prepare("UPDATE todos SET sprint_id = ?, status = 'doing', day = '2026-09-29' WHERE id = ?").run(sprint, todo.id);
+		const moved = value(updateTodo(db, todo.id, { aspectId: other }));
+		expect(moved).toMatchObject({ projectId: null, sprintId: sprint, status: 'doing', day: '2026-09-29' });
+		expect(value(updateTodo(db, todo.id, { aspectId: it })).projectId).toBeNull();
+
+		value(updateTodo(db, todo.id, { projectId: project }));
+		expect(value(updateTodo(db, todo.id, { title: 'y' })).projectId).toBe(project);
+		expect(value(updateTodo(db, todo.id, { projectId: null })).projectId).toBeNull();
+		expect(value(updateTodo(db, todo.id, { aspectId: other, projectId: project })).projectId).toBeNull();
+		expect(value(updateTodo(db, todo.id, { aspectId: it, projectId: project })).projectId).toBe(project);
+	});
+
+	it('Scenario: Project link on a non-IT todo is not stored', () => {
+		const { db, other, project } = itSetup();
+		const viaCreate = value(createTodo(db, { title: 'x', aspectId: other, projectId: project }));
+		expect(viaCreate.projectId).toBeNull();
+		const viaUpdate = value(updateTodo(db, viaCreate.id, { projectId: project }));
+		expect(viaUpdate.projectId).toBeNull();
+
+		const { db: db2, aspect } = setup();
+		const p2 = value(createProject(db2, { name: 'P' })).id;
+		expect(value(createTodo(db2, { title: 'x', aspectId: aspect, projectId: p2 })).projectId).toBeNull();
+	});
+
+	it('Scenario: Unknown project id is rejected', () => {
+		const { db, it, project } = itSetup();
+		const expected = { ok: false, error: 'not-found', field: 'projectId' };
+		expect(createTodo(db, { title: 'x', aspectId: it, projectId: project + 99 })).toEqual(expected);
+		const todo = value(createTodo(db, { title: 'x', aspectId: it }));
+		expect(updateTodo(db, todo.id, { projectId: project + 99 })).toEqual(expected);
+		expect(todoCount(db)).toBe(1);
+	});
+
+	it('Scenario: Both todo read models carry the project link', () => {
+		const { db, it, project } = itSetup();
+		const sprint = activeSprint(db, '2026-10-05');
+		const backlog = value(createTodo(db, { title: 'b', aspectId: it, projectId: project }));
+		const planned = value(
+			createTodo(db, { title: 's', aspectId: it, projectId: project, target: { kind: 'day', day: '2026-10-06' } })
+		);
+
+		expect(getTodo(db, backlog.id)!.projectId).toBe(project);
+		expect(listBacklog(db).map((t) => t.projectId)).toEqual([project]);
+		expect(listSprintTodos(db, sprint).map((t) => t.projectId)).toEqual([project]);
+		expect(listToday(db, '2026-10-06').map((t) => t.projectId)).toEqual([project]);
+		expect(planned.projectId).toBe(project);
 	});
 });

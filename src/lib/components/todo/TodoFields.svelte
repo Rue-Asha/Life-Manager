@@ -1,7 +1,8 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { ASPECT_COLORS } from '$lib/aspect-style';
-	import type { Aspect, Id, IsoDate, Priority } from '$lib/types';
+	import { page } from '$app/state';
+	import type { Aspect, Id, IsoDate, Priority, ProjectRef } from '$lib/types';
 	import AspectIcon from '../ui/AspectIcon.svelte';
 	import { UI_ICONS } from '../ui/icons';
 	import { dateLabel } from './format';
@@ -13,16 +14,29 @@
 		aspectId = $bindable(),
 		priority = $bindable(),
 		dueDate = $bindable(),
+		projectId = $bindable(''),
+		linkedId = null,
+		clearProject = false,
 		children
 	}: {
 		aspects: Aspect[];
 		aspectId: Id;
 		priority: Priority;
 		dueDate: IsoDate | '';
+		projectId?: Id | '';
+		linkedId?: Id | null;
+		clearProject?: boolean;
 		children?: Snippet;
 	} = $props();
 
 	const aspect = $derived(aspects.find((a) => a.id === aspectId) ?? aspects[0]);
+
+	// An implemented project stays selectable only on the todo already linked to it.
+	const projects = $derived(
+		((page.data.projects as ProjectRef[] | undefined) ?? []).filter((p) => p.status !== 'implemented' || p.id === linkedId)
+	);
+	const projectShown = $derived(aspectId === (page.data.itAspectId ?? null) && projects.length > 0);
+	const project = $derived(projects.find((p) => p.id === projectId));
 </script>
 
 <div class="chips">
@@ -64,6 +78,21 @@
 			</button>
 		{/if}
 	</span>
+
+	{#if projectShown}
+		<label class="chip" class:pressed={project} data-testid="project-field">
+			<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.folder} /></svg>
+			<span class="label">{project?.name ?? 'Project'}</span>
+			<select name="projectId" bind:value={projectId} aria-label="Project">
+				<option value="">No project</option>
+				{#each projects as p (p.id)}
+					<option value={p.id}>{p.name}</option>
+				{/each}
+			</select>
+		</label>
+	{:else if clearProject}
+		<input type="hidden" name="projectId" value="" />
+	{/if}
 
 	{@render children?.()}
 </div>
@@ -117,6 +146,12 @@
 		/* 16px keeps iOS from zooming in when the native picker opens. */
 		font-size: 16px;
 		cursor: pointer;
+	}
+
+	.label {
+		max-width: 160px;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 
 	.due {

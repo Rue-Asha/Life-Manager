@@ -1,12 +1,13 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { isPriority } from '$lib/todo-utils';
+import { getItAspectId } from './projects';
 import type { ChecklistItem, Id, IsoDate, NewTodo, Result, Todo, TodoPatch } from '$lib/types';
 
 type TodoRow = Omit<Todo, 'recurring' | 'checklist'> & { recurring: number };
 type ItemRow = Omit<ChecklistItem, 'done'> & { done: number };
 
 const todoColumns = `id, title, aspect_id AS aspectId, notes, priority, due_date AS dueDate,
-	sprint_id AS sprintId, status, day, recurring, rule_id AS ruleId, created_at AS createdAt,
+	sprint_id AS sprintId, status, day, recurring, rule_id AS ruleId, project_id AS projectId, created_at AS createdAt,
 	completed_at AS completedAt`;
 const itemColumns = 'id, todo_id AS todoId, text, done, position';
 
@@ -33,11 +34,24 @@ function aspectExists(db: DatabaseSync, id: Id): boolean {
 	return db.prepare('SELECT 1 FROM aspects WHERE id = ?').get(id) !== undefined;
 }
 
+function projectExists(db: DatabaseSync, id: Id): boolean {
+	return db.prepare('SELECT 1 FROM it_projects WHERE id = ?').get(id) !== undefined;
+}
+
+// Only todos of the IT aspect can carry a link; for any other aspect it is dropped, not an error.
+function linkFor(db: DatabaseSync, projectId: Id | null | undefined, aspectId: Id): Id | null {
+	return projectId != null && getItAspectId(db) === aspectId ? projectId : null;
+}
+
 export function createTodo(db: DatabaseSync, input: NewTodo): Result<Todo> {
 	const title = input.title.trim();
 	if (!title) return { ok: false, error: 'required', field: 'title' };
 	if (!aspectExists(db, input.aspectId)) return { ok: false, error: 'no-aspect', field: 'aspectId' };
 	if (input.priority !== undefined && !isPriority(input.priority)) return { ok: false, error: 'required', field: 'priority' };
+
+	if (input.projectId != null && !projectExists(db, input.projectId)) {
+		return { ok: false, error: 'not-found', field: 'projectId' };
+	}
 
 	const target = input.target ?? { kind: 'backlog' };
 	let sprintId: Id | null = null;
@@ -60,8 +74,8 @@ export function createTodo(db: DatabaseSync, input: NewTodo): Result<Todo> {
 	try {
 		const { lastInsertRowid } = db
 			.prepare(
-				`INSERT INTO todos (title, aspect_id, notes, priority, due_date, sprint_id, day, created_at)
-				 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+				`INSERT INTO todos (title, aspect_id, notes, priority, due_date, sprint_id, day, project_id, created_at)
+				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
 			)
 			.run(
 				title,
@@ -71,6 +85,7 @@ export function createTodo(db: DatabaseSync, input: NewTodo): Result<Todo> {
 				input.dueDate ?? null,
 				sprintId,
 				day,
+				linkFor(db, input.projectId, input.aspectId),
 				new Date().toISOString()
 			);
 		const insertItem = db.prepare('INSERT INTO checklist_items (todo_id, text, position) VALUES (?, ?, ?)');
@@ -90,7 +105,11 @@ export function getTodo(db: DatabaseSync, id: Id): Todo | null {
 }
 
 export function updateTodo(db: DatabaseSync, id: Id, patch: TodoPatch): Result<Todo> {
-	if (!getTodo(db, id)) return { ok: false, error: 'not-found' };
+	const current = getTodo(db, id);
+	if (!current) return { ok: false, error: 'not-found' };
+	if (patch.projectId != null && !projectExists(db, patch.projectId)) {
+		return { ok: false, error: 'not-found', field: 'projectId' };
+	}
 	const sets: string[] = [];
 	const values: (string | number | null)[] = [];
 	if (patch.title !== undefined) {
@@ -103,6 +122,7 @@ export function updateTodo(db: DatabaseSync, id: Id, patch: TodoPatch): Result<T
 		if (!aspectExists(db, patch.aspectId)) return { ok: false, error: 'no-aspect', field: 'aspectId' };
 		sets.push('aspect_id = ?');
 		values.push(patch.aspectId);
+		if (patch.aspectId !== current.aspectId) sets.push('project_id = NULL');
 	}
 	if (patch.notes !== undefined) {
 		sets.push('notes = ?');
@@ -116,6 +136,11 @@ export function updateTodo(db: DatabaseSync, id: Id, patch: TodoPatch): Result<T
 	if (patch.dueDate !== undefined) {
 		sets.push('due_date = ?');
 		values.push(patch.dueDate);
+	}
+	if (patch.projectId !== undefined) {
+		const link = linkFor(db, patch.projectId, patch.aspectId ?? current.aspectId);
+		sets.push('project_id = ?');
+		values.push(link);
 	}
 	if (sets.length > 0) db.prepare(`UPDATE todos SET ${sets.join(', ')} WHERE id = ?`).run(...values, id);
 	return { ok: true, value: getTodo(db, id)! };

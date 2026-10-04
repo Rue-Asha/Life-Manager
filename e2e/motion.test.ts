@@ -78,3 +78,27 @@ test('Scenario: Reduced motion navigates without a transition', async ({ page })
 	expect(afterLink).toBe(0);
 	expect(afterSwitch).toBe(0);
 });
+
+test('Scenario: Opening a project uses only the route cross-fade', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [{ name: 'IT' }],
+		itAspect: 0,
+		projects: [{ name: 'Life Manager', status: 'active' }, { name: 'Old thing', status: 'implemented' }]
+	});
+	await spyOnViewTransitions(page);
+	await page.goto('/projects');
+	await expect(page.getByRole('heading', { level: 1, name: 'Projects' })).toBeVisible();
+	await page.waitForFunction(() => document.getAnimations().length === 0);
+
+	await page.getByTestId('project-card').filter({ hasText: 'Life Manager' }).click();
+	await expect(page.getByRole('heading', { level: 1, name: 'Life Manager' })).toBeVisible();
+	expect(await transitions(page)).toBe(1);
+	await page.waitForFunction(() => !document.documentElement.matches(':active-view-transition'));
+	expect(await page.evaluate(() => document.getAnimations().length)).toBe(0);
+
+	await page.goto('/projects');
+	await page.getByTestId('project-group-implemented').getByRole('button', { name: 'Implemented (1)' }).click();
+	await expect(page.getByTestId('project-card').filter({ hasText: 'Old thing' })).toBeVisible();
+	expect(await transitions(page)).toBe(0);
+	expect(await page.evaluate(() => document.getAnimations().length)).toBe(0);
+});

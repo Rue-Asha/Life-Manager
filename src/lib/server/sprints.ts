@@ -37,6 +37,7 @@ export function selectTodos(db: DatabaseSync, where: string, ...params: SQLInput
 		day: r.day as IsoDate | null,
 		recurring: r.recurring === 1,
 		ruleId: r.rule_id === null ? null : Number(r.rule_id),
+		projectId: r.project_id === null ? null : Number(r.project_id),
 		checklist: (items.all(r.id) as Row[]).map((i) => ({
 			id: Number(i.id),
 			todoId: Number(i.todo_id),

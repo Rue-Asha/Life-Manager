@@ -2,7 +2,7 @@
 	import type { Aspect } from '../../types';
 	import type { UiIcon } from '../ui/icons';
 
-	export type NavCount = 'today' | 'sprint' | 'backlog' | 'recurring' | 'aspects';
+	export type NavCount = 'today' | 'sprint' | 'backlog' | 'recurring' | 'aspects' | 'projects';
 
 	export interface NavData {
 		counts: Record<NavCount | 'overdue', number>;
@@ -14,6 +14,7 @@
 		{ label: 'Sprint', href: '/sprint', icon: 'calendar-days', count: 'sprint' },
 		{ label: 'Backlog', href: '/backlog', icon: 'inbox', count: 'backlog' },
 		{ label: 'Recurring', href: '/recurring', icon: 'repeat', count: 'recurring' },
+		{ label: 'Projects', href: '/projects', icon: 'folder', count: 'projects' },
 		{ label: 'Aspects', href: '/aspects', icon: 'layers', count: 'aspects' }
 	];
 

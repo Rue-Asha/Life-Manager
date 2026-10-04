@@ -51,6 +51,7 @@ export interface Todo {
 	day: IsoDate | null;
 	recurring: boolean;
 	ruleId: Id | null;
+	projectId: Id | null;
 	checklist: ChecklistItem[];
 	createdAt: string;
 	completedAt: string | null;
@@ -82,6 +83,7 @@ export interface NewTodo {
 	dueDate?: IsoDate | null;
 	checklist?: string[];
 	target?: Target;
+	projectId?: Id | null;
 }
 
 export interface TodoPatch {
@@ -90,6 +92,7 @@ export interface TodoPatch {
 	notes?: string;
 	priority?: Priority;
 	dueDate?: IsoDate | null;
+	projectId?: Id | null;
 }
 
 export interface AspectInput {
@@ -105,4 +108,42 @@ export interface RuleInput {
 	notes?: string;
 	priority?: Priority;
 	checklist?: string[];
+}
+
+export type ProjectStatus = 'backlog' | 'active' | 'paused' | 'implemented';
+
+export interface Project {
+	id: Id;
+	name: string;
+	description: string;
+	repoUrl: string | null;
+	tags: string[];
+	notes: string;
+	status: ProjectStatus;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface ProjectSummary extends Omit<Project, 'notes'> {
+	openTodos: number;
+}
+
+export interface ProjectRef {
+	id: Id;
+	name: string;
+	status: ProjectStatus;
+}
+
+// tags is the raw comma-separated text from the form.
+export interface ProjectInput {
+	name: string;
+	description?: string;
+	repoUrl?: string;
+	tags?: string;
+}
+
+export interface ProjectTodos {
+	open: Todo[];
+	planned: Todo[];
+	done: Todo[];
 }

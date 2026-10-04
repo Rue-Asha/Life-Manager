@@ -33,6 +33,7 @@ function respond<T>(result: Result<T>, data: FormData) {
 const text = (data: FormData, key: string) => String(data.get(key) ?? '');
 const num = (data: FormData, key: string) => Number(data.get(key));
 const optionalDate = (data: FormData, key: string) => text(data, key) || null;
+const optionalId = (data: FormData, key: string) => (text(data, key) ? num(data, key) : null);
 
 function target(data: FormData): Target {
 	const kind = text(data, 'target');
@@ -51,7 +52,8 @@ export const actions: Actions = {
 			priority: num(data, 'priority') as Priority,
 			dueDate: optionalDate(data, 'dueDate'),
 			checklist: data.getAll('checklist').map(String),
-			target: target(data)
+			target: target(data),
+			projectId: optionalId(data, 'projectId')
 		});
 		return respond(result, data);
 	},
@@ -63,6 +65,7 @@ export const actions: Actions = {
 		if (data.has('notes')) patch.notes = text(data, 'notes');
 		if (data.has('priority')) patch.priority = num(data, 'priority') as Priority;
 		if (data.has('dueDate')) patch.dueDate = optionalDate(data, 'dueDate');
+		if (data.has('projectId')) patch.projectId = optionalId(data, 'projectId');
 		return respond(updateTodo(getDb(), num(data, 'id'), patch), data);
 	},
 	delete: async ({ request }) => {
