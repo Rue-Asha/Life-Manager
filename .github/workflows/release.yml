@@ -54,3 +54,18 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release create "$GITHUB_REF_NAME" dist/*.tgz dist/*.tgz.sha256 --repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes
+
+  bump:
+    name: bump
+    needs: publish
+    permissions:
+      contents: read
+    uses: Rue-Asha/ci/.github/workflows/bump-pin.yml@340bc997f2078f24ebb0d96ad897477c8c9e3ed2 # v1.1.0
+    with:
+      app: life-manager
+      host_vars_path: ansible/inventory/host_vars/life-manager01/vars.yml
+      variable: life_manager_version
+      tag: ${{ github.ref_name }}
+    secrets:
+      app_id: ${{ secrets.HOMELAB_BUMP_APP_ID }}
+      app_private_key: ${{ secrets.HOMELAB_BUMP_APP_KEY }}
