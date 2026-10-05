@@ -269,9 +269,12 @@
 		column-gap: var(--space-3);
 		min-height: var(--row-height);
 		padding: var(--space-3) var(--space-2);
-		margin: 0 calc(-1 * var(--space-2));
+		margin: var(--space-1) calc(-1 * var(--space-2));
+		border: 1px solid var(--line);
 		border-radius: var(--radius-md);
-		transition: background-color var(--dur-fast) var(--ease-out);
+		transition:
+			background-color var(--dur-fast) var(--ease-out),
+			border-color var(--dur-fast) var(--ease-out);
 	}
 
 	.removed {
@@ -281,6 +284,7 @@
 	.expanded {
 		display: block;
 		padding: 0;
+		border-color: transparent;
 	}
 
 	.expanded:hover {
@@ -306,6 +310,7 @@
 	}
 
 	.row:hover {
+		border-color: var(--line-strong);
 		background: var(--paper-hover);
 	}
 

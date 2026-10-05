@@ -100,6 +100,26 @@ test('Scenario: Changing the Uni aspect without links needs no confirmation', as
 	await expect(page.getByRole('dialog')).toHaveCount(0);
 });
 
+test('Scenario: Uni notes are edited as Markdown below the classes', async ({ page, request }) => {
+	await seed(request, { aspects: [UNI], uniAspect: 0, semesters: [{ name: 'WS 26/27' }] });
+	await page.goto('/uni');
+
+	const notes = page.getByTestId('uni-notes');
+	await expect(notes).toContainText('No notes yet');
+	await notes.getByRole('button', { name: 'Edit notes' }).click();
+	await notes.getByRole('textbox', { name: 'Notes' }).fill('# Studienplan\n\n| Modul | CP |\n|---|---|\n| Netzsicherheit | 6 |');
+	await notes.getByRole('button', { name: 'Save' }).click();
+
+	await expect(notes.getByRole('heading', { level: 1, name: 'Studienplan' })).toBeVisible();
+	await expect(notes.getByRole('cell', { name: 'Netzsicherheit' })).toBeVisible();
+	const semester = await page.getByTestId('semester-section').first().boundingBox();
+	const block = await notes.boundingBox();
+	expect(block!.y).toBeGreaterThan(semester!.y + semester!.height);
+
+	await page.reload();
+	await expect(notes.getByRole('heading', { level: 1, name: 'Studienplan' })).toBeVisible();
+});
+
 test('Scenario: Without aspects Uni leads to creating one', async ({ page }) => {
 	await page.goto('/uni');
 	await expect(page).toHaveURL(/\/welcome$/);

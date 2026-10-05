@@ -1,4 +1,5 @@
 import { fail } from '@sveltejs/kit';
+import { renderMarkdown } from '$lib/markdown';
 import { today } from '$lib/server/clock';
 import { getDb } from '$lib/server/db';
 import {
@@ -8,11 +9,13 @@ import {
 	createSemester,
 	deleteSemester,
 	getUniAspectId,
+	getUniNotes,
 	listDeadlines,
 	listSemesters,
 	renameSemester,
 	semesterCounts,
 	setUniAspectId,
+	setUniNotes,
 	unarchiveSemester
 } from '$lib/server/uni';
 import type { ClassInput, Result } from '$lib/types';
@@ -49,8 +52,11 @@ export const load: PageServerLoad = () => {
 	const db = getDb();
 	const day = today();
 	const { active, archived, overall } = listSemesters(db);
+	const notes = getUniNotes(db);
 	return {
 		uniAspectId: getUniAspectId(db),
+		notes,
+		notesHtml: renderMarkdown(notes),
 		linkCount: countClassLinks(db),
 		active,
 		archived,
@@ -87,6 +93,9 @@ export const actions: Actions = {
 	deleteSemester: async ({ request }) => {
 		const data = await request.formData();
 		return failed(deleteSemester(getDb(), Number(data.get('id'))));
+	},
+	notes: async ({ request }) => {
+		setUniNotes(getDb(), String((await request.formData()).get('notes') ?? ''));
 	},
 	createClass: async ({ request }) => {
 		const data = await request.formData();
