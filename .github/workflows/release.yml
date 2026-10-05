@@ -60,7 +60,7 @@ jobs:
     needs: publish
     permissions:
       contents: read
-    uses: Rue-Asha/ci/.github/workflows/bump-pin.yml@340bc997f2078f24ebb0d96ad897477c8c9e3ed2 # v1.1.0
+    uses: Rue-Asha/ci/.github/workflows/bump-pin.yml@7b49f3dcf37c61aea3722e68917bc06db507f386 # v1.1.0
     with:
       app: life-manager
       host_vars_path: ansible/inventory/host_vars/life-manager01/vars.yml
