@@ -166,6 +166,33 @@
 		color: var(--ink-2);
 	}
 
+	.notes :global(table) {
+		display: block;
+		margin: 0 0 var(--space-3);
+		border-collapse: collapse;
+		font-size: var(--text-sm);
+		overflow-x: auto;
+	}
+
+	.notes :global(th),
+	.notes :global(td) {
+		padding: var(--space-1) var(--space-3);
+		border-bottom: 1px solid var(--line);
+		text-align: left;
+		vertical-align: top;
+	}
+
+	.notes :global(th) {
+		font-weight: var(--weight-semibold);
+		border-bottom-color: var(--line-strong);
+	}
+
+	.notes :global(hr) {
+		margin: var(--space-5) 0;
+		border: 0;
+		border-top: 1px solid var(--line);
+	}
+
 	.notes :global(a) {
 		color: var(--accent);
 	}

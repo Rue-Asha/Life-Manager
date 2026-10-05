@@ -50,6 +50,18 @@ export function setUniAspectId(db: DatabaseSync, aspectId: Id): Result<{ unlinke
 	});
 }
 
+export function getUniNotes(db: DatabaseSync): string {
+	const row = db.prepare("SELECT value FROM settings WHERE key = 'uni_notes'").get() as { value: string } | undefined;
+	return row?.value ?? '';
+}
+
+export function setUniNotes(db: DatabaseSync, notes: string): void {
+	db.prepare(
+		`INSERT INTO settings (key, value) VALUES ('uni_notes', ?)
+		 ON CONFLICT (key) DO UPDATE SET value = excluded.value`
+	).run(notes);
+}
+
 export function countClassLinks(db: DatabaseSync): number {
 	return (
 		db

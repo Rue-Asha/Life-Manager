@@ -20,6 +20,7 @@ import {
 	deleteSemester,
 	getClass,
 	getUniAspectId,
+	getUniNotes,
 	gradeSummary,
 	listClassRefs,
 	listDeadlines,
@@ -28,6 +29,7 @@ import {
 	semesterCounts,
 	setClassNotes,
 	setUniAspectId,
+	setUniNotes,
 	todoWritable,
 	unarchiveSemester,
 	updateClass
@@ -117,6 +119,15 @@ describe('uni aspect setting', () => {
 		todo(uniClass(semester('WS'), 'Analysis'), 'todo', 'LEC');
 		expect(setUniAspectId(db, uni)).toEqual({ ok: true, value: { unlinked: 0 } });
 		expect(countClassLinks(db)).toBe(1);
+	});
+});
+
+describe('uni notes', () => {
+	it('Scenario: Uni notes are stored, replaced and empty by default', () => {
+		expect(getUniNotes(db)).toBe('');
+		setUniNotes(db, '# Studienplan');
+		setUniNotes(db, '# Studienplan\n\n- [ ] Seminar');
+		expect(getUniNotes(db)).toBe('# Studienplan\n\n- [ ] Seminar');
 	});
 });
 

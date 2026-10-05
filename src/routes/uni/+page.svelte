@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { MediaQuery } from 'svelte/reactivity';
+	import ProjectNotes from '$lib/components/projects/ProjectNotes.svelte';
 	import RailLayout from '$lib/components/shell/RailLayout.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import { UI_ICONS } from '$lib/components/ui/icons';
@@ -88,6 +89,15 @@
 			<ArchivedGroup semesters={data.archived} counts={data.counts} today={data.today} />
 		{/if}
 
+		<div class="notes">
+			<ProjectNotes
+				html={data.notesHtml}
+				notes={data.notes}
+				testid="uni-notes"
+				placeholder="No notes yet. Keep your study plan, module list or anything else for Uni here."
+			/>
+		</div>
+
 		{#if !wide.current}{@render aspectLine()}{/if}
 	{/if}
 </RailLayout>
@@ -104,6 +114,21 @@
 	.semesters {
 		display: grid;
 		gap: var(--space-8);
+	}
+
+	.notes {
+		margin-top: var(--space-10);
+		padding-top: var(--space-2);
+		border-top: 1px solid var(--line-strong);
+	}
+
+	.notes :global(.notes) {
+		max-width: none;
+		min-height: 24rem;
+	}
+
+	.notes :global(textarea) {
+		min-height: 32rem;
 	}
 
 	.empty {
