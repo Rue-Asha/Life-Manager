@@ -33,7 +33,7 @@ jobs:
 
       - run: npx playwright install chromium
 
-      - run: npm run proof:full
+      - run: npm run proof
 
       - run: npm run package
 
