@@ -305,6 +305,24 @@ describe('mid-sprint changes', () => {
 		todo('Old sprint', { sprintId: sprint('closed', '2026-10-05'), day: '2026-10-07' });
 		expect(listToday(db, '2026-10-07').map((t) => t.id)).toEqual([mine]);
 	});
+
+	it('Regression: sprint todos dated today without a day are missing from Today', () => {
+		const s = sprint('active', '2026-10-05');
+		const dated = todo('Dated today', { sprintId: s, dueDate: '2026-10-06', status: 'doing' });
+		todo('Dated tomorrow', { sprintId: s, dueDate: '2026-10-07' });
+		todo('Placed tomorrow, due today', { sprintId: s, day: '2026-10-07', dueDate: '2026-10-06' });
+		todo('Backlog dated today', { dueDate: '2026-10-06' });
+		expect(listToday(db, '2026-10-06').map((t) => [t.id, t.day])).toEqual([[dated, '2026-10-06']]);
+	});
+
+	it('Regression: dated sprint todos are missing from their day in the week view', () => {
+		const s = sprint('active', '2026-10-05');
+		const dated = todo('Dated Tuesday', { sprintId: s, dueDate: '2026-10-06' });
+		const placed = todo('Placed Monday, due Tuesday', { sprintId: s, day: '2026-10-05', dueDate: '2026-10-06' });
+		const later = todo('Due next week', { sprintId: s, dueDate: '2026-10-13' });
+		const days = Object.fromEntries(listSprintTodos(db, s).map((t) => [t.id, t.day]));
+		expect(days).toEqual({ [dated]: '2026-10-06', [placed]: '2026-10-05', [later]: null });
+	});
 });
 
 describe('sprint review', () => {
