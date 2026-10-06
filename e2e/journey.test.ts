@@ -93,15 +93,13 @@ test('Done-when journey', async ({ page, request }) => {
 
 	await switchView(page, 'Week', 'week');
 	for (const gymDay of ['2026-10-06', '2026-10-08']) {
-		await expect(day(page, gymDay).getByTestId('todo-row')).toContainText('Gym');
-		await expect(day(page, gymDay).getByTestId('todo-row')).toContainText('Recurring');
+		await expect(day(page, gymDay).getByTestId('todo-row').filter({ hasText: 'Gym' })).toContainText('Recurring');
 	}
-	// In Week the rail, with Unscheduled, is an overlay behind its toggle.
-	await page.getByTestId('rail-toggle').click();
+	// Without a day, the dated todo sits on its due date until it is moved.
+	await expect(day(page, '2026-10-08')).toContainText('Submit lab report');
 	await row(page, 'Submit lab report').dragTo(day(page, '2026-10-07'), { sourcePosition: { x: 8, y: 8 } });
 	await expect(day(page, '2026-10-07')).toContainText('Submit lab report');
-	await page.getByTestId('rail-toggle').click();
-	await expect(page.getByTestId('context-rail')).toBeHidden();
+	await expect(day(page, '2026-10-08')).not.toContainText('Submit lab report');
 	await shot(page, 'sprint-week');
 
 	await setClock(request, '2026-10-07T07:00:00Z');

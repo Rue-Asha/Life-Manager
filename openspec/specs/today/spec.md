@@ -19,6 +19,11 @@ that names each todo's aspect. (S21)
 - **THEN** todos due before that day and not done are returned, regardless of sprint; done todos and todos due that day are not
 - **proof:** unit
 
+#### Scenario: Sprint todo due today without a day is on Today
+- **WHEN** an active-sprint todo has no day and is due today
+- **THEN** Today lists it under its aspect as on today; a todo with a day keeps that day, and a backlog todo due today is not listed
+- **proof:** unit — `Regression: sprint todos dated today without a day are missing from Today`
+
 #### Scenario: Status toggle on Today
 - **WHEN** Rue ticks a todo's checkbox on Today
 - **THEN** its status is Done and it stays visible struck through

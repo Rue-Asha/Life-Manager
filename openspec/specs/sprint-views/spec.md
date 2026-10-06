@@ -86,6 +86,11 @@ selectable; done todos stay on their day, marked done. (S16, S10)
 - **THEN** it is in the Tuesday column after reload
 - **proof:** e2e
 
+#### Scenario: Dated sprint todo without a day sits on its due day
+- **WHEN** a sprint todo has no day and a due date within the sprint's week
+- **THEN** it is listed on its due day; a todo with a day stays on that day, and one due outside the week stays Unscheduled
+- **proof:** unit — `Regression: dated sprint todos are missing from their day in the week view`
+
 #### Scenario: Assign a todo to a day with the day picker on touch
 - **WHEN** on a touch phone viewport Rue picks Friday in a todo's day picker
 - **THEN** the todo is assigned to Friday
