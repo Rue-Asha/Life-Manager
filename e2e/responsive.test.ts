@@ -1,5 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
-import { reset, seed, setClock, type SeedInput } from './helpers';
+import type { Page } from '@playwright/test';
+import { expect, test, reset, seed, setClock, type SeedInput } from './helpers';
 
 // Sunday 11 October 2026 in Berlin: the sprint of 5–11 October is still running and its review is open.
 const SUNDAY = '2026-10-11T10:00:00Z';

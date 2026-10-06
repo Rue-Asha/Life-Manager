@@ -1,5 +1,4 @@
-import { expect, test } from '@playwright/test';
-import { reset, seed } from './helpers';
+import { expect, test, reset, seed } from './helpers';
 
 test('Scenario: Built app serves a page in e2e', async ({ request }) => {
 	// Without aspects `/` redirects to /welcome, so seed one and read `/` itself.
