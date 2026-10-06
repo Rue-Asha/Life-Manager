@@ -1,11 +1,17 @@
 <script lang="ts">
 	import '@fontsource-variable/bricolage-grotesque/opsz.css';
 	import '../app.css';
+	import { onMount } from 'svelte';
 	import { onNavigate } from '$app/navigation';
 	import Sidebar from '../lib/components/shell/Sidebar.svelte';
 	import { reducedMotion } from '../lib/motion';
 
 	let { children } = $props();
+
+	// The e2e suite waits for this: input on the server-rendered page before hydration is lost.
+	onMount(() => {
+		document.documentElement.dataset.hydrated = '';
+	});
 
 	onNavigate((navigation) => {
 		if (!document.startViewTransition || reducedMotion()) return;

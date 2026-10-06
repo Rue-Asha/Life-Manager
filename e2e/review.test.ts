@@ -1,5 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
-import { reset, seed, setClock } from './helpers';
+import type { Page } from '@playwright/test';
+import { expect, test, reset, seed, setClock } from './helpers';
 
 // Sunday 11 October 2026 in Berlin, the last day of the sprint that started Monday 5 October.
 const NOW = '2026-10-11T16:00:00Z';

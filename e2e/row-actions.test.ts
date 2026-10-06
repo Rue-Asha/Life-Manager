@@ -1,5 +1,5 @@
-import { expect, test, type Locator, type Page } from '@playwright/test';
-import { reset, seed, setClock, type SeedInput } from './helpers';
+import type { Locator, Page } from '@playwright/test';
+import { expect, test, reset, seed, setClock, type SeedInput } from './helpers';
 
 // Wednesday 7 October 2026 in Berlin; the active sprint runs Monday 5 to Sunday 11 October.
 const NOW = '2026-10-07T10:00:00Z';

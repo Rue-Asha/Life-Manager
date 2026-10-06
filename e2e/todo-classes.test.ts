@@ -1,5 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
-import { reset, seed, setClock, type SeedInput } from './helpers';
+import type { Page } from '@playwright/test';
+import { expect, test, reset, seed, setClock, type SeedInput } from './helpers';
 
 test.beforeEach(async ({ request, page }) => {
 	await reset(request);
@@ -20,13 +20,8 @@ const UNI: SeedInput = {
 
 async function openQuickAdd(page: Page) {
 	await page.goto('/backlog');
-	const form = page.getByRole('form', { name: 'New todo' });
-	// A click that lands before hydration hits the server-rendered button and is lost.
-	await expect(async () => {
-		if (!(await form.isVisible())) await page.getByRole('button', { name: 'Add a todo' }).first().click();
-		await expect(form).toBeVisible({ timeout: 1000 });
-	}).toPass();
-	return form;
+	await page.getByRole('button', { name: 'Add a todo' }).first().click();
+	return page.getByRole('form', { name: 'New todo' });
 }
 
 async function openEditor(page: Page, title: string) {

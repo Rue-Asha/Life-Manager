@@ -1,6 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import { ASPECT_ICONS, PRESET_ASPECTS } from '../src/lib/aspect-style';
-import { reset, seed, setClock } from './helpers';
+import { expect, test, reset, seed, setClock } from './helpers';
 
 function aspectRow(page: Page, name: string) {
 	return page.getByTestId('aspect-card').filter({ has: page.getByText(name, { exact: true }) });

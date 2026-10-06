@@ -1,5 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
-import { reset, seed, setClock } from './helpers';
+import type { Page } from '@playwright/test';
+import { expect, test, reset, seed, setClock } from './helpers';
 
 test.beforeEach(async ({ request }) => {
 	await reset(request);

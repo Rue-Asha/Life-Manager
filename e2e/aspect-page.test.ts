@@ -1,6 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import { ASPECT_ICONS } from '../src/lib/aspect-style';
-import { reset, seed, setClock, type SeedInput } from './helpers';
+import { expect, test, reset, seed, setClock, type SeedInput } from './helpers';
 
 // Wednesday 7 October 2026 in Berlin; the active sprint runs Monday 5 to Sunday 11 October.
 const NOW = '2026-10-07T10:00:00Z';

@@ -1,5 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
-import { reset, seed, setClock } from './helpers';
+import type { Page } from '@playwright/test';
+import { expect, test, reset, seed, setClock } from './helpers';
 
 // Monday 5 October 2026, morning in Berlin: the first sprint runs 5–11 October.
 const MONDAY = '2026-10-05T07:00:00Z';
