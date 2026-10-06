@@ -5,57 +5,15 @@ on:
     branches: [main]
   push:
     branches: [main]
-  # release.yml reruns the whole gate on the tag and publishes its tarball.
-  workflow_call:
 
 permissions:
   contents: read
 
 jobs:
   ci:
-    name: ci
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      # No npm cache: this job also feeds a release, and a poisoned cache would ship.
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          # Keep in step with Homelab-Managment ansible/roles/nodejs/defaults/main.yml (nodejs_version).
-          node-version: 22
-
-      - run: npm ci
-
-      - run: npx playwright install --with-deps chromium
-
-      - run: npm run proof:full
-
-      - run: npm run package
-
-      - name: Verify checksum
-        working-directory: dist
-        run: sha256sum -c ./*.sha256
-
-      - name: Unpack tarball
-        run: |
-          mkdir "$RUNNER_TEMP/artifact"
-          tar -xzf dist/*.tgz -C "$RUNNER_TEMP/artifact"
-          echo "E2E_APP_DIR=$(echo "$RUNNER_TEMP"/artifact/life-manager-*)" >> "$GITHUB_ENV"
-
-      - name: e2e against the unpacked tarball
-        run: |
-          echo "E2E_APP_DIR=$E2E_APP_DIR"
-          npm run test:e2e
-
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: release-tarball
-          path: |
-            dist/*.tgz
-            dist/*.tgz.sha256
-          if-no-files-found: error
+    uses: ./.github/workflows/gate.yml
+    with:
+      runner: '["self-hosted","homelab-check"]'
 
   security-baseline:
     uses: Rue-Asha/ci/.github/workflows/security-baseline.yml@aab9824cdb27d4d86203a5d7b4785d95f8549cbc # v1.0.0
