@@ -1,4 +1,4 @@
-import { test as base, type APIRequestContext, type Page } from '@playwright/test';
+import { test as base, type APIRequestContext, type Page, type Response } from '@playwright/test';
 import type { SeedInput, SeedResult } from '../src/routes/__test/seed/+server';
 
 export type { SeedInput, SeedResult };
@@ -8,11 +8,12 @@ export { expect } from '@playwright/test';
 // document load waits until the root layout has mounted.
 function waitForHydration(page: Page): void {
 	for (const name of ['goto', 'reload', 'goBack', 'goForward'] as const) {
-		const navigate = page[name].bind(page) as (...args: unknown[]) => Promise<unknown>;
+		const navigate = page[name].bind(page) as (...args: unknown[]) => Promise<Response | null>;
 		Object.assign(page, {
 			[name]: async (...args: unknown[]) => {
 				const response = await navigate(...args);
-				await page.locator('html[data-hydrated]').waitFor({ state: 'attached' });
+				if (response?.headers()['content-type']?.startsWith('text/html'))
+					await page.locator('html[data-hydrated]').waitFor({ state: 'attached' });
 				return response;
 			}
 		});
