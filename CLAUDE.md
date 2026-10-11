@@ -38,3 +38,4 @@ Single user, no auth; light theme only.
 - **Previewing a component in a worktree via dev server** → set `DATABASE_PATH` to `.e2e/<port>.db`. (weil: plain `npm run dev` creates data/life-manager.db in the worktree; the /welcome redirect without aspects blocked the preview anyway) [2026-10-04 · uni-hub]
 - **Formatting in this repo** → don't run `npx prettier --write`. (weil: no prettier config; it rewrote files to double quotes/spaces and needed a revert commit) [2026-10-04 · uni-hub]
 - **e2e measurement at ≥1280 on RailLayout pages** → wait for `context-rail` before measuring. (weil: the MediaQuery swap after hydration re-mounts the column; earlier measurements read a detached node) [2026-10-04 · uni-hub]
+- **e2e helper `reset()`** → call `setClock` again after every reset in a multi-state test. (weil: reset() also clears the test clock, so the phase came out wrong) [2026-10-11 · today-quick-add-always]
