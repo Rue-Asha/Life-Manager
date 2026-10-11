@@ -1,0 +1,6 @@
+track: tweak
+triage: "tweak — Today quick add shown in every state, existing capability (today), no schema. Appetite: one evening"
+base: main
+learnings: []
+gate1: 2026-10-11
+release: true
