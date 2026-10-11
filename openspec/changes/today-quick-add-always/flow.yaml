@@ -6,3 +6,4 @@ learnings:
   - "proof:full takes about 2 min, over the Bash 120s default: run it with run_in_background and wait for the notice (weil: builder hit the limit) [builder friction]"
 gate1: 2026-10-11
 release: true
+gate2: 2026-10-11
