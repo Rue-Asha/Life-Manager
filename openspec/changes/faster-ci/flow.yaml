@@ -1,0 +1,6 @@
+track: tweak
+triage: "tweak — port the remaining faster-CI changes from Rues-Arcade d63b3fb to existing ci-pipeline/release-artifact behaviour, one workflow-only session. Appetite: one evening."
+base: main
+gate1: 2026-10-11
+learnings:
+  - "Comparing repos for missing changes → git fetch and compare against origin/main, never local main. (weil: local main was 2 PRs behind and the first answer claimed ec911bc-style changes were missing when they were already merged)"
