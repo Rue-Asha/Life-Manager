@@ -1,4 +1,4 @@
-verified-at: 39470cd
+verified-at: 6f7c0a5
 
 ## Layer 1 — proof-full (green)
 
@@ -46,13 +46,14 @@ Gaps: none.
 ## Diffstat (`git diff --stat origin/main...flow/today-quick-add-always`)
 
 ```
- e2e/today.test.ts                                  | 157 ++++++++++++++++++++-
+ e2e/today.test.ts                                  | 173 ++++++++++++++++++++-
  .../changes/today-quick-add-always/.openspec.yaml  |   2 +
  openspec/changes/today-quick-add-always/flow.yaml  |   6 +
  .../changes/today-quick-add-always/proposal.md     |  44 ++++++
  openspec/changes/today-quick-add-always/scope.md   |  45 ++++++
  .../today-quick-add-always/specs/today/spec.md     |  99 +++++++++++++
  openspec/changes/today-quick-add-always/tasks.md   |  12 ++
+ .../changes/today-quick-add-always/verification.md |  68 ++++++++
  package-lock.json                                  |   4 +-
  package.json                                       |   2 +-
  src/lib/components/todo/QuickAdd.svelte            |   9 +-
@@ -60,7 +61,7 @@ Gaps: none.
  src/lib/server/todos.ts                            |  11 ++
  src/routes/+page.server.ts                         |   8 +-
  src/routes/+page.svelte                            |  25 +++-
- 14 files changed, 426 insertions(+), 19 deletions(-)
+ 15 files changed, 510 insertions(+), 19 deletions(-)
 ```
 
 ## Screenshots (not copied into the repo)
