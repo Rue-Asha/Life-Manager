@@ -247,6 +247,61 @@ test('Scenario: Quick add on a phone opens the sheet in every state', async ({ p
 	await expect(page.getByTestId(`aspect-group-${aspects[0]}`)).toContainText('Call the landlord');
 });
 
+test('Scenario: Backlog todos due today are listed only when today is not a sprint day', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [...ASPECTS],
+		sprint: ACTIVE,
+		todos: [{ title: 'Call the landlord', aspect: 1, dueDate: TODAY }]
+	});
+	await page.goto('/');
+	await expect(page.getByTestId('empty-state')).toBeVisible();
+	await expect(row(page, 'Call the landlord')).toHaveCount(0);
+
+	await reset(request);
+	const next = await seed(request, {
+		aspects: [...ASPECTS],
+		sprint: { state: 'active', weekStart: '2026-10-12' },
+		todos: [{ title: 'Call the landlord', aspect: 1, dueDate: '2026-10-11' }]
+	});
+	await setClock(request, '2026-10-11T18:00:00Z');
+	await page.goto('/');
+	await expect(page.getByTestId(`aspect-group-${next.aspects[1]}`)).toContainText('Call the landlord');
+	await expect(page.getByTestId('empty-state')).toHaveCount(0);
+
+	await reset(request);
+	await seed(request, { aspects: [...ASPECTS], todos: [{ title: 'Call the landlord', aspect: 1, dueDate: '2026-10-11' }] });
+	await setClock(request, '2026-10-11T18:00:00Z');
+	await page.goto('/');
+	await expect(row(page, 'Call the landlord')).toBeVisible();
+});
+
+test('Scenario: Due-today backlog todos offer the sprint instead of a checkbox', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [...ASPECTS],
+		sprint: { state: 'active', weekStart: '2026-10-12' },
+		todos: [{ title: 'Call the landlord', aspect: 1, dueDate: '2026-10-11' }]
+	});
+	await setClock(request, '2026-10-11T18:00:00Z');
+	await page.goto('/');
+
+	await expect(row(page, 'Call the landlord')).toBeVisible();
+	await expect(page.getByRole('checkbox')).toHaveCount(0);
+	await page.getByRole('button', { name: 'Add to sprint: Call the landlord' }).click();
+	await expect(page.getByRole('checkbox', { name: 'Done: Call the landlord' })).toHaveAttribute('aria-checked', 'false');
+	await expect(row(page, 'Call the landlord')).toHaveAttribute('data-status', 'todo');
+
+	await page.goto('/sprint');
+	await expect(row(page, 'Call the landlord').getByLabel('Status')).toHaveValue('todo');
+
+	await reset(request);
+	await seed(request, { aspects: [...ASPECTS], todos: [{ title: 'Call the landlord', aspect: 1, dueDate: '2026-10-11' }] });
+	await setClock(request, '2026-10-11T18:00:00Z');
+	await page.goto('/');
+	await expect(row(page, 'Call the landlord')).toBeVisible();
+	await expect(page.getByRole('checkbox')).toHaveCount(0);
+	await expect(page.getByRole('button', { name: 'Add to sprint: Call the landlord' })).toHaveCount(0);
+});
+
 test('Quick add stays on the Sunday before next week\'s sprint starts', async ({ page, request }) => {
 	await seed(request, { aspects: [...ASPECTS], sprint: { state: 'active', weekStart: '2026-10-12' } });
 	await setClock(request, '2026-10-11T18:00:00Z');

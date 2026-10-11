@@ -105,7 +105,17 @@
 			</h2>
 			<ul>
 				{#each todos as todo (todo.id)}
-					<TodoRow {todo} {aspect} today={data.today} context="today" />
+					{#if todo.sprintId === null}
+						<TodoRow
+							{todo}
+							{aspect}
+							today={data.today}
+							context="backlog"
+							sprintDays={inSprint ? data.sprintDays : undefined}
+						/>
+					{:else}
+						<TodoRow {todo} {aspect} today={data.today} context="today" />
+					{/if}
 				{/each}
 			</ul>
 		</section>
