@@ -67,3 +67,12 @@ Gaps: none.
 ## Screenshots (not copied into the repo)
 
 Verifier run, in `/home/Rue/Repos/Life-Manager-wt-today-quick-add/test-results/shots/`: `today-1280.png`, `today-375.png`, `journey-today-1280.png`.
+
+## Review
+
+Reviewer (fresh context, round 1): no weakened tests without spec reason, no spec mismatch, no correctness findings. Two weak tests:
+
+- `e2e/today.test.ts` "Scenario: Quick add on Today adds to the sprint on today" never asserted status To do → fixed (cab6bb2): asserts `data-status="todo"` before and after reload, watched red first.
+- `e2e/today.test.ts` "Scenario: Quick add on Today outside the sprint's days saves a backlog todo due today" covered only the Sunday case → fixed (6f7c0a5): extended with the review-required phase, watched red first.
+
+Round 2 verify at 6f7c0a5: proof-full green, no gaps.
