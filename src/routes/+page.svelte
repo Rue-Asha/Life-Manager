@@ -57,12 +57,11 @@
 		<div class="prompt"><SprintPrompt phase={data.phase} /></div>
 	{/if}
 
+	<div class="quick">
+		<QuickAdd aspects={data.aspects} target={onSprintDay ? { kind: 'day', day: data.today } : { kind: 'backlog' }} />
+	</div>
+
 	{#if inSprint}
-		{#if onSprintDay}
-			<div class="quick">
-				<QuickAdd aspects={data.aspects} target={{ kind: 'day', day: data.today }} />
-			</div>
-		{/if}
 		{#if groups.length === 0 && data.overdue.length === 0}
 			<p class="empty" data-testid="empty-state">
 				<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.sun} /></svg>
