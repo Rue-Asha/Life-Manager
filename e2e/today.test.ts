@@ -217,6 +217,21 @@ test('Scenario: Quick add on Today outside the sprint\'s days saves a backlog to
 	await expect(added).toBeVisible();
 	await expect(added).toHaveAttribute('data-day', '');
 	await expect(added.locator('.due')).toHaveText('Today');
+
+	await reset(request);
+	const required = await seed(request, { aspects: [...ASPECTS], sprint: ACTIVE });
+	await setClock(request, '2026-10-12T10:00:00Z');
+	await page.goto('/');
+	await expect(page.getByTestId('sprint-prompt')).toBeVisible();
+
+	await quickAdd(page, 'Renew the passport');
+	await expect(page.getByTestId(`aspect-group-${required.aspects[0]}`)).toContainText('Renew the passport');
+
+	await page.goto('/backlog');
+	const fallback = row(page, 'Renew the passport');
+	await expect(fallback).toBeVisible();
+	await expect(fallback).toHaveAttribute('data-day', '');
+	await expect(fallback.locator('.due')).toHaveText('Today');
 });
 
 test('Scenario: Quick add on Today without any sprint saves a backlog todo due today', async ({ page, request }) => {
