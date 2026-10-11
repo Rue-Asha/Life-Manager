@@ -28,6 +28,21 @@
 - **THEN** it still runs check, build and unit tests (and e2e for `proof:full`) as before
 - **proof:** manual (`package.json` scripts are not in the diff; `git diff --stat` shows no change to it)
 
+### Requirement: Workflows follow the publishing controls
+Every workflow SHALL declare `permissions` with `contents: read` at the top level and widen it only on the job that needs it, SHALL pin third-party actions to full commit SHAs with the release in a trailing comment, and SHALL NOT trigger on `pull_request_target`. In `release.yml`, `check-tag` and `publish` MAY additionally hold `actions: read` to find the push run and download its artifact, and nothing broader than that.
+
+#### Scenario: Release job permissions
+- **WHEN** `release.yml` is inspected
+- **THEN** only the publishing job holds `contents: write`, `id-token: write` and `attestations: write`
+- **proof:** manual (enforced by the baseline's zizmor run; inspection is the evidence)
+
+#### Scenario: Release jobs read runs and nothing more
+- **WHEN** `release.yml` is inspected
+- **THEN** `check-tag` holds `contents: read` and `actions: read`, and `publish` adds only `actions: read` to its existing grants
+- **proof:** manual (inspection of `release.yml`; `actionlint` clean and the baseline's zizmor run on the PR)
+
+## ADDED Requirements
+
 ### Requirement: CI cancels superseded PR runs
 `ci.yml` SHALL declare a `concurrency` group keyed on the pull request number for `pull_request` events and on `github.sha` for `push` events, with `cancel-in-progress` true only for `pull_request`. A newer push to a PR SHALL cancel that PR's still-running check; runs for different PRs SHALL NOT cancel each other, and push runs on `main` SHALL NOT be cancelled.
 
@@ -63,16 +78,3 @@
 - **WHEN** a pull request is opened or updated
 - **THEN** the `ci` job runs on the `homelab-check` runner and the `security-baseline` jobs still run
 - **proof:** manual (runs on GitHub; the change's own PR run shows the runner)
-
-### Requirement: Workflows follow the publishing controls
-Every workflow SHALL declare `permissions` with `contents: read` at the top level and widen it only on the job that needs it, SHALL pin third-party actions to full commit SHAs with the release in a trailing comment, and SHALL NOT trigger on `pull_request_target`. In `release.yml`, `check-tag` and `publish` MAY additionally hold `actions: read` to find the push run and download its artifact, and nothing broader than that.
-
-#### Scenario: Release job permissions
-- **WHEN** `release.yml` is inspected
-- **THEN** only the publishing job holds `contents: write`, `id-token: write` and `attestations: write`
-- **proof:** manual (enforced by the baseline's zizmor run; inspection is the evidence)
-
-#### Scenario: Release jobs read runs and nothing more
-- **WHEN** `release.yml` is inspected
-- **THEN** `check-tag` holds `contents: read` and `actions: read`, and `publish` adds only `actions: read` to its existing grants
-- **proof:** manual (inspection of `release.yml`; `actionlint` clean and the baseline's zizmor run on the PR)
