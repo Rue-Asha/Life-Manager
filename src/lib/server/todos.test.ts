@@ -8,6 +8,7 @@ import {
 	deleteTodo,
 	getTodo,
 	listBacklog,
+	listBacklogDueToday,
 	listOverdue,
 	renameChecklistItem,
 	setRevisedAt,
@@ -321,6 +322,26 @@ describe('lists', () => {
 		insert(db, 'undated', { aspect });
 
 		expect(listOverdue(db, '2026-10-01').map((t) => t.title)).toEqual(['backlog-overdue', 'sprint-overdue']);
+	});
+
+	it('Scenario: Backlog todos due today are listed apart from sprint todos', () => {
+		const { db, aspect } = setup();
+		const sprint = activeSprint(db);
+		value(createTodo(db, { title: 'due-today', aspectId: aspect, dueDate: '2026-10-01' }));
+		value(createTodo(db, { title: 'due-other-day', aspectId: aspect, dueDate: '2026-10-02' }));
+		const done = value(createTodo(db, { title: 'done-today', aspectId: aspect, dueDate: '2026-10-01' }));
+		db.prepare("UPDATE todos SET status = 'done' WHERE id = ?").run(done.id);
+		insert(db, 'sprint-today', { aspect, dueDate: '2026-10-01', sprintId: sprint });
+
+		expect(listBacklogDueToday(db, '2026-10-01').map((t) => t.title)).toEqual(['due-today']);
+	});
+
+	it('Scenario: A fallback todo is overdue the next day', () => {
+		const { db, aspect } = setup();
+		value(createTodo(db, { title: 'fallback', aspectId: aspect, dueDate: '2026-10-01' }));
+
+		expect(listBacklogDueToday(db, '2026-10-02')).toEqual([]);
+		expect(listOverdue(db, '2026-10-02').map((t) => t.title)).toEqual(['fallback']);
 	});
 });
 
