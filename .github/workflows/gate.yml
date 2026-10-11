@@ -1,8 +1,8 @@
 name: gate
 
-# The check and release gate, shared by ci.yml and release.yml. `runner` is a
-# JSON label list: PR checks run on the homelab check host, but the tarball a
-# release publishes is built and tested on a GitHub-hosted runner.
+# The check gate, called by ci.yml. `runner` is a JSON label list: PR checks
+# run on the homelab check host, but a push to main runs on a GitHub-hosted
+# runner, because release.yml publishes the tarball that run uploads.
 on:
   workflow_call:
     inputs:
@@ -23,7 +23,7 @@ jobs:
         with:
           persist-credentials: false
 
-      # No npm cache: this job also feeds a release, and a poisoned cache would ship.
+      # No npm cache: a push run feeds a release, and a poisoned cache would ship.
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           # Keep in step with Homelab-Managment ansible/roles/nodejs/defaults/main.yml (nodejs_version).
@@ -33,9 +33,12 @@ jobs:
 
       - run: npx playwright install chromium
 
-      - run: npm run proof
+      - run: npm run check
 
+      # package is the only build; the unit tests run after it in case one reads build/.
       - run: npm run package
+
+      - run: npm run test:unit
 
       - name: Verify checksum
         working-directory: dist

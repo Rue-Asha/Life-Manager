@@ -53,9 +53,10 @@ To cut a release, bump `version` in `package.json` (and `package-lock.json` via
 git tag -a v<version> -m v<version> && git push origin v<version>
 ```
 
-The release workflow refuses a tag that doesn't match `package.json`, reruns the full CI gate on
-the tag, and publishes the tarball that gate tested, with its checksum and a build-provenance
-attestation.
+The release workflow refuses a tag that doesn't match `package.json`, waits for the green CI push
+run on the tagged commit, and publishes that run's tarball, with its checksum and a
+build-provenance attestation. Tag soon after the merge: the tarball expires with the artifact
+retention, and if it has, `gh run rerun <id>` the push run and push the tag again.
 
 ## Running the build
 
