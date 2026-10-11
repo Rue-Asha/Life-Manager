@@ -69,3 +69,9 @@ Other static checks: every `uses:` in `.github/workflows` is pinned to a 40-hex 
  openspec/changes/faster-ci/tasks.md                | 12 ++++
  11 files changed, 313 insertions(+), 15 deletions(-)
 ```
+
+## Review
+
+Reviewer (fresh context, round 1): no findings in weakened tests, weak tests, spec mismatch or correctness.
+
+Note outside the categories, accepted: the build-provenance attestation is now created in `release.yml` for a tarball built by the `ci.yml` push run, so the provenance records `release.yml` as builder. `gh attestation verify --repo` still passes and the spec is met. Rues-Arcade makes the same trade-off.
