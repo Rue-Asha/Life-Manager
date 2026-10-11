@@ -186,6 +186,7 @@ test('Scenario: Quick add on Today adds to the sprint on today', async ({ page, 
 
 	const added = row(page, 'Stretch for ten minutes');
 	await expect(added).toHaveAttribute('data-day', TODAY);
+	await expect(added).toHaveAttribute('data-status', 'todo');
 	await expect(page.getByTestId(`aspect-group-${aspects[0]}`)).toContainText('Stretch for ten minutes');
 
 	// Today lists only active-sprint todos, so surviving a reload proves the membership.
