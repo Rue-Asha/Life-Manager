@@ -58,7 +58,11 @@
 	{/if}
 
 	<div class="quick">
-		<QuickAdd aspects={data.aspects} target={onSprintDay ? { kind: 'day', day: data.today } : { kind: 'backlog' }} />
+		{#if onSprintDay}
+			<QuickAdd aspects={data.aspects} target={{ kind: 'day', day: data.today }} />
+		{:else}
+			<QuickAdd aspects={data.aspects} target={{ kind: 'backlog' }} defaultDueDate={data.today} />
+		{/if}
 	</div>
 
 	{#if inSprint}

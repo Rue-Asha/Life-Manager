@@ -195,6 +195,28 @@ test('Scenario: Quick add on Today adds to the sprint on today', async ({ page, 
 	await expect(row(page, 'Stretch for ten minutes')).toHaveCount(0);
 });
 
+async function quickAdd(page: Page, title: string) {
+	await page.getByRole('button', { name: 'Add a todo' }).first().click();
+	const form = page.getByRole('form', { name: 'New todo' });
+	await form.getByLabel('Title').fill(title);
+	await form.getByRole('button', { name: 'Add todo' }).click();
+}
+
+test('Scenario: Quick add on Today outside the sprint\'s days saves a backlog todo due today', async ({ page, request }) => {
+	await seed(request, { aspects: [...ASPECTS], sprint: { state: 'active', weekStart: '2026-10-12' } });
+	await setClock(request, '2026-10-11T18:00:00Z');
+	await page.goto('/');
+
+	await quickAdd(page, 'Call the landlord');
+	await expect(page.getByRole('form', { name: 'New todo' }).getByLabel('Title')).toHaveValue('');
+
+	await page.goto('/backlog');
+	const added = row(page, 'Call the landlord');
+	await expect(added).toBeVisible();
+	await expect(added).toHaveAttribute('data-day', '');
+	await expect(added.locator('.due')).toHaveText('Today');
+});
+
 test('Quick add stays on the Sunday before next week\'s sprint starts', async ({ page, request }) => {
 	await seed(request, { aspects: [...ASPECTS], sprint: { state: 'active', weekStart: '2026-10-12' } });
 	await setClock(request, '2026-10-11T18:00:00Z');
