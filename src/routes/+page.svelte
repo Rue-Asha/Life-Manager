@@ -20,7 +20,7 @@
 	const aspectOf = (id: Id) => data.aspects.find((a) => a.id === id)!;
 	const groups = $derived(
 		data.aspects
-			.map((aspect) => ({ aspect, todos: data.todos.filter((t) => t.aspectId === aspect.id) }))
+			.map((aspect) => ({ aspect, todos: [...data.todos, ...data.dueToday].filter((t) => t.aspectId === aspect.id) }))
 			.filter((g) => g.todos.length > 0)
 	);
 	const sprintAspects = $derived(data.aspects.filter((a) => data.progress[a.id]));
@@ -57,12 +57,15 @@
 		<div class="prompt"><SprintPrompt phase={data.phase} /></div>
 	{/if}
 
-	{#if inSprint}
+	<div class="quick">
 		{#if onSprintDay}
-			<div class="quick">
-				<QuickAdd aspects={data.aspects} target={{ kind: 'day', day: data.today }} />
-			</div>
+			<QuickAdd aspects={data.aspects} target={{ kind: 'day', day: data.today }} />
+		{:else}
+			<QuickAdd aspects={data.aspects} target={{ kind: 'backlog' }} defaultDueDate={data.today} />
 		{/if}
+	</div>
+
+	{#if inSprint}
 		{#if groups.length === 0 && data.overdue.length === 0}
 			<p class="empty" data-testid="empty-state">
 				<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.sun} /></svg>
@@ -102,7 +105,17 @@
 			</h2>
 			<ul>
 				{#each todos as todo (todo.id)}
-					<TodoRow {todo} {aspect} today={data.today} context="today" />
+					{#if todo.sprintId === null}
+						<TodoRow
+							{todo}
+							{aspect}
+							today={data.today}
+							context="backlog"
+							sprintDays={inSprint ? data.sprintDays : undefined}
+						/>
+					{:else}
+						<TodoRow {todo} {aspect} today={data.today} context="today" />
+					{/if}
 				{/each}
 			</ul>
 		</section>

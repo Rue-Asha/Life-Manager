@@ -1,0 +1,12 @@
+## 1. Quick add in every Today state
+> unit: depends=none · scope=S1,S2,S3 · files=src/lib/server/todos.ts, src/lib/server/todos.test.ts, src/lib/components/todo/QuickAdd.svelte, src/routes/+page.server.ts, src/routes/+page.svelte, e2e/today.test.ts
+- [x] 1.1 Write unit tests "Scenario: Backlog todos due today are listed apart from sprint todos" and "Scenario: A fallback todo is overdue the next day" (real DB, `createTodo` backlog + `dueDate`); watch them fail; add `listBacklogDueToday(db, today)` to `todos.ts` (sprint_id IS NULL, due_date = today, not done, ordered by id)
+- [x] 1.2 Write e2e "Scenario: Quick add is shown in every Today state" (phases none, planning, review-available, review-required, running, Sunday after review) and flip the three existing `toHaveCount(0)` assertions in `e2e/today.test.ts` (Sunday test at line 156, no-sprint test, review-required test); watch them fail; render QuickAdd regardless of phase in `+page.svelte`
+- [x] 1.3 Write e2e "Scenario: Quick add on Today adds to the sprint on today" stays green and "Scenario: Quick add on Today outside the sprint's days saves a backlog todo due today" (sprint active for next week, Sunday); add `defaultDueDate` prop to `QuickAdd.svelte` (initial and reset value of its due date), pass `target={{ kind: 'backlog' }}` with `defaultDueDate={data.today}` when `onSprintDay` is false, keep the day target otherwise
+- [x] 1.4 Write e2e "Scenario: Quick add on Today without any sprint saves a backlog todo due today" and "Scenario: Quick add on a phone opens the sheet in every state"; then load `listBacklogDueToday` in `+page.server.ts` only when today is not in the active sprint's days, merge the todos into the aspect groups and count them for the empty state
+- [x] 1.5 Write e2e "Scenario: Backlog todos due today are listed only when today is not a sprint day" and "Scenario: Due-today backlog todos offer the sprint instead of a checkbox"; render them with `context="backlog"` and `sprintDays` when a sprint is running or review-available (as the overdue rows do), plain row otherwise
+- [x] 1.6 Run `npm run proof:full` green
+- [x] 1.7 Release bump: set `version` to `0.3.0` in `package.json` and `package-lock.json` (`npm install --package-lock-only`, check the diff touches only the version), run `npm run proof:full` green, commit as `chore(release): v0.3.0`
+
+## Ship (not builder)
+Tag the merge commit `v0.3.0` (`git tag -a v0.3.0 -m v0.3.0`), push the tag and watch `release.yml`; this is the shipper's step, after the merge.

@@ -133,6 +133,48 @@ test('Scenario: Overdue todos outside the sprint offer the sprint instead of a c
 	await expect(row(page, 'Send tax receipts').getByLabel('Status')).toHaveValue('todo');
 });
 
+test('Scenario: Quick add is shown in every Today state', async ({ page, request }) => {
+	const addButton = page.getByRole('button', { name: 'Add a todo' });
+	const phase = (name: string) => expect(page.getByTestId('sprint-prompt')).toHaveAttribute('data-phase', name);
+
+	await seed(request, { aspects: [...ASPECTS] });
+	await page.goto('/');
+	await phase('none');
+	await expect(addButton).toBeVisible();
+
+	await reset(request);
+	await setClock(request, NOW);
+	await seed(request, { aspects: [...ASPECTS], sprint: { state: 'planning' } });
+	await page.goto('/');
+	await phase('planning');
+	await expect(addButton).toBeVisible();
+
+	await reset(request);
+	await setClock(request, NOW);
+	await seed(request, { aspects: [...ASPECTS], sprint: ACTIVE });
+	await page.goto('/');
+	await expect(page.getByTestId('sprint-prompt')).toHaveCount(0);
+	await expect(addButton).toBeVisible();
+
+	await setClock(request, '2026-10-11T10:00:00Z');
+	await page.goto('/');
+	await phase('review-available');
+	await expect(addButton).toBeVisible();
+
+	await setClock(request, '2026-10-12T10:00:00Z');
+	await page.goto('/');
+	await phase('review-required');
+	await expect(addButton).toBeVisible();
+
+	await setClock(request, '2026-10-11T18:00:00Z');
+	await page.goto('/sprint/review');
+	await page.getByRole('button', { name: 'Close sprint' }).click();
+	await expect(page).toHaveURL(/\/sprint\/plan$/);
+	await page.goto('/');
+	await phase('planning');
+	await expect(addButton).toBeVisible();
+});
+
 test('Scenario: Quick add on Today adds to the sprint on today', async ({ page, request }) => {
 	const { aspects } = await seed(request, { aspects: [...ASPECTS], sprint: ACTIVE });
 	await page.goto('/');
@@ -144,6 +186,7 @@ test('Scenario: Quick add on Today adds to the sprint on today', async ({ page, 
 
 	const added = row(page, 'Stretch for ten minutes');
 	await expect(added).toHaveAttribute('data-day', TODAY);
+	await expect(added).toHaveAttribute('data-status', 'todo');
 	await expect(page.getByTestId(`aspect-group-${aspects[0]}`)).toContainText('Stretch for ten minutes');
 
 	// Today lists only active-sprint todos, so surviving a reload proves the membership.
@@ -153,12 +196,134 @@ test('Scenario: Quick add on Today adds to the sprint on today', async ({ page, 
 	await expect(row(page, 'Stretch for ten minutes')).toHaveCount(0);
 });
 
-test('No quick add on the Sunday before next week\'s sprint starts', async ({ page, request }) => {
+async function quickAdd(page: Page, title: string) {
+	await page.getByRole('button', { name: 'Add a todo' }).first().click();
+	const form = page.getByRole('form', { name: 'New todo' });
+	await form.getByLabel('Title').fill(title);
+	await form.getByRole('button', { name: 'Add todo' }).click();
+}
+
+test('Scenario: Quick add on Today outside the sprint\'s days saves a backlog todo due today', async ({ page, request }) => {
+	const { aspects } = await seed(request, { aspects: [...ASPECTS], sprint: { state: 'active', weekStart: '2026-10-12' } });
+	await setClock(request, '2026-10-11T18:00:00Z');
+	await page.goto('/');
+
+	await quickAdd(page, 'Call the landlord');
+	await expect(page.getByRole('form', { name: 'New todo' }).getByLabel('Title')).toHaveValue('');
+	await expect(page.getByTestId(`aspect-group-${aspects[0]}`)).toContainText('Call the landlord');
+
+	await page.goto('/backlog');
+	const added = row(page, 'Call the landlord');
+	await expect(added).toBeVisible();
+	await expect(added).toHaveAttribute('data-day', '');
+	await expect(added.locator('.due')).toHaveText('Today');
+
+	await reset(request);
+	const required = await seed(request, { aspects: [...ASPECTS], sprint: ACTIVE });
+	await setClock(request, '2026-10-12T10:00:00Z');
+	await page.goto('/');
+	await expect(page.getByTestId('sprint-prompt')).toBeVisible();
+
+	await quickAdd(page, 'Renew the passport');
+	await expect(page.getByTestId(`aspect-group-${required.aspects[0]}`)).toContainText('Renew the passport');
+
+	await page.goto('/backlog');
+	const fallback = row(page, 'Renew the passport');
+	await expect(fallback).toBeVisible();
+	await expect(fallback).toHaveAttribute('data-day', '');
+	await expect(fallback.locator('.due')).toHaveText('Today');
+});
+
+test('Scenario: Quick add on Today without any sprint saves a backlog todo due today', async ({ page, request }) => {
+	const { aspects } = await seed(request, { aspects: [...ASPECTS] });
+	await page.goto('/');
+
+	await quickAdd(page, 'Call the landlord');
+	await expect(page.getByTestId(`aspect-group-${aspects[0]}`)).toContainText('Call the landlord');
+
+	await page.reload();
+	await expect(page.getByTestId(`aspect-group-${aspects[0]}`)).toContainText('Call the landlord');
+
+	await page.goto('/backlog');
+	await expect(row(page, 'Call the landlord').locator('.due')).toHaveText('Today');
+});
+
+test('Scenario: Quick add on a phone opens the sheet in every state', async ({ page, request }) => {
+	const { aspects } = await seed(request, { aspects: [...ASPECTS] });
+	await page.setViewportSize({ width: 390, height: 800 });
+	await page.goto('/');
+
+	await page.getByRole('button', { name: 'Add a todo' }).click();
+	const sheet = page.getByRole('dialog', { name: 'New todo' });
+	await expect(sheet).toBeVisible();
+	await sheet.getByLabel('Title').fill('Call the landlord');
+	await sheet.getByRole('button', { name: 'Add todo' }).click();
+
+	await expect(sheet).toBeHidden();
+	await expect(page.getByTestId(`aspect-group-${aspects[0]}`)).toContainText('Call the landlord');
+});
+
+test('Scenario: Backlog todos due today are listed only when today is not a sprint day', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [...ASPECTS],
+		sprint: ACTIVE,
+		todos: [{ title: 'Call the landlord', aspect: 1, dueDate: TODAY }]
+	});
+	await page.goto('/');
+	await expect(page.getByTestId('empty-state')).toBeVisible();
+	await expect(row(page, 'Call the landlord')).toHaveCount(0);
+
+	await reset(request);
+	const next = await seed(request, {
+		aspects: [...ASPECTS],
+		sprint: { state: 'active', weekStart: '2026-10-12' },
+		todos: [{ title: 'Call the landlord', aspect: 1, dueDate: '2026-10-11' }]
+	});
+	await setClock(request, '2026-10-11T18:00:00Z');
+	await page.goto('/');
+	await expect(page.getByTestId(`aspect-group-${next.aspects[1]}`)).toContainText('Call the landlord');
+	await expect(page.getByTestId('empty-state')).toHaveCount(0);
+
+	await reset(request);
+	await seed(request, { aspects: [...ASPECTS], todos: [{ title: 'Call the landlord', aspect: 1, dueDate: '2026-10-11' }] });
+	await setClock(request, '2026-10-11T18:00:00Z');
+	await page.goto('/');
+	await expect(row(page, 'Call the landlord')).toBeVisible();
+});
+
+test('Scenario: Due-today backlog todos offer the sprint instead of a checkbox', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [...ASPECTS],
+		sprint: { state: 'active', weekStart: '2026-10-12' },
+		todos: [{ title: 'Call the landlord', aspect: 1, dueDate: '2026-10-11' }]
+	});
+	await setClock(request, '2026-10-11T18:00:00Z');
+	await page.goto('/');
+
+	await expect(row(page, 'Call the landlord')).toBeVisible();
+	await expect(page.getByRole('checkbox')).toHaveCount(0);
+	await page.getByRole('button', { name: 'Add to sprint: Call the landlord' }).click();
+	await expect(page.getByRole('checkbox', { name: 'Done: Call the landlord' })).toHaveAttribute('aria-checked', 'false');
+	await expect(row(page, 'Call the landlord')).toHaveAttribute('data-status', 'todo');
+
+	await page.goto('/sprint');
+	await expect(row(page, 'Call the landlord').getByLabel('Status')).toHaveValue('todo');
+
+	await reset(request);
+	await seed(request, { aspects: [...ASPECTS], todos: [{ title: 'Call the landlord', aspect: 1, dueDate: '2026-10-11' }] });
+	await setClock(request, '2026-10-11T18:00:00Z');
+	await page.goto('/');
+	await expect(row(page, 'Call the landlord')).toBeVisible();
+	await expect(page.getByRole('checkbox')).toHaveCount(0);
+	await expect(page.getByRole('button', { name: 'Add to sprint: Call the landlord' })).toHaveCount(0);
+});
+
+test('Quick add stays on the Sunday before next week\'s sprint starts', async ({ page, request }) => {
 	await seed(request, { aspects: [...ASPECTS], sprint: { state: 'active', weekStart: '2026-10-12' } });
 	await setClock(request, '2026-10-11T18:00:00Z');
 	await page.goto('/');
 
-	await expect(page.getByRole('button', { name: 'Add a todo' })).toHaveCount(0);
+	await expect(page.getByRole('button', { name: 'Add a todo' })).toBeVisible();
 	await expect(page.getByTestId('empty-state')).toBeVisible();
 });
 
@@ -170,7 +335,7 @@ test('Scenario: Today without an active sprint prompts to plan', async ({ page, 
 	await expect(prompt).toHaveAttribute('data-phase', 'none');
 	await expect(prompt.getByRole('link', { name: 'Plan your week' })).toHaveAttribute('href', '/sprint/plan');
 	await expect(row(page, 'Send tax receipts')).toBeVisible();
-	await expect(page.getByRole('button', { name: 'Add a todo' })).toHaveCount(0);
+	await expect(page.getByRole('button', { name: 'Add a todo' })).toBeVisible();
 	await expect(page.getByTestId('empty-state')).toHaveCount(0);
 });
 
@@ -195,7 +360,7 @@ test('Scenario: Today with a pending review prompts to review', async ({ page, r
 	prompt = page.getByTestId('sprint-prompt');
 	await expect(prompt).toHaveAttribute('data-phase', 'review-required');
 	await expect(prompt.getByRole('link', { name: 'Review the sprint' })).toHaveAttribute('href', '/sprint/review');
-	await expect(page.getByRole('button', { name: 'Add a todo' })).toHaveCount(0);
+	await expect(page.getByRole('button', { name: 'Add a todo' })).toBeVisible();
 });
 
 test('Scenario: Nothing today shows a calm empty state', async ({ page, request }) => {

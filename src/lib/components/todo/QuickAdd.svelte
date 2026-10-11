@@ -16,6 +16,7 @@
 		defaultAspectId,
 		defaultClassId,
 		defaultType,
+		defaultDueDate,
 		open = $bindable(false)
 	}: {
 		aspects: Aspect[];
@@ -23,6 +24,7 @@
 		defaultAspectId?: Id;
 		defaultClassId?: Id;
 		defaultType?: ClassType;
+		defaultDueDate?: IsoDate;
 		open?: boolean;
 	} = $props();
 
@@ -32,7 +34,7 @@
 	let notes = $state('');
 	let chosenAspectId = $state<Id | null>(null);
 	let priority = $state<Priority>(0);
-	let dueDate = $state<IsoDate | ''>('');
+	let chosenDueDate = $state<IsoDate | '' | null>(null);
 	let projectId = $state<Id | ''>('');
 	let chosenClassId = $state<Id | '' | null>(null);
 	let chosenType = $state<ClassType | null>(null);
@@ -42,6 +44,7 @@
 
 	const aspectId = $derived(chosenAspectId ?? defaultAspectId ?? aspects[0].id);
 	const classId = $derived(chosenClassId ?? defaultClassId ?? '');
+	const dueDate = $derived(chosenDueDate ?? defaultDueDate ?? '');
 	const type = $derived(chosenType ?? defaultType ?? 'OTH');
 
 	const MESSAGES: Record<string, string> = {
@@ -56,7 +59,7 @@
 		notes = '';
 		chosenAspectId = null;
 		priority = 0;
-		dueDate = '';
+		chosenDueDate = null;
 		projectId = '';
 		chosenClassId = null;
 		chosenType = null;
@@ -134,7 +137,7 @@
 			{aspects}
 			bind:aspectId={() => aspectId, (id) => (chosenAspectId = id)}
 			bind:priority
-			bind:dueDate
+			bind:dueDate={() => dueDate, (d) => (chosenDueDate = d)}
 			bind:projectId
 			bind:classId={() => classId, (id) => (chosenClassId = id)}
 			bind:type={() => type, (t) => (chosenType = t)}
