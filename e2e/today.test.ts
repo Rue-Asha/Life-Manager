@@ -203,18 +203,48 @@ async function quickAdd(page: Page, title: string) {
 }
 
 test('Scenario: Quick add on Today outside the sprint\'s days saves a backlog todo due today', async ({ page, request }) => {
-	await seed(request, { aspects: [...ASPECTS], sprint: { state: 'active', weekStart: '2026-10-12' } });
+	const { aspects } = await seed(request, { aspects: [...ASPECTS], sprint: { state: 'active', weekStart: '2026-10-12' } });
 	await setClock(request, '2026-10-11T18:00:00Z');
 	await page.goto('/');
 
 	await quickAdd(page, 'Call the landlord');
 	await expect(page.getByRole('form', { name: 'New todo' }).getByLabel('Title')).toHaveValue('');
+	await expect(page.getByTestId(`aspect-group-${aspects[0]}`)).toContainText('Call the landlord');
 
 	await page.goto('/backlog');
 	const added = row(page, 'Call the landlord');
 	await expect(added).toBeVisible();
 	await expect(added).toHaveAttribute('data-day', '');
 	await expect(added.locator('.due')).toHaveText('Today');
+});
+
+test('Scenario: Quick add on Today without any sprint saves a backlog todo due today', async ({ page, request }) => {
+	const { aspects } = await seed(request, { aspects: [...ASPECTS] });
+	await page.goto('/');
+
+	await quickAdd(page, 'Call the landlord');
+	await expect(page.getByTestId(`aspect-group-${aspects[0]}`)).toContainText('Call the landlord');
+
+	await page.reload();
+	await expect(page.getByTestId(`aspect-group-${aspects[0]}`)).toContainText('Call the landlord');
+
+	await page.goto('/backlog');
+	await expect(row(page, 'Call the landlord').locator('.due')).toHaveText('Today');
+});
+
+test('Scenario: Quick add on a phone opens the sheet in every state', async ({ page, request }) => {
+	const { aspects } = await seed(request, { aspects: [...ASPECTS] });
+	await page.setViewportSize({ width: 390, height: 800 });
+	await page.goto('/');
+
+	await page.getByRole('button', { name: 'Add a todo' }).click();
+	const sheet = page.getByRole('dialog', { name: 'New todo' });
+	await expect(sheet).toBeVisible();
+	await sheet.getByLabel('Title').fill('Call the landlord');
+	await sheet.getByRole('button', { name: 'Add todo' }).click();
+
+	await expect(sheet).toBeHidden();
+	await expect(page.getByTestId(`aspect-group-${aspects[0]}`)).toContainText('Call the landlord');
 });
 
 test('Quick add stays on the Sunday before next week\'s sprint starts', async ({ page, request }) => {

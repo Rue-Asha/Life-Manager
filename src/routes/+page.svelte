@@ -20,7 +20,7 @@
 	const aspectOf = (id: Id) => data.aspects.find((a) => a.id === id)!;
 	const groups = $derived(
 		data.aspects
-			.map((aspect) => ({ aspect, todos: data.todos.filter((t) => t.aspectId === aspect.id) }))
+			.map((aspect) => ({ aspect, todos: [...data.todos, ...data.dueToday].filter((t) => t.aspectId === aspect.id) }))
 			.filter((g) => g.todos.length > 0)
 	);
 	const sprintAspects = $derived(data.aspects.filter((a) => data.progress[a.id]));
