@@ -30,6 +30,6 @@ export const load: PageServerLoad = () => {
 		progress: active ? aspectProgress(db, active.id) : {},
 		overdue,
 		todos: listToday(db, day).filter((t) => !overdue.some((o) => o.id === t.id)),
-		dueToday: sprintDays.includes(day) ? [] : listBacklogDueToday(db, day)
+		dueToday: sprintDays.includes(day) ? [] : listBacklogDueToday(db, day).filter((t) => !overdue.some((o) => o.id === t.id))
 	};
 };
