@@ -100,10 +100,15 @@ test('Scenario: Resync all re-pushes every item and recreates missing events', a
 		.toBe(true);
 	expect(Object.keys(fake().state().events)).toHaveLength(3);
 
-	const ops = fake().calls().slice(before).map((c) => c.op!.kind);
-	expect(ops.filter((k) => k === 'event.update')).toHaveLength(3);
-	expect(ops.filter((k) => k === 'event.create')).toHaveLength(1);
-	expect(fake().calls().slice(before).find((c) => c.op!.kind === 'event.update' && c.code === 3)).toBeTruthy();
+	const calls = fake().calls().slice(before);
+	const updates = calls.filter((c) => c.op!.kind === 'event.update');
+	expect(updates.map((c) => (c.op as { ref: string }).ref).sort()).toEqual([...refs].sort());
+	const gone = updates.findIndex((c) => c.code === 3);
+	expect((updates[gone].op as { ref: string }).ref).toBe(refs[0]);
+	expect(updates.filter((c) => c.code === 3)).toHaveLength(1);
+	const afterGone = calls[calls.indexOf(updates[gone]) + 1];
+	expect(afterGone.op!.kind).toBe('event.create');
+	expect(calls.filter((c) => c.op!.kind === 'event.create')).toHaveLength(1);
 });
 
 test('Scenario: Sync page fits a phone', async ({ page, request }) => {

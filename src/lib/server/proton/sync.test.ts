@@ -412,10 +412,10 @@ describe('diff and sequences', () => {
 
 	it('Scenario: Unchanged database makes no calls', async () => {
 		world();
-		const desired = desiredState(db, TODAY).length;
+		const desired = count('SELECT (SELECT count(*) FROM todos WHERE day IS NOT NULL) + (SELECT count(*) FROM recurring_rules) + (SELECT count(*) FROM classes WHERE exam_at IS NOT NULL) AS n');
+		expect(desired).toBe(4);
 		await sync();
 		expect(byKind(ops(), 'event.create')).toHaveLength(desired);
-		expect(desired).toBeGreaterThan(0);
 		const m = mark();
 		await sync();
 		expect(mark()).toBe(m);

@@ -219,7 +219,10 @@ describe('desiredState: rule series', () => {
 	it('Scenario: Rule without a slot is an all-day series', () => {
 		sprint('active', '2026-10-12');
 		const id = rule('Water plants', '5');
-		expect(item(desiredState(db, TODAY), `rule:${id}`).spec).toMatchObject({ start: null, end: null, durationMin: null });
+		const startOnly = rule('Call home', '5', '19:00');
+		const items = desiredState(db, TODAY);
+		expect(item(items, `rule:${id}`).spec).toMatchObject({ start: null, end: null, durationMin: null });
+		expect(item(items, `rule:${startOnly}`).spec).toMatchObject({ start: '19:00', end: null, durationMin: 30 });
 	});
 
 	it('Scenario: Rules of archived classes have no series', () => {
@@ -238,6 +241,8 @@ describe('desiredState: rule series', () => {
 		const active = sprint('active', '2026-10-12');
 		const gym = rule('Gym', '1,4');
 		const other = rule('Other', '1');
+		const early = rule('Early', '1');
+		todo('Early', { day: '2026-10-12', sprintId: active, ruleId: early });
 		todo('Gym', { day: '2026-10-12', sprintId: active, ruleId: gym });
 		todo('Gym', { day: '2026-10-22', sprintId: active, ruleId: gym });
 		todo('Gym', { day: '2026-10-19', sprintId: active, ruleId: gym });
@@ -246,6 +251,7 @@ describe('desiredState: rule series', () => {
 		const items = desiredState(db, TODAY);
 		expect(item(items, `rule:${gym}`).spec).toMatchObject({ date: '2026-10-19', exdates: ['2026-10-19', '2026-10-22'] });
 		expect(item(items, `rule:${other}`).spec).toMatchObject({ date: '2026-10-19', exdates: ['2026-10-26'] });
+		expect(item(items, `rule:${early}`).spec).toMatchObject({ date: '2026-10-19', exdates: [] });
 	});
 });
 

@@ -44,15 +44,29 @@ describe('proton worker', () => {
 		expect(pass).toHaveBeenLastCalledWith({ retryFailed: false });
 	});
 
+	it('Scenario: Startup runs one catch-up pass', async () => {
+		const pass = vi.fn(async () => DONE);
+		configureWorker(CFG, { pass, db, debounceMs: 30_000, tickMs: 3_600_000 });
+		await vi.advanceTimersByTimeAsync(29_999);
+		expect(pass).not.toHaveBeenCalled();
+		await vi.advanceTimersByTimeAsync(1);
+		expect(pass).toHaveBeenCalledTimes(1);
+		expect(pass).toHaveBeenLastCalledWith({ retryFailed: false });
+		await vi.advanceTimersByTimeAsync(600_000);
+		expect(pass).toHaveBeenCalledTimes(1);
+	});
+
 	it('Scenario: Local tick runs every five minutes', async () => {
 		const pass = vi.fn(async () => DONE);
 		configureWorker(CFG, { pass, db, debounceMs: 1000, tickMs: 300_000 });
 		await vi.advanceTimersByTimeAsync(299_999);
 		expect(pass).toHaveBeenCalledTimes(1);
-		await vi.advanceTimersByTimeAsync(1);
-		expect(pass).toHaveBeenCalledTimes(2);
-		await vi.advanceTimersByTimeAsync(300_000);
-		expect(pass).toHaveBeenCalledTimes(3);
+		for (const expected of [2, 3, 4]) {
+			await vi.advanceTimersByTimeAsync(1);
+			expect(pass).toHaveBeenCalledTimes(expected);
+			await vi.advanceTimersByTimeAsync(299_999);
+			expect(pass).toHaveBeenCalledTimes(expected);
+		}
 	});
 
 	it('Scenario: Passes never overlap', async () => {
@@ -65,19 +79,21 @@ describe('proton worker', () => {
 			active--;
 			return DONE;
 		});
-		configureWorker(CFG, { pass, db, debounceMs: 1000, tickMs: 3_600_000 });
-		await vi.advanceTimersByTimeAsync(1000);
+		configureWorker(CFG, { pass, db, debounceMs: 3_600_000, tickMs: 3_600_000 });
+		const first = syncNow();
 		expect(syncStatus().state).toBe('syncing');
-		nudge();
-		await vi.advanceTimersByTimeAsync(1000);
-		nudge();
-		await vi.advanceTimersByTimeAsync(1000);
+		const second = syncNow();
+		const third = syncNow();
+		await vi.advanceTimersByTimeAsync(5000);
 		expect(pass).toHaveBeenCalledTimes(1);
 
 		release[0]();
 		await vi.advanceTimersByTimeAsync(0);
+		expect(await first).toEqual(DONE);
 		expect(pass).toHaveBeenCalledTimes(2);
 		release[1]();
+		expect(await second).toEqual(DONE);
+		expect(await third).toEqual(DONE);
 		await vi.advanceTimersByTimeAsync(5000);
 		expect(pass).toHaveBeenCalledTimes(2);
 		expect(overlap).toBe(1);
@@ -181,12 +197,13 @@ describe('proton worker', () => {
 			.fn<() => Promise<PassOutcome>>()
 			.mockResolvedValueOnce({ kind: 'error', error: 'spawn /bin/proton ENOENT' })
 			.mockResolvedValue(DONE);
-		configureWorker(CFG, { pass, db, debounceMs: 1000, tickMs: 3_600_000 });
+		configureWorker(CFG, { pass, db, debounceMs: 1000, tickMs: 60_000 });
 		await vi.advanceTimersByTimeAsync(1000);
 		expect(syncStatus()).toMatchObject({ state: 'error', lastError: 'spawn /bin/proton ENOENT', nextRetryAt: null });
 
-		nudge();
-		await vi.advanceTimersByTimeAsync(1000);
+		await vi.advanceTimersByTimeAsync(58_999);
+		expect(pass).toHaveBeenCalledTimes(1);
+		await vi.advanceTimersByTimeAsync(1);
 		expect(pass).toHaveBeenCalledTimes(2);
 		expect(syncStatus()).toMatchObject({ state: 'idle', lastError: null });
 	});

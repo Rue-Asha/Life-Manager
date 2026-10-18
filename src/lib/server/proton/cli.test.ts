@@ -61,6 +61,24 @@ describe('proton cli runner', () => {
 		expect(fake.calls()[2].argv).toEqual(expect.arrayContaining(['--all-day=false', '--duration', '90m']));
 		expect(fake.state().events[`${cal}/evt-1`].spec).toMatchObject({ start: '18:00', end: null, durationMin: 90 });
 
+		const zoneOf = (argv: string[] | null | undefined) => argv?.slice(argv.indexOf('--zone'), argv.indexOf('--zone') + 2);
+		expect(zoneOf(fake.calls()[1].argv)).toEqual(['--zone', 'Europe/Berlin']);
+		expect(fake.calls()[1].argv).toEqual(expect.arrayContaining(['--start', '2026-10-21T18:00', '--end', '2026-10-21T19:00']));
+
+		const startOnly = await run()({ kind: 'event.create', calendarId: cal, spec: spec({ end: null, durationMin: 30 }) });
+		expect(startOnly.ok).toBe(true);
+		const startOnlyCall = fake.calls().at(-1);
+		expect(zoneOf(startOnlyCall?.argv)).toEqual(['--zone', 'Europe/Berlin']);
+		expect(startOnlyCall?.argv).toEqual(expect.arrayContaining(['--start', '2026-10-21T18:00', '--duration', '30m']));
+		expect(startOnlyCall?.argv).not.toContain('--end');
+
+		const allDayCreate = await run()({ kind: 'event.create', calendarId: cal, spec: spec({ start: null, end: null }) });
+		expect(allDayCreate.ok).toBe(true);
+		const allDayCall = fake.calls().at(-1);
+		expect(zoneOf(allDayCall?.argv)).toEqual(['--zone', 'Europe/Berlin']);
+		expect(allDayCall?.argv).toEqual(expect.arrayContaining(['--start', '2026-10-21', '--all-day']));
+		expect(allDayCall?.argv).not.toContain('--end');
+
 		const allDay = spec({ start: null, end: null });
 		expect(toArgv({ kind: 'event.create', calendarId: cal, spec: allDay }, 'p')).toEqual(
 			expect.arrayContaining(['--start', '2026-10-21', '--all-day'])
@@ -76,7 +94,8 @@ describe('proton cli runner', () => {
 	});
 
 	it('Scenario: Calls run non-interactively', async () => {
-		await calendar();
+		const result = await run()({ kind: 'calendar.create', name: 'Health', color: '#258723' });
+		expect(result).toEqual({ ok: true, ids: ['cal-1'] });
 		const { argv, env } = fake.calls()[0];
 		expect(argv?.slice(0, 4)).toEqual(['--output', 'json', '--profile', 'default']);
 		expect(env).toMatchObject({ PROTON_NO_INPUT: '1', PROTON_NO_UPDATE_CHECK: '1', PROTON_NO_LOG: '1', TZ: 'Europe/Berlin' });
@@ -95,8 +114,13 @@ describe('proton cli runner', () => {
 
 	it('Scenario: Failure carries the exit code and the Error line', async () => {
 		const cal = await calendar();
-		fake.fail({ kind: 'event.create', code: 5, error: 'network down' });
-		expect(await run()({ kind: 'event.create', calendarId: cal, spec: spec() })).toEqual({ ok: false, code: 5, error: 'Error: network down' });
+		const create = () => run()({ kind: 'event.create', calendarId: cal, spec: spec() });
+		fake.fail({ kind: 'event.create', code: 1, error: 'bad title', times: 1 });
+		fake.fail({ kind: 'event.create', code: 2, error: 'session expired', times: 1 });
+		fake.fail({ kind: 'event.create', code: 5, error: 'network down', times: 1 });
+		expect(await create()).toEqual({ ok: false, code: 1, error: 'Error: bad title' });
+		expect(await create()).toEqual({ ok: false, code: 2, error: 'Error: session expired' });
+		expect(await create()).toEqual({ ok: false, code: 5, error: 'Error: network down' });
 		expect(await run()({ kind: 'event.delete', ref: `${cal}/evt-99` })).toEqual({
 			ok: false,
 			code: 3,
@@ -107,11 +131,15 @@ describe('proton cli runner', () => {
 	it('Scenario: Missing binary is reported, not thrown', async () => {
 		const op: ProtonOp = { kind: 'calendar.create', name: 'x', color: '#258723' };
 		const missing = await createRunner({ cli: join(dir, 'nope'), profile: 'p' }, { gapMs: 0 })(op);
-		expect(missing).toMatchObject({ ok: false, code: 'spawn' });
+		expect(missing).toMatchObject({ ok: false, code: 'spawn', error: expect.stringContaining('ENOENT') });
 		const plain = join(dir, 'plain');
 		writeFileSync(plain, '#!/bin/sh\n');
 		chmodSync(plain, 0o644);
-		expect(await createRunner({ cli: plain, profile: 'p' }, { gapMs: 0 })(op)).toMatchObject({ ok: false, code: 'spawn' });
+		expect(await createRunner({ cli: plain, profile: 'p' }, { gapMs: 0 })(op)).toMatchObject({
+			ok: false,
+			code: 'spawn',
+			error: expect.stringContaining('EACCES')
+		});
 	});
 
 	it('Scenario: Child process inherits XDG_CONFIG_HOME', async () => {
@@ -123,16 +151,21 @@ describe('proton cli runner', () => {
 	it('Scenario: Occurrence deletes name the occurrence in Europe/Berlin', async () => {
 		process.env.TZ = 'America/New_York';
 		const cal = await calendar();
-		const created = await run()({
-			kind: 'event.create',
-			calendarId: cal,
-			spec: spec({ rrule: 'FREQ=WEEKLY;BYDAY=TU,TH', date: '2026-10-20' })
-		});
-		const ref = created.ok ? created.ids[0] : '';
-		expect(await run()({ kind: 'event.deleteOccurrence', ref, occurrence: '2026-10-22T18:00' })).toEqual({ ok: true, ids: [ref] });
-		expect(fake.calls().at(-1)?.argv).toContain(`${ref}@2026-10-22T18:00`);
+		const series = async (over: Partial<EventSpec>) => {
+			const created = await run()({ kind: 'event.create', calendarId: cal, spec: spec({ rrule: 'FREQ=WEEKLY;BYDAY=TU,TH', date: '2026-10-20', ...over }) });
+			return created.ok ? created.ids[0] : '';
+		};
+		const timed = await series({});
+		expect(await run()({ kind: 'event.deleteOccurrence', ref: timed, occurrence: '2026-10-22T18:00' })).toEqual({ ok: true, ids: [timed] });
+		expect(fake.calls().at(-1)?.argv).toEqual(expect.arrayContaining([`${timed}@2026-10-22T18:00`, '--yes']));
 		expect(fake.calls().at(-1)?.env.TZ).toBe('Europe/Berlin');
-		expect(fake.state().events[ref].exdates).toEqual(['2026-10-22']);
+		expect(fake.state().events[timed].exdates).toEqual(['2026-10-22']);
+
+		const allDay = await series({ start: null, end: null });
+		expect(await run()({ kind: 'event.deleteOccurrence', ref: allDay, occurrence: '2026-10-22' })).toEqual({ ok: true, ids: [allDay] });
+		expect(fake.calls().at(-1)?.argv).toEqual(expect.arrayContaining([`${allDay}@2026-10-22`, '--yes']));
+		expect(fake.calls().at(-1)?.env.TZ).toBe('Europe/Berlin');
+		expect(fake.state().events[allDay].exdates).toEqual(['2026-10-22']);
 	});
 
 	it('Scenario: Mutations are at least one second apart', async () => {
