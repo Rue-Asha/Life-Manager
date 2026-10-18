@@ -169,6 +169,17 @@ describe('createTodo', () => {
 		).toEqual({ ok: false, error: 'day-in-past', field: 'day' });
 	});
 
+	it('Scenario: Creating on a day follows the placement rule', () => {
+		const { db, aspect } = setup();
+		const sprint = activeSprint(db, '2026-10-12');
+		const make = (target: NonNullable<Parameters<typeof createTodo>[1]['target']>) =>
+			createTodo(db, { title: 'Run', aspectId: aspect, target }, '2026-10-19');
+		expect(make({ kind: 'day', day: '2026-10-15' })).toEqual({ ok: false, error: 'review-required' });
+		expect(todoCount(db)).toBe(0);
+		expect(value(make({ kind: 'day', day: '2026-10-19' }))).toMatchObject({ sprintId: null, day: '2026-10-19' });
+		expect(value(make({ kind: 'sprint' }))).toMatchObject({ sprintId: sprint, day: null, status: 'todo' });
+	});
+
 	it('returns null for a missing todo', () => {
 		const { db } = setup();
 		expect(getTodo(db, 42)).toBeNull();

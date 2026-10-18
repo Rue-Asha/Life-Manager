@@ -23,7 +23,10 @@ editor. Clearing the date clears both times. A date before today that is not a d
 refused with error `day-in-past` on field `day`, the editor showing a message and nothing being changed; every day of
 the active sprint week, including days before today, is allowed. Todos of archived semesters stay read-only (`archived`).
 A done todo's planned date is edited like any other field and keeps its status where it stays in its sprint. Where the
-todo lands (sprint or backlog) follows sprint-lifecycle "Mid-sprint changes". (S1)
+todo lands (sprint or backlog) follows sprint-lifecycle "Mid-sprint changes". Creating a todo with a day target (quick
+add in a Week view column) places it by the same rule, `review-required` while the active sprint's review is required
+included; creating with the sprint target (quick add in By aspect or Unscheduled) keeps its existing behaviour and is not
+refused by a required review. (S1)
 
 #### Scenario: Plan a backlog todo three weeks out with a slot
 - **WHEN** Rue opens a backlog todo, sets "Planned" to the Tuesday three weeks after today with "From" 18:00 and "To" 19:30, and saves
@@ -59,6 +62,11 @@ todo lands (sprint or backlog) follows sprint-lifecycle "Mid-sprint changes". (S
 - **WHEN** a request to the `/todos` `setDay` action and one to the `update` action with a `day` are posted for a class todo of an archived semester
 - **THEN** both fail with error `archived` and the todo's day and slot are unchanged
 - **proof:** e2e
+
+#### Scenario: Creating on a day follows the placement rule
+- **WHEN** today is the Monday after an active sprint of 2026-10-12 to 2026-10-18, and todos are created with a day target of 2026-10-15, a day target of 2026-10-19, and the sprint target
+- **THEN** the first fails with `review-required` and nothing is stored, the second is in the backlog on 2026-10-19, and the third is in the active sprint with no day, unchanged from before this change
+- **proof:** unit
 
 #### Scenario: Done todo is planned like any todo
 - **WHEN** a Done sprint todo on Monday of the active sprint is planned for Friday of the same week with 09:00
