@@ -3,7 +3,7 @@
 	import { untrack, type Snippet } from 'svelte';
 	import { MediaQuery } from 'svelte/reactivity';
 	import { ASPECT_COLORS } from '$lib/aspect-style';
-	import type { Aspect, ClassType, Id, IsoDate, Priority, Todo } from '$lib/types';
+	import type { Aspect, ClassType, HhMm, Id, IsoDate, Priority, Todo } from '$lib/types';
 	import Button from '../ui/Button.svelte';
 	import ConfirmDialog from '../ui/ConfirmDialog.svelte';
 	import Sheet from '../ui/Sheet.svelte';
@@ -30,6 +30,9 @@
 	let dueDate = $state<IsoDate | ''>('');
 	let projectId = $state<Id | ''>('');
 	let classId = $state<Id | ''>('');
+	let plannedDay = $state<IsoDate | ''>('');
+	let startTime = $state<HhMm | ''>('');
+	let endTime = $state<HhMm | ''>('');
 	let type = $state<ClassType>('OTH');
 	let error = $state<ActionError | null>(null);
 	let newItem = $state('');
@@ -43,12 +46,23 @@
 			dueDate = todo.dueDate ?? '';
 			projectId = todo.projectId ?? '';
 			classId = todo.classId ?? '';
+			plannedDay = todo.day ?? '';
+			startTime = todo.startTime ?? '';
+			endTime = todo.endTime ?? '';
 			type = todo.type ?? 'OTH';
 			error = null;
 		});
 	});
 
 	const aspectColor = $derived(ASPECT_COLORS[(aspects.find((a) => a.id === todo.aspectId) ?? aspects[0]).color].fg);
+
+	function planError({ error }: ActionError): string | undefined {
+		if (error === 'day-in-past') return 'That day has already passed. Pick today or a later day.';
+		if (error === 'review-required') return 'The sprint needs its review before a day can be changed.';
+		if (error === 'end-before-start') return 'The end time has to be after the start time.';
+		if (error === 'end-without-start') return 'Set a start time before the end time.';
+		if (error === 'invalid') return 'Use a time like 18:00.';
+	}
 
 	function onkeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape' && open && desktop.current && !confirming) onclose();
@@ -84,12 +98,16 @@
 			bind:projectId
 			bind:classId
 			bind:type
+			planned
+			bind:plannedDay
+			bind:startTime
+			bind:endTime
 			linkedId={todo.projectId}
 			clearProject
 			clearClass
 		/>
 		{#if error && error.field !== 'title'}
-			<p class="error" role="alert">Couldn’t save the todo ({error.error}).</p>
+			<p class="error" role="alert">{planError(error) ?? `Couldn’t save the todo (${error.error}).`}</p>
 		{/if}
 	</form>
 
