@@ -3,7 +3,7 @@ import { listAspects } from '$lib/server/aspects';
 import { today } from '$lib/server/clock';
 import { getDb } from '$lib/server/db';
 import { createRule, deleteRule, listRules, updateRule } from '$lib/server/recurring';
-import type { ClassType, Priority, Result, RuleInput, Weekday } from '$lib/types';
+import type { ClassType, HhMm, Priority, Result, RuleInput, Weekday } from '$lib/types';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = () => {
@@ -23,7 +23,9 @@ function ruleInput(data: FormData): RuleInput {
 			.map((text) => String(text).trim())
 			.filter(Boolean),
 		classId: data.get('classId') ? Number(data.get('classId')) : null,
-		type: (String(data.get('type') ?? '') || null) as ClassType | null
+		type: (String(data.get('type') ?? '') || null) as ClassType | null,
+		startTime: (String(data.get('startTime') ?? '') || null) as HhMm | null,
+		endTime: (String(data.get('endTime') ?? '') || null) as HhMm | null
 	};
 }
 

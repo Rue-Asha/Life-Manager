@@ -85,3 +85,38 @@ test('rule can be edited and deleted after confirming', async ({ page, request }
 	await expect(page.getByTestId('rule-row')).toHaveCount(0);
 	await expect(page.getByText('No recurring rules yet.')).toBeVisible();
 });
+
+test('Scenario: Rule with a time slot', async ({ page, request }) => {
+	await seed(request, { aspects: [{ name: 'Health', color: 'sage', icon: 'heart' }] });
+	await page.goto('/recurring');
+
+	await page.getByRole('button', { name: 'New rule' }).click();
+	const form = page.getByRole('dialog', { name: 'New rule' });
+	await form.getByLabel('Title').fill('Gym');
+	await form.getByRole('checkbox', { name: 'Monday' }).check();
+	await form.getByRole('checkbox', { name: 'Thursday' }).check();
+	await form.getByLabel('From').fill('18:00');
+	await form.getByLabel('To').fill('19:30');
+	await form.getByRole('button', { name: 'Add rule' }).click();
+	await expect(form).toBeHidden();
+
+	const row = page.getByTestId('rule-row');
+	await expect(row).toHaveCount(1);
+	await expect(row.getByTestId('rule-slot')).toHaveText('18:00–19:30');
+	await expect(row).toHaveAttribute('id', /^rule-\d+$/);
+
+	await row.getByRole('button', { name: /Gym/ }).click();
+	const edit = page.getByRole('dialog', { name: 'Edit rule' });
+	await expect(edit.getByLabel('From')).toHaveValue('18:00');
+	await expect(edit.getByLabel('To')).toHaveValue('19:30');
+	await edit.getByLabel('From').fill('');
+	await expect(edit.getByLabel('To')).toHaveValue('');
+	await edit.getByRole('button', { name: 'Save rule' }).click();
+	await expect(edit).toBeHidden();
+
+	await expect(row.getByTestId('rule-slot')).toHaveCount(0);
+	await row.getByRole('button', { name: /Gym/ }).click();
+	const again = page.getByRole('dialog', { name: 'Edit rule' });
+	await expect(again.getByLabel('From')).toHaveValue('');
+	await expect(again.getByLabel('To')).toHaveValue('');
+});

@@ -2,6 +2,7 @@ import type { DatabaseSync, SQLInputValue } from 'node:sqlite';
 import type { ClassType, HhMm, Id, IsoDate, Priority, RecurringRule, Result, RuleInput, Sprint, Todo, Weekday } from '$lib/types';
 import { isPriority } from '$lib/todo-utils';
 import { CLASS_TYPES } from '$lib/uni';
+import { validateSlot } from '$lib/slot';
 import { addDays } from '$lib/week';
 import { now } from './clock';
 import { getActiveSprint, selectTodos, transaction } from './sprints';
@@ -39,6 +40,8 @@ function validate(db: DatabaseSync, input: RuleInput, keptClassId: Id | null = n
 	if (input.weekdays.length === 0 || !input.weekdays.every((d) => Number.isInteger(d) && d >= 1 && d <= 7)) {
 		return { ok: false, error: 'weekdays-required', field: 'weekdays' };
 	}
+	const slot = validateSlot(input.startTime ?? null, input.endTime ?? null);
+	if (slot) return { ok: false, error: slot.error, field: slot.field };
 	if (input.priority !== undefined && !isPriority(input.priority)) return { ok: false, error: 'required', field: 'priority' };
 	if (input.type != null && !CLASS_TYPES.includes(input.type)) return { ok: false, error: 'invalid', field: 'type' };
 	const classId = classFor(db, input);
@@ -64,7 +67,9 @@ function columns(db: DatabaseSync, input: RuleInput): SQLInputValue[] {
 		input.priority ?? 0,
 		JSON.stringify(input.checklist ?? []),
 		classId,
-		classId === null ? null : (input.type ?? 'OTH')
+		classId === null ? null : (input.type ?? 'OTH'),
+		input.startTime ?? null,
+		input.endTime ?? null
 	];
 }
 
@@ -78,8 +83,8 @@ export function createRule(db: DatabaseSync, input: RuleInput, today: IsoDate): 
 	return transaction(db, () => {
 		const { lastInsertRowid } = db
 			.prepare(
-				`INSERT INTO recurring_rules (title, aspect_id, weekdays, notes, priority, checklist, class_id, type, created_at)
-				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+				`INSERT INTO recurring_rules (title, aspect_id, weekdays, notes, priority, checklist, class_id, type, start_time, end_time, created_at)
+				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 			)
 			.run(...columns(db, input), now().toISOString());
 		const active = getActiveSprint(db);
@@ -95,7 +100,7 @@ export function updateRule(db: DatabaseSync, id: Id, input: RuleInput): Result<R
 	if (!rule) return { ok: false, error: 'not-found' };
 	db.prepare(
 		`UPDATE recurring_rules SET title = ?, aspect_id = ?, weekdays = ?, notes = ?, priority = ?, checklist = ?,
-		 class_id = ?, type = ? WHERE id = ?`
+		 class_id = ?, type = ?, start_time = ?, end_time = ? WHERE id = ?`
 	).run(...columns(db, input), id);
 	return { ok: true, value: getRule(db, id)! };
 }
@@ -120,12 +125,12 @@ export function generateInstances(db: DatabaseSync, sprint: Sprint, fromDay: Iso
 	);
 	const rules = (ruleId === undefined ? listRules(db) : [getRule(db, ruleId)!]).filter((r) => !archived.has(r.id));
 	const insertTodo = db.prepare(
-		`INSERT INTO todos (title, aspect_id, notes, priority, sprint_id, day, recurring, rule_id, class_id, type, created_at)
-		 VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)`
+		`INSERT INTO todos (title, aspect_id, notes, priority, sprint_id, day, recurring, rule_id, class_id, type, start_time, end_time, created_at)
+		 VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?)`
 	);
 	const insertItem = db.prepare('INSERT INTO checklist_items (todo_id, text, position) VALUES (?, ?, ?)');
 	const carried = db.prepare("SELECT id FROM todos WHERE sprint_id = ? AND rule_id = ? AND status != 'done' ORDER BY id");
-	const placeCarried = db.prepare('UPDATE todos SET day = ? WHERE id = ?');
+	const placeCarried = db.prepare('UPDATE todos SET day = ?, start_time = ?, end_time = ? WHERE id = ?');
 	const createdAt = now().toISOString();
 	const ids: Id[] = [];
 	for (const rule of rules) {
@@ -136,7 +141,7 @@ export function generateInstances(db: DatabaseSync, sprint: Sprint, fromDay: Iso
 			if (day < fromDay) continue;
 			const carriedId = open.shift();
 			if (carriedId !== undefined) {
-				placeCarried.run(day, carriedId);
+				placeCarried.run(day, rule.startTime, rule.endTime, carriedId);
 				continue;
 			}
 			const id = Number(
@@ -150,6 +155,8 @@ export function generateInstances(db: DatabaseSync, sprint: Sprint, fromDay: Iso
 					rule.id,
 					rule.classId,
 					rule.type,
+					rule.startTime,
+					rule.endTime,
 					createdAt
 				)
 					.lastInsertRowid
