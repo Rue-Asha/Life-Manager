@@ -45,3 +45,28 @@ Directory: /tmp/claude-1001/-home-Rue-Repos-Life-Manager/8b9ca9f3-3e49-4367-b766
 
 - sync-off-375.png, sync-relogin-375.png, sync-failed-375.png (from the phone-fit e2e)
 - sync-off-1280.png, sync-pending-1280.png, sync-synced-1280.png (own Playwright script against build on 4709, fake CLI)
+
+## Review
+
+Fresh-context reviewer (opus), three rounds; fixer (sonnet) after rounds 1 and 2.
+
+### Round 1 — 16 findings, all fixed (6f2c55e, cbbef5c, 0df3b94)
+- correctness: 1 s pacing only held within one pass (new runner per pass) → one runner per configured worker; test "Mutations stay one gap apart across passes".
+- correctness: stale error kept on /sync when an item matched its synced hash again → cleared without a call; tests "Failed update clears when the item matches Proton again", "Failed delete clears when the item is desired again".
+- correctness: a throwing pass left state "syncing" forever and crashed Node (unhandled rejection; FK failure when an aspect is deleted during its calendar create) → thrown pass ends in state error, queue proceeds; missing aspect skips the item; tests "A pass that throws ends in state error and the next pass runs", "Aspect deleted during its calendar create skips the item".
+- spec: startup catch-up pass had no scenario → orchestrator kept it (catches changes made while the app was down, first-run backfill); scenario "Startup runs one catch-up pass" added, nudge scenario reworded to the post-startup baseline.
+- 12 weak tests tightened (cli, worker, desired, sync, e2e Resync all); mutation-checked for cli and worker.
+
+### Round 2 — 6 findings, all fixed (a084c24, 05f865b, e603ac8)
+- correctness: aspect deleted mid-pass (before its item) stalled the item as failed → `Skip` instead of `Failure`; test "Aspect deleted mid-pass leaves the item for the next pass".
+- correctness: `proton` exiting 0 with non-JSON stdout threw an uncaught SyntaxError (process crash) → resolves as a failure; test "Non-JSON output ends the pass in state error".
+- spec: successful delete before a calendar-move create wasn't stored → row nulled before the create; test "Failed create after a calendar move keeps no deleted ref".
+- 3 weak tests tightened (series start weekday, done-todo prefix, last-sync on retry).
+
+### Round 3 — 6 findings, OPEN (round limit reached; for Rue at Gate 2)
+- correctness: `execFile` has no timeout (cli.ts:172) — a hung `proton` child (stalled network, unexpected prompt) blocks every later pass; state stays "Syncing…" until an app restart.
+- spec: reconciler.ts:231-235 — the `error_hash === hash` skip runs before the clear check, so a failed delete during an aspect move followed by moving the todo back keeps the item listed as failed until Sync now (S11 "cleared once its content matches Proton again").
+- weak: worker tests pass explicit `debounceMs`/`tickMs`, so the production defaults (30 s, 5 min) are not pinned.
+- weak: "Series start lands on a rule weekday" never runs its no-sprint WHEN (roll into next week from Wed 2026-10-21).
+- weak (minor): "Non-JSON output ends the pass in state error" asserts the runner result only, not the pass state.
+- known gap (fixer round 2, not a reviewer finding): an item with a stored error whose aspect is later deleted, with an identical spec under the target aspect, stays skipped until Sync now / Resync all.
