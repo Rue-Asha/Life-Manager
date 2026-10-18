@@ -126,25 +126,8 @@
 			bind:this={titleInput}
 			onkeydown={(e) => e.key === 'Escape' && desktop.current && variant === 'inline' && close()}
 		/>
-		<textarea class="notes" name="notes" placeholder="Notes" aria-label="Notes" rows="1" bind:value={notes}
+		<textarea class="notes" name="notes" placeholder="Add a description" aria-label="Description" rows="1" bind:value={notes}
 		></textarea>
-
-		{#if checklist.length}
-			<ul class="checklist">
-				{#each checklist as _, i (i)}
-					<li>
-						<i aria-hidden="true"></i>
-						<input
-							name="checklist"
-							placeholder="Checklist item"
-							aria-label="Checklist item {i + 1}"
-							bind:value={checklist[i]}
-							onkeydown={(e) => checklistKey(e, i)}
-						/>
-					</li>
-				{/each}
-			</ul>
-		{/if}
 
 		<TodoFields
 			{aspects}
@@ -163,6 +146,23 @@
 				Checklist
 			</Chip>
 		</TodoFields>
+
+		{#if checklist.length}
+			<ul class="checklist">
+				{#each checklist as _, i (i)}
+					<li>
+						<i aria-hidden="true"></i>
+						<input
+							name="checklist"
+							placeholder="Checklist item"
+							aria-label="Checklist item {i + 1}"
+							bind:value={checklist[i]}
+							onkeydown={(e) => checklistKey(e, i)}
+						/>
+					</li>
+				{/each}
+			</ul>
+		{/if}
 
 		{#if error}
 			<p class="error" role="alert">{MESSAGES[error.error] ?? planError(error) ?? `Couldn’t add the todo (${error.error}).`}</p>
@@ -310,7 +310,7 @@
 	}
 
 	.checklist {
-		margin: calc(-1 * var(--space-2)) 0 var(--space-4);
+		margin: var(--space-3) 0 0;
 		padding: 0;
 		list-style: none;
 	}

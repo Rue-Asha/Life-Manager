@@ -81,7 +81,8 @@
 		<input type="hidden" name="id" value={todo.id} />
 		<input class="title" name="title" aria-label="Title" autocomplete="off" bind:value={title} />
 		{#if error?.field === 'title'}<p class="error" role="alert">Give the todo a title.</p>{/if}
-		<textarea class="notes" name="notes" placeholder="Notes" aria-label="Notes" rows="1" bind:value={notes}></textarea>
+		<textarea class="notes" name="notes" placeholder="Add a description" aria-label="Description" rows="2" bind:value={notes}
+		></textarea>
 		<TodoFields
 			{aspects}
 			bind:aspectId
@@ -147,7 +148,7 @@
 	</form>
 
 	<footer>
-		<Button type="button" variant="quiet" onclick={() => (confirming = true)}>Delete</Button>
+		<span class="danger"><Button type="button" variant="quiet" onclick={() => (confirming = true)}>Delete</Button></span>
 		{@render actions?.()}
 		<span class="spacer"></span>
 		<Button type="button" variant="quiet" onclick={onclose}>Cancel</Button>
@@ -218,14 +219,19 @@
 	}
 
 	.title {
-		font-weight: var(--weight-medium);
+		font-size: var(--text-lg);
+		font-weight: var(--weight-semibold);
+		letter-spacing: var(--tracking-title);
 	}
 
+	/* Two lines at rest, so the description reads as a field to write in rather than a hint. */
 	.notes {
-		margin: var(--space-1) 0 var(--space-4);
+		min-height: 2lh;
+		margin: var(--space-2) 0 var(--space-4);
 		resize: none;
 		field-sizing: content;
 		color: var(--ink-2);
+		line-height: var(--leading-body);
 	}
 
 	.notes::placeholder,
@@ -340,6 +346,14 @@
 		flex: 1;
 	}
 
+	.danger {
+		display: contents;
+	}
+
+	.danger :global(.btn.quiet) {
+		color: var(--overdue);
+	}
+
 	@media (hover: none) {
 		.remove {
 			opacity: 1;
@@ -348,7 +362,13 @@
 
 	@media (max-width: 767px) {
 		.title {
-			font-size: var(--text-lg);
+			font-size: var(--text-xl);
+		}
+
+		/* Save leads on a phone, full width, so the row of other actions never pushes it onto a line alone. */
+		footer > :global(.btn.primary) {
+			order: -1;
+			flex-basis: 100%;
 		}
 	}
 </style>

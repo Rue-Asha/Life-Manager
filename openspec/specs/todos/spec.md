@@ -42,9 +42,13 @@ from a sprint view, and on a specific day when created in a week-by-day column. 
 ### Requirement: Edit todos
 Rue SHALL be able to change every field of a todo; checklist items can be added, renamed, checked,
 unchecked and deleted. (S7)
+The create and edit forms SHALL share one field order: title, description (the `notes` field, labelled "Description"),
+the field chips with "Planned" and its time row, then the checklist. The editor's title is set larger than a row title,
+its description shows at least two lines, Delete is styled as a destructive action, and on a phone Save leads the
+footer at full width.
 
 #### Scenario: Edit every field of a todo
-- **WHEN** Rue opens a todo and changes title, aspect, notes, priority and due date, then saves
+- **WHEN** Rue opens a todo and changes title, aspect, description (notes), priority and due date, then saves
 - **THEN** the row and the reopened editor show the new values
 - **proof:** e2e
 
