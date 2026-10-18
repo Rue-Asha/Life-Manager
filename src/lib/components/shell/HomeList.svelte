@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { UI_ICONS } from '../ui/icons';
-	import { NAV_ITEMS, navCount, type NavData } from './Sidebar.svelte';
+	import { NAV_ITEMS, navCount, syncNeedsAttention, type NavData } from './Sidebar.svelte';
 
 	const nav = $derived(page.data.nav as NavData);
 </script>
@@ -23,6 +23,14 @@
 	</ul>
 </nav>
 
+<div class="sync">
+	<a href="/sync" data-testid="sync-link">
+		<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS['refresh-cw']} /></svg>
+		Proton sync
+		{#if syncNeedsAttention(nav)}<span class="marker" data-testid="sync-marker" role="img" aria-label="Needs attention"></span>{/if}
+	</a>
+</div>
+
 <style>
 	/* iOS-style grouped list: one white card, inset hairlines between rows. */
 	ul {
@@ -33,6 +41,22 @@
 		background: var(--surface);
 		box-shadow: var(--shadow-card);
 		overflow: clip;
+	}
+
+	.sync {
+		margin-top: var(--space-5);
+		overflow: clip;
+		border-radius: var(--radius-group);
+		background: var(--surface);
+		box-shadow: var(--shadow-card);
+	}
+
+	.marker {
+		width: 10px;
+		height: 10px;
+		margin-left: auto;
+		border-radius: 50%;
+		background: var(--overdue);
 	}
 
 	li + li {
