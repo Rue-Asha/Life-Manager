@@ -1,0 +1,9 @@
+track: feature
+triage: "feature — plan todos onto any future day with an optional time slot, recurring slots + projection, read-only month calendar; Proton sync split off. Appetite: three evenings"
+base: main
+gate0: 2026-10-18
+gate1: 2026-10-18
+learnings:
+  - 'Request naming "due dates" for a calendar or schedule → ask which date field is meant (due vs planned day) before offering options (weil: Rue asked for due dates in Proton, then corrected to the planned time slot after a round of due-time questions) [2026-10-18 · calendar-planning]'
+  - 'Splitting a change off at explore → write its intent, decisions and research into a notes file in the change dir at the moment of the split (weil: Rue asked at Gate 0 whether the Proton plan was persisted; the research lived only in session context) [2026-10-18 · calendar-planning]'
+  - 'Scope strings for UI copy → write them in the app''s UI language (English here), even when the explore dialogue runs in German (weil: scope.md quoted German labels, the planner copied them into specs and had to ask at Gate 1; Rue chose English) [2026-10-18 · calendar-planning]'
