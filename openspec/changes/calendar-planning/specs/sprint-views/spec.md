@@ -116,5 +116,5 @@ unchanged. (cohesive-look, calendar-planning S4)
 
 #### Scenario: Sprint row shows the slot next to its day
 - **WHEN** Rue opens the By aspect view and Today with a sprint todo on today with 18:00–19:30
-- **THEN** in both its row shows the day control and a `planned-label` reading "18:00–19:30" without the date
+- **THEN** in By aspect its row shows the day control ("Day" = 2026-10-14) and a `planned-label` reading "18:00–19:30" without the date, and in Today its row shows only the `planned-label` reading "18:00–19:30", with no day control
 - **proof:** e2e

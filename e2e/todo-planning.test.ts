@@ -292,7 +292,10 @@ test('Scenario: Sprint row shows the slot next to its day', async ({ page, reque
 
 	await page.goto('/');
 	await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-	await expect(rowOf(page, 'Dentist').getByTestId('planned-label')).toHaveText('18:00–19:30');
+	const todayRow = rowOf(page, 'Dentist');
+	await expect(todayRow.getByTestId('planned-label')).toHaveText('18:00–19:30');
+	await expect(todayRow.getByRole('combobox', { name: 'Day' })).toHaveCount(0);
+	await expect(todayRow.getByRole('button', { name: 'Pick a day' })).toHaveCount(0);
 });
 
 test('Scenario: Planned labels do not scroll the phone sideways', async ({ page, request }) => {
