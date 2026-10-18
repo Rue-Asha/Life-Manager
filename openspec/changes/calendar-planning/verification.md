@@ -240,8 +240,15 @@ Three rounds of fresh-context review (opus), each followed by a fixer except the
 - [weak + correctness] Calendar selection reset to today after every save → reset keyed on month; test asserts the day list heading.
 - [spec] Archived-class todos listed under "Joins automatically" but never pulled → excluded from listPlannedForWeek; spec states the skip.
 
-### Round 3 (at a4c5b87) — open, round limit reached, taken to Gate 2
+### Round 3 (at a4c5b87) → round limit reached; Rue approved Gate 2 with one extra fix round → fixed in 497dcbd, a3f602d, 385d5a0, 827f1cf (each red first)
 - [weak] e2e/todo-planning.test.ts:281 "Sprint row shows the slot next to its day": the THEN puts a day control on Today rows, which never render one; the test checks the control only on By aspect (spec wording issue, see also learning candidate).
 - [spec] Recurring instance set to a past date outside its week returns `day-in-past` instead of `recurring-outside-week` (nothing written; only the error code/message differs).
 - [spec] startSprint clears a later-week planned date when a stale plan page sends that todo's id in suggestedIds (two-tab race; server trusts client ids).
 - [correctness, interpretation] On the Sunday after the review closes, a Sunday rule's done instance and its projection both show on that day (projection starts at today when no sprint is active).
+
+### Round 4 (extra, review of the four fix commits) → spec text aligned in 0437362
+- No weakened or weak tests, no correctness findings.
+- [spec] Precedence of `recurring-outside-week` over `day-in-past` stated in the todos requirement; scenario "Recurring instance planned for a past date is refused as outside its week" added.
+- [spec] Scenario "Stale suggested id of a todo planned for a later week stays in the backlog" added to sprint-lifecycle.
+- [spec] sprint-views requirement reworded: Today rows show the planned-label without a day control.
+- Final verification at 0437362 (c1277a7): proof:full green, 155 scenarios, 0 gaps. Nothing open.
