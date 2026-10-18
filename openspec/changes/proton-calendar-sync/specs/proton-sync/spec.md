@@ -91,6 +91,11 @@ An update that exits 3 (event deleted by hand in Proton) SHALL create the event 
 - **THEN** the fake records a delete of the old ref followed by a create in the new calendar, and the row stores the new ref and calendar ID
 - **proof:** unit
 
+#### Scenario: Failed create after a calendar move keeps no deleted ref
+- **WHEN** an item's aspect changes, the delete of the old ref succeeds, and the create in the new calendar fails with exit 1
+- **THEN** the row stores no event ref and carries the error, and the next pass with retry makes one create and stores its ref
+- **proof:** unit
+
 #### Scenario: Event deleted in Proton is created again
 - **WHEN** a stored item's event was removed from the fake by hand and the item's content changes
 - **THEN** the update exits 3, a create follows in the same calendar, and the row stores the new ref
@@ -314,6 +319,11 @@ calendar is being created SHALL leave its items for the next pass. (S8)
 #### Scenario: Aspect deleted during its calendar create skips the item
 - **WHEN** an aspect is deleted while the pass awaits the create of its calendar, and another aspect's item is in the same pass
 - **THEN** the pass ends "done" without throwing, `proton_calendars` holds no row for the deleted aspect, the other aspect's item is created, and no failure is recorded
+- **proof:** unit
+
+#### Scenario: Aspect deleted mid-pass leaves the item for the next pass
+- **WHEN** an aspect is deleted through `deleteAspect` with a target while a pass runs, before the pass reaches one of its synced items, and the next pass runs with that item in the target aspect
+- **THEN** the first pass records no failure for the item, and the next pass updates or creates it in the target aspect's calendar and stores the new ref and calendar ID
 - **proof:** unit
 
 ### Requirement: Diff reconciliation

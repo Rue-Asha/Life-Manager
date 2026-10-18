@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { createFake } from '../../../../scripts/fake-proton.mjs';
 import { ASPECT_COLORS } from '$lib/aspect-style';
 import { openDb } from '../db';
-import { createAspect } from '../aspects';
+import { createAspect, deleteAspect } from '../aspects';
 import { PROTON_COLORS } from './colors';
 import { failedItems, forgetHashes, pendingCount, reconcile } from './reconciler';
 import { specHash } from './hash';
@@ -336,6 +336,46 @@ describe('reconciler', () => {
 		expect(row('todo:1')).toBeUndefined();
 		expect(failedItems(db)).toEqual([]);
 		expect(row('todo:2')?.event_ref).toBeTruthy();
+	});
+
+	it('Scenario: Aspect deleted mid-pass leaves the item for the next pass', async () => {
+		const a = health();
+		const b = uni();
+		await reconcile(db, [item(2, a)], run);
+		const stale = [item(1, b), item(2, a, { title: 'Run 2 b' })];
+		run = async (op) => {
+			const res = fake.apply(op);
+			if (op.kind === 'calendar.create' && op.name === 'Uni') {
+				const r = deleteAspect(db, a, b);
+				if (!r.ok) throw new Error(r.error);
+			}
+			return res;
+		};
+		expect(await reconcile(db, stale, run)).toMatchObject({ kind: 'done', failed: 0 });
+		expect(failedItems(db)).toEqual([]);
+
+		const next = [item(1, b), item(2, b, { title: 'Run 2 b' })];
+		expect(await reconcile(db, next, run)).toMatchObject({ kind: 'done', failed: 0 });
+		expect(failedItems(db)).toEqual([]);
+		expect(row('todo:2')).toMatchObject({ calendar_id: 'cal-2', hash: specHash(next[1].spec), error: null });
+		expect(fake.state().events[row('todo:2')!.event_ref!].spec).toEqual(next[1].spec);
+	});
+
+	it('Scenario: Failed create after a calendar move keeps no deleted ref', async () => {
+		const a = health();
+		const b = uni();
+		await reconcile(db, [item(1, a), item(2, b)], run);
+		fake.fail({ kind: 'event.create', code: 1, error: 'Error: rejected', times: 1 });
+		const moved = item(1, b);
+		expect(await reconcile(db, [moved, item(2, b)], run)).toMatchObject({ failed: 1 });
+		expect(fake.state().events['cal-1/evt-1']).toBeUndefined();
+		expect(row('todo:1')).toMatchObject({ event_ref: null, error: 'Error: rejected' });
+
+		const before = fake.calls().length;
+		expect(await reconcile(db, [moved, item(2, b)], run, { retryFailed: true })).toMatchObject({ failed: 0 });
+		expect(kinds().slice(before)).toEqual(['event.create']);
+		expect(row('todo:1')).toMatchObject({ calendar_id: 'cal-2', error: null });
+		expect(row('todo:1')!.event_ref).toBeTruthy();
 	});
 
 	it('Scenario: Restart resumes from stored state', async () => {

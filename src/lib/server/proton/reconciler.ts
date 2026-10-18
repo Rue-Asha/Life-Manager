@@ -83,7 +83,7 @@ export async function reconcile(
 		const aspect = db.prepare('SELECT name, color FROM aspects WHERE id = ?').get(aspectId) as
 			| { name: string; color: AspectColor }
 			| undefined;
-		if (!aspect) throw new Failure(`aspect ${aspectId} not found`);
+		if (!aspect) throw new Skip();
 		const r = await call({ kind: 'calendar.create', name: aspect.name, color: PROTON_COLORS[aspect.color] });
 		expectOk(r);
 		if (!db.prepare('SELECT 1 FROM aspects WHERE id = ?').get(aspectId)) throw new Skip();
@@ -140,6 +140,7 @@ export async function reconcile(
 					const res = await call({ kind: 'event.delete', ref });
 					if (!res.ok && res.code !== 3) expectOk(res);
 					ref = null;
+					writeRow(db, { ...base, calendar_id: null, event_ref: null, hash: null });
 				}
 				if (ref) {
 					const res = await call({ kind: 'event.update', ref, spec: d.spec });
