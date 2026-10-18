@@ -179,7 +179,7 @@
 		margin: var(--space-2) calc(-1 * var(--space-4));
 		padding: var(--space-4) var(--space-4) var(--space-3);
 		border-radius: var(--radius-lg);
-		background: var(--paper);
+		background: var(--surface);
 		box-shadow: var(--shadow-float);
 		transform-origin: top center;
 		animation: expand var(--dur-slow) var(--ease-out);
@@ -253,7 +253,7 @@
 		padding: 0;
 		border: 1.5px solid var(--line-strong);
 		border-radius: var(--radius-pill);
-		background: var(--paper);
+		background: var(--surface);
 		cursor: pointer;
 	}
 

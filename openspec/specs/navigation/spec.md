@@ -47,7 +47,7 @@ The built app SHALL match the approved design direction on a real phone and on d
 
 ### Requirement: Wide desktop layout with context rail
 At ≥1280 px screens SHALL use the width: sidebar | content (lists max 720 px, centred in the space between
-sidebar and rail) | context rail (~320–360 px, `--paper-sunk`). Rails per screen: Sprint → backlog rail, docked in By aspect and Board
+sidebar and rail) | context rail (~320–360 px, `--surface` with a `--line` hairline on its left edge). Rails per screen: Sprint → backlog rail, docked in By aspect and Board
 and a toggle overlay in Week even at ≥1280 px (with Unscheduled; see sprint-views "Wide board and week");
 Today → this sprint's progress per aspect; aspect page → the aspect's details (colour, counts); project
 detail → the project's metadata (repo, tags, created, updated); Uni → the deadline overview; class detail →
@@ -58,11 +58,11 @@ column is centred in the space right of the sidebar; the project detail, Uni and
 exceptions, showing their rail content in the column instead of a rail toggle (metadata as a row under the
 title; the deadline overview as a section above the semesters). Below 768 px the phone layout is unchanged.
 At ≥1280 px Board and Week fill the content width instead of centring a capped column (see sprint-views
-"Wide board and week"). No screen scrolls horizontally at any width. (S9, it-projects S4, S14, uni-hub S3, S9, S16, S17)
+"Wide board and week"). No screen scrolls horizontally at any width. (S9, it-projects S4, S14, uni-hub S3, S9, S16, S17, cohesive-look)
 
 #### Scenario: Sprint at 1280 shows a context rail
 - **WHEN** Rue opens `/sprint` at 1280 px and at 1600 px during a running sprint, in the By aspect view and in the Board view
-- **THEN** the context rail is docked at the right edge with the `--paper-sunk` background, in By aspect the sprint list is at most 720 px wide and centred within 2 px in the space between sidebar and rail, and in Board the columns fill that space
+- **THEN** the context rail is docked at the right edge with the `--surface` background and a hairline left edge, in By aspect the sprint list is at most 720 px wide and centred within 2 px in the space between sidebar and rail, and in Board the columns fill that space
 - **proof:** e2e
 
 #### Scenario: Today at 1280 shows sprint progress per aspect
@@ -121,5 +121,26 @@ in active semesters as its count, and a count of 0 is shown the same way as ever
 #### Scenario: Zero open class todos is shown like other zero counts
 - **WHEN** no open class todo exists and no rule exists
 - **THEN** the Uni entry shows its count the same way the Recurring entry shows its zero count
+- **proof:** e2e
+
+### Requirement: New todo from the sidebar
+On desktop (≥768 px) the sidebar SHALL show a primary "New todo" button above its list entries. It opens the
+quick add in a dialog; the todo it creates goes to the backlog exactly as the Backlog page's quick add does
+(no sprint, no day), and the dialog closes after adding. Cancel or Escape closes it without a todo. The phone
+home list has no such button. (cohesive-look)
+
+#### Scenario: Sidebar button adds a backlog todo
+- **WHEN** at 1280 px on `/recurring` Rue presses "New todo" in the sidebar, types "Buy stamps", picks the aspect Home and adds it
+- **THEN** the dialog closes, and `/backlog` lists "Buy stamps" under Home, not in any sprint
+- **proof:** e2e
+
+#### Scenario: Cancelling the sidebar dialog adds nothing
+- **WHEN** Rue opens the sidebar "New todo" dialog, types a title and presses Escape
+- **THEN** the dialog is closed and no todo was created
+- **proof:** e2e
+
+#### Scenario: Phone home list has no New todo button
+- **WHEN** `/menu` is opened at 375 px
+- **THEN** no "New todo" button is shown
 - **proof:** e2e
 

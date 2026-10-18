@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import AspectIcon from '$lib/components/ui/AspectIcon.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
+	import ListGroup from '$lib/components/ui/ListGroup.svelte';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import { UI_ICONS } from '$lib/components/ui/icons';
 	import TodoRow from '$lib/components/todo/TodoRow.svelte';
@@ -40,7 +41,7 @@
 	<title>Review your sprint · Life Manager</title>
 </svelte:head>
 
-<PageHeader title="Review your sprint" icon="flag">
+<PageHeader title="Review your sprint">
 	<span class="week num">{weekLabel(data.sprint.weekStart!)}</span>
 </PageHeader>
 
@@ -58,11 +59,13 @@
 			<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS['chevron-left']} /></svg>
 			Done <span class="count num">{data.done.length}</span>
 		</summary>
-		<ul>
-			{#each data.done as todo (todo.id)}
-				<TodoRow {todo} aspect={aspectOf(todo)} today={data.today} context="planning" />
-			{/each}
-		</ul>
+		<ListGroup>
+			<ul>
+				{#each data.done as todo (todo.id)}
+					<TodoRow {todo} aspect={aspectOf(todo)} today={data.today} context="planning" />
+				{/each}
+			</ul>
+		</ListGroup>
 	</details>
 {/if}
 
@@ -72,29 +75,31 @@
 			<AspectIcon icon={aspect.icon} color={aspect.color} />{aspect.name}
 			<span class="count num">{todos.length}</span>
 		</h2>
-		{#each todos as todo (todo.id)}
-			<div class="item">
-				<ul><TodoRow {todo} {aspect} today={data.today} context="planning" /></ul>
-				<div class="segment" role="radiogroup" aria-label={todo.title}>
-					{#each choices(todo) as decision (decision)}
-						<label>
-							<input
-								type="radio"
-								form="review-form"
-								name="decision-{todo.id}"
-								value={decision}
-								checked={decisionOf(todo) === decision}
-								onchange={() => (decisions[todo.id] = decision)}
-							/>
-							{LABELS[decision]}
-						</label>
-					{/each}
+		<ListGroup>
+			{#each todos as todo (todo.id)}
+				<div class="item">
+					<ul><TodoRow {todo} {aspect} today={data.today} context="planning" /></ul>
+					<div class="segment" role="radiogroup" aria-label={todo.title}>
+						{#each choices(todo) as decision (decision)}
+							<label>
+								<input
+									type="radio"
+									form="review-form"
+									name="decision-{todo.id}"
+									value={decision}
+									checked={decisionOf(todo) === decision}
+									onchange={() => (decisions[todo.id] = decision)}
+								/>
+								{LABELS[decision]}
+							</label>
+						{/each}
+					</div>
 				</div>
-			</div>
-			{#if form?.field === `decision-${todo.id}`}
-				<p class="error" role="alert">This todo can’t go there.</p>
-			{/if}
-		{/each}
+				{#if form?.field === `decision-${todo.id}`}
+					<p class="error" role="alert">This todo can’t go there.</p>
+				{/if}
+			{/each}
+		</ListGroup>
 	</section>
 {/each}
 
@@ -133,9 +138,8 @@
 		align-items: center;
 		gap: var(--space-2);
 		min-height: var(--row-height);
-		border-bottom: 1px solid var(--line);
 		color: var(--ink-2);
-		font-size: var(--text-lg);
+		font-size: var(--text-md);
 		font-weight: var(--weight-semibold);
 		list-style: none;
 		cursor: pointer;
@@ -169,16 +173,16 @@
 	}
 
 	.group + .group {
-		margin-top: var(--space-7);
+		margin-top: var(--space-6);
 	}
 
 	h2 {
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
-		padding-bottom: var(--space-2);
-		border-bottom: 1px solid var(--line);
-		font-size: var(--text-lg);
+		margin-bottom: var(--space-2);
+		padding: 0 var(--space-1);
+		font-size: var(--text-md);
 		font-weight: var(--weight-semibold);
 		line-height: var(--leading-snug);
 	}
@@ -192,24 +196,25 @@
 	.item {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr);
-		padding-bottom: var(--space-2);
+		padding-bottom: var(--space-3);
 	}
 
 	.segment {
 		display: inline-flex;
 		justify-self: start;
-		padding: var(--space-0);
-		border-radius: var(--radius-md);
-		background: var(--paper-sunk);
+		margin-left: var(--space-4);
+		padding: 3px;
+		border-radius: var(--radius-pill);
+		background: var(--sunk);
 	}
 
 	.segment label {
 		position: relative;
 		display: inline-flex;
 		align-items: center;
-		height: 30px;
+		height: 28px;
 		padding: 0 var(--space-3);
-		border-radius: var(--radius-sm);
+		border-radius: var(--radius-pill);
 		color: var(--ink-2);
 		font-size: var(--text-sm);
 		white-space: nowrap;
@@ -226,8 +231,8 @@
 	}
 
 	.segment label:has(:checked) {
-		background: var(--paper);
-		box-shadow: 0 0 0 1px var(--line);
+		background: var(--surface);
+		box-shadow: var(--shadow-pop);
 		color: var(--ink);
 		font-weight: var(--weight-medium);
 	}
@@ -251,7 +256,7 @@
 		margin-top: var(--space-7);
 		padding: var(--space-3) 0 var(--space-4);
 		border-top: 1px solid var(--line);
-		background: var(--paper);
+		background: var(--canvas);
 	}
 
 	.close .error {

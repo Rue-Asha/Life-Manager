@@ -29,11 +29,11 @@
 		align-items: center;
 		gap: var(--space-4);
 		max-width: calc(100vw - 2 * var(--space-4));
-		padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
-		border-radius: var(--radius-md);
-		background: var(--ink);
-		color: var(--paper);
-		font-size: var(--text-sm);
+		padding: 6px 6px 6px var(--space-5);
+		border-radius: var(--radius-pill);
+		background: var(--chrome);
+		color: var(--on-chrome);
+		font-size: 14px;
 		box-shadow: var(--shadow-float);
 		transform: translateX(-50%);
 	}
@@ -47,12 +47,12 @@
 
 	button {
 		flex: none;
-		min-height: 32px;
+		min-height: 30px;
 		padding: 0 var(--space-3);
 		border: 0;
-		border-radius: var(--radius-sm);
-		background: none;
-		color: var(--paper);
+		border-radius: var(--radius-pill);
+		background: var(--chrome-hover);
+		color: var(--accent-soft);
 		font: inherit;
 		font-weight: var(--weight-semibold);
 		cursor: pointer;
@@ -60,6 +60,6 @@
 
 	button:hover,
 	button:focus-visible {
-		background: color-mix(in srgb, var(--paper) 14%, transparent);
+		background: color-mix(in srgb, var(--on-chrome) 18%, var(--chrome-hover));
 	}
 </style>

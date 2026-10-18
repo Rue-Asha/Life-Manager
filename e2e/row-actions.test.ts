@@ -130,3 +130,40 @@ test('A pending removal is posted when Rue navigates away', async ({ page, reque
 	await expect(row(page, 'Book a physio appointment')).toBeVisible();
 	await expect(row(page, 'Morning run')).toHaveCount(0);
 });
+
+test('Scenario: Row shows status as a glyph with its name', async ({ page, request }) => {
+	await seed(request, {
+		aspects: ASPECTS,
+		sprint: { state: 'active', weekStart: WEEK },
+		todos: [
+			{ title: 'Book a physio appointment', inSprint: true },
+			{ title: 'Stretch for ten minutes', inSprint: true, status: 'doing' }
+		]
+	});
+	await page.goto('/sprint?view=aspect');
+	const list = page.getByTestId('sprint-list');
+
+	const first = row(list, 'Book a physio appointment');
+	await expect(first.getByLabel('Status: To do')).toBeVisible();
+	await expect(row(list, 'Stretch for ten minutes').getByLabel('Status: Doing')).toBeVisible();
+	for (const title of ['Book a physio appointment', 'Stretch for ten minutes']) {
+		await expect(row(list, title).getByLabel('Pick a day')).toBeVisible();
+		// Visible text only: the native selects keep their option names for assistive tech and the menu.
+		const visible = await row(list, title).evaluate((el) => {
+			const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+			const parts: string[] = [];
+			for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+				const parent = n.parentElement!;
+				if (parent.closest('select, .visually-hidden')) continue;
+				if (parent.checkVisibility({ opacityProperty: true, visibilityProperty: true })) parts.push(n.textContent!);
+			}
+			return parts.join(' ');
+		});
+		expect(visible).not.toMatch(/To do|Unscheduled/);
+	}
+
+	await first.getByLabel('Status: To do').selectOption({ label: 'Doing' });
+	await expect(first).toHaveAttribute('data-status', 'doing');
+	await page.reload();
+	await expect(row(list, 'Book a physio appointment')).toHaveAttribute('data-status', 'doing');
+});

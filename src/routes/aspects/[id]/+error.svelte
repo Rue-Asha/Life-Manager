@@ -8,7 +8,7 @@
 	<title>Not found · Life Manager</title>
 </svelte:head>
 
-<PageHeader title="Aspect not found" icon="layers" />
+<PageHeader title="Aspect not found" />
 
 {#if page.status === 404}
 	<EmptyState message="This aspect doesn’t exist, or it was deleted." href="/aspects" actionLabel="Aspects" />

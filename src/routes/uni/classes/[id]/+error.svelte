@@ -8,7 +8,7 @@
 	<title>Not found · Life Manager</title>
 </svelte:head>
 
-<PageHeader title="Class not found" icon="graduation-cap" />
+<PageHeader title="Class not found" />
 
 {#if page.status === 404}
 	<EmptyState message="This class doesn’t exist, or it was deleted." href="/uni" actionLabel="Uni" />

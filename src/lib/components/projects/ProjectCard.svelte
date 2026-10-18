@@ -35,16 +35,18 @@
 		gap: var(--space-2);
 		height: 100%;
 		padding: var(--space-4);
-		border: 1px solid var(--line);
-		border-radius: var(--radius-md);
-		background: var(--paper);
+		border-radius: 16px;
+		background: var(--surface);
+		box-shadow: var(--shadow-card);
 		color: inherit;
 		text-decoration: none;
-		transition: background-color var(--dur-fast) var(--ease-out);
+		transition:
+			background-color var(--dur-fast) var(--ease-out),
+			box-shadow var(--dur-fast) var(--ease-out);
 	}
 
 	.card:hover {
-		background: var(--paper-hover);
+		box-shadow: var(--shadow-pop);
 	}
 
 	.name {
@@ -76,7 +78,7 @@
 		height: 22px;
 		padding: 0 var(--space-2);
 		border-radius: var(--radius-xs);
-		background: var(--paper-sunk);
+		background: var(--sunk);
 		color: var(--ink-2);
 		font-size: var(--text-xs);
 	}

@@ -391,17 +391,27 @@ test('Scenario: Empty board column shows a placeholder', async ({ page, request 
 	await expect(page.getByTestId('board-column-todo').getByTestId('column-placeholder')).toHaveCount(0);
 });
 
-test('Board cards show their aspect as a tag', async ({ page, request }) => {
+test('Scenario: Board card shows the aspect in its meta line', async ({ page, request }) => {
 	await seed(request, {
 		aspects: [...ASPECTS],
 		sprint: { state: 'active', weekStart: WEEK },
-		todos: [{ title: 'Read chapter 4', aspect: 1, inSprint: true }]
+		todos: [{ title: 'Read chapter 4', aspect: 1, inSprint: true, status: 'doing' }]
 	});
 	await page.goto('/sprint?view=board');
 
-	const card = page.getByTestId('sprint-card').filter({ hasText: 'Read chapter 4' });
-	await expect(card.getByTestId('aspect-tag')).toHaveText('Uni');
-	await expect(card.getByTestId('aspect-tag').locator('svg')).toBeVisible();
+	const card = page.getByTestId('board-column-doing').getByTestId('sprint-card').filter({ hasText: 'Read chapter 4' });
+	const tag = card.getByTestId('aspect-tag');
+	await expect(tag).toHaveText('Uni');
+	const [dot, uni] = await tag.locator('.dot').evaluate((el) => {
+		const probe = document.createElement('i');
+		probe.style.background = 'var(--aspect-lavender)';
+		document.body.append(probe);
+		const colour = getComputedStyle(probe).backgroundColor;
+		probe.remove();
+		return [getComputedStyle(el).backgroundColor, colour];
+	});
+	expect(dot).toBe(uni);
+	await expect(card.getByText('Doing', { exact: true })).toBeHidden();
 });
 
 const day = (page: Page, key: string) => page.getByTestId(`day-column-${key}`);
@@ -604,7 +614,8 @@ test('Scenario: Day picker offers only days of the active sprint', async ({ page
 		sprint: { state: 'active', weekStart: WEEK },
 		todos: [{ title: 'Clean the fridge', aspect: 2, inSprint: true }]
 	});
-	await page.goto('/sprint?view=week');
+	// Week chips move by drag on desktop; the row's picker is the same one the phone's week uses.
+	await page.goto('/sprint?view=aspect');
 
 	await expect(row(page, 'Clean the fridge').getByLabel('Day').locator('option')).toHaveText([
 		'Unscheduled',
@@ -634,7 +645,7 @@ test('Scenario: Today is highlighted in the week view', async ({ page, request }
 
 	const badge = day(page, '2026-10-07').getByRole('heading').locator('[aria-current="date"]');
 	await expect(badge).toHaveText('7');
-	await expect(badge).toHaveCSS('background-color', 'rgb(31, 90, 68)');
+	await expect(badge).toHaveCSS('background-color', 'rgb(109, 74, 255)');
 	await expect(page.locator('[aria-current="date"]')).toHaveCount(1);
 });
 
@@ -683,7 +694,6 @@ test('Scenario: Recurring instances appear in the week view', async ({ page, req
 	await page.goto('/sprint?view=week');
 
 	await expect(day(page, '2026-10-06').getByTestId('todo-row')).toContainText('Gym');
-	await expect(day(page, '2026-10-06').getByTestId('todo-row')).toContainText('Recurring');
 });
 
 test.describe('on a touch phone', () => {
@@ -749,4 +759,28 @@ test.describe('on a touch phone', () => {
 		await expect(day(page, 'unscheduled')).toBeVisible();
 		await expect(columns.filter({ visible: true })).toHaveCount(1);
 	});
+});
+
+test('Scenario: Week cards stay one line at 1440', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [...ASPECTS],
+		uniAspect: 1,
+		semesters: [{ name: 'WS 26/27' }],
+		classes: [{ semester: 0, name: 'Operating Systems' }],
+		sprint: { state: 'active', weekStart: WEEK },
+		todos: [
+			{ title: 'Read OS chapter 4', aspect: 1, inSprint: true, day: '2026-10-08', class: 0, type: 'LEC', checklist: ['A', 'B'] },
+			{ title: 'Water the plants', aspect: 0, inSprint: true, day: '2026-10-08', recurring: true, priority: 1 },
+			{ title: 'Draft the cover letter with a long title', aspect: 1, inSprint: true, day: '2026-10-06', status: 'doing' }
+		]
+	});
+	await page.setViewportSize({ width: 1440, height: 900 });
+	await page.goto('/sprint?view=week');
+
+	const cards = page.locator('[data-testid^="day-column-2026"]').getByTestId('sprint-card');
+	await expect(cards).toHaveCount(3);
+	for (const box of await cards.evaluateAll((els) => els.map((el) => el.getBoundingClientRect().height))) {
+		expect(box).toBeLessThanOrEqual(40);
+	}
+	await expect(cards.filter({ hasText: 'Operating Systems' })).toHaveCount(0);
 });

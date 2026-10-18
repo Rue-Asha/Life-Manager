@@ -70,7 +70,7 @@
 		/* The nav is a sticky viewport-high column; the cell behind it carries the colour down long pages. */
 		.sidebar {
 			display: block;
-			background: var(--paper-sunk);
+			background: var(--chrome);
 		}
 
 		.page {

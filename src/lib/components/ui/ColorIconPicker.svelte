@@ -92,7 +92,7 @@
 
 	.dot:has(:checked) {
 		box-shadow:
-			0 0 0 2px var(--paper),
+			0 0 0 2px var(--surface),
 			0 0 0 4px var(--c);
 	}
 
@@ -116,7 +116,7 @@
 	}
 
 	.icon:hover {
-		background: var(--paper-hover);
+		background: var(--hover);
 	}
 
 	.icon:has(:checked) {

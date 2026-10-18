@@ -53,7 +53,8 @@
 
 <div class="chips">
 	<label class="chip tag" style:background={ASPECT_COLORS[aspect.color].tint}>
-		<AspectIcon icon={aspect.icon} color={aspect.color} size="sm" />{aspect.name}
+		<AspectIcon icon={aspect.icon} color={aspect.color} size="sm" /><span class="field">Aspect</span>
+		<span class="value">{aspect.name}</span>
 		<select name="aspectId" bind:value={aspectId} aria-label="Aspect">
 			{#each aspects as a (a.id)}
 				<option value={a.id}>{a.name}</option>
@@ -64,7 +65,8 @@
 	{#if classShown}
 		<label class="chip" data-testid="class-field">
 			{#if cls}<AspectIcon icon={cls.icon} color={cls.color} size="sm" />{/if}
-			<span class="label">{cls?.name ?? 'No class'}</span>
+			<span class="field">Class</span>
+			<span class="label value">{cls?.name ?? 'No class'}</span>
 			<select name="classId" bind:value={classId} aria-label="Class">
 				<option value="">No class</option>
 				{#each classes as c (c.id)}
@@ -89,7 +91,8 @@
 
 	<label class="chip" class:pressed={priority}>
 		<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.flag} /></svg>
-		{priority ? `Priority ${priority}` : 'Priority'}
+		<span class="field">Priority</span>
+		<span class="value" class:unset={!priority}>{priority ? `Priority ${priority}` : 'Priority'}</span>
 		<select name="priority" bind:value={priority} aria-label="Priority">
 			<option value={0}>No priority</option>
 			<option value={1}>Priority 1</option>
@@ -101,7 +104,8 @@
 	<span class="due">
 		<label class="chip" class:pressed={dueDate}>
 			<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.calendar} /></svg>
-			<span class="num">{dueDate ? dateLabel(dueDate) : 'Due'}</span>
+			<span class="field">Due</span>
+			<span class="num value" class:unset={!dueDate}>{dueDate ? dateLabel(dueDate) : 'Due'}</span>
 			<input
 				type="date"
 				name="dueDate"
@@ -120,7 +124,8 @@
 	{#if projectShown}
 		<label class="chip" class:pressed={project} data-testid="project-field">
 			<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.folder} /></svg>
-			<span class="label">{project?.name ?? 'Project'}</span>
+			<span class="field">Project</span>
+			<span class="label value" class:unset={!project}>{project?.name ?? 'Project'}</span>
 			<select name="projectId" bind:value={projectId} aria-label="Project">
 				<option value="">No project</option>
 				{#each projects as p (p.id)}
@@ -147,12 +152,12 @@
 		position: relative;
 		display: inline-flex;
 		align-items: center;
-		gap: var(--space-1);
-		height: 30px;
-		padding: 0 var(--space-3) 0 var(--space-2);
-		border: 1px solid var(--line-strong);
-		border-radius: var(--radius-sm);
-		background: var(--paper);
+		gap: 6px;
+		height: 28px;
+		padding: 0 var(--space-3) 0 10px;
+		border: 0;
+		border-radius: var(--radius-pill);
+		background: var(--sunk);
 		color: var(--ink-2);
 		font-size: var(--text-sm);
 		white-space: nowrap;
@@ -164,15 +169,18 @@
 	}
 
 	.pressed {
-		background: var(--ink);
-		border-color: var(--ink);
-		color: var(--paper);
+		background: var(--chrome);
+		color: var(--on-chrome);
 	}
 
 	.tag {
-		border-color: transparent;
 		color: var(--ink);
 		font-weight: var(--weight-medium);
+	}
+
+	/* The field's name only shows where the chips become rows (phone). */
+	.field {
+		display: none;
 	}
 
 	select,
@@ -188,16 +196,17 @@
 
 	.seg {
 		display: inline-flex;
-		height: 30px;
-		border: 1px solid var(--line-strong);
-		border-radius: var(--radius-sm);
-		overflow: hidden;
+		height: 28px;
+		padding: 2px;
+		border-radius: var(--radius-pill);
+		background: var(--sunk);
 	}
 
 	.seg button {
 		padding: 0 var(--space-3);
 		border: 0;
-		background: var(--paper);
+		border-radius: var(--radius-pill);
+		background: none;
 		color: var(--ink-2);
 		font-size: var(--text-xs);
 		font-weight: var(--weight-semibold);
@@ -205,13 +214,10 @@
 		cursor: pointer;
 	}
 
-	.seg button + button {
-		border-left: 1px solid var(--line-strong);
-	}
-
 	.seg button[aria-pressed='true'] {
-		background: var(--ink);
-		color: var(--paper);
+		background: var(--surface);
+		color: var(--ink);
+		box-shadow: var(--shadow-pop);
 	}
 
 	.label {
@@ -223,23 +229,19 @@
 	.due {
 		display: inline-flex;
 		align-items: center;
-	}
-
-	.due:has(.clear) .chip {
-		border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+		gap: 2px;
 	}
 
 	.clear {
 		display: grid;
 		place-items: center;
-		width: 26px;
-		height: 30px;
+		width: 28px;
+		height: 28px;
 		padding: 0;
 		border: 0;
-		border-left: 1px solid var(--ink-2);
-		border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-		background: var(--ink);
-		color: var(--paper);
+		border-radius: var(--radius-pill);
+		background: var(--sunk);
+		color: var(--ink-2);
 		cursor: pointer;
 	}
 
@@ -257,5 +259,95 @@
 	.clear svg {
 		width: 14px;
 		height: 14px;
+	}
+
+	/* Phone: the chips become one grouped list of rows, "icon · name · value ›" (iOS / C24 settings). */
+	@media (max-width: 767px) {
+		.chips {
+			flex-direction: column;
+			align-items: stretch;
+			gap: 0;
+			border: 1px solid var(--line);
+			border-radius: var(--radius-group);
+			background: var(--surface);
+		}
+
+		.chips > * + * {
+			border-top: 1px solid var(--line);
+		}
+
+		.chip,
+		.chips > :global(button) {
+			display: flex;
+			gap: var(--space-3);
+			width: 100%;
+			height: 48px;
+			padding: 0 var(--space-4);
+			border-radius: 0;
+			background: none;
+			color: var(--ink);
+			font-size: var(--text-md);
+			font-weight: var(--weight-regular);
+		}
+
+		.chips > :first-child {
+			border-radius: var(--radius-group) var(--radius-group) 0 0;
+		}
+
+		.chips > :last-child,
+		.chips > :last-child .chip {
+			border-radius: 0 0 var(--radius-group) var(--radius-group);
+		}
+
+		.pressed {
+			color: var(--ink);
+		}
+
+		.field {
+			display: inline;
+		}
+
+		.value {
+			margin-left: auto;
+			color: var(--ink-3);
+			font-size: 14px;
+		}
+
+		/* An unset field shows only its name; the chip's placeholder would repeat it. */
+		.value.unset {
+			display: none;
+		}
+
+		.chip:has(.unset)::after {
+			margin-left: auto;
+		}
+
+		.chip::after {
+			content: '›';
+			margin-left: var(--space-2);
+			color: var(--line-strong);
+			font-size: var(--text-lg);
+		}
+
+		.due {
+			display: flex;
+		}
+
+		.due .chip {
+			flex: 1;
+		}
+
+		.clear {
+			margin-right: var(--space-3);
+		}
+
+		.seg {
+			align-self: flex-start;
+			margin: var(--space-2) var(--space-4);
+		}
+
+		.label {
+			max-width: 55%;
+		}
 	}
 </style>
