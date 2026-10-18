@@ -1,18 +1,20 @@
-verified-at: ddef883
+verified-at: 0df3b94
 
 ## Layer 1: proof:full (PORT=4700), exit 0
 
 ```
 Test Files  21 passed (21)
-     Tests  288 passed (288)
+     Tests  294 passed (294)
   323 passed (2.6m)   (e2e)
 ```
 
 Last e2e line: `✓ 323 e2e/uni.test.ts:623:1 › Scenario: Nothing due shows an empty line`
 
-## Layer 2: spec coverage (103 scenarios: 82 unit, 19 e2e, 2 manual)
+`openspec validate proton-calendar-sync --strict`: valid.
 
-Every unit/e2e scenario has a test named `Scenario: <title>` (or the name in its proof line) that appears as passed in the proof:full output: 101 of 101 covered, 0 gaps.
+## Layer 2: spec coverage (109 scenarios: 88 unit, 19 e2e, 2 manual)
+
+Every unit/e2e scenario has a test named `Scenario: <title>` (or the name in its proof line) that appears as passed in the proof:full output: 107 of 107 covered, 0 gaps. Round 2 added 6 scenarios (103 -> 109), all with a direct name match in the output.
 Aliased proof lines, all resolved:
 
 | Scenario | proof | Evidence |
@@ -23,7 +25,7 @@ Aliased proof lines, all resolved:
 | README documents setup, scripts and env vars | manual (documentation) | see checklist |
 | Planned todo appears in a real Proton calendar | manual (needs a real Proton account) | see checklist |
 
-All other 98 scenarios: direct name match, passed in the output.
+All other 104 scenarios: direct name match, passed in the output.
 
 ## Manual checklist
 
@@ -34,20 +36,10 @@ All other 98 scenarios: direct name match, passed in the output.
 ## Diffstat (origin/main...flow/proton-calendar-sync)
 
 ```
-49 files changed, 5022 insertions(+), 21 deletions(-)
- proton-sync/spec.md (delta)  598
- src/lib/server/proton/sync.test.ts  488
- design.md  400
- src/lib/server/proton/reconciler.test.ts  368
- scripts/fake-proton.mjs  360
- src/lib/server/proton/desired.test.ts  335
- src/lib/server/proton/reconciler.ts  203
- e2e/proton-sync.test.ts  200
- src/lib/server/proton/worker.test.ts  186
- src/routes/sync/+page.svelte  172
+50 files changed, 5284 insertions(+), 21 deletions(-)
 ```
 
-## Screenshots (not committed)
+## Screenshots (not committed; no UI file changed since round 1)
 
 Directory: /tmp/claude-1001/-home-Rue-Repos-Life-Manager/8b9ca9f3-3e49-4367-b766-ad5c19780bf0/scratchpad/shots/
 
