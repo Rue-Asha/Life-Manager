@@ -134,4 +134,15 @@ describe('proton cli runner', () => {
 		expect(fake.calls().at(-1)?.env.TZ).toBe('Europe/Berlin');
 		expect(fake.state().events[ref].exdates).toEqual(['2026-10-22']);
 	});
+
+	it('Scenario: Mutations are at least one second apart', async () => {
+		const runner = createRunner({ cli: FAKE, profile: 'default' });
+		const ops: ProtonOp[] = ['A', 'B', 'C'].map((name) => ({ kind: 'calendar.create', name, color: '#258723' }));
+		const results = await Promise.all(ops.map((op) => runner(op)));
+		expect(results.map((r) => r.ok)).toEqual([true, true, true]);
+		const calls = fake.calls();
+		expect(calls).toHaveLength(3);
+		expect(calls[1].at - calls[0].end).toBeGreaterThanOrEqual(1000);
+		expect(calls[2].at - calls[1].end).toBeGreaterThanOrEqual(1000);
+	}, 10_000);
 });

@@ -56,5 +56,20 @@ function exec(cfg: ProtonConfig, op: ProtonOp): Promise<CliResult> {
 }
 
 export function createRunner(cfg: ProtonConfig, o?: { gapMs?: number }): Runner {
-	return (op) => exec(cfg, op);
+	const gapMs = o?.gapMs ?? 1000;
+	let chain: Promise<unknown> = Promise.resolve();
+	let lastEnd = 0;
+	return (op) => {
+		const result = chain.then(async () => {
+			const wait = lastEnd + gapMs - Date.now();
+			if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+			try {
+				return await exec(cfg, op);
+			} finally {
+				lastEnd = Date.now();
+			}
+		});
+		chain = result;
+		return result;
+	};
 }
