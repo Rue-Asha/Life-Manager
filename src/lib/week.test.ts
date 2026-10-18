@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
 	addDays,
 	berlinToday,
+	monthGrid,
+	parseMonth,
 	reviewState,
 	targetWeek,
 	weekDays,
@@ -66,5 +68,26 @@ describe('week', () => {
 		expect(reviewState('2026-10-05', '2026-10-10')).toBe('running');
 		expect(reviewState('2026-10-05', '2026-10-11')).toBe('review-available');
 		expect(reviewState('2026-10-05', '2026-10-12')).toBe('review-required');
+	});
+
+	it('Scenario: Month grid runs Monday to Sunday', () => {
+		const feb = monthGrid('2026-02');
+		expect(feb).toHaveLength(5);
+		expect(feb[0][0]).toBe('2026-01-26');
+		expect(feb[4][6]).toBe('2026-03-01');
+		const mar = monthGrid('2026-03');
+		expect(mar).toHaveLength(6);
+		expect(mar[0][0]).toBe('2026-02-23');
+		expect(mar[5][6]).toBe('2026-04-05');
+		for (const row of [...feb, ...mar]) {
+			expect(row).toHaveLength(7);
+			expect(weekdayOf(row[0])).toBe(1);
+		}
+	});
+
+	it('Scenario: Month parameter is parsed or falls back', () => {
+		const today = '2026-10-14';
+		expect(parseMonth('2027-02', today)).toBe('2027-02');
+		for (const bad of ['2026-13', '2026-1', 'foo', null]) expect(parseMonth(bad, today)).toBe('2026-10');
 	});
 });
