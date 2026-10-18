@@ -162,3 +162,34 @@ test('Scenario: Review becoming required after page load refuses the add', async
 	await page.reload();
 	await expect(page.getByTestId('todo-row').filter({ hasText: 'Clean the fridge' })).toBeVisible();
 });
+
+test('Scenario: Planned todos are listed in the Planned section', async ({ page, request }) => {
+	const { aspects } = await seed(request, {
+		aspects: [...ASPECTS],
+		todos: [
+			{ title: 'Dentist', aspect: 0, day: '2026-10-28', startTime: '18:00' },
+			{ title: 'Tax return', aspect: 1, day: '2026-10-28' },
+			{ title: 'Call grandma', aspect: 0, day: '2026-10-21', startTime: '09:00' },
+			{ title: 'Clean the fridge', aspect: 0 }
+		]
+	});
+	await page.goto('/backlog');
+
+	const planned = page.getByTestId('planned-section');
+	await expect(planned.getByRole('heading', { name: 'Planned' })).toBeVisible();
+	await expect(planned.getByTestId('todo-row').locator('.title')).toHaveText(['Call grandma', 'Tax return', 'Dentist']);
+	await expect(planned.getByText('Clean the fridge')).toHaveCount(0);
+
+	const health = page.getByTestId(`aspect-group-${aspects[0]}`);
+	await expect(health.getByTestId('todo-row').locator('.title')).toHaveText(['Clean the fridge']);
+	const before = await planned.boundingBox();
+	const after = await health.boundingBox();
+	expect(before!.y).toBeLessThan(after!.y);
+});
+
+test('Scenario: No Planned section without planned todos', async ({ page, request }) => {
+	await seed(request, { aspects: [...ASPECTS], todos: [{ title: 'Clean the fridge', aspect: 0 }] });
+	await page.goto('/backlog');
+	await expect(page.getByTestId('todo-row')).toHaveCount(1);
+	await expect(page.getByTestId('planned-section')).toHaveCount(0);
+});

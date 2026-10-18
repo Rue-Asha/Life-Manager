@@ -474,3 +474,14 @@ test('Scenario: Header without a sprint shows only the count', async ({ page, re
 	await expect(header.getByTestId('summary-line')).toHaveCount(0);
 	await expect(header.getByTestId('summary-bar')).toHaveCount(0);
 });
+
+test('Scenario: Overdue todo planned for today shows once on Today', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [...ASPECTS],
+		todos: [{ title: 'Send tax receipts', aspect: 1, dueDate: '2026-10-06', day: TODAY }]
+	});
+	await page.goto('/');
+
+	await expect(row(page, 'Send tax receipts')).toHaveCount(1);
+	await expect(page.getByTestId('overdue-group').getByTestId('todo-row')).toHaveCount(1);
+});
