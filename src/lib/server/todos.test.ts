@@ -17,6 +17,7 @@ import {
 } from './todos';
 import type { Id, Priority, Todo } from '$lib/types';
 import { createProject, setItAspectId } from './projects';
+import { listRules } from './recurring';
 import { listSprintTodos, listToday } from './sprints';
 import { setUniAspectId } from './uni';
 
@@ -64,16 +65,27 @@ describe('createTodo', () => {
 			'INSERT INTO todos (title, aspect_id, sprint_id, day, start_time, end_time, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
 		);
 		const backlog = Number(insert.run('Dinner', aspect, null, '2026-11-03', '18:00', '19:30', '').lastInsertRowid);
-		const inSprint = Number(insert.run('Call', aspect, sprint, '2026-09-29', '09:15', null, '').lastInsertRowid);
+		const inSprint = Number(insert.run('Call', aspect, sprint, '2026-09-29', '18:00', '19:30', '').lastInsertRowid);
 		const plain = Number(insert.run('Plain', aspect, null, null, null, null, '').lastInsertRowid);
+		const plainSprint = Number(insert.run('Stretch', aspect, sprint, '2026-09-29', null, null, '').lastInsertRowid);
+		const rule = Number(
+			db
+				.prepare("INSERT INTO recurring_rules (title, aspect_id, weekdays, start_time, created_at) VALUES ('Run', ?, '1', '07:00', '')")
+				.run(aspect).lastInsertRowid
+		);
+		const slotted = { startTime: '18:00', endTime: '19:30' };
+		const none = { startTime: null, endTime: null };
 
-		expect(getTodo(db, backlog)).toMatchObject({ startTime: '18:00', endTime: '19:30' });
-		expect(listBacklog(db).find((t) => t.id === backlog)).toMatchObject({ startTime: '18:00', endTime: '19:30' });
-		expect(listBacklog(db).find((t) => t.id === plain)).toMatchObject({ startTime: null, endTime: null });
-		expect(listSprintTodos(db, sprint).find((t) => t.id === inSprint)).toMatchObject({
-			startTime: '09:15',
-			endTime: null
-		});
+		expect(getTodo(db, backlog)).toMatchObject(slotted);
+		expect(getTodo(db, inSprint)).toMatchObject(slotted);
+		expect(getTodo(db, plain)).toMatchObject(none);
+		expect(listBacklog(db).find((t) => t.id === backlog)).toMatchObject(slotted);
+		expect(listBacklog(db).find((t) => t.id === plain)).toMatchObject(none);
+		expect(listSprintTodos(db, sprint).find((t) => t.id === inSprint)).toMatchObject(slotted);
+		expect(listSprintTodos(db, sprint).find((t) => t.id === plainSprint)).toMatchObject(none);
+		expect(listToday(db, '2026-09-29').find((t) => t.id === inSprint)).toMatchObject(slotted);
+		expect(listToday(db, '2026-09-29').find((t) => t.id === plainSprint)).toMatchObject(none);
+		expect(listRules(db).find((r) => r.id === rule)).toMatchObject({ startTime: '07:00', endTime: null });
 	});
 
 	it('Scenario: Todo stores all optional fields', () => {

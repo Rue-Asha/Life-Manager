@@ -24,6 +24,7 @@ import {
 	unpullTodo
 } from './sprints';
 import { backlogCounts } from './todos';
+import { listRules } from './recurring';
 import { shownDay } from '$lib/todo-utils';
 
 let db: DatabaseSync;
@@ -560,11 +561,20 @@ describe('mid-sprint changes', () => {
 
 		it('Scenario: Instance slot is edited like any todo', () => {
 			const s = sprint('active', '2026-10-12');
-			const id = todo('Gym', { sprintId: s, day: '2026-10-13', recurring: true, startTime: '07:00' });
-			expect(setDay(db, id, '2026-10-13', TODAY, { startTime: '08:00', endTime: '09:00' })).toMatchObject({
+			const rule = Number(
+				db
+					.prepare(
+						"INSERT INTO recurring_rules (title, aspect_id, weekdays, start_time, end_time, created_at) VALUES ('Gym', ?, '2', '18:00', '19:30', '')"
+					)
+					.run(aspect).lastInsertRowid
+			);
+			const id = todo('Gym', { sprintId: s, day: '2026-10-13', recurring: true, startTime: '18:00', endTime: '19:30' });
+			db.prepare('UPDATE todos SET rule_id = ? WHERE id = ?').run(rule, id);
+			expect(setDay(db, id, '2026-10-13', TODAY, { startTime: '19:00', endTime: '20:00' })).toMatchObject({
 				ok: true,
-				value: { sprintId: s, recurring: true, day: '2026-10-13', startTime: '08:00', endTime: '09:00' }
+				value: { sprintId: s, recurring: true, ruleId: rule, day: '2026-10-13', startTime: '19:00', endTime: '20:00' }
 			});
+			expect(listRules(db).find((r) => r.id === rule)).toMatchObject({ startTime: '18:00', endTime: '19:30' });
 		});
 	});
 

@@ -45,5 +45,7 @@ test('Scenario: Archived class todo cannot be planned', async ({ page, request, 
 	expect(update.data).toContain('archived');
 
 	await page.goto('/backlog');
-	await expect(page.getByTestId('todo-row').filter({ hasText: 'Old lab report' })).toHaveAttribute('data-day', '2026-10-20');
+	const row = page.getByTestId('todo-row').filter({ hasText: 'Old lab report' });
+	await expect(row).toHaveAttribute('data-day', '2026-10-20');
+	await expect(row.getByTestId('planned-label')).toHaveText('Tue 20 Oct · 18:00');
 });

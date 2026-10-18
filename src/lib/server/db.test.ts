@@ -155,6 +155,8 @@ describe('db', () => {
 			PRAGMA user_version = 4;
 		`);
 		const before = {
+			aspects: old.prepare('SELECT * FROM aspects').all(),
+			sprints: old.prepare('SELECT * FROM sprints').all(),
 			rules: old.prepare('SELECT * FROM recurring_rules').all(),
 			todos: old.prepare('SELECT * FROM todos ORDER BY id').all(),
 			items: old.prepare('SELECT * FROM checklist_items').all()
@@ -162,13 +164,15 @@ describe('db', () => {
 		old.close();
 
 		const db = openDb(path);
-		expect(db.prepare('PRAGMA user_version').get()).toEqual({ user_version: 5 });
+		expect(db.prepare('PRAGMA user_version').get()).toEqual({ user_version: migrations.length });
 		expect(db.prepare('SELECT count(*) AS n FROM todos WHERE start_time IS NULL AND end_time IS NULL').get()).toEqual({ n: 2 });
 		expect(db.prepare('SELECT count(*) AS n FROM recurring_rules WHERE start_time IS NULL AND end_time IS NULL').get()).toEqual({ n: 1 });
 		const strip = (rows: Record<string, unknown>[]) => rows.map(({ start_time, end_time, ...r }) => r);
 		expect(strip(db.prepare('SELECT * FROM recurring_rules').all())).toEqual(before.rules);
 		expect(strip(db.prepare('SELECT * FROM todos ORDER BY id').all())).toEqual(before.todos);
 		expect(db.prepare('SELECT * FROM checklist_items').all()).toEqual(before.items);
+		expect(db.prepare('SELECT * FROM aspects').all()).toEqual(before.aspects);
+		expect(db.prepare('SELECT * FROM sprints').all()).toEqual(before.sprints);
 		db.close();
 		rmSync(dir, { recursive: true, force: true });
 	});
