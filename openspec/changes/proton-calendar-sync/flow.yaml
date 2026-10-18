@@ -4,6 +4,7 @@ base: main
 gate0: 2026-10-18
 gate1: 2026-10-18
 learnings:
+  - 'Builders running vitest or proof:full output → `node_modules/.bin/vitest run <file>` (never bare `npx vitest`, it starts watch mode and hangs past 120s), and read only exit code + tail of a background proof log (weil: U4 hung on npx vitest; U2 read a whole proof:full log and burned ~27k tokens) [2026-10-18 · proton-calendar-sync]'
   - 'Builder shells chaining `cd <worktree> && …` with several heredocs → use absolute paths in every redirect (weil: a failed cd let later `cat > x.ts` lines write 5 stubs into the primary checkout) [2026-10-18 · proton-calendar-sync]'
   - 'Builder writing a test double (fake CLI) → test first still applies; the brief names the fail-first check for the double itself (weil: U1 wrote the fake before its test and had to move it away to stage the red step) [2026-10-18 · proton-calendar-sync]'
   - 'Explore for an integration with an external CLI → pin exact argv (command nouns, flag spellings, enum values like colour tables) in scope.md, not only semantics and output (weil: the planner stopped at needs-human on unpinned `proton` argv and accent hex values although the research agent had read them) [2026-10-18 · proton-calendar-sync]'
