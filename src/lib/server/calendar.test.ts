@@ -127,6 +127,16 @@ describe('calendarMonth', () => {
 		expect(entries['2026-10-12'] ?? []).toEqual([]);
 	});
 
+	it('Scenario: Sunday after the review closes does not show an instance twice', () => {
+		const closed = sprint('closed', '2026-10-12');
+		const sun = rule('Walk', '7');
+		todo('Walk', { day: '2026-10-18', sprintId: closed, ruleId: sun, status: 'done' });
+		const { entries } = calendarMonth(db, '2026-10', '2026-10-18');
+		expect(entries['2026-10-18']).toMatchObject([{ kind: 'todo', title: 'Walk', done: true }]);
+		expect(entries['2026-10-18']).toHaveLength(1);
+		expect(projectionDays(entries, 'Walk')).toEqual(['2026-10-25']);
+	});
+
 	it('Scenario: Past months show only real todos', () => {
 		const closed = sprint('closed', '2026-09-28');
 		rule('Gym', '1,4');

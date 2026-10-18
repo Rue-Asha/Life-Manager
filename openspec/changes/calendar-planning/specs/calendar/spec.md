@@ -41,7 +41,7 @@ with the rule's title, aspect colour and slot, marked as a projection (`data-kin
 glyph and the accessible text "Projected"); and uni exams of active and archived semesters at their `exam_at` time
 (an `exam_at` without a time is all-day), shown as "Exam" with the class name and room. Due dates are never shown, and
 sprint todos without an explicit day are not shown. Days before the active sprint's week (or before today without a
-sprint) show only real todos; the active sprint's week shows its real instances only, so nothing appears twice.
+sprint) show only real todos; the active sprint's week shows its real instances only, and a day that already lists a real instance of a rule (e.g. the Sunday a sprint's review closed it, with no sprint active) gets no projection of that rule, so nothing appears twice.
 Within a day all-day entries come first, then timed ones by start time, ties by title. (calendar-planning S12)
 
 #### Scenario: Planned todos are entries, due dates are not
@@ -52,6 +52,11 @@ Within a day all-day entries come first, then timed ones by start time, ties by 
 #### Scenario: Rules are projected after the active sprint week
 - **WHEN** today is 2026-10-14 in a sprint of 2026-10-12 to 2026-10-18 holding the instances on 2026-10-12 and 2026-10-15 of a rule for Monday and Thursday with 18:00, and the month 2026-10 is built
 - **THEN** 2026-10-12 and 2026-10-15 each list the real instance once and no projection, and 2026-10-19, 2026-10-22, 2026-10-26 and 2026-10-29 each list one projection with 18:00
+- **proof:** unit
+
+#### Scenario: Sunday after the review closes does not show an instance twice
+- **WHEN** today is 2026-10-18, no sprint is active, a rule for Sunday has its 2026-10-18 instance done in the closed sprint of 2026-10-12, and the month 2026-10 is built
+- **THEN** 2026-10-18 lists the done instance once and no projection, and the rule is projected on 2026-10-25
 - **proof:** unit
 
 #### Scenario: Without an active sprint projection starts today

@@ -48,7 +48,8 @@ export function calendarMonth(
 	for (const day of days) {
 		if (day < projectFrom) continue;
 		for (const r of rules) {
-			if (r.weekdays.includes(weekdayOf(day))) {
+			const instanced = entries[day]?.some((e) => e.kind === 'todo' && e.todo.ruleId === r.id);
+			if (r.weekdays.includes(weekdayOf(day)) && !instanced) {
 				add(day, { kind: 'projection', ruleId: r.id, title: r.title, aspectId: r.aspectId, startTime: r.startTime, endTime: r.endTime });
 			}
 		}
