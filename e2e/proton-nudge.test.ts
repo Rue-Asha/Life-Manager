@@ -19,7 +19,7 @@ test('Scenario: A form post nudges a pass', async ({ page, request }) => {
 		todos: [{ title: 'Book a physio appointment', aspect: 0 }]
 	});
 	await protonOn(request, { debounceMs: 300 });
-	// configureWorker schedules one catch-up pass after the debounce.
+	// The startup catch-up pass (Scenario: Startup runs one catch-up pass) is the baseline.
 	await expect.poll(async () => (await protonStatus(request)).passes).toBe(1);
 
 	await page.goto('/backlog');

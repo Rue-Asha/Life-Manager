@@ -349,7 +349,8 @@ the next one, so a pass interrupted by a restart or an abort resumes from the st
 
 ### Requirement: Pass scheduling
 Sync SHALL run in the app process: a pass about 30 s after the last non-GET request (debounced, started from
-`hooks.server.ts`), every 5 minutes, and at once on "Sync now". A pass SHALL never overlap another; a request for a pass
+`hooks.server.ts`), every 5 minutes, at once on "Sync now", and once as a catch-up pass one debounce period after the
+worker is configured (changes made while the app was down, and the first-run backfill without waiting for a tick). A pass SHALL never overlap another; a request for a pass
 while one runs SHALL run one more pass after it. With sync off no timer runs. The end of every pass that ends "done"
 SHALL be stored as the last successful sync time in `settings` key `proton_last_sync_at`. (S9, Gate 1 addition b)
 
@@ -361,6 +362,11 @@ SHALL be stored as the last successful sync time in `settings` key `proton_last_
 #### Scenario: Writes nudge a pass after the debounce
 - **WHEN** sync is on and three nudges arrive 10 s apart
 - **THEN** exactly one pass starts, 30 s after the last nudge
+- **proof:** unit
+
+#### Scenario: Startup runs one catch-up pass
+- **WHEN** sync is on, the worker has just been configured, and no nudge arrives
+- **THEN** no pass starts before the debounce period has passed, exactly one starts then, and no further pass starts until the next tick
 - **proof:** unit
 
 #### Scenario: Local tick runs every five minutes
@@ -380,7 +386,7 @@ SHALL be stored as the last successful sync time in `settings` key `proton_last_
 
 #### Scenario: A form post nudges a pass
 - **WHEN** in the built app with sync on (fake CLI, short debounce) Rue's browser posts a form action, and before that only GET requests were made
-- **THEN** the worker's pass count rises from 0 to 1 after the post, and stays 0 while only pages are loaded
+- **THEN** the worker's pass count stays at its value after the startup catch-up pass while only pages are loaded, and rises by one after the post
 - **proof:** e2e
 
 ### Requirement: First-run backfill
