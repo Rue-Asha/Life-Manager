@@ -158,6 +158,19 @@ describe('proton cli runner', () => {
 		expect(await createRunner({ cli: FAKE, profile: 'p' }, { gapMs: 0 })({ kind: 'calendar.create', name: 'A', color: '#258723' })).toMatchObject({ ok: true });
 	});
 
+	it('Scenario: A hung proton call times out and backs off', async () => {
+		const hung = join(dir, 'hung');
+		writeFileSync(hung, '#!/bin/sh\nexec sleep 30\n');
+		chmodSync(hung, 0o755);
+		const runner = createRunner({ cli: hung, profile: 'p' }, { gapMs: 0, timeoutMs: 200 });
+		const started = Date.now();
+		const res = await runner({ kind: 'event.delete', ref: 'cal-1/evt-1' });
+		expect(res).toEqual({ ok: false, code: 5, error: 'Error: proton timed out after 0.2 s' });
+		expect(Date.now() - started).toBeLessThan(5000);
+		const next = await runner({ kind: 'event.delete', ref: 'cal-1/evt-1' });
+		expect(next).toMatchObject({ ok: false, code: 5 });
+	});
+
 	it('Scenario: Child process inherits XDG_CONFIG_HOME', async () => {
 		process.env.XDG_CONFIG_HOME = '/srv/lm-config';
 		await calendar();

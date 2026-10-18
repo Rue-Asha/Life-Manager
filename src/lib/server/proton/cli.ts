@@ -42,9 +42,9 @@ function errorLine(stderr: string): string {
 	return lines.find((l) => l.startsWith('Error:')) ?? lines.at(-1) ?? 'proton exited without a message';
 }
 
-function exec(cfg: ProtonConfig, op: ProtonOp): Promise<CliResult> {
+function exec(cfg: ProtonConfig, op: ProtonOp, timeoutMs: number): Promise<CliResult> {
 	return new Promise((done) => {
-		execFile(cfg.cli, toArgv(op, cfg.profile), { env: { ...process.env, ...CHILD_ENV } }, (err, stdout, stderr) => {
+		execFile(cfg.cli, toArgv(op, cfg.profile), { env: { ...process.env, ...CHILD_ENV }, timeout: timeoutMs, killSignal: 'SIGKILL' }, (err, stdout, stderr) => {
 			if (!err) {
 				try {
 					const { ids } = JSON.parse(stdout) as { ids: string[] };
@@ -53,14 +53,16 @@ function exec(cfg: ProtonConfig, op: ProtonOp): Promise<CliResult> {
 					return done({ ok: false, code: 'spawn', error: 'proton printed no JSON result' });
 				}
 			}
+			if (err.killed) return done({ ok: false, code: 5, error: `Error: proton timed out after ${timeoutMs / 1000} s` });
 			if (err.code === 'ENOENT' || err.code === 'EACCES') return done({ ok: false, code: 'spawn', error: err.message });
 			done({ ok: false, code: typeof err.code === 'number' ? err.code : 1, error: errorLine(stderr) });
 		});
 	});
 }
 
-export function createRunner(cfg: ProtonConfig, o?: { gapMs?: number }): Runner {
+export function createRunner(cfg: ProtonConfig, o?: { gapMs?: number; timeoutMs?: number }): Runner {
 	const gapMs = o?.gapMs ?? 1000;
+	const timeoutMs = o?.timeoutMs ?? 120_000;
 	let chain: Promise<unknown> = Promise.resolve();
 	let lastEnd = 0;
 	return (op) => {
@@ -68,7 +70,7 @@ export function createRunner(cfg: ProtonConfig, o?: { gapMs?: number }): Runner 
 			const wait = lastEnd + gapMs - Date.now();
 			if (wait > 0) await new Promise((r) => setTimeout(r, wait));
 			try {
-				return await exec(cfg, op);
+				return await exec(cfg, op, timeoutMs);
 			} finally {
 				lastEnd = Date.now();
 			}

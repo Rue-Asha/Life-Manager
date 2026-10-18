@@ -102,7 +102,10 @@ Technical choices for this change:
 - **Runner** (`createRunner`): `execFile(cli, argv, { env: { ...process.env, PROTON_NO_INPUT: '1',
   PROTON_NO_UPDATE_CHECK: '1', PROTON_NO_LOG: '1', TZ: 'Europe/Berlin' } })`, one call at a time through a promise chain, `gapMs` (default
   1000) between the end of one call and the start of the next. Exit 0 → parse stdout's envelope, return `ids`. Non-zero
-  → first stderr line starting with `Error:` (else the last stderr line). `ENOENT`/`EACCES` → `{ code: 'spawn' }`.
+  → first stderr line starting with `Error:` (else the last stderr line). `ENOENT`/`EACCES` → `{ code: 'spawn' }`. A call still running after `timeoutMs` (default 120 s, injectable) is killed (SIGKILL) and
+  resolves as exit 5 with `Error: proton timed out after <n> s`, so the network-failure backoff handles a stalled
+  connection or an unexpected prompt. A killed mutation may already have been applied by Proton (same accepted risk R4:
+  a possible duplicate).
   `TZ` is set because proton-cli v5.1.0 reads a timed occurrence reference (`@YYYY-MM-DDTHH:MM`) in the process's
   local zone (`ParseOccurrence` uses `time.Local`), not in `--zone`. `process.env` passes `XDG_CONFIG_HOME` through, so the session follows the service's config dir. The adapter is the
   only place that builds argv or parses CLI output (R2/R3).

@@ -434,7 +434,8 @@ with stderr's `Error:` line while the rest continue. A failed item SHALL be trie
 on "Sync now" or on "Resync all", and its failure SHALL be cleared once its content matches Proton again without a call.
 The one-second gap SHALL hold across passes, including a queued pass that follows a running one. Any other failure
 inside a pass SHALL end it in state "error" with the message, and requests queued behind it SHALL still run. A missing or non-executable binary SHALL put sync in state "error" with the message,
-without crashing the app. (S11)
+without crashing the app. A call that has not finished after 120 s SHALL be killed and count as exit 5 with the line
+`Error: proton timed out after 120 s`. (S11)
 
 #### Scenario: Calls run non-interactively
 - **WHEN** the runner sends a create through the fake executable
@@ -563,6 +564,11 @@ configured binary that was never logged in exits 2 on its first call and leads t
 #### Scenario: Non-JSON output ends the pass in state error
 - **WHEN** the binary exits 0 and prints nothing, or a notice line that is no JSON, for a call
 - **THEN** the call resolves as a failure that ends the pass in state "error" with a message naming the missing JSON, the app does not crash, and a later call to a working binary succeeds
+- **proof:** unit
+
+#### Scenario: A hung proton call times out and backs off
+- **WHEN** the binary never returns and the runner's timeout elapses
+- **THEN** the child is killed, the call resolves as exit 5 with `Error: proton timed out after <n> s`, the next call in the queue still runs, and a pass therefore ends "retry" and enters the network backoff
 - **proof:** unit
 
 #### Scenario: Child process inherits XDG_CONFIG_HOME
