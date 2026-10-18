@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { tick } from 'svelte';
 	import { MediaQuery } from 'svelte/reactivity';
+	import { addDays } from '$lib/week';
 	import type { Aspect, ClassType, HhMm, Id, IsoDate, Priority, Target } from '$lib/types';
 	import Button from '../ui/Button.svelte';
 	import Chip from '../ui/Chip.svelte';
@@ -18,6 +19,7 @@
 		defaultType,
 		defaultDueDate,
 		variant = 'inline',
+		sprintWeekStart = null,
 		compactLabel,
 		open = $bindable(false)
 	}: {
@@ -29,6 +31,8 @@
 		defaultDueDate?: IsoDate;
 		// `dialog` has no field of its own: something else opens it (the sidebar's "New todo").
 		variant?: 'inline' | 'dialog';
+		// The running sprint's Monday: a planned day in its week sends a backlog-target todo into the sprint.
+		sprintWeekStart?: IsoDate | null;
 		// On desktop the field shrinks to a "+" with this name (the week's day columns).
 		compactLabel?: string;
 		open?: boolean;
@@ -59,6 +63,10 @@
 	const plannedDay = $derived(chosenPlannedDay ?? (target.kind === 'day' ? target.day : ''));
 	// A day column whose plan was removed still adds to its sprint, just without a day.
 	const postedTarget = $derived(target.kind === 'day' && !plannedDay ? 'sprint' : target.kind);
+
+	const intoSprint = $derived(
+		sprintWeekStart !== null && plannedDay >= sprintWeekStart && plannedDay <= addDays(sprintWeekStart, 6)
+	);
 
 	const MESSAGES: Record<string, string> = {
 		required: 'Give the todo a title.',
@@ -174,7 +182,9 @@
 		<footer>
 			{#if variant === 'dialog' && target.kind === 'backlog'}
 				<span class="hint">
-					<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.inbox} /></svg>Goes to the backlog
+					<svg viewBox="0 0 24 24" aria-hidden="true"><path d={intoSprint ? UI_ICONS['calendar-days'] : UI_ICONS.inbox} /></svg>{intoSprint
+						? 'Goes to this sprint'
+						: 'Goes to the backlog'}
 				</span>
 			{/if}
 			<Button type="button" variant={variant === 'dialog' ? 'secondary' : 'quiet'} onclick={close}>Cancel</Button>

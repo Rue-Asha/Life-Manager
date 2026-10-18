@@ -331,6 +331,11 @@ quick add starts with its day filled in, and a day column whose date was removed
 - **THEN** the first two fail with `review-required` and the third with `day-in-past`, nothing being stored; the fourth is in the backlog on 2026-10-26, the fifth is in the active sprint with no day, and the sixth is in the backlog with no day
 - **proof:** unit — `Regression: createTodo with a planned day in a review-required week is refused, without a day it is not`
 
+#### Scenario: The New todo dialog says where a planned day sends the todo
+- **WHEN** with an active sprint of 2026-10-12 to 2026-10-18 Rue opens "New todo" from the sidebar, then sets "Planned" to 2026-10-16, then to 2026-11-03
+- **THEN** the footer hint reads "Goes to the backlog" before a day is set, "Goes to this sprint" for 2026-10-16, and "Goes to the backlog" again for 2026-11-03
+- **proof:** e2e — `Regression: the New todo dialog says where a planned day sends the todo`
+
 #### Scenario: Retyping From after clearing it restores the slot length
 - **WHEN** Rue opens a todo planned with 18:00–19:30, clears "From" (so "To" is empty) and types 09:00
 - **THEN** "To" is 10:30 and the length reads "1 h 30 min"

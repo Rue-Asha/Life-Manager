@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	import type { Aspect } from '../../types';
+	import type { Aspect, IsoDate } from '../../types';
 	import type { SyncState } from '../../server/proton/types';
 	import type { UiIcon } from '../ui/icons';
 
@@ -9,6 +9,7 @@
 		counts: Record<NavCount | 'overdue', number>;
 		aspects: (Aspect & { backlog: number })[];
 		sync: SyncState;
+		activeWeekStart: IsoDate | null;
 	}
 
 	export const NAV_ITEMS: { label: string; href: string; icon: UiIcon; count?: NavCount }[] = [
@@ -103,7 +104,7 @@
 </nav>
 
 {#if nav.aspects.length > 0}
-	<QuickAdd aspects={nav.aspects} target={{ kind: 'backlog' }} variant="dialog" bind:open={adding} />
+	<QuickAdd aspects={nav.aspects} target={{ kind: 'backlog' }} variant="dialog" sprintWeekStart={nav.activeWeekStart} bind:open={adding} />
 {/if}
 
 <style>

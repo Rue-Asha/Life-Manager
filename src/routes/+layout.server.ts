@@ -31,7 +31,8 @@ export const load: LayoutServerLoad = ({ url }) => {
 			uni: countOpenClassTodos(db)
 		},
 		aspects: aspects.map((a) => ({ ...a, backlog: backlog.filter((t) => t.aspectId === a.id).length })),
-		sync: syncStatus().state
+		sync: syncStatus().state,
+		activeWeekStart: active?.weekStart ?? null
 	};
 	return {
 		aspects,
