@@ -77,5 +77,5 @@ touched an e2e file (in the background, a red run is rerun in full). Seed e2e da
 
 > unit: depends=2,3,4,5,6,7 · scope=S1,S2,S6,S14 · files=e2e/plan-ahead.test.ts, package.json, package-lock.json
 
-- [ ] 8.1 Write "Scenario: Planned todo travels to its day in the Week view" and "Scenario: Todo edited from the calendar leaves its day" in new `e2e/plan-ahead.test.ts` (wait for the URL or heading after each client-side navigation). If one is red, the owning unit's code is fixed in its file, reported under deviations
-- [ ] 8.2 Bump the version to 0.5.0 in `package.json` and `package-lock.json` (`npm version 0.5.0 --no-git-tag-version`); `npm run proof:full` green (background, full rerun on red). The tag `v0.5.0` is pushed by the shipper after the merge, not here
+- [x] 8.1 Write "Scenario: Planned todo travels to its day in the Week view" and "Scenario: Todo edited from the calendar leaves its day" in new `e2e/plan-ahead.test.ts` (wait for the URL or heading after each client-side navigation). If one is red, the owning unit's code is fixed in its file, reported under deviations
+- [x] 8.2 Bump the version to 0.5.0 in `package.json` and `package-lock.json` (`npm version 0.5.0 --no-git-tag-version`); `npm run proof:full` green (background, full rerun on red). The tag `v0.5.0` is pushed by the shipper after the merge, not here
