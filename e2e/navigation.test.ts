@@ -1,4 +1,4 @@
-import { expect, test, reset, seed } from './helpers';
+import { expect, test, reset, seed, setClock } from './helpers';
 
 const LISTS = ['Today', 'Sprint', 'Backlog', 'Recurring', 'Projects', 'Uni', 'Aspects'];
 
@@ -164,4 +164,51 @@ test('Scenario: Zero open class todos is shown like other zero counts', async ({
 	await expect(uni).toBeVisible();
 	await expect(uni.locator('.count')).toHaveCount(0);
 	await expect(uni).toHaveText('Uni');
+});
+
+test('Scenario: Sidebar button adds a backlog todo', async ({ page, request }) => {
+	await reset(request);
+	await setClock(request, '2026-10-15T08:00:00Z');
+	const { aspects } = await seed(request, {
+		aspects: [{ name: 'Health' }, { name: 'Home' }],
+		sprint: { state: 'active', weekStart: '2026-10-12' }
+	});
+	await page.setViewportSize({ width: 1280, height: 800 });
+	await page.goto('/recurring');
+
+	await page.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'New todo' }).click();
+	const dialog = page.getByRole('dialog', { name: 'New todo' });
+	const form = dialog.getByRole('form', { name: 'New todo' });
+	await form.getByLabel('Title').fill('Buy stamps');
+	await form.getByLabel('Aspect').selectOption({ label: 'Home' });
+	await form.getByRole('button', { name: 'Add todo' }).click();
+	await expect(dialog).toBeHidden();
+
+	await page.goto('/backlog');
+	await expect(page.getByTestId(`aspect-group-${aspects[1]}`).getByTestId('todo-row')).toHaveText([/Buy stamps/]);
+	await page.goto('/sprint');
+	await expect(page.getByTestId('sprint-list')).toBeVisible();
+	await expect(page.getByTestId('sprint-list').getByTestId('todo-row')).toHaveCount(0);
+	await setClock(request, null);
+});
+
+test('Scenario: Cancelling the sidebar dialog adds nothing', async ({ page }) => {
+	await page.setViewportSize({ width: 1280, height: 800 });
+	await page.goto('/recurring');
+
+	await page.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'New todo' }).click();
+	const dialog = page.getByRole('dialog', { name: 'New todo' });
+	await dialog.getByLabel('Title').fill('Never mind');
+	await page.keyboard.press('Escape');
+	await expect(dialog).toBeHidden();
+
+	await page.goto('/backlog');
+	await expect(page.getByRole('main').getByTestId('todo-row')).toHaveCount(0);
+});
+
+test('Scenario: Phone home list has no New todo button', async ({ page }) => {
+	await page.setViewportSize({ width: 375, height: 800 });
+	await page.goto('/menu');
+	await expect(page.getByRole('heading', { name: 'Life Manager' })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'New todo' })).toHaveCount(0);
 });

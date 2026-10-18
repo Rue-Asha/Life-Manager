@@ -6,6 +6,8 @@
 
 	// From 1280 the week is one row and its Unscheduled column lives in the rail (UnscheduledList).
 	export const wideWeek = new MediaQuery('min-width: 1280px');
+	// From 768 the columns sit side by side and todos are one-line chips; a phone shows full rows.
+	export const chips = new MediaQuery('min-width: 768px');
 
 	// A dropped card sits on its new day while the move saves, instead of springing back. Shared
 	// with UnscheduledList so a card leaves one component as it lands in the other.
@@ -115,10 +117,12 @@
 			</h2>
 			{#each cards as todo (todo.id)}
 				<div in:arrive={{ key: todo.id }} out:leave={{ key: todo.id }} animate:flip={flipOpts()}>
-					<SprintCard {todo} aspect={aspectOf(todo)} {today} {sprintDays} />
+					<SprintCard {todo} aspect={aspectOf(todo)} {today} {sprintDays} variant={chips.current ? 'chip' : 'row'} />
 				</div>
 			{/each}
-			<div class="add"><QuickAdd {aspects} {target} /></div>
+			<div class="add">
+				<QuickAdd {aspects} {target} compactLabel="Add a todo to {day ? dayLabel(day) : 'Unscheduled'}" />
+			</div>
 		</section>
 	{/each}
 </div>
@@ -139,11 +143,12 @@
 	.column {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-2);
+		gap: 4px;
 		min-height: 160px;
-		padding: var(--space-3);
-		border-radius: var(--radius-md);
-		background: var(--paper-sunk);
+		padding: var(--space-2);
+		border-radius: var(--radius-group);
+		background: var(--surface);
+		box-shadow: var(--shadow-card);
 		transition:
 			background-color var(--dur-fast) var(--ease-out),
 			box-shadow var(--dur-fast) var(--ease-out);
@@ -159,10 +164,18 @@
 		display: flex;
 		align-items: center;
 		gap: var(--space-1);
-		height: 26px;
-		margin-bottom: var(--space-1);
+		height: 40px;
+		margin: calc(-1 * var(--space-2)) calc(-1 * var(--space-2)) var(--space-1);
+		padding: 0 var(--space-3);
+		border-bottom: 1px solid var(--line);
+		border-radius: var(--radius-group) var(--radius-group) 0 0;
 		font-size: var(--text-sm);
 		font-weight: var(--weight-semibold);
+	}
+
+	/* Today's header gets the accent band; its date is the accent badge. */
+	h2:has([aria-current='date']) {
+		background: var(--accent-soft);
 	}
 
 	.date {
@@ -186,61 +199,44 @@
 	}
 
 	.add {
-		margin: 0 calc(-1 * var(--space-1));
-	}
-
-	@media (min-width: 768px) {
-		/* Priority and due date drop under the meta line instead of squeezing the title. */
-		.column :global(.row.checkable) {
-			grid-template-columns: var(--checkbox-size) minmax(0, 1fr);
-		}
-
-		.column :global(.row .meta) {
-			column-gap: var(--space-2);
-		}
-
-		.column :global(.row .end) {
-			grid-column: 2;
-		}
-
-		.column :global(.row .end:has(*)) {
-			margin-top: var(--space-2);
-		}
+		margin-top: var(--space-1);
 	}
 
 	/* Wide desktop: Monday–Sunday in one row across the content width (the rail is an overlay in
 	   Week, so seven columns fit); a busy day scrolls inside its column. */
 	@media (min-width: 1280px) {
+		/* One white sheet: the seven days share it, divided by hairlines. */
 		.week {
 			grid-template-columns: repeat(7, minmax(var(--day-col-min), 1fr));
-			gap: var(--space-2);
+			gap: 0;
 			align-items: stretch;
+			border-radius: var(--radius-group);
+			background: var(--surface);
+			box-shadow: var(--shadow-card);
+			overflow: clip;
 		}
 
-		/* Narrow columns: tighter insets leave the card's chips room. */
 		.column {
 			height: calc(100dvh - var(--top, 0px) - var(--space-9));
 			overflow-y: auto;
-			padding: var(--space-2);
+			border-radius: 0;
+			box-shadow: none;
 		}
 
-		.column :global(.card) {
-			padding-inline: var(--space-2);
-		}
-
-		/* Due date and the row menu wrap under each other rather than spill out of the card. */
-		.column :global(.row .end) {
-			flex-wrap: wrap;
+		.column + .column {
+			border-left: 1px solid var(--line);
 		}
 
 		h2 {
 			position: sticky;
 			top: calc(-1 * var(--space-2));
 			z-index: 1;
-			height: auto;
-			margin: calc(-1 * var(--space-2)) calc(-1 * var(--space-2)) 0;
-			padding: var(--space-2) var(--space-2) var(--space-1);
-			background: var(--paper-sunk);
+			border-radius: 0;
+			background: var(--surface);
+		}
+
+		h2:has([aria-current='date']) {
+			background: var(--accent-soft);
 		}
 
 		/* The server renders Unscheduled before the width is known; from 1280 it is in the rail. */
@@ -307,7 +303,7 @@
 		}
 
 		.strip [aria-pressed='true'] {
-			background: var(--paper-sunk);
+			background: var(--sunk);
 			color: var(--ink);
 		}
 
@@ -340,6 +336,16 @@
 			min-height: 0;
 			padding: 0;
 			background: none;
+			box-shadow: none;
+		}
+
+		.column h2 {
+			margin: 0 0 var(--space-1);
+			border: 0;
+		}
+
+		.column :global(.card) {
+			border-radius: var(--radius-group);
 		}
 
 		.away {

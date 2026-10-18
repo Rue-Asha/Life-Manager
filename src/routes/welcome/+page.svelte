@@ -70,7 +70,7 @@
 
 	h1 {
 		font-size: var(--text-2xl);
-		font-weight: var(--weight-bold);
+		font-weight: var(--weight-heavy);
 		line-height: var(--leading-tight);
 		letter-spacing: var(--tracking-title);
 	}
@@ -104,7 +104,7 @@
 	}
 
 	.row:hover {
-		background: var(--paper-hover);
+		background: var(--hover);
 	}
 
 	.row:has(:focus-visible) {
@@ -191,7 +191,7 @@
 	}
 
 	.add:hover {
-		background: var(--paper-hover);
+		background: var(--hover);
 	}
 
 	.custom {
@@ -202,7 +202,7 @@
 		margin-top: var(--space-4);
 		padding: var(--space-4);
 		border-radius: var(--radius-lg);
-		background: var(--paper-sunk);
+		background: var(--sunk);
 	}
 
 	.custom > :global(:first-child) {

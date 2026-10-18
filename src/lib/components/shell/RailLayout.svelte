@@ -57,7 +57,8 @@
 			z-index: 3;
 			display: flex;
 			justify-content: flex-end;
-			margin-bottom: var(--space-5);
+			/* The toggle sits on the page title's line instead of pushing the title down. */
+			margin-bottom: calc(-1 * var(--control-height));
 			pointer-events: none;
 		}
 
@@ -75,7 +76,8 @@
 			height: 100dvh;
 			overflow-y: auto;
 			padding: calc(var(--space-8) + var(--control-height) + var(--space-5)) var(--gutter) var(--space-8);
-			background: var(--paper-sunk);
+			background: var(--surface);
+			border-left: 1px solid var(--line);
 			box-shadow: var(--shadow-float);
 			transform: translateX(100%);
 			visibility: hidden;

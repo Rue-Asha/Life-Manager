@@ -24,34 +24,52 @@
 </nav>
 
 <style>
+	/* iOS-style grouped list: one white card, inset hairlines between rows. */
 	ul {
 		list-style: none;
 		margin: 0;
 		padding: 0;
+		border-radius: var(--radius-group);
+		background: var(--surface);
+		box-shadow: var(--shadow-card);
+		overflow: clip;
 	}
 
-	/* Aspects are the setup list, so a hairline sets them apart from the six lists. */
-	.aspects {
-		margin-top: var(--space-2);
-		padding-top: var(--space-2);
+	li + li {
+		position: relative;
+	}
+
+	li + li::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		right: 0;
+		left: calc(var(--space-4) + var(--icon-md) + var(--space-3));
 		border-top: 1px solid var(--line);
+	}
+
+	/* Aspects are the setup list, so a band of canvas sets them apart from the six lists. */
+	.aspects {
+		border-top: var(--space-2) solid var(--canvas);
+	}
+
+	.aspects::before {
+		display: none;
 	}
 
 	a {
 		display: flex;
 		align-items: center;
 		gap: var(--space-3);
-		min-height: var(--row-height);
-		padding: 0 var(--space-3);
-		margin: 0 calc(-1 * var(--space-3));
-		border-radius: var(--radius-md);
+		min-height: 52px;
+		padding: 0 var(--space-4);
 		color: var(--ink);
 		font-size: var(--text-lg);
 		text-decoration: none;
 	}
 
 	a:hover {
-		background: var(--paper-hover);
+		background: var(--hover);
 	}
 
 	.count {

@@ -13,6 +13,7 @@
 	import SprintPrompt from '$lib/components/todo/SprintPrompt.svelte';
 	import { dateLabel, dayLabel } from '$lib/components/todo/format';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
+	import SummaryHeader from '$lib/components/ui/SummaryHeader.svelte';
 	import type { AspectProgress, Id, Placement, Todo } from '$lib/types';
 	import type { PageProps } from './$types';
 
@@ -71,6 +72,10 @@
 		delete moves[id];
 		delete placements[id];
 	}
+
+	const sprintDone = $derived(todos.filter((t) => t.status === 'done').length);
+	const daysLeft = $derived(data.sprintDays ? data.sprintDays.filter((d) => d > data.today).length : 0);
+	const doing = $derived(todos.filter((t) => t.status === 'doing').length);
 </script>
 
 <svelte:head>
@@ -92,6 +97,13 @@
 	/>
 {/snippet}
 
+{#snippet sprintLine()}
+	{#if data.sprintDays}
+		<span data-testid="sprint-week">{dayLabel(data.sprintDays[0])} – {dateLabel(data.sprintDays[6])}</span> ·
+		<b>{daysLeft} {daysLeft === 1 ? 'day' : 'days'} left</b>{doing ? ` · ${doing} doing` : ''}
+	{/if}
+{/snippet}
+
 <RailLayout
 	railTitle="Backlog"
 	wide={data.view !== 'aspect'}
@@ -99,11 +111,23 @@
 	rail={data.sprintDays ? rail : undefined}
 >
 	<div class="sprint" class:wide={data.sprintDays && data.view !== 'aspect'}>
-		<PageHeader title="Sprint" icon="calendar-days">
+		<PageHeader title="Sprint">
 			{#if data.sprintDays}
-				<span class="range num" data-testid="sprint-week">{dayLabel(data.sprintDays[0])} – {dateLabel(data.sprintDays[6])}</span>
+				<ManageSheet {backlog} aspects={data.aspects} {progress} onadd={(id) => move(id, 'sprint')} />
 			{/if}
 		</PageHeader>
+
+		{#if data.sprintDays && data.phase !== 'review-required'}
+			<SummaryHeader
+				figure="{sprintDone} / {todos.length}"
+				label="done"
+				context="This sprint"
+				line={sprintLine}
+				segments={data.aspects
+					.filter((a) => progress[a.id])
+					.map((a) => ({ color: a.color, total: progress[a.id].total, done: progress[a.id].done }))}
+			/>
+		{/if}
 
 		{#if data.phase !== 'running'}
 			<div class="prompt"><SprintPrompt phase={data.phase} /></div>
@@ -112,7 +136,6 @@
 		{#if data.sprintDays}
 			<div class="bar">
 				<ViewSwitch view={data.view} />
-				<ManageSheet {backlog} aspects={data.aspects} {progress} onadd={(id) => move(id, 'sprint')} />
 			</div>
 
 			{#if data.view !== 'week'}
@@ -158,11 +181,6 @@
 		:global(.page:has(.sprint.wide)) {
 			max-width: calc(var(--content-max) * 1.5 + 2 * var(--gutter));
 		}
-	}
-
-	.range {
-		color: var(--ink-3);
-		font-size: var(--text-sm);
 	}
 
 	.prompt,

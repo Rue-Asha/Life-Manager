@@ -44,7 +44,7 @@
 		gap: var(--space-3);
 		padding: var(--space-4);
 		border-radius: var(--radius-md);
-		background: var(--paper-sunk);
+		background: var(--sunk);
 		color: var(--ink-2);
 	}
 

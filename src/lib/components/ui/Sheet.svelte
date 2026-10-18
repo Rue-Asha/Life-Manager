@@ -47,14 +47,14 @@
 	dialog {
 		border: 0;
 		padding: 0;
-		background: var(--paper);
+		background: var(--surface);
 		color: var(--ink);
 		box-shadow: var(--shadow-float);
 		max-width: 100vw;
 	}
 
 	dialog::backdrop {
-		background: var(--paper-scrim);
+		background: var(--scrim);
 	}
 
 	.body {
@@ -89,7 +89,7 @@
 	}
 
 	.close:hover {
-		background: var(--paper-hover);
+		background: var(--hover);
 		color: var(--ink);
 	}
 

@@ -14,9 +14,18 @@
 
 <form method="POST" action="/todos?/setStatus" use:enhance={submit()}>
 	<input type="hidden" name="id" value={todoId} />
-	<label class="pill" data-status={status}>
-		<i aria-hidden="true"></i>
-		<span class="visually-hidden">Status</span>
+	<!-- The glyph shows the status; the native select lies over it, invisible, so it keeps the platform
+	     menu on touch and the name "Status: Doing" for everyone else. -->
+	<label class="glyph" data-status={status} title="Status: {STATUS_LABELS[status]}">
+		<svg viewBox="0 0 16 16" aria-hidden="true">
+			{#if status === 'done'}
+				<circle cx="8" cy="8" r="7" class="fill" /><path d="m5 8.2 2 2 4-4.2" class="tick" />
+			{:else}
+				<circle cx="8" cy="8" r="6" class="ring" />
+				{#if status === 'doing'}<path d="M8 4a4 4 0 0 1 0 8Z" class="fill" />{/if}
+			{/if}
+		</svg>
+		<span class="visually-hidden">Status: {STATUS_LABELS[status]}</span>
 		<select name="status" value={status} onchange={(e) => e.currentTarget.form?.requestSubmit()}>
 			{#each Object.entries(STATUS_LABELS) as [value, label] (value)}
 				<option {value}>{label}</option>
@@ -26,60 +35,62 @@
 </form>
 
 <style>
-	.pill {
+	.glyph {
 		position: relative;
-		display: inline-flex;
-		align-items: center;
-		gap: var(--space-1);
+		display: grid;
+		place-items: center;
+		width: 24px;
 		height: 24px;
-		padding: 0 var(--space-2);
-		border: 1px solid var(--line);
-		border-radius: var(--radius-pill);
-		color: var(--ink-2);
-		font-size: var(--text-sm);
-	}
-
-	.pill:focus-within {
-		box-shadow: var(--ring-focus);
-	}
-
-	/* The glyph reads like the checkbox it sits beside: empty ring, half, filled. */
-	i {
-		width: 9px;
-		height: 9px;
-		border: 1.5px solid currentColor;
-		border-radius: var(--radius-pill);
-	}
-
-	[data-status='doing'] {
-		background: var(--paper-sunk);
-		border-color: var(--paper-sunk);
-		color: var(--ink);
-	}
-
-	[data-status='doing'] i {
-		background: linear-gradient(90deg, currentColor 50%, transparent 50%);
-	}
-
-	[data-status='done'] {
+		border-radius: 6px;
 		color: var(--ink-3);
 	}
 
-	[data-status='done'] i {
-		background: currentColor;
+	.glyph:hover {
+		background: var(--sunk);
+		color: var(--ink-2);
+	}
+
+	.glyph:focus-within {
+		box-shadow: var(--ring-focus);
+	}
+
+	[data-status='doing'] {
+		color: var(--accent);
+	}
+
+	[data-status='done'] {
+		color: var(--line-strong);
+	}
+
+	svg {
+		width: 16px;
+		height: 16px;
+	}
+
+	.ring {
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 1.75;
+	}
+
+	.fill {
+		fill: currentColor;
+	}
+
+	.tick {
+		fill: none;
+		stroke: var(--surface);
+		stroke-width: 1.75;
+		stroke-linecap: round;
+		stroke-linejoin: round;
 	}
 
 	select {
-		appearance: none;
-		padding: 0;
-		border: 0;
-		background: none;
-		color: inherit;
-		font-size: inherit;
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		opacity: 0;
 		cursor: pointer;
-	}
-
-	select:focus-visible {
-		box-shadow: none;
 	}
 </style>

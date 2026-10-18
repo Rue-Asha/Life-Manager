@@ -1,5 +1,6 @@
 <script lang="ts">
 	import AspectIcon from '$lib/components/ui/AspectIcon.svelte';
+	import ListGroup from '$lib/components/ui/ListGroup.svelte';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import QuickAdd from '$lib/components/todo/QuickAdd.svelte';
 	import TodoRow from '$lib/components/todo/TodoRow.svelte';
@@ -19,7 +20,7 @@
 	<title>Backlog · Life Manager</title>
 </svelte:head>
 
-<PageHeader title="Backlog" icon="inbox" />
+<PageHeader title="Backlog" />
 
 {#if data.phase === 'review-required'}
 	<p class="review" data-testid="review-note">
@@ -62,11 +63,13 @@
 			<AspectIcon icon={aspect.icon} color={aspect.color} />{aspect.name}
 			<span class="count num">{todos.length}</span>
 		</h2>
-		<ul>
-			{#each todos as todo (todo.id)}
-				<TodoRow {todo} {aspect} today={data.today} context="backlog" sprintDays={data.sprintDays ?? undefined} />
-			{/each}
-		</ul>
+		<ListGroup>
+			<ul>
+				{#each todos as todo (todo.id)}
+					<TodoRow {todo} {aspect} today={data.today} context="backlog" sprintDays={data.sprintDays ?? undefined} />
+				{/each}
+			</ul>
+		</ListGroup>
 	</section>
 {/each}
 
@@ -78,8 +81,8 @@
 	.review {
 		margin-bottom: var(--space-5);
 		padding: var(--space-3) var(--space-4);
-		border-radius: var(--radius-md);
-		background: var(--paper-sunk);
+		border-radius: var(--radius-group);
+		background: var(--surface);
 		color: var(--ink-2);
 		font-size: var(--text-sm);
 	}
@@ -97,7 +100,7 @@
 	.filter {
 		display: flex;
 		gap: var(--space-2);
-		margin: 0 calc(-1 * var(--gutter)) var(--space-7);
+		margin: 0 calc(-1 * var(--gutter)) var(--space-6);
 		padding: 0 var(--gutter);
 		overflow-x: auto;
 		scrollbar-width: none;
@@ -107,28 +110,28 @@
 		display: inline-flex;
 		flex: none;
 		align-items: center;
-		gap: var(--space-1);
+		gap: 6px;
 		height: 30px;
 		padding: 0 var(--space-3);
-		border: 1px solid var(--line-strong);
-		border-radius: var(--radius-sm);
+		border-radius: var(--radius-pill);
+		background: var(--sunk);
 		color: var(--ink-2);
 		font-size: var(--text-sm);
 		text-decoration: none;
 	}
 
 	.filter a:has(:global(svg)) {
-		padding-left: var(--space-2);
+		padding-left: 10px;
 	}
 
 	.filter a:hover {
 		color: var(--ink);
+		background: var(--line);
 	}
 
 	.filter a[aria-current='true'] {
-		border-color: var(--ink);
-		background: var(--ink);
-		color: var(--paper);
+		background: var(--chrome);
+		color: var(--on-chrome);
 	}
 
 	.empty {
@@ -151,16 +154,16 @@
 	}
 
 	.group + .group {
-		margin-top: var(--space-7);
+		margin-top: var(--space-6);
 	}
 
 	h2 {
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
-		padding-bottom: var(--space-2);
-		border-bottom: 1px solid var(--line);
-		font-size: var(--text-lg);
+		margin-bottom: var(--space-2);
+		padding: 0 var(--space-1);
+		font-size: var(--text-md);
 		font-weight: var(--weight-semibold);
 		line-height: var(--leading-snug);
 	}

@@ -66,7 +66,7 @@
 
 <svelte:window onpointerdown={closeMenu} onkeydown={closeMenu} />
 
-<PageHeader title="Aspects" icon="layers">
+<PageHeader title="Aspects">
 	<Button variant="primary" onclick={() => open('new')}>
 		<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.plus} /></svg>
 		New aspect
@@ -177,18 +177,22 @@
 />
 
 <style>
+	/* Phone: one grouped white card with inset hairlines; wide screens: a grid of cards. */
 	ul {
 		margin: 0;
 		padding: 0;
 		list-style: none;
+		border-radius: var(--radius-group);
+		background: var(--surface);
+		box-shadow: var(--shadow-card);
 	}
 
 	li + li::before {
 		content: '';
 		position: absolute;
 		top: 0;
-		right: var(--space-3);
-		left: var(--space-3);
+		right: 0;
+		left: var(--space-4);
 		border-top: 1px solid var(--line);
 	}
 
@@ -199,13 +203,12 @@
 		align-items: center;
 		gap: var(--space-3);
 		min-height: 56px;
-		margin: 0 calc(-1 * var(--space-3));
-		padding: 0 var(--space-3);
-		border-radius: var(--radius-md);
+		padding: 0 var(--space-4);
+		border-radius: var(--radius-group);
 	}
 
 	li:hover {
-		background: var(--paper-hover);
+		background: var(--hover);
 	}
 
 	.name::after {
@@ -235,7 +238,7 @@
 
 	.more:hover,
 	.more[aria-expanded='true'] {
-		background: var(--paper-sunk);
+		background: var(--sunk);
 		color: var(--ink);
 	}
 
@@ -253,7 +256,7 @@
 		padding: var(--space-1);
 		border: 1px solid var(--line);
 		border-radius: var(--radius-md);
-		background: var(--paper);
+		background: var(--surface);
 		box-shadow: var(--shadow-float);
 	}
 
@@ -273,7 +276,7 @@
 
 	.menu [role='menuitem']:hover:not(:disabled),
 	.menu [role='menuitem']:focus-visible {
-		background: var(--paper-hover);
+		background: var(--hover);
 		outline: none;
 	}
 
@@ -292,6 +295,8 @@
 			display: grid;
 			grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
 			gap: var(--space-3);
+			background: none;
+			box-shadow: none;
 		}
 
 		li + li::before {
@@ -310,8 +315,14 @@
 			row-gap: var(--space-1);
 			margin: 0;
 			padding: var(--space-4);
-			border: 1px solid var(--line);
-			border-radius: var(--radius-lg);
+			border-radius: 16px;
+			background: var(--surface);
+			box-shadow: var(--shadow-card);
+		}
+
+		li:hover {
+			background: var(--surface);
+			box-shadow: var(--shadow-pop);
 		}
 
 		.tile {

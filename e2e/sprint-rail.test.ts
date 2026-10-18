@@ -125,15 +125,16 @@ test('Scenario: Sprint at 1280 shows a context rail', async ({ page, request }) 
 		const box = (await context.boundingBox())!;
 		const width = await page.evaluate(() => document.documentElement.clientWidth);
 		expect(Math.abs(box.x + box.width - width)).toBeLessThanOrEqual(1);
-		const [background, sunk] = await context.evaluate((el) => {
+		const [background, surface, edge] = await context.evaluate((el) => {
 			const probe = document.createElement('div');
-			probe.style.background = 'var(--paper-sunk)';
+			probe.style.background = 'var(--surface)';
 			document.body.append(probe);
 			const value = getComputedStyle(probe).backgroundColor;
 			probe.remove();
-			return [getComputedStyle(el).backgroundColor, value];
+			return [getComputedStyle(el).backgroundColor, value, getComputedStyle(el).borderLeftWidth];
 		});
-		expect(background).toBe(sunk);
+		expect(background).toBe(surface);
+		expect(edge).toBe('1px');
 		return box;
 	}
 

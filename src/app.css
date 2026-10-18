@@ -12,7 +12,7 @@ html {
 
 body {
 	margin: 0;
-	background: var(--paper);
+	background: var(--canvas);
 	color: var(--ink);
 	/* The self-hosted fontsource build registers the family under its "Variable" name. */
 	font-family: 'Bricolage Grotesque Variable', var(--font-sans);

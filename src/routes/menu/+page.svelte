@@ -12,9 +12,9 @@
 <style>
 	h1 {
 		margin: var(--space-4) 0 var(--space-6);
-		font-size: var(--text-2xl);
-		font-weight: var(--weight-bold);
-		line-height: var(--leading-tight);
-		letter-spacing: var(--tracking-title);
+		font-size: 34px;
+		font-weight: var(--weight-heavy);
+		line-height: 1.1;
+		letter-spacing: -0.025em;
 	}
 </style>

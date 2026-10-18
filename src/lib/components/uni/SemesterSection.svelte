@@ -258,8 +258,7 @@
 		align-items: center;
 		gap: var(--space-2);
 		min-height: 30px;
-		padding-bottom: var(--space-2);
-		border-bottom: 1px solid var(--line);
+		padding: 0 var(--space-1);
 	}
 
 	h2,
@@ -320,7 +319,7 @@
 		padding: var(--space-2) var(--space-3);
 		border: 1px solid var(--line-strong);
 		border-radius: var(--radius-sm);
-		background: var(--paper);
+		background: var(--surface);
 	}
 
 	input[aria-invalid='true'] {
@@ -354,7 +353,7 @@
 	}
 
 	.icon-btn:hover {
-		background: var(--paper-hover);
+		background: var(--hover);
 		color: var(--ink);
 	}
 
@@ -373,7 +372,7 @@
 		margin: 0;
 		padding: var(--space-1);
 		border-radius: var(--radius-md);
-		background: var(--paper);
+		background: var(--surface);
 		box-shadow: var(--shadow-pop);
 		list-style: none;
 	}
@@ -393,7 +392,7 @@
 	}
 
 	.menu button:hover {
-		background: var(--paper-hover);
+		background: var(--hover);
 	}
 
 	.class-form {
@@ -402,7 +401,7 @@
 		margin-top: var(--space-4);
 		padding: var(--space-5);
 		border-radius: var(--radius-md);
-		background: var(--paper-sunk);
+		background: var(--sunk);
 	}
 
 	footer {
@@ -432,15 +431,15 @@
 		width: 100%;
 		height: 100%;
 		min-height: 56px;
-		border: 1px dashed var(--line-strong);
-		border-radius: var(--radius-md);
+		border: 1.5px dashed var(--line-strong);
+		border-radius: 16px;
 		background: none;
 		color: var(--ink-2);
 		cursor: pointer;
 	}
 
 	.add-tile:hover {
-		background: var(--paper-hover);
+		background: var(--hover);
 		color: var(--ink);
 	}
 
@@ -450,8 +449,9 @@
 		gap: var(--space-3);
 		margin-top: var(--space-4);
 		padding: var(--space-4);
-		border-radius: var(--radius-md);
-		background: var(--paper-sunk);
+		border-radius: var(--radius-group);
+		background: var(--surface);
+		box-shadow: var(--shadow-card);
 		color: var(--ink-3);
 	}
 

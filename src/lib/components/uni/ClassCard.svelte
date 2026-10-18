@@ -42,16 +42,18 @@
 		gap: var(--space-3);
 		height: 100%;
 		padding: var(--space-4);
-		border: 1px solid var(--line);
-		border-radius: var(--radius-md);
-		background: var(--paper);
+		border-radius: 16px;
+		background: var(--surface);
+		box-shadow: var(--shadow-card);
 		color: inherit;
 		text-decoration: none;
-		transition: background-color var(--dur-fast) var(--ease-out);
+		transition:
+			background-color var(--dur-fast) var(--ease-out),
+			box-shadow var(--dur-fast) var(--ease-out);
 	}
 
 	.card:hover {
-		background: var(--paper-hover);
+		box-shadow: var(--shadow-pop);
 	}
 
 	.top {
@@ -129,7 +131,7 @@
 		margin-left: auto;
 		padding: 0 var(--space-2);
 		border-radius: var(--radius-sm);
-		background: var(--paper-sunk);
+		background: var(--sunk);
 		color: var(--ink-2);
 		font-weight: var(--weight-medium);
 	}

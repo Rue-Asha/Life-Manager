@@ -1,7 +1,11 @@
 <script lang="ts">
 	import AspectIcon from '$lib/components/ui/AspectIcon.svelte';
+	import FieldCard from '$lib/components/ui/FieldCard.svelte';
+	import FieldRow from '$lib/components/ui/FieldRow.svelte';
+	import ListGroup from '$lib/components/ui/ListGroup.svelte';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import ProgressBar from '$lib/components/ui/ProgressBar.svelte';
+	import SummaryHeader from '$lib/components/ui/SummaryHeader.svelte';
 	import RailLayout from '$lib/components/shell/RailLayout.svelte';
 	import QuickAdd from '$lib/components/todo/QuickAdd.svelte';
 	import SprintPrompt from '$lib/components/todo/SprintPrompt.svelte';
@@ -24,34 +28,59 @@
 			.filter((g) => g.todos.length > 0)
 	);
 	const sprintAspects = $derived(data.aspects.filter((a) => data.progress[a.id]));
+
+	// The summary header counts what is still open on this page, and the sprint as a whole.
+	const openToday = $derived(
+		new Set([...data.todos, ...data.overdue, ...data.dueToday].filter((t) => t.status !== 'done').map((t) => t.id)).size
+	);
+	const sprintDone = $derived(sprintAspects.reduce((n, a) => n + data.progress[a.id].done, 0));
+	const sprintTotal = $derived(sprintAspects.reduce((n, a) => n + data.progress[a.id].total, 0));
+	const daysLeft = $derived(data.sprintDays.filter((d) => d > data.today).length);
+	const weekdayName = new Intl.DateTimeFormat('en-GB', { weekday: 'long', timeZone: 'UTC' });
 </script>
 
 <svelte:head>
 	<title>Today · Life Manager</title>
 </svelte:head>
 
+{#snippet sprintLine()}
+	Sprint <b>{sprintDone} / {sprintTotal}</b> done · <b>{daysLeft} {daysLeft === 1 ? 'day' : 'days'}</b> left
+{/snippet}
+
 {#snippet sprintRail()}
-	<h2 class="rail-title">This sprint</h2>
+	<h2 class="rail-title">This sprint<span class="num">{sprintDone} / {sprintTotal}</span></h2>
 	{#if sprintAspects.length}
-		<ul class="progress-list">
-			{#each sprintAspects as aspect (aspect.id)}
-				<li>
-					<a href="/aspects/{aspect.id}">
-						<AspectIcon icon={aspect.icon} color={aspect.color} size="sm" />
-						<span class="name">{aspect.name}</span>
-					</a>
-					<ProgressBar done={data.progress[aspect.id].done} total={data.progress[aspect.id].total} color={aspect.color} />
-				</li>
-			{/each}
-		</ul>
+		<FieldCard>
+			<ul>
+				{#each sprintAspects as aspect (aspect.id)}
+					<li>
+						<FieldRow icon={aspect.icon} color={aspect.color}>
+							<a href="/aspects/{aspect.id}" class="name">{aspect.name}</a>
+							{#snippet end()}
+								<ProgressBar done={data.progress[aspect.id].done} total={data.progress[aspect.id].total} color={aspect.color} />
+							{/snippet}
+						</FieldRow>
+					</li>
+				{/each}
+			</ul>
+		</FieldCard>
 	{:else}
 		<p class="rail-empty">Nothing in this sprint yet.</p>
 	{/if}
 {/snippet}
 
 <RailLayout railTitle="This sprint" rail={inSprint ? sprintRail : undefined}>
-	<PageHeader title="Today" icon="sun" />
-	<p class="date">{longDate.format(new Date(`${data.today}T00:00:00Z`))}</p>
+	<PageHeader title="Today" subtitle={longDate.format(new Date(`${data.today}T00:00:00Z`))} />
+
+	<SummaryHeader
+		figure={String(openToday)}
+		label="open today"
+		context={inSprint ? `${weekdayName.format(new Date(`${data.today}T00:00:00Z`))} · this sprint` : undefined}
+		line={inSprint ? sprintLine : undefined}
+		segments={inSprint
+			? sprintAspects.map((a) => ({ color: a.color, total: data.progress[a.id].total, done: data.progress[a.id].done }))
+			: []}
+	/>
 
 	{#if data.phase !== 'running'}
 		<div class="prompt"><SprintPrompt phase={data.phase} /></div>
@@ -77,23 +106,25 @@
 	{#if data.overdue.length}
 		<section class="group" data-testid="overdue-group" aria-labelledby="group-overdue">
 			<h2 id="group-overdue" class="late">Overdue<span class="count num">{data.overdue.length}</span></h2>
-			<ul>
-				{#each data.overdue as todo (todo.id)}
-					<!-- Done belongs to the running sprint, so backlog and draft todos are offered the sprint instead of a checkbox. -->
-					{#if todo.sprintId === data.activeSprintId}
-						<TodoRow {todo} aspect={aspectOf(todo.aspectId)} today={data.today} context="today" mixed />
-					{:else}
-						<TodoRow
-							{todo}
-							aspect={aspectOf(todo.aspectId)}
-							today={data.today}
-							context="backlog"
-							sprintDays={todo.sprintId === null && inSprint ? data.sprintDays : undefined}
-							mixed
-						/>
-					{/if}
-				{/each}
-			</ul>
+			<ListGroup>
+				<ul>
+					{#each data.overdue as todo (todo.id)}
+						<!-- Done belongs to the running sprint, so backlog and draft todos are offered the sprint instead of a checkbox. -->
+						{#if todo.sprintId === data.activeSprintId}
+							<TodoRow {todo} aspect={aspectOf(todo.aspectId)} today={data.today} context="today" mixed />
+						{:else}
+							<TodoRow
+								{todo}
+								aspect={aspectOf(todo.aspectId)}
+								today={data.today}
+								context="backlog"
+								sprintDays={todo.sprintId === null && inSprint ? data.sprintDays : undefined}
+								mixed
+							/>
+						{/if}
+					{/each}
+				</ul>
+			</ListGroup>
 		</section>
 	{/if}
 
@@ -103,34 +134,31 @@
 				<AspectIcon icon={aspect.icon} color={aspect.color} />{aspect.name}
 				<span class="count num">{todos.length}</span>
 			</h2>
-			<ul>
-				{#each todos as todo (todo.id)}
-					{#if todo.sprintId === null}
-						<TodoRow
-							{todo}
-							{aspect}
-							today={data.today}
-							context="backlog"
-							sprintDays={inSprint ? data.sprintDays : undefined}
-						/>
-					{:else}
-						<TodoRow {todo} {aspect} today={data.today} context="today" />
-					{/if}
-				{/each}
-			</ul>
+			<ListGroup>
+				<ul>
+					{#each todos as todo (todo.id)}
+						{#if todo.sprintId === null}
+							<TodoRow
+								{todo}
+								{aspect}
+								today={data.today}
+								context="backlog"
+								sprintDays={inSprint ? data.sprintDays : undefined}
+							/>
+						{:else}
+							<TodoRow {todo} {aspect} today={data.today} context="today" />
+						{/if}
+					{/each}
+				</ul>
+			</ListGroup>
 		</section>
 	{/each}
 </RailLayout>
 
 <style>
-	.date {
-		margin: calc(-1 * var(--space-5)) 0 var(--space-6);
-		color: var(--ink-3);
-	}
-
 	.prompt,
 	.quick {
-		margin-bottom: var(--space-7);
+		margin-bottom: var(--space-6);
 	}
 
 	.empty {
@@ -138,8 +166,9 @@
 		align-items: center;
 		gap: var(--space-3);
 		padding: var(--space-4);
-		border-radius: var(--radius-md);
-		background: var(--paper-sunk);
+		border-radius: var(--radius-group);
+		background: var(--surface);
+		box-shadow: var(--shadow-card);
 		color: var(--ink-2);
 	}
 
@@ -164,16 +193,16 @@
 	}
 
 	.group + .group {
-		margin-top: var(--space-7);
+		margin-top: var(--space-6);
 	}
 
 	.group h2 {
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
-		padding-bottom: var(--space-2);
-		border-bottom: 1px solid var(--line);
-		font-size: var(--text-lg);
+		margin-bottom: var(--space-2);
+		padding: 0 var(--space-1);
+		font-size: var(--text-md);
 		font-weight: var(--weight-semibold);
 		line-height: var(--leading-snug);
 	}
@@ -191,37 +220,30 @@
 	}
 
 	.rail-title {
-		margin-bottom: var(--space-4);
-		color: var(--ink-3);
+		display: flex;
+		justify-content: space-between;
+		margin-bottom: var(--space-3);
+		color: var(--ink-2);
 		font-size: var(--text-sm);
 		font-weight: var(--weight-semibold);
 	}
 
-	.progress-list li {
-		display: flex;
-		align-items: center;
-		gap: var(--space-3);
-		padding: var(--space-2) 0;
-	}
-
-	.progress-list a {
-		display: flex;
-		flex: 1;
-		align-items: center;
-		gap: var(--space-2);
-		min-width: 0;
-		color: var(--ink);
-		text-decoration: none;
-	}
-
-	.progress-list a:hover .name {
-		text-decoration: underline;
+	.rail-title span {
+		color: var(--ink-3);
+		font-weight: var(--weight-regular);
 	}
 
 	.name {
+		display: block;
 		overflow: hidden;
+		color: var(--ink);
+		text-decoration: none;
 		text-overflow: ellipsis;
 		white-space: nowrap;
+	}
+
+	.name:hover {
+		text-decoration: underline;
 	}
 
 	.rail-empty {

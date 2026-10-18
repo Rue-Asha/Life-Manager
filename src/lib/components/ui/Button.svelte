@@ -21,8 +21,8 @@
 		padding: 0 var(--space-4);
 		border: 0;
 		border-radius: var(--radius-md);
-		font-size: var(--text-md);
-		font-weight: var(--weight-medium);
+		font-size: 14px;
+		font-weight: var(--weight-semibold);
 		white-space: nowrap;
 		cursor: pointer;
 		transition: background-color var(--dur-fast) var(--ease-out);
@@ -43,12 +43,14 @@
 	}
 
 	.secondary {
-		background: var(--paper-sunk);
+		background: var(--surface);
+		box-shadow: inset 0 0 0 1px var(--line);
 		color: var(--ink);
 	}
 
 	.secondary:hover:not(:disabled) {
-		background: var(--line);
+		background: var(--hover);
+		box-shadow: inset 0 0 0 1px var(--line-strong);
 	}
 
 	.quiet {

@@ -136,7 +136,7 @@
 
 	h1 {
 		font-size: var(--text-2xl);
-		font-weight: var(--weight-bold);
+		font-weight: var(--weight-heavy);
 		line-height: var(--leading-tight);
 		letter-spacing: var(--tracking-title);
 	}
@@ -201,7 +201,7 @@
 		padding: 0 var(--space-3);
 		border: 1px solid var(--line-strong);
 		border-radius: var(--radius-sm);
-		background: var(--paper);
+		background: var(--surface);
 	}
 
 	input[aria-invalid='true'] {

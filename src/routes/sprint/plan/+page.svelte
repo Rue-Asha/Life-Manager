@@ -5,6 +5,7 @@
 	import BacklogRail from '$lib/components/rail/BacklogRail.svelte';
 	import AspectIcon from '$lib/components/ui/AspectIcon.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
+	import ListGroup from '$lib/components/ui/ListGroup.svelte';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import { UI_ICONS } from '$lib/components/ui/icons';
 	import TodoRow from '$lib/components/todo/TodoRow.svelte';
@@ -46,7 +47,7 @@
 	<title>Plan your week · Life Manager</title>
 </svelte:head>
 
-<PageHeader title="Plan your week" icon="calendar">
+<PageHeader title="Plan your week">
 	<span class="week num" data-testid="plan-week">{weekLabel(data.weekStart)}</span>
 </PageHeader>
 
@@ -61,24 +62,26 @@
 				<AspectIcon icon={aspect.icon} color={aspect.color} size="sm" />{aspect.name}
 				<span class="count num">{todos.length}</span>
 			</h3>
-			{#each todos as todo (todo.id)}
-				<div
-					class="item"
-					role="presentation"
-					in:receive={{ key: todo.id }}
-					out:send={{ key: todo.id }}
-					animate:flip={flipOpts()}
-					use:draggableTodo={{ id: todo.id, from: 'sprint', recurring: todo.recurring }}
-				>
-					<ul><TodoRow {todo} {aspect} today={data.today} context="planning" /></ul>
-					<form method="POST" action="?/unpull" use:enhance>
-						<input type="hidden" name="id" value={todo.id} />
-						<button class="move" aria-label="Remove from sprint: {todo.title}" title="Remove from sprint">
-							<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.x} /></svg>
-						</button>
-					</form>
-				</div>
-			{/each}
+			<ListGroup>
+				{#each todos as todo (todo.id)}
+					<div
+						class="item"
+						role="presentation"
+						in:receive={{ key: todo.id }}
+						out:send={{ key: todo.id }}
+						animate:flip={flipOpts()}
+						use:draggableTodo={{ id: todo.id, from: 'sprint', recurring: todo.recurring }}
+					>
+						<ul><TodoRow {todo} {aspect} today={data.today} context="planning" /></ul>
+						<form method="POST" action="?/unpull" use:enhance>
+							<input type="hidden" name="id" value={todo.id} />
+							<button class="move" aria-label="Remove from sprint: {todo.title}" title="Remove from sprint">
+								<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.x} /></svg>
+							</button>
+						</form>
+					</div>
+				{/each}
+			</ListGroup>
 		</section>
 	{/each}
 {/snippet}
@@ -97,25 +100,27 @@
 					<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.flag} /></svg>Due this week
 					<span class="count num">{marked.length} of {data.suggested.length}</span>
 				</h3>
-				{#each data.suggested as todo (todo.id)}
-					{@const aspect = data.aspects.find((a) => a.id === todo.aspectId)!}
-					<div class="item">
-						<ul><TodoRow {todo} {aspect} today={data.today} context="planning" /></ul>
-						<input
-							type="checkbox"
-							class="mark"
-							form="start-form"
-							name="suggested"
-							value={todo.id}
-							aria-label="Include: {todo.title}"
-							checked={!unmarked.includes(todo.id)}
-							onchange={(e) =>
-								(unmarked = e.currentTarget.checked
-									? unmarked.filter((id) => id !== todo.id)
-									: [...unmarked, todo.id])}
-						/>
-					</div>
-				{/each}
+				<ListGroup>
+					{#each data.suggested as todo (todo.id)}
+						{@const aspect = data.aspects.find((a) => a.id === todo.aspectId)!}
+						<div class="item">
+							<ul><TodoRow {todo} {aspect} today={data.today} context="planning" /></ul>
+							<input
+								type="checkbox"
+								class="mark"
+								form="start-form"
+								name="suggested"
+								value={todo.id}
+								aria-label="Include: {todo.title}"
+								checked={!unmarked.includes(todo.id)}
+								onchange={(e) =>
+									(unmarked = e.currentTarget.checked
+										? unmarked.filter((id) => id !== todo.id)
+										: [...unmarked, todo.id])}
+							/>
+						</div>
+					{/each}
+				</ListGroup>
 			</section>
 		{/if}
 		{#if data.planned.length === 0 && data.suggested.length === 0}
@@ -195,9 +200,9 @@
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
-		padding-bottom: var(--space-2);
-		border-bottom: 1px solid var(--line);
-		font-size: var(--text-lg);
+		margin-bottom: var(--space-2);
+		padding: 0 var(--space-1);
+		font-size: var(--text-md);
 		font-weight: var(--weight-semibold);
 		line-height: var(--leading-snug);
 	}
@@ -212,8 +217,8 @@
 
 	.placeholder {
 		padding: var(--space-6) var(--space-4);
-		border: 1px dashed var(--line-strong);
-		border-radius: var(--radius-md);
+		border: 1.5px dashed var(--line-strong);
+		border-radius: var(--radius-group);
 		color: var(--ink-3);
 		text-align: center;
 	}
@@ -236,12 +241,12 @@
 		appearance: none;
 		display: grid;
 		place-items: center;
-		width: 32px;
-		height: 32px;
-		margin: var(--space-1) 0 0;
-		border: 1px solid var(--line-strong);
-		border-radius: var(--radius-sm);
-		background: var(--paper);
+		width: 28px;
+		height: 28px;
+		margin: var(--space-2) 0 0;
+		border: 1.5px solid var(--line-strong);
+		border-radius: 8px;
+		background: var(--surface);
 		cursor: pointer;
 	}
 
@@ -269,8 +274,9 @@
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) auto;
 		align-items: start;
-		gap: var(--space-2);
-		border-radius: var(--radius-md);
+		gap: var(--space-1);
+		padding-right: var(--space-3);
+		border-radius: var(--radius-group);
 	}
 
 	.item:global([draggable='true']) {
@@ -278,7 +284,7 @@
 	}
 
 	.item:global([data-dragging]) {
-		background: var(--paper);
+		background: var(--surface);
 		box-shadow: var(--shadow-float);
 	}
 
@@ -291,19 +297,19 @@
 	.move {
 		display: grid;
 		place-items: center;
-		width: 32px;
-		height: 32px;
-		margin-top: var(--space-1);
+		width: 28px;
+		height: 28px;
+		margin-top: var(--space-2);
 		padding: 0;
-		border: 1px solid var(--line-strong);
-		border-radius: var(--radius-sm);
-		background: var(--paper);
+		border: 0;
+		border-radius: 8px;
+		background: var(--sunk);
 		color: var(--ink-2);
 		cursor: pointer;
 	}
 
 	.move:hover {
-		border-color: var(--ink-2);
+		background: var(--line);
 		color: var(--ink);
 	}
 
@@ -327,7 +333,7 @@
 		margin-top: var(--space-7);
 		padding: var(--space-3) 0 var(--space-4);
 		border-top: 1px solid var(--line);
-		background: var(--paper);
+		background: var(--canvas);
 	}
 
 	.hint {
@@ -352,7 +358,7 @@
 		}
 	}
 
-	/* Desktop: the draft sprint on the left, the backlog as a sunk rail on the right. */
+	/* Desktop: the draft sprint on the left, the backlog as a white rail on the right. */
 	@media (min-width: 1024px) {
 		.panes {
 			grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -367,7 +373,8 @@
 
 		.backlog {
 			margin: 0;
-			background: var(--paper-sunk);
+			background: var(--surface);
+			box-shadow: inset 0 0 0 1px var(--line);
 		}
 
 		.sprint {
