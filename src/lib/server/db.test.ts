@@ -50,7 +50,7 @@ describe('db', () => {
 		expect(db.prepare('SELECT count(*) AS n FROM todos WHERE project_id IS NULL').get()).toEqual({ n: 2 });
 		// Columns added by later migrations aren't part of the v1 rows.
 		const strip = (rows: Record<string, unknown>[]) =>
-			rows.map(({ project_id, class_id, type, revised_at, ...r }) => r);
+			rows.map(({ project_id, class_id, type, revised_at, start_time, end_time, ...r }) => r);
 		expect(db.prepare('SELECT * FROM aspects').all()).toEqual(before.aspects);
 		expect(db.prepare('SELECT * FROM sprints').all()).toEqual(before.sprints);
 		expect(strip(db.prepare('SELECT * FROM recurring_rules').all())).toEqual(before.rules);
@@ -126,7 +126,7 @@ describe('db', () => {
 		old.close();
 
 		const db = openDb(path);
-		expect(db.prepare('PRAGMA user_version').get()).toEqual({ user_version: 4 });
+		expect(db.prepare('PRAGMA user_version').get()).toEqual({ user_version: migrations.length });
 		const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all().map((r) => r.name);
 		expect(tables).toEqual(expect.arrayContaining(['semesters', 'classes']));
 		expect(db.prepare('SELECT count(*) AS n FROM todos WHERE class_id IS NULL AND type IS NULL AND revised_at IS NULL').get()).toEqual({ n: 3 });
@@ -134,7 +134,41 @@ describe('db', () => {
 		const { rules, todos, ...rest } = before;
 		expect(read(db)).toEqual(rest);
 		expect(db.prepare('SELECT id, title, aspect_id, weekdays, notes, priority, checklist, created_at FROM recurring_rules').all()).toEqual(rules);
-		expect(db.prepare('SELECT * FROM todos ORDER BY id').all().map(({ class_id, type, revised_at, ...r }) => r)).toEqual(todos);
+		expect(db.prepare('SELECT * FROM todos ORDER BY id').all().map(({ class_id, type, revised_at, start_time, end_time, ...r }) => r)).toEqual(todos);
+		db.close();
+		rmSync(dir, { recursive: true, force: true });
+	});
+
+	it('Scenario: Migration 5 adds time slots without touching existing data', () => {
+		const dir = mkdtempSync(join(tmpdir(), 'lm-db-'));
+		const path = join(dir, 'v4.db');
+		const old = new DatabaseSync(path);
+		old.exec('PRAGMA foreign_keys = ON');
+		for (const m of migrations.slice(0, 4)) old.exec(m);
+		old.exec(`
+			INSERT INTO aspects (id, name, color, icon, position, created_at) VALUES (1, 'IT', 'sage', 'heart', 0, 'a');
+			INSERT INTO sprints (id, week_start, state, started_at) VALUES (1, '2026-09-28', 'active', 's');
+			INSERT INTO recurring_rules (id, title, aspect_id, weekdays, created_at) VALUES (1, 'Rule', 1, '1', 'r');
+			INSERT INTO todos (id, title, aspect_id, sprint_id, rule_id, day, created_at) VALUES
+				(1, 'A', 1, 1, 1, '2026-09-29', 't'), (2, 'B', 1, NULL, NULL, NULL, 't');
+			INSERT INTO checklist_items (id, todo_id, text, position) VALUES (1, 1, 'item', 0);
+			PRAGMA user_version = 4;
+		`);
+		const before = {
+			rules: old.prepare('SELECT * FROM recurring_rules').all(),
+			todos: old.prepare('SELECT * FROM todos ORDER BY id').all(),
+			items: old.prepare('SELECT * FROM checklist_items').all()
+		};
+		old.close();
+
+		const db = openDb(path);
+		expect(db.prepare('PRAGMA user_version').get()).toEqual({ user_version: 5 });
+		expect(db.prepare('SELECT count(*) AS n FROM todos WHERE start_time IS NULL AND end_time IS NULL').get()).toEqual({ n: 2 });
+		expect(db.prepare('SELECT count(*) AS n FROM recurring_rules WHERE start_time IS NULL AND end_time IS NULL').get()).toEqual({ n: 1 });
+		const strip = (rows: Record<string, unknown>[]) => rows.map(({ start_time, end_time, ...r }) => r);
+		expect(strip(db.prepare('SELECT * FROM recurring_rules').all())).toEqual(before.rules);
+		expect(strip(db.prepare('SELECT * FROM todos ORDER BY id').all())).toEqual(before.todos);
+		expect(db.prepare('SELECT * FROM checklist_items').all()).toEqual(before.items);
 		db.close();
 		rmSync(dir, { recursive: true, force: true });
 	});

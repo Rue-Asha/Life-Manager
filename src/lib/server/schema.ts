@@ -132,5 +132,11 @@ export const migrations: string[] = [
 	ALTER TABLE todos ADD COLUMN revised_at TEXT NULL;
 	ALTER TABLE recurring_rules ADD COLUMN class_id INTEGER NULL REFERENCES classes (id) ON DELETE CASCADE;
 	ALTER TABLE recurring_rules ADD COLUMN type TEXT NULL CHECK (type IN ('LEC', 'EXC', 'OTH'));
+	`,
+	`
+	ALTER TABLE todos ADD COLUMN start_time TEXT NULL;
+	ALTER TABLE todos ADD COLUMN end_time TEXT NULL;
+	ALTER TABLE recurring_rules ADD COLUMN start_time TEXT NULL;
+	ALTER TABLE recurring_rules ADD COLUMN end_time TEXT NULL;
 	`
 ];
