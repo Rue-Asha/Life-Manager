@@ -59,11 +59,12 @@ touched an e2e file (in the background, a red run is rerun in full). Seed e2e da
 
 ## 6. Backlog "Planned" section and plan page auto-list
 
-> unit: depends=1,2 · scope=S5,S6 · files=src/routes/backlog/+page.server.ts, src/routes/backlog/+page.svelte, src/routes/sprint/plan/+page.server.ts, src/routes/sprint/plan/+page.svelte, e2e/backlog.test.ts, e2e/planning.test.ts
+> unit: depends=1,2 · scope=S5,S6 · files=src/routes/backlog/+page.server.ts, src/routes/backlog/+page.svelte, src/routes/sprint/plan/+page.server.ts, src/routes/sprint/plan/+page.svelte, e2e/backlog.test.ts, e2e/planning.test.ts, src/routes/+page.server.ts, e2e/today.test.ts
 
 - [ ] 6.1 Backlog: split the (aspect-filtered) backlog into the "Planned" section (`planned-section`, sorted by day, all-day first, then start time) above the aspect groups, hidden when empty. Write "Scenario: Planned todos are listed in the Planned section" and "Scenario: No Planned section without planned todos" in `e2e/backlog.test.ts`; scope count assertions to the section / group test ids (repo learning). Red: no section
 - [ ] 6.2 Plan page: load `listPlannedForWeek(targetWeek)`, render "Joins automatically" (`plan-auto`) with read-only rows (no pull/unpull, not draggable) and keep them out of the backlog panel. Write "Scenario: Plan page lists planned todos as coming automatically" in `e2e/planning.test.ts`. Red: no section
-- [ ] 6.3 `npm run proof:full` green
+- [ ] 6.3 Today shows a backlog todo once when it is planned for today and overdue (found by U2: it appears under Overdue and again in its aspect group). Write "Scenario: Overdue todo planned for today shows once on Today" in `e2e/today.test.ts`, red first; then exclude overdue todos from the planned/due-today list in `src/routes/+page.server.ts` (header count already dedups by id)
+- [ ] 6.4 `npm run proof:full` green
 
 ## 7. Calendar in the navigation
 
