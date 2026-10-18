@@ -1,7 +1,8 @@
 // WCAG AA check for every text/background pair the style tile uses, per palette file and for
 // the shipped src/lib/styles/tokens.css (which must also give the unchecked checkbox outline 3:1).
-// Usage: node design/palettes/check-contrast.mjs [--tokens]   (exit 1 on any failure;
-// --tokens checks only tokens.css, since palette A is kept failing as the record)
+// Usage: node design/palettes/check-contrast.mjs [--tokens | --cohesive]   (exit 1 on any failure;
+// --tokens checks only tokens.css, since palette A is kept failing as the record; --cohesive checks only
+// design/cohesive-tokens.css, whose surfaces (canvas, surface, sunk, chrome) get their own pair set)
 import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -74,6 +75,7 @@ function load(file) {
 		if (ref) return (cache[k] = get(ref[1]));
 		throw new Error(`${file}: cannot resolve --${k}: ${v}`);
 	};
+	get.has = (k) => k in raw;
 	return get;
 }
 
@@ -94,14 +96,37 @@ function pairs(outline) {
 	return p;
 }
 
+// Cohesive look (openspec change cohesive-look): text sits on canvas, surface, sunk, hover and chrome; checkboxes,
+// aspect icons and the white tick sit on the surface; aspects on chrome use their -bright variant.
+function cohesivePairs() {
+	const p = [];
+	for (const bg of ['surface', 'hover']) p.push(['line-strong', bg, UI]);
+	for (const fg of ['ink', 'ink-2', 'ink-3']) for (const bg of ['canvas', 'surface', 'sunk', 'hover']) p.push([fg, bg, TEXT]);
+	for (const fg of ['on-chrome', 'on-chrome-2', 'overdue-on-chrome']) for (const bg of ['chrome', 'chrome-hover']) p.push([fg, bg, TEXT]);
+	for (const bg of ['accent', 'accent-hover']) p.push(['ink-on-accent', bg, TEXT]);
+	for (const bg of ['surface', 'canvas']) p.push(['accent', bg, TEXT]);
+	p.push(['accent-hover', 'accent-soft', TEXT], ['accent-soft', 'chrome-hover', TEXT], ['accent', 'chrome', UI]);
+	for (const bg of ['surface', 'canvas', 'overdue-soft']) p.push(['overdue', bg, TEXT]);
+	for (const a of ASPECTS) {
+		const fg = `aspect-${a}`, tint = `${fg}-tint`, bright = `${fg}-bright`;
+		p.push(['ink', tint, TEXT], ['ink-2', tint, TEXT]);
+		p.push([fg, 'surface', UI], [fg, 'canvas', UI], [fg, 'sunk', UI], [fg, tint, UI], ['ink-on-accent', fg, UI]);
+		p.push([bright, 'chrome', UI], [bright, 'chrome-hover', UI]);
+	}
+	return p;
+}
+
 const TOKENS = join(dir, '../../src/lib/styles/tokens.css');
+const COHESIVE = join(dir, '../cohesive-tokens.css');
 const files = readdirSync(dir).filter((n) => n.endsWith('.css')).sort().map((n) => join(dir, n));
 
 let failed = 0;
-for (const file of process.argv.includes('--tokens') ? [TOKENS] : [...files, TOKENS]) {
+const only = process.argv.includes('--tokens') ? [TOKENS] : process.argv.includes('--cohesive') ? [COHESIVE] : null;
+for (const file of only ?? [...files, TOKENS, COHESIVE]) {
 	const f = relative(join(dir, '../..'), file);
 	const get = load(file);
-	const checked = pairs(file === TOKENS);
+	const cohesive = get.has('canvas');
+	const checked = cohesive ? cohesivePairs() : pairs(file === TOKENS);
 	const bad = [];
 	let worst = Infinity;
 	for (const [fg, bg, min] of checked) {
@@ -109,7 +134,7 @@ for (const file of process.argv.includes('--tokens') ? [TOKENS] : [...files, TOK
 		worst = Math.min(worst, r / min);
 		if (r < min) bad.push(`  FAIL --${fg} on --${bg}: ${r.toFixed(2)} < ${min}`);
 	}
-	const cb = ratio(get('line-strong'), get('paper')).toFixed(2);
+	const cb = ratio(get('line-strong'), get(cohesive ? 'surface' : 'paper')).toFixed(2);
 	console.log(`${f}: ${bad.length ? `${bad.length} failing` : 'all pass'} (${checked.length} pairs; tightest at ${worst.toFixed(2)}× its minimum; unchecked-checkbox outline ${cb}:1)`);
 	bad.forEach((l) => console.log(l));
 	failed += bad.length;
