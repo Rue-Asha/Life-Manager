@@ -175,3 +175,27 @@ test.describe('touch phone', () => {
 		await expectStarted(page, ['Book a physio appointment'], ['Clean the fridge']);
 	});
 });
+
+test('Scenario: Plan page lists planned todos as coming automatically', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [...ASPECTS],
+		todos: [
+			{ title: 'Dentist', aspect: 0, day: '2026-10-08', startTime: '18:00', endTime: '19:30' },
+			{ title: 'Read chapter 4', aspect: 1 }
+		]
+	});
+	await page.setViewportSize({ width: 1280, height: 800 });
+	await page.goto('/sprint/plan');
+
+	const auto = page.getByTestId('plan-auto');
+	await expect(auto.getByRole('heading', { name: 'Joins automatically' })).toBeVisible();
+	await expect(auto.getByTestId('todo-row')).toHaveCount(1);
+	await expect(auto.getByTestId('todo-row')).toContainText('Dentist');
+	await expect(auto.getByRole('button', { name: /Remove from sprint:|Add to sprint:|Include:/ })).toHaveCount(0);
+	await expect(auto.getByRole('checkbox', { name: /Include:/ })).toHaveCount(0);
+	await expect(auto.locator('[draggable="true"]')).toHaveCount(0);
+
+	const backlog = page.getByTestId('plan-backlog');
+	await expect(backlog.getByTestId('todo-row')).toHaveCount(1);
+	await expect(backlog.getByText('Dentist')).toHaveCount(0);
+});

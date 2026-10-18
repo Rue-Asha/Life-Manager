@@ -123,7 +123,21 @@
 				</ListGroup>
 			</section>
 		{/if}
-		{#if data.planned.length === 0 && data.suggested.length === 0}
+		{#if data.auto.length > 0}
+			<section class="suggestions" data-testid="plan-auto" aria-labelledby="auto-heading">
+				<h3 id="auto-heading">
+					<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.calendar} /></svg>Joins automatically
+					<span class="count num">{data.auto.length}</span>
+				</h3>
+				<ListGroup>
+					{#each data.auto as todo (todo.id)}
+						{@const aspect = data.aspects.find((a) => a.id === todo.aspectId)!}
+						<ul><TodoRow {todo} {aspect} today={data.today} context="planning" /></ul>
+					{/each}
+				</ListGroup>
+			</section>
+		{/if}
+		{#if data.planned.length === 0 && data.suggested.length === 0 && data.auto.length === 0}
 			<p class="placeholder">
 				{canDrag.current ? 'Drag todos here from the backlog.' : 'Add todos from the backlog below.'}
 			</p>
