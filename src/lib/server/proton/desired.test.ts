@@ -202,6 +202,14 @@ describe('desiredState: rule series', () => {
 	});
 
 	it('Scenario: Series start lands on a rule weekday', () => {
+		const mon = rule('Standup', '1');
+		const wed = rule('Midweek', '3');
+		const items = desiredState(db, '2026-10-21');
+		expect(item(items, `rule:${mon}`).spec).toMatchObject({ date: '2026-10-26', rrule: 'FREQ=WEEKLY;BYDAY=MO' });
+		expect(item(items, `rule:${wed}`).spec).toMatchObject({ date: '2026-10-21', rrule: 'FREQ=WEEKLY;BYDAY=WE' });
+	});
+
+	it('Series with an active sprint start in the next week, weekdays in week order', () => {
 		sprint('active', '2026-10-12');
 		const tueThu = rule('Seminar', '4,2', '10:00');
 		const sun = rule('Review', '7');

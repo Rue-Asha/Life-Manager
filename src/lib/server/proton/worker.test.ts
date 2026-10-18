@@ -30,42 +30,47 @@ const lastSync = () => db.prepare("SELECT value FROM settings WHERE key = 'proto
 describe('proton worker', () => {
 	it('Scenario: Writes nudge a pass after the debounce', async () => {
 		const pass = vi.fn(async () => DONE);
-		configureWorker(CFG, { pass, db, debounceMs: 1000, tickMs: 3_600_000 });
-		await vi.advanceTimersByTimeAsync(1000);
-		expect(pass).toHaveBeenCalledTimes(1);
-
+		configureWorker(CFG, { pass, db });
 		nudge();
-		await vi.advanceTimersByTimeAsync(500);
+		await vi.advanceTimersByTimeAsync(10_000);
 		nudge();
-		await vi.advanceTimersByTimeAsync(999);
-		expect(pass).toHaveBeenCalledTimes(1);
-		await vi.advanceTimersByTimeAsync(1);
-		expect(pass).toHaveBeenCalledTimes(2);
-		expect(pass).toHaveBeenLastCalledWith({ retryFailed: false });
-	});
-
-	it('Scenario: Startup runs one catch-up pass', async () => {
-		const pass = vi.fn(async () => DONE);
-		configureWorker(CFG, { pass, db, debounceMs: 30_000, tickMs: 3_600_000 });
+		await vi.advanceTimersByTimeAsync(10_000);
+		nudge();
 		await vi.advanceTimersByTimeAsync(29_999);
 		expect(pass).not.toHaveBeenCalled();
 		await vi.advanceTimersByTimeAsync(1);
 		expect(pass).toHaveBeenCalledTimes(1);
 		expect(pass).toHaveBeenLastCalledWith({ retryFailed: false });
-		await vi.advanceTimersByTimeAsync(600_000);
+		await vi.advanceTimersByTimeAsync(200_000);
 		expect(pass).toHaveBeenCalledTimes(1);
+	});
+
+	it('Scenario: Startup runs one catch-up pass', async () => {
+		const pass = vi.fn(async () => DONE);
+		configureWorker(CFG, { pass, db });
+		await vi.advanceTimersByTimeAsync(29_999);
+		expect(pass).not.toHaveBeenCalled();
+		await vi.advanceTimersByTimeAsync(1);
+		expect(pass).toHaveBeenCalledTimes(1);
+		expect(pass).toHaveBeenLastCalledWith({ retryFailed: false });
+		await vi.advanceTimersByTimeAsync(269_999);
+		expect(pass).toHaveBeenCalledTimes(1);
+		await vi.advanceTimersByTimeAsync(1);
+		expect(pass).toHaveBeenCalledTimes(2);
 	});
 
 	it('Scenario: Local tick runs every five minutes', async () => {
 		const pass = vi.fn(async () => DONE);
-		configureWorker(CFG, { pass, db, debounceMs: 1000, tickMs: 300_000 });
-		await vi.advanceTimersByTimeAsync(299_999);
+		configureWorker(CFG, { pass, db });
+		await vi.advanceTimersByTimeAsync(30_000);
 		expect(pass).toHaveBeenCalledTimes(1);
-		for (const expected of [2, 3, 4]) {
+		let elapsed = 30_000;
+		for (const [minutes, expected] of [[5, 2], [10, 3], [15, 4]]) {
+			await vi.advanceTimersByTimeAsync(minutes * 60_000 - 1 - elapsed);
+			expect(pass).toHaveBeenCalledTimes(expected - 1);
 			await vi.advanceTimersByTimeAsync(1);
 			expect(pass).toHaveBeenCalledTimes(expected);
-			await vi.advanceTimersByTimeAsync(299_999);
-			expect(pass).toHaveBeenCalledTimes(expected);
+			elapsed = minutes * 60_000;
 		}
 	});
 

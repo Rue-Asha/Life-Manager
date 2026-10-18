@@ -3,7 +3,11 @@ import { chmodSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { createFake } from '../../../../scripts/fake-proton.mjs';
+import { openDb } from '../db';
+import { createAspect } from '../aspects';
 import { createRunner, toArgv } from './cli';
+import { reconcile } from './reconciler';
+import { configureWorker, syncNow, syncStatus } from './worker';
 import type { EventSpec, ProtonOp } from './types';
 
 const FAKE = resolve('scripts/fake-proton.mjs');
@@ -18,6 +22,7 @@ beforeEach(() => {
 	process.env.FAKE_PROTON_DIR = dir;
 });
 afterEach(() => {
+	configureWorker(null);
 	for (const [k, v] of Object.entries(saved)) {
 		if (v === undefined) delete process.env[k];
 		else process.env[k] = v;
@@ -143,19 +148,30 @@ describe('proton cli runner', () => {
 	});
 
 	it('Scenario: Non-JSON output ends the pass in state error', async () => {
-		const quiet = join(dir, 'quiet');
-		writeFileSync(quiet, '#!/bin/sh\n');
-		chmodSync(quiet, 0o755);
+		const db = openDb(':memory:');
+		const made = createAspect(db, { name: 'Health', color: 'sage', icon: 'heart' });
+		if (!made.ok) throw new Error(made.error);
+		const desired = [{ key: 'todo:1' as const, aspectId: made.value.id, label: 'Gym', spec: spec() }];
 		const op: ProtonOp = { kind: 'event.delete', ref: 'cal-1/evt-1' };
-		const res = await createRunner({ cli: quiet, profile: 'p' }, { gapMs: 0 })(op);
-		expect(res).toMatchObject({ ok: false, code: 'spawn', error: expect.stringContaining('JSON') });
+		const stub = (name: string, body: string) => {
+			const path = join(dir, name);
+			writeFileSync(path, `#!/bin/sh\n${body}`);
+			chmodSync(path, 0o755);
+			return path;
+		};
+		const expectPassError = async (cli: string) => {
+			const runner = createRunner({ cli, profile: 'p' }, { gapMs: 0 });
+			expect(await runner(op)).toMatchObject({ ok: false, code: 'spawn', error: expect.stringContaining('JSON') });
+			configureWorker({ cli, profile: 'p' }, { db, gapMs: 0, debounceMs: 3_600_000, tickMs: 3_600_000, pass: (o) => reconcile(db, desired, runner, o) });
+			expect(await syncNow()).toMatchObject({ kind: 'error', error: expect.stringContaining('JSON') });
+			expect(syncStatus()).toMatchObject({ state: 'error', lastError: expect.stringContaining('JSON') });
+		};
+		await expectPassError(stub('quiet', ''));
+		await expectPassError(stub('notice', 'echo "update available"\n'));
 
-		const notice = join(dir, 'notice');
-		writeFileSync(notice, '#!/bin/sh\necho "update available"\n');
-		chmodSync(notice, 0o755);
-		const runner = createRunner({ cli: notice, profile: 'p' }, { gapMs: 0 });
-		expect(await runner(op)).toMatchObject({ ok: false, code: 'spawn' });
-		expect(await createRunner({ cli: FAKE, profile: 'p' }, { gapMs: 0 })({ kind: 'calendar.create', name: 'A', color: '#258723' })).toMatchObject({ ok: true });
+		configureWorker({ cli: FAKE, profile: 'p' }, { db, gapMs: 0, debounceMs: 3_600_000, tickMs: 3_600_000, pass: (o) => reconcile(db, desired, createRunner({ cli: FAKE, profile: 'p' }, { gapMs: 0 }), o) });
+		expect(await syncNow()).toMatchObject({ kind: 'done' });
+		expect(syncStatus().state).toBe('idle');
 	});
 
 	it('Scenario: A hung proton call times out and backs off', async () => {
