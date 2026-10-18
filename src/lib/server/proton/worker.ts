@@ -5,7 +5,7 @@ import { readConfig } from './config';
 import { createRunner } from './cli';
 import { runPass } from './pass';
 import { forgetHashes } from './reconciler';
-import type { PassOutcome, ProtonConfig, SyncState, WorkerOptions } from './types';
+import type { PassOutcome, ProtonConfig, Runner, SyncState, WorkerOptions } from './types';
 import type { SyncStatus } from './types';
 
 type Pass = NonNullable<WorkerOptions['pass']>;
@@ -29,6 +29,7 @@ let pending: Pending | null = null;
 let blockedUntil: number | null = null;
 let retryTimer: ReturnType<typeof setTimeout> | undefined;
 let backoffStep = 0;
+let runner: Runner | null = null;
 
 const database = (): DatabaseSync => opts.db ?? getDb();
 
@@ -47,6 +48,7 @@ export function configureWorker(next: ProtonConfig | null, o: WorkerOptions = {}
 	running = null;
 	cfg = next;
 	opts = o;
+	runner = null;
 	passes = 0;
 	lastError = null;
 	blockedUntil = null;
@@ -79,7 +81,7 @@ function unblock(): void {
 }
 
 function defaultPass(config: ProtonConfig): Pass {
-	const run = createRunner(config, { gapMs: opts.gapMs });
+	const run = (runner ??= createRunner(config, { gapMs: opts.gapMs }));
 	return (o) => runPass(database(), today(), run, o);
 }
 
@@ -102,15 +104,17 @@ function start(retryFailed: boolean): Promise<PassOutcome | null> {
 	const pass = opts.pass ?? defaultPass(cfg as ProtonConfig);
 	state = 'syncing';
 	passes++;
-	const current = pass({ retryFailed }).then((outcome) => {
-		if (gen !== generation) return null;
-		finish(outcome);
-		running = null;
-		const next = pending;
-		pending = null;
-		if (next) next.resolve(next.explicit || blockedUntil === null ? start(next.retryFailed) : null);
-		return outcome;
-	});
+	const current = (async () => pass({ retryFailed }))()
+		.catch((e): PassOutcome => ({ kind: 'error', error: e instanceof Error ? e.message : String(e) }))
+		.then((outcome) => {
+			if (gen !== generation) return null;
+			finish(outcome);
+			running = null;
+			const next = pending;
+			pending = null;
+			if (next) next.resolve(next.explicit || blockedUntil === null ? start(next.retryFailed) : null);
+			return outcome;
+		});
 	running = current;
 	return current;
 }

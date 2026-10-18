@@ -293,6 +293,51 @@ describe('reconciler', () => {
 		expect(fake.calls().length).toBe(before);
 	});
 
+	it('Scenario: Failed update clears when the item matches Proton again', async () => {
+		const a = health();
+		const original = item(1, a);
+		await reconcile(db, [original, item(2, a)], run);
+		fake.fail({ kind: 'event.update', code: 1, error: 'Error: rejected', match: 'Run 1 b' });
+		expect(await reconcile(db, [item(1, a, { title: 'Run 1 b' }), item(2, a)], run)).toMatchObject({ failed: 1 });
+		expect(failedItems(db)).toEqual([{ key: 'todo:1', label: 'Run 1 b', error: 'Error: rejected' }]);
+
+		const before = fake.calls().length;
+		expect(await reconcile(db, [original, item(2, a)], run)).toEqual({ kind: 'done', calls: 0, failed: 0 });
+		expect(fake.calls().length).toBe(before);
+		expect(failedItems(db)).toEqual([]);
+		expect(row('todo:1')).toMatchObject({ label: 'Run 1', hash: specHash(original.spec), error: null, error_hash: null });
+	});
+
+	it('Scenario: Failed delete clears when the item is desired again', async () => {
+		const a = health();
+		await reconcile(db, [item(1, a), item(2, a)], run);
+		fake.fail({ kind: 'event.delete', code: 1, error: 'Error: cannot delete' });
+		await reconcile(db, [item(1, a)], run);
+		expect(failedItems(db)).toEqual([{ key: 'todo:2', label: 'Run 2', error: 'Error: cannot delete' }]);
+
+		const before = fake.calls().length;
+		expect(await reconcile(db, [item(1, a), item(2, a)], run)).toEqual({ kind: 'done', calls: 0, failed: 0 });
+		expect(fake.calls().length).toBe(before);
+		expect(failedItems(db)).toEqual([]);
+		expect(row('todo:2')).toMatchObject({ error: null, error_hash: null });
+	});
+
+	it('Scenario: Aspect deleted during its calendar create skips the item', async () => {
+		const a = health();
+		const other = uni();
+		run = async (op) => {
+			const res = fake.apply(op);
+			if (op.kind === 'calendar.create' && op.name === 'Health') db.prepare('DELETE FROM aspects WHERE id = ?').run(a);
+			return res;
+		};
+		const out = await reconcile(db, [item(1, a), item(2, other)], run);
+		expect(out).toMatchObject({ kind: 'done', failed: 0 });
+		expect(db.prepare('SELECT aspect_id FROM proton_calendars').all()).toEqual([{ aspect_id: other }]);
+		expect(row('todo:1')).toBeUndefined();
+		expect(failedItems(db)).toEqual([]);
+		expect(row('todo:2')?.event_ref).toBeTruthy();
+	});
+
 	it('Scenario: Restart resumes from stored state', async () => {
 		const a = health();
 		const five = [1, 2, 3, 4, 5].map((n) => item(n, a));

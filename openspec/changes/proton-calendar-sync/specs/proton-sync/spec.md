@@ -283,7 +283,8 @@ Each aspect SHALL have at most one Proton calendar, created by the app on the fi
 aspect, with the colour from a fixed table mapping each palette colour to a Proton accent; its ID SHALL be stored and
 reused. Renaming or recolouring an aspect SHALL NOT change its Proton calendar. When an event create exits 3 because the
 stored calendar no longer exists, the calendar SHALL be created again and the create retried once. A deleted aspect's
-Proton calendar is left alone; its reassigned items move to the target aspect's calendar. (S8)
+Proton calendar is left alone; its reassigned items move to the target aspect's calendar. An aspect deleted while its
+calendar is being created SHALL leave its items for the next pass. (S8)
 
 #### Scenario: First item of an aspect creates its calendar
 - **WHEN** a pass pushes two new items of aspect "Health" (palette colour sage) and none of the aspect has a calendar yet
@@ -308,6 +309,11 @@ Proton calendar is left alone; its reassigned items move to the target aspect's 
 #### Scenario: Deleting an aspect moves its events to the target's calendar
 - **WHEN** an aspect with two synced todos is deleted through `deleteAspect` with another aspect as target, then a pass runs
 - **THEN** the fake records two deletes of the old refs and two creates in the target aspect's calendar, and no calendar delete
+- **proof:** unit
+
+#### Scenario: Aspect deleted during its calendar create skips the item
+- **WHEN** an aspect is deleted while the pass awaits the create of its calendar, and another aspect's item is in the same pass
+- **THEN** the pass ends "done" without throwing, `proton_calendars` holds no row for the deleted aspect, the other aspect's item is created, and no failure is recorded
 - **proof:** unit
 
 ### Requirement: Diff reconciliation
@@ -409,7 +415,9 @@ Calls to `proton` SHALL run one at a time with at least 1 s between mutations, w
 Exit 5 SHALL stop the pass and retry after a backoff of 1, 2, 4 … minutes capped at 30 minutes; exit 2 SHALL pause sync in
 state "re-login needed" until "Sync now" or the next 30-minute retry; any other non-zero exit SHALL mark that item failed
 with stderr's `Error:` line while the rest continue. A failed item SHALL be tried again only when its content changes,
-on "Sync now" or on "Resync all". A missing or non-executable binary SHALL put sync in state "error" with the message,
+on "Sync now" or on "Resync all", and its failure SHALL be cleared once its content matches Proton again without a call.
+The one-second gap SHALL hold across passes, including a queued pass that follows a running one. Any other failure
+inside a pass SHALL end it in state "error" with the message, and requests queued behind it SHALL still run. A missing or non-executable binary SHALL put sync in state "error" with the message,
 without crashing the app. (S11)
 
 #### Scenario: Calls run non-interactively
@@ -425,6 +433,11 @@ without crashing the app. (S11)
 #### Scenario: Mutations are at least one second apart
 - **WHEN** three calls are handed to the runner at once with the default gap
 - **THEN** the fake records them one after another, each started at least 1000 ms after the previous one ended
+- **proof:** unit
+
+#### Scenario: Mutations stay one gap apart across passes
+- **WHEN** "Sync now" is requested twice while a pass runs, a todo is planned meanwhile, and the queued pass follows the first
+- **THEN** the fake records the queued pass's first call at least one gap after the end of the first pass's last call
 - **proof:** unit
 
 #### Scenario: Failure carries the exit code and the Error line
@@ -445,6 +458,21 @@ without crashing the app. (S11)
 #### Scenario: Failed item waits for a change or Sync now
 - **WHEN** an item failed with exit 1 and its content is unchanged, then a regular pass runs, then a "Sync now" pass, then the content changes
 - **THEN** the regular pass makes no call for it, the "Sync now" pass tries it once, and after the change the next regular pass tries it again
+- **proof:** unit
+
+#### Scenario: Failed update clears when the item matches Proton again
+- **WHEN** a synced item's update exits 1, and the item is then changed back to the content Proton still holds
+- **THEN** the next pass makes no call, and the item is no longer listed as failed
+- **proof:** unit
+
+#### Scenario: Failed delete clears when the item is desired again
+- **WHEN** an item's delete exits 1 after it left the desired state, and the item is then desired again with unchanged content
+- **THEN** the next pass makes no call, and the item is no longer listed as failed
+- **proof:** unit
+
+#### Scenario: A pass that throws ends in state error and the next pass runs
+- **WHEN** a pass throws an error other than a CLI failure while a second "Sync now" waits behind it, and later another pass throws
+- **THEN** the first request resolves with outcome "error" and the message, the waiting pass runs and ends "done", the state is "error" with the message after the later throw, and no rejection reaches the caller
 - **proof:** unit
 
 #### Scenario: Network failure backs off up to 30 minutes

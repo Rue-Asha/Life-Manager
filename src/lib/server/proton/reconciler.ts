@@ -40,6 +40,9 @@ class Abort {
 	constructor(readonly outcome: PassOutcome) {}
 }
 
+// The item's aspect vanished mid-pass; its next pass finds it under the new aspect.
+class Skip {}
+
 class Failure {
 	constructor(readonly error: string) {}
 }
@@ -83,6 +86,7 @@ export async function reconcile(
 		if (!aspect) throw new Failure(`aspect ${aspectId} not found`);
 		const r = await call({ kind: 'calendar.create', name: aspect.name, color: PROTON_COLORS[aspect.color] });
 		expectOk(r);
+		if (!db.prepare('SELECT 1 FROM aspects WHERE id = ?').get(aspectId)) throw new Skip();
 		db.prepare('INSERT INTO proton_calendars (aspect_id, calendar_id) VALUES (?, ?)').run(aspectId, r.ids[0]);
 		return r.ids[0];
 	}
@@ -124,7 +128,10 @@ export async function reconcile(
 			const row = rows.get(d.key);
 			if (row?.error_hash === hash && !o?.retryFailed) continue;
 			const target = storedCalendar(d.aspectId);
-			if (row?.event_ref && row.hash === hash && target && row.calendar_id === target) continue;
+			if (row?.event_ref && row.hash === hash && target && row.calendar_id === target) {
+				if (row.error !== null) writeRow(db, { ...row, label: d.label, error: null, error_hash: null });
+				continue;
+			}
 			try {
 				let calendarId = await calendarFor(d.aspectId);
 				const base = { key: d.key, label: d.label, error: null, error_hash: null };
@@ -159,6 +166,7 @@ export async function reconcile(
 				}
 				writeRow(db, { ...base, calendar_id: calendarId, event_ref: ref, hash });
 			} catch (e) {
+				if (e instanceof Skip) continue;
 				if (!(e instanceof Failure)) throw e;
 				recordFailure(d.key, d.label, e.error, hash);
 			}

@@ -1,5 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
+import { createFake } from '../../../../scripts/fake-proton.mjs';
+import { createAspect } from '../aspects';
+import { setDay } from '../sprints';
+import { createTodo } from '../todos';
 import { openDb } from '../db';
 import { configureWorker, nudge, syncNow, syncStatus } from './worker';
 import type { PassOutcome } from './types';
@@ -183,4 +190,52 @@ describe('proton worker', () => {
 		expect(pass).toHaveBeenCalledTimes(2);
 		expect(syncStatus()).toMatchObject({ state: 'idle', lastError: null });
 	});
+
+	it('Scenario: A pass that throws ends in state error and the next pass runs', async () => {
+		const pass = vi
+			.fn<() => Promise<PassOutcome>>()
+			.mockRejectedValueOnce(new Error('FOREIGN KEY constraint failed'))
+			.mockResolvedValue(DONE);
+		configureWorker(CFG, { pass, db, debounceMs: 3_600_000, tickMs: 3_600_000 });
+		const first = syncNow();
+		const queued = syncNow();
+		expect(await first).toEqual({ kind: 'error', error: 'FOREIGN KEY constraint failed' });
+		expect(await queued).toEqual(DONE);
+		expect(pass).toHaveBeenCalledTimes(2);
+		expect(syncStatus()).toMatchObject({ state: 'idle', lastError: null, passes: 2 });
+
+		pass.mockRejectedValueOnce(new Error('again'));
+		expect(await syncNow()).toEqual({ kind: 'error', error: 'again' });
+		expect(syncStatus()).toMatchObject({ state: 'error', lastError: 'again' });
+		expect(await syncNow()).toEqual(DONE);
+	});
+
+	it('Scenario: Mutations stay one gap apart across passes', async () => {
+		vi.useRealTimers();
+		const dir = mkdtempSync(join(tmpdir(), 'lm-worker-'));
+		const fake = createFake(dir);
+		const saved = process.env.FAKE_PROTON_DIR;
+		process.env.FAKE_PROTON_DIR = dir;
+		try {
+			const aspectId = (createAspect(db, { name: 'Health', color: 'sage', icon: 'heart' }) as { ok: true; value: { id: number } }).value.id;
+			const planned = (title: string) => {
+				const t = createTodo(db, { title, aspectId }, '2099-01-01') as { ok: true; value: { id: number } };
+				setDay(db, t.value.id, '2099-01-05', '2099-01-01');
+			};
+			planned('One');
+			configureWorker({ cli: resolve('scripts/fake-proton.mjs'), profile: 'default' }, { db, gapMs: 400, debounceMs: 3_600_000, tickMs: 3_600_000 });
+			const first = syncNow();
+			const second = syncNow();
+			planned('Two');
+			await first;
+			await second;
+			const calls = fake.calls();
+			expect(calls).toHaveLength(3);
+			expect(calls[2].at - calls[1].end).toBeGreaterThanOrEqual(400);
+		} finally {
+			if (saved === undefined) delete process.env.FAKE_PROTON_DIR;
+			else process.env.FAKE_PROTON_DIR = saved;
+			rmSync(dir, { recursive: true, force: true });
+		}
+	}, 10_000);
 });
