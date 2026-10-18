@@ -46,6 +46,25 @@ describe('recurring rules', () => {
 		expect(listRules(db)[0].weekdays).toEqual([1, 4]);
 	});
 
+	it('Scenario: Rule slot follows the slot rules', () => {
+		const cases = [
+			[{ startTime: null, endTime: '19:30' }, 'end-without-start', 'endTime'],
+			[{ startTime: '18:00', endTime: '18:00' }, 'end-before-start', 'endTime'],
+			[{ startTime: '7:5', endTime: null }, 'invalid', 'startTime']
+		] as const;
+		const rule = createRule(db, gym({ startTime: '18:00' }), '2026-10-07');
+		const id = rule.ok ? rule.value.id : 0;
+		for (const [slot, error, field] of cases) {
+			expect(createRule(db, gym(slot), '2026-10-07')).toEqual({ ok: false, error, field });
+			expect(updateRule(db, id, gym(slot))).toEqual({ ok: false, error, field });
+		}
+		expect(listRules(db).map((r) => [r.startTime, r.endTime])).toEqual([['18:00', null]]);
+		expect(updateRule(db, id, gym({ startTime: '18:00', endTime: '19:30' }))).toMatchObject({
+			ok: true,
+			value: { startTime: '18:00', endTime: '19:30' }
+		});
+	});
+
 	it('Scenario: Starting a sprint adds one instance per weekday', () => {
 		createRule(db, gym({ weekdays: [4, 1], checklist: ['Warm up', 'Stretch'], priority: 2 }), '2026-10-07');
 		startSprint(db, '2026-10-07', []);
