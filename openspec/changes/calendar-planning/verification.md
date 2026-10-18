@@ -1,19 +1,19 @@
-verified-at: a4c5b87
+verified-at: 827f1cf
 
-## Layer 1 — `npm run proof:full` (round 3): green
+## Layer 1 — `npm run proof:full` (round 4): green
 
 ```
 Test Files  13 passed (13)
-     Tests  197 passed (197)
+     Tests  200 passed (200)
   308 passed (2.4m)   (playwright, e2e)
 exit 0
 ```
 
 ## Layer 2 — spec coverage
 
-152 scenarios: 151 automated, all found by name in the green output; 1 manual. Gaps: none.
+153 scenarios: 152 automated, all found by name in the green output; 1 manual. Gaps: none.
 
-Counts: sprint-lifecycle 38, calendar 24, today 20, sprint-views 18, todos 18, recurring 16, navigation 11, backlog 7. No ✗ rows.
+Counts: sprint-lifecycle 38, calendar 25, today 20, sprint-views 18, todos 18, recurring 16, navigation 11, backlog 7. No ✗ rows.
 
 ### backlog
 
@@ -38,6 +38,7 @@ Counts: sprint-lifecycle 38, calendar 24, today 20, sprint-views 18, todos 18, r
 | Invalid month parameter shows the current month | e2e | `e2e/calendar.test.ts` › "Scenario: Invalid month parameter shows the current month" ✓ |
 | Planned todos are entries, due dates are not | unit | `src/lib/server/calendar.test.ts` › "Scenario: Planned todos are entries, due dates are not" ✓ |
 | Rules are projected after the active sprint week | unit | `src/lib/server/calendar.test.ts` › "Scenario: Rules are projected after the active sprint week" ✓ |
+| Sunday after the review closes does not show an instance twice | unit | `src/lib/server/calendar.test.ts` › "Scenario: Sunday after the review closes does not show an instance twice" ✓ |
 | Without an active sprint projection starts today | unit | `src/lib/server/calendar.test.ts` › "Scenario: Without an active sprint projection starts today" ✓ |
 | Past months show only real todos | unit | `src/lib/server/calendar.test.ts` › "Scenario: Past months show only real todos" ✓ |
 | Rules of archived classes are not projected | unit | `src/lib/server/calendar.test.ts` › "Scenario: Rules of archived classes are not projected" ✓ |
@@ -215,7 +216,7 @@ Counts: sprint-lifecycle 38, calendar 24, today 20, sprint-views 18, todos 18, r
 
 ## Diffstat
 
-67 files changed, 4547 insertions(+), 150 deletions(-)
+67 files changed, 4628 insertions(+), 149 deletions(-)
 
 ## Screenshots
 
