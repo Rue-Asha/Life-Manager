@@ -29,6 +29,11 @@ and by a status menu on touch. A card is compact: title (up to two lines), then 
 - **THEN** its card's meta line shows "Thu 15 Oct · 18:00–19:30" and the due label
 - **proof:** e2e
 
+#### Scenario: Board card shows the whole planned label at 1440 with sidebar and rail
+- **WHEN** at 1440 px with the sidebar and the rail open the board holds a card with a due date, a priority and a planned label "Thu 15 Oct · 18:00–19:00"
+- **THEN** the full planned label is visible: the meta line wraps instead of clipping, and no meta item is wider than its box or reaches outside the card
+- **proof:** e2e
+
 ### Requirement: Week-by-day view
 The week view SHALL show columns Monday–Sunday plus "Unscheduled" (at ≥1280 px the Unscheduled list sits
 in the Week view's rail overlay); todos are assigned or moved to a day by drag on desktop and by a day picker on

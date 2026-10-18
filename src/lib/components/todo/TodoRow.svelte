@@ -742,7 +742,7 @@
 		}
 	}
 
-	/* Board card: the title may take two lines over one meta line; the status glyph sits top right.
+	/* Board card: the title may take two lines over a meta line that wraps rather than clips; the status glyph sits top right.
 	   Declared last so it wins over the phone's wrapped sprint row. */
 	.row.card {
 		grid-template-columns: var(--checkbox-size) minmax(0, 1fr) auto;
@@ -758,9 +758,10 @@
 	}
 
 	.card .meta {
-		flex-wrap: nowrap;
-		gap: var(--space-2);
-		overflow: hidden;
+		gap: var(--space-1) var(--space-2);
+	}
+
+	.card .meta span {
 		white-space: nowrap;
 	}
 

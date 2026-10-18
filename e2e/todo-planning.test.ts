@@ -178,6 +178,40 @@ test('Scenario: Board card shows the planned date and slot', async ({ page, requ
 	await expect(card).toContainText('2d left');
 });
 
+test('Scenario: Board card shows the whole planned label at 1440 with sidebar and rail', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [HEALTH],
+		sprint: { state: 'active', weekStart: WEEK },
+		todos: [
+			{
+				title: 'Dentist',
+				aspect: 0,
+				inSprint: true,
+				day: '2026-10-15',
+				startTime: '18:00',
+				endTime: '19:00',
+				dueDate: '2026-10-16',
+				priority: 1
+			}
+		]
+	});
+	await page.setViewportSize({ width: 1440, height: 900 });
+
+	await page.goto('/sprint?view=board');
+	await expect(page.getByTestId('context-rail')).toBeVisible();
+	const card = page.getByTestId('board-column-todo').getByTestId('sprint-card').filter({ hasText: 'Dentist' });
+	const label = card.getByTestId('planned-label');
+	await expect(label).toHaveText('Thu 15 Oct · 18:00–19:00');
+	const clipped = await card.evaluate((el) => {
+		const box = el.getBoundingClientRect();
+		return [...el.querySelectorAll<HTMLElement>('[data-testid="planned-label"], [data-testid="aspect-tag"], .meta > span')].filter((n) => {
+			const r = n.getBoundingClientRect();
+			return n.scrollWidth > n.clientWidth || r.right > box.right + 0.5 || r.left < box.left - 0.5;
+		}).length;
+	});
+	expect(clipped).toBe(0);
+});
+
 test('Regression: saving a due-dated sprint todo plans it on its due day', async ({ page, request }) => {
 	await seed(request, {
 		aspects: [HEALTH],
