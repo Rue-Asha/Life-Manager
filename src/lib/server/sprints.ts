@@ -145,7 +145,23 @@ export function openPlanning(
 
 export function suggestedTodos(db: DatabaseSync, today: IsoDate): Todo[] {
 	const start = targetWeek(today);
-	return selectTodos(db, "sprint_id IS NULL AND status != 'done' AND due_date BETWEEN ? AND ?", start, addDays(start, 6));
+	return selectTodos(
+		db,
+		"sprint_id IS NULL AND status != 'done' AND due_date BETWEEN ? AND ? AND (day IS NULL OR day < ?)",
+		start,
+		addDays(start, 6),
+		start
+	);
+}
+
+export function listPlannedForWeek(db: DatabaseSync, weekStart: IsoDate): Todo[] {
+	return selectTodos(db, "sprint_id IS NULL AND status != 'done' AND day BETWEEN ? AND ?", weekStart, addDays(weekStart, 6)).sort(
+		(a, b) =>
+			a.day!.localeCompare(b.day!) ||
+			Number(a.startTime !== null) - Number(b.startTime !== null) ||
+			(a.startTime ?? '').localeCompare(b.startTime ?? '') ||
+			a.title.localeCompare(b.title)
+	);
 }
 
 export function pullTodo(db: DatabaseSync, todoId: Id): Result<Todo> {
@@ -188,9 +204,25 @@ export function startSprint(db: DatabaseSync, today: IsoDate, suggestedIds: Id[]
 	if (active) return blockedBy(active, today);
 	return transaction(db, () => {
 		const draft = planningDraft(db);
-		const pull = db.prepare('UPDATE todos SET sprint_id = ?, day = NULL WHERE id = ? AND sprint_id IS NULL');
-		for (const id of suggestedIds) if (todoWritable(db, id).ok) pull.run(draft.id, id);
 		const weekStart = targetWeek(today);
+		const weekEnd = addDays(weekStart, 6);
+		// A suggested todo keeps a day inside the new week; any other planned date is dropped with its slot.
+		const pull = db.prepare(
+			`UPDATE todos SET sprint_id = ?1,
+			 day = CASE WHEN day BETWEEN ?3 AND ?4 THEN day END,
+			 start_time = CASE WHEN day BETWEEN ?3 AND ?4 THEN start_time END,
+			 end_time = CASE WHEN day BETWEEN ?3 AND ?4 THEN end_time END
+			 WHERE id = ?2 AND sprint_id IS NULL`
+		);
+		for (const id of suggestedIds) if (todoWritable(db, id).ok) pull.run(draft.id, id, weekStart, weekEnd);
+		const backlogIds = (where: string, ...params: SQLInputValue[]) =>
+			(db.prepare(`SELECT id FROM todos WHERE sprint_id IS NULL AND status != 'done' AND ${where}`).all(...params) as Row[])
+				.map((r) => Number(r.id))
+				.filter((id) => todoWritable(db, id).ok);
+		const join = db.prepare('UPDATE todos SET sprint_id = ? WHERE id = ?');
+		for (const id of backlogIds('day BETWEEN ? AND ?', weekStart, weekEnd)) join.run(draft.id, id);
+		const missed = db.prepare('UPDATE todos SET sprint_id = ?, day = NULL, start_time = NULL, end_time = NULL WHERE id = ?');
+		for (const id of backlogIds('day < ?', weekStart)) missed.run(draft.id, id);
 		db.prepare("UPDATE sprints SET state = 'active', week_start = ?, started_at = ? WHERE id = ?").run(
 			weekStart,
 			now().toISOString(),

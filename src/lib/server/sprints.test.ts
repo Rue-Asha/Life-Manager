@@ -7,6 +7,7 @@ import {
 	aspectProgress,
 	closeReview,
 	getActiveSprint,
+	listPlannedForWeek,
 	listSprintTodos,
 	listToday,
 	moveToBacklog,
@@ -145,6 +146,77 @@ describe('sprint planning', () => {
 		const id = started.ok ? started.value.id : 0;
 		expect(listSprintTodos(db, id).map((t) => t.id)).toEqual([thursday]);
 		expect(row(sunday)).toMatchObject({ sprint_id: null });
+	});
+
+	it("Scenario: Starting a sprint pulls the week's planned todos", () => {
+		const dentist = todo('Dentist', { day: '2026-10-20', startTime: '18:00', endTime: '19:30' });
+		const tax = todo('Tax return', { day: '2026-11-03' });
+		const done = todo('Pay rent', { status: 'done', day: '2026-10-21' });
+		const started = startSprint(db, '2026-10-18', []);
+		expect(started.ok && started.value.weekStart).toBe('2026-10-19');
+		const sprintId = started.ok ? started.value.id : 0;
+		expect(row(dentist)).toMatchObject({ sprint_id: sprintId, day: '2026-10-20', start_time: '18:00', end_time: '19:30' });
+		expect(row(tax)).toMatchObject({ sprint_id: null, day: '2026-11-03' });
+		expect(row(done)).toMatchObject({ sprint_id: null, day: '2026-10-21' });
+	});
+
+	it('Scenario: Due and planned todo keeps its day', () => {
+		const id = todo('Dentist', { dueDate: '2026-10-22', day: '2026-10-20', startTime: '18:00' });
+		const suggested = suggestedTodos(db, '2026-10-18').map((t) => t.id);
+		expect(suggested).not.toContain(id);
+		const started = startSprint(db, '2026-10-18', [...suggested, id]);
+		expect(row(id)).toMatchObject({
+			sprint_id: started.ok && started.value.id,
+			day: '2026-10-20',
+			start_time: '18:00'
+		});
+	});
+
+	it('Scenario: Todo planned for a later week is not suggested', () => {
+		const id = todo('Tax return', { dueDate: '2026-10-22', day: '2026-11-03', startTime: '10:00' });
+		const suggested = suggestedTodos(db, '2026-10-18').map((t) => t.id);
+		expect(suggested).not.toContain(id);
+		startSprint(db, '2026-10-18', suggested);
+		expect(row(id)).toMatchObject({ sprint_id: null, day: '2026-11-03', start_time: '10:00' });
+	});
+
+	it('Scenario: Missed planned todo joins the next sprint unscheduled', () => {
+		const id = todo('Dentist', { day: '2026-10-14', startTime: '18:00' });
+		const started = startSprint(db, '2026-10-18', []);
+		expect(row(id)).toMatchObject({
+			sprint_id: started.ok && started.value.id,
+			day: null,
+			start_time: null,
+			end_time: null
+		});
+	});
+
+	it('Scenario: Archived class todos are not pulled', () => {
+		const semester = Number(
+			db.prepare("INSERT INTO semesters (name, archived_at, created_at) VALUES ('SS', 'a', 'c')").run().lastInsertRowid
+		);
+		const klass = Number(
+			db
+				.prepare(
+					"INSERT INTO classes (semester_id, name, color, icon, created_at, updated_at) VALUES (?, 'OS', 'sky', 'book', 'c', 'c')"
+				)
+				.run(semester).lastInsertRowid
+		);
+		const id = todo('Lab report', { day: '2026-10-14', startTime: '18:00' });
+		db.prepare('UPDATE todos SET class_id = ? WHERE id = ?').run(klass, id);
+		startSprint(db, '2026-10-18', []);
+		expect(row(id)).toMatchObject({ sprint_id: null, day: '2026-10-14', start_time: '18:00' });
+	});
+
+	it('listPlannedForWeek lists open backlog todos of the week by day and start time', () => {
+		const late = todo('Late', { day: '2026-10-20', startTime: '18:00' });
+		const allDay = todo('All day', { day: '2026-10-20' });
+		const early = todo('Early', { day: '2026-10-20', startTime: '07:00' });
+		const sunday = todo('Sunday', { day: '2026-10-25' });
+		todo('Next week', { day: '2026-10-26' });
+		todo('Done', { status: 'done', day: '2026-10-21' });
+		todo('Unplanned');
+		expect(listPlannedForWeek(db, '2026-10-19').map((t) => t.id)).toEqual([allDay, early, late, sunday]);
 	});
 
 	it('pulled todos sit in the draft until the sprint starts, unpull returns them', () => {
