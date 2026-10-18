@@ -560,6 +560,11 @@ configured binary that was never logged in exits 2 on its first call and leads t
 - **THEN** it gives that path with profile "default", then profile "rue"
 - **proof:** unit
 
+#### Scenario: Non-JSON output ends the pass in state error
+- **WHEN** the binary exits 0 and prints nothing, or a notice line that is no JSON, for a call
+- **THEN** the call resolves as a failure that ends the pass in state "error" with a message naming the missing JSON, the app does not crash, and a later call to a working binary succeeds
+- **proof:** unit
+
 #### Scenario: Child process inherits XDG_CONFIG_HOME
 - **WHEN** the app's environment has `XDG_CONFIG_HOME=/var/lib/life-manager/config` and the runner calls the fake
 - **THEN** the fake records that `XDG_CONFIG_HOME`

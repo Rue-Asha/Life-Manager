@@ -142,6 +142,22 @@ describe('proton cli runner', () => {
 		});
 	});
 
+	it('Scenario: Non-JSON output ends the pass in state error', async () => {
+		const quiet = join(dir, 'quiet');
+		writeFileSync(quiet, '#!/bin/sh\n');
+		chmodSync(quiet, 0o755);
+		const op: ProtonOp = { kind: 'event.delete', ref: 'cal-1/evt-1' };
+		const res = await createRunner({ cli: quiet, profile: 'p' }, { gapMs: 0 })(op);
+		expect(res).toMatchObject({ ok: false, code: 'spawn', error: expect.stringContaining('JSON') });
+
+		const notice = join(dir, 'notice');
+		writeFileSync(notice, '#!/bin/sh\necho "update available"\n');
+		chmodSync(notice, 0o755);
+		const runner = createRunner({ cli: notice, profile: 'p' }, { gapMs: 0 });
+		expect(await runner(op)).toMatchObject({ ok: false, code: 'spawn' });
+		expect(await createRunner({ cli: FAKE, profile: 'p' }, { gapMs: 0 })({ kind: 'calendar.create', name: 'A', color: '#258723' })).toMatchObject({ ok: true });
+	});
+
 	it('Scenario: Child process inherits XDG_CONFIG_HOME', async () => {
 		process.env.XDG_CONFIG_HOME = '/srv/lm-config';
 		await calendar();

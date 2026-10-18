@@ -46,8 +46,12 @@ function exec(cfg: ProtonConfig, op: ProtonOp): Promise<CliResult> {
 	return new Promise((done) => {
 		execFile(cfg.cli, toArgv(op, cfg.profile), { env: { ...process.env, ...CHILD_ENV } }, (err, stdout, stderr) => {
 			if (!err) {
-				const { ids } = JSON.parse(stdout) as { ids: string[] };
-				return done({ ok: true, ids });
+				try {
+					const { ids } = JSON.parse(stdout) as { ids: string[] };
+					return done({ ok: true, ids });
+				} catch {
+					return done({ ok: false, code: 'spawn', error: 'proton printed no JSON result' });
+				}
 			}
 			if (err.code === 'ENOENT' || err.code === 'EACCES') return done({ ok: false, code: 'spawn', error: err.message });
 			done({ ok: false, code: typeof err.code === 'number' ? err.code : 1, error: errorLine(stderr) });
