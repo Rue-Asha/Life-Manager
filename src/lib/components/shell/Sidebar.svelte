@@ -1,5 +1,6 @@
 <script lang="ts" module>
 	import type { Aspect } from '../../types';
+	import type { SyncState } from '../../server/proton/types';
 	import type { UiIcon } from '../ui/icons';
 
 	export type NavCount = 'today' | 'sprint' | 'backlog' | 'recurring' | 'aspects' | 'projects' | 'uni';
@@ -7,6 +8,7 @@
 	export interface NavData {
 		counts: Record<NavCount | 'overdue', number>;
 		aspects: (Aspect & { backlog: number })[];
+		sync: SyncState;
 	}
 
 	export const NAV_ITEMS: { label: string; href: string; icon: UiIcon; count?: NavCount }[] = [
@@ -19,6 +21,10 @@
 		{ label: 'Uni', href: '/uni', icon: 'graduation-cap', count: 'uni' },
 		{ label: 'Aspects', href: '/aspects', icon: 'layers', count: 'aspects' }
 	];
+
+	export function syncNeedsAttention(nav: NavData) {
+		return nav.sync === 'relogin' || nav.sync === 'error';
+	}
 
 	export function isCurrent(href: string, pathname: string) {
 		return href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(href + '/');
@@ -84,6 +90,16 @@
 			{/each}
 		</ul>
 	{/if}
+	<a
+		class="item sync"
+		href="/sync"
+		data-testid="sync-link"
+		aria-current={isCurrent('/sync', page.url.pathname) ? 'page' : undefined}
+	>
+		<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS['refresh-cw']} /></svg>
+		Proton sync
+		{#if syncNeedsAttention(nav)}<span class="marker" data-testid="sync-marker" role="img" aria-label="Needs attention"></span>{/if}
+	</a>
 </nav>
 
 {#if nav.aspects.length > 0}
@@ -213,6 +229,18 @@
 		padding: var(--space-1) var(--space-3) var(--space-1);
 		color: var(--on-chrome-2);
 		font-size: var(--text-xs);
+	}
+
+	.sync {
+		margin-top: var(--space-3);
+	}
+
+	.marker {
+		width: 8px;
+		height: 8px;
+		margin-left: auto;
+		border-radius: 50%;
+		background: var(--overdue-on-chrome);
 	}
 
 	svg {

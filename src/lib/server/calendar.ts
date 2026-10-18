@@ -18,6 +18,24 @@ function byTime(a: CalendarEntry, b: CalendarEntry): number {
 	return a.title.localeCompare(b.title);
 }
 
+export function projectionStart(db: DatabaseSync, today: IsoDate): IsoDate {
+	const active = getActiveSprint(db);
+	return active?.weekStart ? addDays(active.weekStart, 7) : today;
+}
+
+export function archivedRuleIds(db: DatabaseSync): Set<Id> {
+	return new Set(
+		(
+			db
+				.prepare(
+					`SELECT r.id FROM recurring_rules r JOIN classes c ON c.id = r.class_id
+					 JOIN semesters s ON s.id = c.semester_id WHERE s.archived_at IS NOT NULL`
+				)
+				.all() as Row[]
+		).map((r) => Number(r.id))
+	);
+}
+
 export function calendarMonth(
 	db: DatabaseSync,
 	month: string,
@@ -32,18 +50,8 @@ export function calendarMonth(
 		add(t.day!, { kind: 'todo', todo: t, startTime: t.startTime, endTime: t.endTime, title: t.title, aspectId: t.aspectId, done: t.status === 'done' });
 	}
 
-	const active = getActiveSprint(db);
-	const projectFrom = active?.weekStart ? addDays(active.weekStart, 7) : today;
-	const archived = new Set(
-		(
-			db
-				.prepare(
-					`SELECT r.id FROM recurring_rules r JOIN classes c ON c.id = r.class_id
-					 JOIN semesters s ON s.id = c.semester_id WHERE s.archived_at IS NOT NULL`
-				)
-				.all() as Row[]
-		).map((r) => Number(r.id))
-	);
+	const projectFrom = projectionStart(db, today);
+	const archived = archivedRuleIds(db);
 	const rules = listRules(db).filter((r) => !archived.has(r.id));
 	for (const day of days) {
 		if (day < projectFrom) continue;

@@ -3,6 +3,7 @@ import { listAspects } from '$lib/server/aspects';
 import { today } from '$lib/server/clock';
 import { getDb } from '$lib/server/db';
 import { countActiveProjects, getItAspectId, listProjectRefs } from '$lib/server/projects';
+import { syncStatus } from '$lib/server/proton/worker';
 import { listRules } from '$lib/server/recurring';
 import { getActiveSprint, listSprintTodos, listToday } from '$lib/server/sprints';
 import { listBacklog, listOverdue } from '$lib/server/todos';
@@ -29,7 +30,8 @@ export const load: LayoutServerLoad = ({ url }) => {
 			projects: countActiveProjects(db),
 			uni: countOpenClassTodos(db)
 		},
-		aspects: aspects.map((a) => ({ ...a, backlog: backlog.filter((t) => t.aspectId === a.id).length }))
+		aspects: aspects.map((a) => ({ ...a, backlog: backlog.filter((t) => t.aspectId === a.id).length })),
+		sync: syncStatus().state
 	};
 	return {
 		aspects,

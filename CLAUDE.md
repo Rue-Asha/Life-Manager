@@ -21,6 +21,7 @@ Single user, no auth; light theme only.
 - Before changing it-projects, read openspec/specs/it-projects/spec.md.
 - Before changing motion, read openspec/specs/motion/spec.md.
 - Before changing navigation, read openspec/specs/navigation/spec.md.
+- Before changing proton-sync, read openspec/specs/proton-sync/spec.md.
 - Before changing recurring, read openspec/specs/recurring/spec.md.
 - Before changing release-artifact, read openspec/specs/release-artifact/spec.md.
 - Before changing sprint-lifecycle, read openspec/specs/sprint-lifecycle/spec.md.
@@ -41,3 +42,4 @@ Single user, no auth; light theme only.
 - **e2e measurement at ≥1280 on RailLayout pages** → wait for `context-rail` before measuring. (weil: the MediaQuery swap after hydration re-mounts the column; earlier measurements read a detached node) [2026-10-04 · uni-hub]
 - **e2e helper `reset()`** → call `setClock` again after every reset in a multi-state test. (weil: reset() also clears the test clock, so the phase came out wrong) [2026-10-11 · today-quick-add-always]
 - **Single-file e2e runs** → run `npm run build` first and again after each edit. (weil: Playwright serves build/; fresh worktrees hit "Cannot find module .../build") [2026-10-18 · calendar-planning]
+- **e2e on /sync or any page in a fresh DB** → seed an aspect first. (weil: no aspects redirects to /welcome; a unit lost a run on it) [2026-10-18 · proton-calendar-sync]
