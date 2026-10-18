@@ -263,11 +263,13 @@ error, not `day-in-past`. Todos of archived semesters stay read-only (`archived`
 A done todo's planned date is edited like any other field and keeps its status where it stays in its sprint. Where the
 todo lands (sprint or backlog) follows sprint-lifecycle "Mid-sprint changes". Creating a todo with a day target (quick
 add in a Week view column) places it by the same rule, `review-required` while the active sprint's review is required
-included; creating with the sprint target (quick add in By aspect or Unscheduled) keeps its existing behaviour and is not
-refused by a required review. (S1)
+included; creating with the sprint or backlog target (quick add in By aspect, Unscheduled or Backlog) is never refused
+by a required review. (S1)
 Every quick-add form SHALL offer the same "Planned" field with "From" and "To", stored on create under the same rules
-as an edit: a backlog or sprint target with a planned date lands by the placement rule, a day-column quick add starts
-with its day filled in, and a day column whose date was removed adds to the active sprint without a day.
+as an edit: a backlog or sprint target with a planned date lands by the placement rule, except that while the active
+sprint's review is required a sprint target with a date in the sprint week goes into the active sprint on that day and a
+backlog target stays in the backlog with its date, neither being refused; a day-column quick add starts with its day
+filled in, and a day column whose date was removed adds to the active sprint without a day.
 
 #### Scenario: Plan a backlog todo three weeks out with a slot
 - **WHEN** Rue opens a backlog todo, sets "Planned" to the Tuesday three weeks after today with "From" 18:00 and "To" 19:30, and saves
@@ -323,6 +325,11 @@ with its day filled in, and a day column whose date was removed adds to the acti
 - **WHEN** Rue opens quick add in the Thursday column of the Week view, sees "Planned" filled with that Thursday, sets 09:00–10:00 and adds it, then adds a second todo after removing the plan
 - **THEN** the first card is in the Thursday column labelled "09:00–10:00", and the second is in the active sprint with no day
 - **proof:** e2e — `Regression: quick add in a week day column stores the slot on that day`
+
+#### Scenario: Quick add with a planned day is not refused by a required review
+- **WHEN** today is the Monday 2026-10-19 after an active sprint of 2026-10-12 to 2026-10-18, and todos with slot 18:00–19:30 are created with the sprint target on 2026-10-15, the backlog target on 2026-10-15, and the sprint target on 2026-10-11
+- **THEN** the first is in the active sprint on 2026-10-15 with the slot, the second is in the backlog on 2026-10-15 with the slot, and the third is refused with `day-in-past`
+- **proof:** unit — `Regression: createTodo is not refused by a required review for a sprint or backlog target`
 
 #### Scenario: Creating with a planned day stores it for every target
 - **WHEN** with an active sprint of 2026-10-12 to 2026-10-18 and today 2026-10-14, todos with slot 18:00–19:30 are created with the backlog target on 2026-11-03 and on 2026-10-16, the sprint target on 2026-10-15, and the day target 2026-10-17
@@ -384,7 +391,7 @@ without a date is not stored. In the editor, clearing "From" clears "To". (S3)
 #### Scenario: Creating with a slot but no day drops the slot
 - **WHEN** a todo is created in the backlog with 18:00–19:30 and no planned date
 - **THEN** it is stored with no day, start or end time
-- **proof:** unit — `Regression: createTodo drops a slot without a day`
+- **proof:** unit — `createTodo drops a slot without a day`
 
 ### Requirement: Planned label on todo rows
 A todo row SHALL show the todo's planned date with its slot in a label with test id `planned-label` wherever the row

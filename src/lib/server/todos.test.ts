@@ -192,6 +192,24 @@ describe('createTodo', () => {
 		expect(value(make({ kind: 'sprint' }))).toMatchObject({ sprintId: sprint, day: null, status: 'todo' });
 	});
 
+	it('Regression: createTodo is not refused by a required review for a sprint or backlog target', () => {
+		const { db, aspect } = setup();
+		const sprint = activeSprint(db, '2026-10-12');
+		const make = (target: NonNullable<Parameters<typeof createTodo>[1]['target']>, day: string) =>
+			createTodo(db, { title: 'Run', aspectId: aspect, target, day, startTime: '18:00', endTime: '19:30' }, '2026-10-19');
+
+		expect(value(make({ kind: 'sprint' }, '2026-10-15'))).toMatchObject({
+			sprintId: sprint,
+			day: '2026-10-15',
+			startTime: '18:00',
+			endTime: '19:30'
+		});
+		expect(value(make({ kind: 'backlog' }, '2026-10-15'))).toMatchObject({ sprintId: null, day: '2026-10-15', startTime: '18:00' });
+		expect(value(make({ kind: 'sprint' }, '2026-10-26'))).toMatchObject({ sprintId: null, day: '2026-10-26' });
+		expect(make({ kind: 'sprint' }, '2026-10-11')).toEqual({ ok: false, error: 'day-in-past', field: 'day' });
+		expect(make({ kind: 'day', day: '2026-10-15' }, '2026-10-15')).toEqual({ ok: false, error: 'review-required' });
+	});
+
 	it('Regression: createTodo stores the planned day and slot for every target', () => {
 		const { db, aspect } = setup();
 		const sprint = activeSprint(db, '2026-10-12');
@@ -217,7 +235,7 @@ describe('createTodo', () => {
 		expect(todoCount(db)).toBe(0);
 	});
 
-	it('Regression: createTodo drops a slot without a day', () => {
+	it('createTodo drops a slot without a day', () => {
 		const { db, aspect } = setup();
 		const t = value(createTodo(db, { title: 'Run', aspectId: aspect, startTime: '18:00', endTime: '19:30' }, '2026-10-14'));
 		expect(t).toMatchObject({ sprintId: null, day: null, startTime: null, endTime: null });

@@ -89,13 +89,15 @@ export function createTodo(db: DatabaseSync, input: NewTodo, today: IsoDate = cl
 		day === null ? { startTime: null, endTime: null } : { startTime: input.startTime ?? null, endTime: input.endTime ?? null };
 	const invalid = validateSlot(slot.startTime, slot.endTime);
 	if (invalid) return { ok: false, ...invalid };
+	const active = db.prepare("SELECT id FROM sprints WHERE state = 'active'").get() as { id: Id } | undefined;
 	let sprintId: Id | null = null;
 	if (day !== null) {
 		const placed = landing(db, null, day, today);
-		if (!placed.ok) return placed;
-		sprintId = placed.value.sprintId;
+		if (placed.ok) sprintId = placed.value.sprintId;
+		// Only a day column is refused by a required review; the other quick adds never were.
+		else if (placed.error !== 'review-required' || target.kind === 'day') return placed;
+		else if (target.kind === 'sprint') sprintId = active!.id;
 	} else if (target.kind === 'sprint') {
-		const active = db.prepare("SELECT id FROM sprints WHERE state = 'active'").get() as { id: Id } | undefined;
 		if (!active) return { ok: false, error: 'no-active-sprint' };
 		sprintId = active.id;
 	}
