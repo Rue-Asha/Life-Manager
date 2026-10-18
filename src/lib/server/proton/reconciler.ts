@@ -4,10 +4,10 @@ import type { Id } from '$lib/types';
 import { now } from '../clock';
 import { PROTON_COLORS } from './colors';
 import { specHash } from './hash';
-import type { DesiredItem, FailedItem, PassOutcome, ProtonOp, Runner } from './types';
+import type { DesiredItem, FailedItem, ItemKey, PassOutcome, ProtonOp, Runner } from './types';
 
 interface Row {
-	key: string;
+	key: ItemKey;
 	label: string;
 	calendar_id: string | null;
 	event_ref: string | null;
@@ -44,11 +44,16 @@ export async function reconcile(
 		return run(op);
 	};
 
+	const storedCalendar = (aspectId: Id): string | null =>
+		(
+			db.prepare('SELECT calendar_id FROM proton_calendars WHERE aspect_id = ?').get(aspectId) as
+				| { calendar_id: string }
+				| undefined
+		)?.calendar_id ?? null;
+
 	async function calendarFor(aspectId: Id): Promise<string | null> {
-		const stored = db.prepare('SELECT calendar_id FROM proton_calendars WHERE aspect_id = ?').get(aspectId) as
-			| { calendar_id: string }
-			| undefined;
-		if (stored) return stored.calendar_id;
+		const stored = storedCalendar(aspectId);
+		if (stored) return stored;
 		const aspect = db.prepare('SELECT name, color FROM aspects WHERE id = ?').get(aspectId) as
 			| { name: string; color: AspectColor }
 			| undefined;
@@ -59,13 +64,62 @@ export async function reconcile(
 		return r.ids[0];
 	}
 
+	const rows = readRows(db);
+	const wanted = new Set(desired.map((d) => d.key));
+	for (const r of rows.values()) {
+		if (wanted.has(r.key)) continue;
+		if (r.event_ref) {
+			const res = await call({ kind: 'event.delete', ref: r.event_ref });
+			if (!res.ok && res.code !== 3) continue;
+		}
+		db.prepare('DELETE FROM proton_items WHERE key = ?').run(r.key);
+	}
+
 	for (const d of desired) {
 		const hash = specHash(d.spec);
-		const calendarId = await calendarFor(d.aspectId);
+		const row = rows.get(d.key);
+		const target = storedCalendar(d.aspectId);
+		if (row?.event_ref && row.hash === hash && target && row.calendar_id === target) continue;
+
+		let calendarId = await calendarFor(d.aspectId);
 		if (!calendarId) continue;
-		const r = await call({ kind: 'event.create', calendarId, spec: d.spec });
-		if (!r.ok) continue;
-		writeRow(db, { key: d.key, label: d.label, calendar_id: calendarId, event_ref: r.ids[0], hash, error: null, error_hash: null });
+		const base = { key: d.key, label: d.label, error: null, error_hash: null };
+		let ref = row?.event_ref ?? null;
+		if (ref && row?.calendar_id !== calendarId) {
+			const res = await call({ kind: 'event.delete', ref });
+			if (!res.ok && res.code !== 3) continue;
+			ref = null;
+		}
+		if (ref) {
+			const res = await call({ kind: 'event.update', ref, spec: d.spec });
+			if (res.ok) {
+				writeRow(db, { ...base, calendar_id: calendarId, event_ref: ref, hash: null });
+			} else if (res.code === 3) ref = null;
+			else continue;
+		}
+		if (!ref) {
+			let res = await call({ kind: 'event.create', calendarId, spec: d.spec });
+			if (!res.ok && res.code === 3) {
+				db.prepare('DELETE FROM proton_calendars WHERE aspect_id = ?').run(d.aspectId);
+				calendarId = await calendarFor(d.aspectId);
+				if (!calendarId) continue;
+				res = await call({ kind: 'event.create', calendarId, spec: d.spec });
+			}
+			if (!res.ok) continue;
+			ref = res.ids[0];
+			writeRow(db, { ...base, calendar_id: calendarId, event_ref: ref, hash: null });
+		}
+
+		let complete = true;
+		for (const day of d.spec.exdates) {
+			const occurrence = d.spec.start ? `${day}T${d.spec.start}` : day;
+			const res = await call({ kind: 'event.deleteOccurrence', ref, occurrence });
+			if (!res.ok && res.code !== 3) {
+				complete = false;
+				break;
+			}
+		}
+		if (complete) writeRow(db, { ...base, calendar_id: calendarId, event_ref: ref, hash });
 	}
 	return { kind: 'done', calls, failed: 0 };
 }

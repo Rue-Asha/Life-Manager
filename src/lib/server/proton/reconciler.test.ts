@@ -103,4 +103,119 @@ describe('reconciler', () => {
 		});
 		expect(row('todo:2')?.event_ref).toBe('cal-1/evt-2');
 	});
+
+	it('Scenario: Changed item updates its event in place', async () => {
+		const a = health();
+		await reconcile(db, [item(1, a)], run);
+		const before = fake.calls().length;
+		const changed = item(1, a, { title: 'Run later', start: '11:00', end: '12:00' });
+		const out = await reconcile(db, [changed], run);
+		expect(out).toEqual({ kind: 'done', calls: 1, failed: 0 });
+		expect(ops().slice(before)).toEqual([{ kind: 'event.update', ref: 'cal-1/evt-1', spec: changed.spec }]);
+		expect(row('todo:1')).toMatchObject({ event_ref: 'cal-1/evt-1', hash: specHash(changed.spec) });
+		expect(fake.state().events['cal-1/evt-1'].spec).toEqual(changed.spec);
+	});
+
+	it('Scenario: Aspect change moves the event to the other calendar', async () => {
+		const a = health();
+		const b = uni();
+		await reconcile(db, [item(1, a), item(2, b)], run);
+		const before = fake.calls().length;
+		const moved = { ...item(1, b), aspectId: b };
+		await reconcile(db, [moved, item(2, b)], run);
+		expect(ops().slice(before)).toEqual([
+			{ kind: 'event.delete', ref: 'cal-1/evt-1' },
+			{ kind: 'event.create', calendarId: 'cal-2', spec: moved.spec }
+		]);
+		expect(row('todo:1')).toMatchObject({ calendar_id: 'cal-2', event_ref: 'cal-2/evt-3' });
+		expect(fake.state().events['cal-1/evt-1']).toBeUndefined();
+	});
+
+	it('Scenario: Event deleted in Proton is created again', async () => {
+		const a = health();
+		await reconcile(db, [item(1, a)], run);
+		fake.dropEvent('cal-1/evt-1');
+		const before = fake.calls().length;
+		const changed = item(1, a, { title: 'Run again' });
+		await reconcile(db, [changed], run);
+		const calls = fake.calls().slice(before);
+		expect(calls.map((c) => [c.op!.kind, c.code])).toEqual([
+			['event.update', 3],
+			['event.create', 0]
+		]);
+		expect(calls[1].op).toMatchObject({ calendarId: 'cal-1' });
+		expect(row('todo:1')).toMatchObject({ event_ref: 'cal-1/evt-2', hash: specHash(changed.spec), error: null });
+	});
+
+	it('Scenario: Item no longer desired has its event deleted', async () => {
+		const a = health();
+		await reconcile(db, [item(1, a), item(2, a)], run);
+		const before = fake.calls().length;
+		const out = await reconcile(db, [item(2, a)], run);
+		expect(out).toEqual({ kind: 'done', calls: 1, failed: 0 });
+		expect(ops().slice(before)).toEqual([{ kind: 'event.delete', ref: 'cal-1/evt-1' }]);
+		expect(rows().map((r) => r.key)).toEqual(['todo:2']);
+		expect(Object.keys(fake.state().events)).toEqual(['cal-1/evt-2']);
+	});
+
+	it('Scenario: Event already gone counts as deleted', async () => {
+		const a = health();
+		await reconcile(db, [item(1, a)], run);
+		fake.dropEvent('cal-1/evt-1');
+		const before = fake.calls().length;
+		const out = await reconcile(db, [], run);
+		expect(out).toEqual({ kind: 'done', calls: 1, failed: 0 });
+		expect(fake.calls().slice(before).map((c) => [c.op!.kind, c.code])).toEqual([['event.delete', 3]]);
+		expect(rows()).toEqual([]);
+	});
+
+	it('Scenario: Missing calendar is created again', async () => {
+		const a = health();
+		await reconcile(db, [item(1, a)], run);
+		fake.dropCalendar('cal-1');
+		const before = fake.calls().length;
+		await reconcile(db, [item(1, a), item(2, a)], run);
+		expect(fake.calls().slice(before).map((c) => [c.op!.kind, c.code])).toEqual([
+			['event.create', 3],
+			['calendar.create', 0],
+			['event.create', 0]
+		]);
+		expect(db.prepare('SELECT aspect_id, calendar_id FROM proton_calendars').all()).toEqual([{ aspect_id: a, calendar_id: 'cal-2' }]);
+		expect(row('todo:2')).toMatchObject({ calendar_id: 'cal-2', event_ref: 'cal-2/evt-2' });
+	});
+
+	it('Scenario: Series exclusions are deleted as occurrences after each push', async () => {
+		const a = health();
+		const series = (title: string) =>
+			item(7, a, {
+				title,
+				date: '2026-10-20',
+				start: '07:00',
+				end: '08:00',
+				rrule: 'FREQ=WEEKLY;BYDAY=TU,TH',
+				exdates: ['2026-10-22', '2026-10-27']
+			}, 'rule');
+		const hashesSeen: (string | null | undefined)[] = [];
+		run = async (op) => {
+			if (op.kind === 'event.deleteOccurrence') hashesSeen.push(row('rule:7')?.hash);
+			return fake.apply(op);
+		};
+		await reconcile(db, [series('Gym')], run);
+		expect(ops().map((o) => o.kind)).toEqual(['calendar.create', 'event.create', 'event.deleteOccurrence', 'event.deleteOccurrence']);
+		expect(ops().slice(2)).toEqual([
+			{ kind: 'event.deleteOccurrence', ref: 'cal-1/evt-1', occurrence: '2026-10-22T07:00' },
+			{ kind: 'event.deleteOccurrence', ref: 'cal-1/evt-1', occurrence: '2026-10-27T07:00' }
+		]);
+		expect(fake.state().events['cal-1/evt-1'].exdates).toEqual(['2026-10-22', '2026-10-27']);
+		expect(hashesSeen).toEqual([null, null]);
+		expect(row('rule:7')?.hash).toBe(specHash(series('Gym').spec));
+
+		const before = fake.calls().length;
+		await reconcile(db, [series('Gym B')], run);
+		expect(ops().slice(before).map((o) => o.kind)).toEqual(['event.update', 'event.deleteOccurrence', 'event.deleteOccurrence']);
+		expect(ops()[before + 2]).toMatchObject({ occurrence: '2026-10-27T07:00' });
+		expect(fake.state().events['cal-1/evt-1'].exdates).toEqual(['2026-10-22', '2026-10-27']);
+		expect(hashesSeen).toEqual([null, null, null, null]);
+		expect(row('rule:7')?.hash).toBe(specHash(series('Gym B').spec));
+	});
 });
