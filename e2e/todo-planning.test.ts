@@ -202,3 +202,22 @@ test('Scenario: Sprint row shows the slot next to its day', async ({ page, reque
 	await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 	await expect(rowOf(page, 'Dentist').getByTestId('planned-label')).toHaveText('18:00–19:30');
 });
+
+test('Scenario: Planned labels do not scroll the phone sideways', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [HEALTH],
+		sprint: { state: 'active', weekStart: WEEK },
+		todos: [
+			{ title: 'Dentist', aspect: 0, inSprint: true, day: '2026-10-14', startTime: '18:00', endTime: '19:30', dueDate: '2026-10-30' },
+			{ title: 'Taxes', aspect: 0, day: '2026-10-27', startTime: '18:00', endTime: '19:30', dueDate: '2026-10-30' }
+		]
+	});
+	await page.setViewportSize({ width: 375, height: 800 });
+
+	for (const path of ['/', '/backlog', '/sprint?view=aspect', '/sprint?view=board', '/sprint?view=week']) {
+		await page.goto(path);
+		await expect(page.getByTestId('planned-label').first()).toBeVisible();
+		const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+		expect(overflow, path).toBeLessThanOrEqual(0);
+	}
+});
