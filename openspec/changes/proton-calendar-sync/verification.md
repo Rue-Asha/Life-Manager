@@ -1,20 +1,24 @@
-verified-at: 8d4b067
+verified-at: f9990ec
 
 ## Layer 1: proof:full (PORT=4700), exit 0
 
 ```
 Test Files  21 passed (21)
-     Tests  297 passed (297)
-  323 passed (2.5m)   (e2e)
+     Tests  301 passed (301)
+  323 passed (2.6m)   (e2e)
 ```
 
 Last e2e line: `✓ 323 e2e/uni.test.ts:623:1 › Scenario: Nothing due shows an empty line`
 
 `openspec validate proton-calendar-sync --strict`: valid.
 
-## Layer 2: spec coverage (112 scenarios: 91 unit, 19 e2e, 2 manual)
+## Layer 2: spec coverage (115 scenarios: 94 unit, 19 e2e, 2 manual)
 
-Every unit/e2e scenario has a test named `Scenario: <title>` (or the name in its proof line) that appears as passed in the proof:full output: 110 of 110 covered, 0 gaps. Round 3 added 3 scenarios (109 -> 112), all with a direct name match in the output.
+Every unit/e2e scenario has a test named `Scenario: <title>` (or the names in its proof line) that appears as passed in the proof:full output: 113 of 113 covered, 0 gaps. Since the previous verification (8d4b067) three scenarios were added (112 -> 115), all with a direct name match in the output:
+- "Failed move clears when the item returns to its calendar"
+- "Failed item is retried when its target aspect changes"
+- "A hung proton call times out and backs off"
+
 Aliased proof lines, all resolved:
 
 | Scenario | proof | Evidence |
@@ -25,7 +29,7 @@ Aliased proof lines, all resolved:
 | README documents setup, scripts and env vars | manual (documentation) | see checklist |
 | Planned todo appears in a real Proton calendar | manual (needs a real Proton account) | see checklist |
 
-All other 107 scenarios: direct name match, passed in the output.
+All other 110 scenarios: direct name match, passed in the output.
 
 ## Manual checklist
 
@@ -36,7 +40,7 @@ All other 107 scenarios: direct name match, passed in the output.
 ## Diffstat (origin/main...flow/proton-calendar-sync)
 
 ```
-50 files changed, 5357 insertions(+), 21 deletions(-)
+50 files changed, 5480 insertions(+), 21 deletions(-)
 ```
 
 ## Screenshots (not committed; no UI file changed since round 1)
