@@ -127,7 +127,7 @@ export const actions: Actions = {
 		const data = await request.formData();
 		return (
 			readOnly(num(data, 'id')) ??
-			respond(setDay(getDb(), num(data, 'id'), optionalDate(data, 'day')), data)
+			respond(setDay(getDb(), num(data, 'id'), optionalDate(data, 'day'), today()), data)
 		);
 	},
 	addToSprint: async ({ request }) => {

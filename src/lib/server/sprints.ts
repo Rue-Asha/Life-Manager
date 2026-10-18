@@ -9,13 +9,16 @@ import type {
 	Priority,
 	Result,
 	ReviewDecision,
+	Slot,
 	Sprint,
 	SprintPhase,
 	Status,
 	Todo
 } from '$lib/types';
 import { addDays, reviewState, targetWeek } from '$lib/week';
+import { validateSlot } from '$lib/slot';
 import { now } from './clock';
+import { landing } from './planning';
 import { generateInstances } from './recurring';
 import { deleteTodo } from './todos';
 import { todoWritable } from './uni';
@@ -269,16 +272,24 @@ export function toggleDone(db: DatabaseSync, todoId: Id): Result<Todo> {
 	return setStatus(db, todoId, todo.status === 'done' ? 'todo' : 'done');
 }
 
-export function setDay(db: DatabaseSync, todoId: Id, day: IsoDate | null): Result<Todo> {
+export function setDay(db: DatabaseSync, todoId: Id, day: IsoDate | null, today: IsoDate, slot?: Slot): Result<Todo> {
 	const todo = getTodo(db, todoId);
 	if (!todo) return { ok: false, error: 'not-found' };
-	if (day !== null) {
-		const weekStart = todo.sprintId === null ? null : getSprint(db, todo.sprintId).weekStart;
-		if (weekStart === null || day < weekStart || day > addDays(weekStart, 6)) {
-			return { ok: false, error: 'day-outside-sprint', field: 'day' };
-		}
+	const next = day === null ? { startTime: null, endTime: null } : (slot ?? todo);
+	const invalid = validateSlot(next.startTime, next.endTime);
+	if (invalid) return { ok: false, ...invalid };
+	if (day === null) {
+		db.prepare('UPDATE todos SET day = NULL, start_time = NULL, end_time = NULL WHERE id = ?').run(todoId);
+		return { ok: true, value: getTodo(db, todoId)! };
 	}
-	db.prepare('UPDATE todos SET day = ? WHERE id = ?').run(day, todoId);
+	const placed = landing(db, todo.sprintId, day, today);
+	if (!placed.ok) return placed;
+	const { sprintId, resetStatus } = placed.value;
+	db.prepare(
+		`UPDATE todos SET sprint_id = ?1, day = ?2, start_time = ?3, end_time = ?4,
+		 status = CASE WHEN ?5 THEN 'todo' ELSE status END, completed_at = CASE WHEN ?5 THEN NULL ELSE completed_at END
+		 WHERE id = ?6`
+	).run(sprintId, day, next.startTime, next.endTime, resetStatus ? 1 : 0, todoId);
 	return { ok: true, value: getTodo(db, todoId)! };
 }
 
