@@ -150,18 +150,23 @@ describe('createTodo', () => {
 	it('lands on a day of the active sprint for target day', () => {
 		const { db, aspect } = setup();
 		const sprint = activeSprint(db, '2026-09-28');
-		const t = value(createTodo(db, { title: 'Run', aspectId: aspect, target: { kind: 'day', day: '2026-09-30' } }));
-		expect(t).toMatchObject({ sprintId: sprint, day: '2026-09-30' });
-		expect(value(createTodo(db, { title: 'Run', aspectId: aspect, target: { kind: 'day', day: '2026-10-04' } })).day).toBe(
-			'2026-10-04'
+		const make = (day: string) => createTodo(db, { title: 'Run', aspectId: aspect, target: { kind: 'day', day } }, '2026-09-30');
+		expect(value(make('2026-09-30'))).toMatchObject({ sprintId: sprint, day: '2026-09-30' });
+		expect(value(make('2026-10-04')).day).toBe('2026-10-04');
+		expect(value(make('2026-10-05'))).toMatchObject({ sprintId: null, day: '2026-10-05' });
+		expect(make('2026-09-27')).toEqual({ ok: false, error: 'day-in-past', field: 'day' });
+		expect(db.prepare('SELECT count(*) AS n FROM todos').get()).toEqual({ n: 3 });
+	});
+
+	it('keeps a day target in the backlog without an active sprint', () => {
+		const { db, aspect } = setup();
+		const t = value(
+			createTodo(db, { title: 'Run', aspectId: aspect, target: { kind: 'day', day: '2026-10-21' } }, '2026-10-18')
 		);
-		for (const day of ['2026-09-27', '2026-10-05']) {
-			expect(createTodo(db, { title: 'Run', aspectId: aspect, target: { kind: 'day', day } })).toEqual({
-				ok: false,
-				error: 'day-outside-sprint',
-				field: 'day'
-			});
-		}
+		expect(t).toMatchObject({ sprintId: null, day: '2026-10-21' });
+		expect(
+			createTodo(db, { title: 'Run', aspectId: aspect, target: { kind: 'day', day: '2026-10-17' } }, '2026-10-18')
+		).toEqual({ ok: false, error: 'day-in-past', field: 'day' });
 	});
 
 	it('returns null for a missing todo', () => {
@@ -179,7 +184,7 @@ describe('updateTodo and deleteTodo', () => {
 				.run().lastInsertRowid
 		);
 		const sprint = activeSprint(db, '2026-09-28');
-		const t = value(createTodo(db, { title: 'Run', aspectId: aspect, target: { kind: 'day', day: '2026-09-29' } }));
+		const t = value(createTodo(db, { title: 'Run', aspectId: aspect, target: { kind: 'day', day: '2026-09-29' } }, '2026-09-29'));
 		db.prepare("UPDATE todos SET status = 'doing' WHERE id = ?").run(t.id);
 
 		const updated = value(updateTodo(db, t.id, { aspectId: other }));
@@ -426,7 +431,7 @@ describe('project link', () => {
 		const sprint = activeSprint(db, '2026-10-05');
 		const backlog = value(createTodo(db, { title: 'b', aspectId: it, projectId: project }));
 		const planned = value(
-			createTodo(db, { title: 's', aspectId: it, projectId: project, target: { kind: 'day', day: '2026-10-06' } })
+			createTodo(db, { title: 's', aspectId: it, projectId: project, target: { kind: 'day', day: '2026-10-06' } }, '2026-10-06')
 		);
 
 		expect(getTodo(db, backlog.id)!.projectId).toBe(project);
@@ -461,7 +466,7 @@ describe('class link', () => {
 		const sprint = activeSprint(db, '2026-10-05');
 		const backlog = value(createTodo(db, { title: 'b', aspectId: uni, classId: analysis, type: 'LEC' }));
 		const planned = value(
-			createTodo(db, { title: 's', aspectId: uni, classId: analysis, type: 'LEC', target: { kind: 'day', day: '2026-10-06' } })
+			createTodo(db, { title: 's', aspectId: uni, classId: analysis, type: 'LEC', target: { kind: 'day', day: '2026-10-06' } }, '2026-10-06')
 		);
 		value(setRevisedAt(db, backlog.id, '2026-10-02'));
 		value(setRevisedAt(db, planned.id, '2026-10-03'));
@@ -477,7 +482,7 @@ describe('class link', () => {
 		const { db, other, uni, analysis } = uniSetup();
 		const sprint = activeSprint(db, '2026-09-28');
 		const todo = value(
-			createTodo(db, { title: 'x', aspectId: uni, classId: analysis, type: 'LEC', target: { kind: 'day', day: '2026-09-29' } })
+			createTodo(db, { title: 'x', aspectId: uni, classId: analysis, type: 'LEC', target: { kind: 'day', day: '2026-09-29' } }, '2026-09-29')
 		);
 		db.prepare("UPDATE todos SET status = 'doing' WHERE id = ?").run(todo.id);
 		value(setRevisedAt(db, todo.id, '2026-09-30'));

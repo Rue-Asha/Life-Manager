@@ -103,6 +103,19 @@ export function transaction<T>(db: DatabaseSync, fn: () => T): T {
 	}
 }
 
+// Rolls back when the callback returns an error result, so a refused part leaves nothing half-written.
+export function atomic<T>(db: DatabaseSync, fn: () => Result<T>): Result<T> {
+	db.exec('BEGIN');
+	try {
+		const result = fn();
+		db.exec(result.ok ? 'COMMIT' : 'ROLLBACK');
+		return result;
+	} catch (err) {
+		db.exec('ROLLBACK');
+		throw err;
+	}
+}
+
 export function sprintPhase(db: DatabaseSync, today: IsoDate): { phase: SprintPhase; sprint: Sprint | null } {
 	const active = getActiveSprint(db);
 	if (active) return { phase: reviewState(active.weekStart!, today), sprint: active };

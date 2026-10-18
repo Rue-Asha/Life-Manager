@@ -7,6 +7,7 @@ import {
 	createTodo,
 	deleteChecklistItem,
 	deleteTodo,
+	getTodo,
 	renameChecklistItem,
 	toggleChecklistItem,
 	updateTodo
@@ -14,6 +15,7 @@ import {
 import {
 	addToActiveSprint,
 	moveToBacklog,
+	atomic,
 	removeFromSprint,
 	setDay,
 	setStatus,
@@ -35,6 +37,7 @@ function respond<T>(result: Result<T>, data: FormData) {
 const text = (data: FormData, key: string) => String(data.get(key) ?? '');
 const num = (data: FormData, key: string) => Number(data.get(key));
 const optionalDate = (data: FormData, key: string) => text(data, key) || null;
+const optionalText = (data: FormData, key: string) => text(data, key) || null;
 const optionalId = (data: FormData, key: string) => (text(data, key) ? num(data, key) : null);
 const classType = (data: FormData) => (text(data, 'type') || null) as ClassType | null;
 
@@ -64,7 +67,7 @@ export const actions: Actions = {
 			projectId: optionalId(data, 'projectId'),
 			classId: optionalId(data, 'classId'),
 			type: classType(data)
-		});
+		}, today());
 		return respond(result, data);
 	},
 	update: async ({ request }) => {
@@ -78,7 +81,26 @@ export const actions: Actions = {
 		if (data.has('projectId')) patch.projectId = optionalId(data, 'projectId');
 		if (data.has('classId')) patch.classId = optionalId(data, 'classId');
 		if (data.has('type')) patch.type = classType(data);
-		return readOnly(num(data, 'id')) ?? respond(updateTodo(getDb(), num(data, 'id'), patch), data);
+		const id = num(data, 'id');
+		const blocked = readOnly(id);
+		if (blocked) return blocked;
+		const db = getDb();
+		// An unchanged plan is not re-validated, so a stale past date doesn't block editing other fields.
+		const current = getTodo(db, id);
+		const day = data.has('day') ? optionalDate(data, 'day') : undefined;
+		const slot = { startTime: optionalText(data, 'startTime'), endTime: optionalText(data, 'endTime') };
+		const replan =
+			day !== undefined &&
+			current !== null &&
+			(day !== current.day || (day !== null && (slot.startTime !== current.startTime || slot.endTime !== current.endTime)));
+		if (!replan) return respond(updateTodo(db, id, patch), data);
+		return respond(
+			atomic(db, () => {
+				const plan = setDay(db, id, day!, today(), slot);
+				return plan.ok ? updateTodo(db, id, patch) : plan;
+			}),
+			data
+		);
 	},
 	delete: async ({ request }) => {
 		const data = await request.formData();
@@ -127,7 +149,18 @@ export const actions: Actions = {
 		const data = await request.formData();
 		return (
 			readOnly(num(data, 'id')) ??
-			respond(setDay(getDb(), num(data, 'id'), optionalDate(data, 'day'), today()), data)
+			respond(
+				setDay(
+					getDb(),
+					num(data, 'id'),
+					optionalDate(data, 'day'),
+					today(),
+					data.has('startTime')
+						? { startTime: optionalText(data, 'startTime'), endTime: optionalText(data, 'endTime') }
+						: undefined
+				),
+				data
+			)
 		);
 	},
 	addToSprint: async ({ request }) => {
