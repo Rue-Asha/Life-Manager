@@ -132,6 +132,19 @@ test.describe('suggestions', () => {
 		await expectStarted(page, ['Submit lab report'], ['Pay the electricity bill']);
 	});
 
+	test('Scenario: Plan page does not suggest a todo planned for a later week', async ({ page, request }) => {
+		await setClock(request, '2026-10-11T10:00:00Z');
+		await seed(request, {
+			aspects: [...ASPECTS],
+			todos: [{ title: 'File the tax return', dueDate: '2026-10-15', day: '2026-11-03', startTime: '10:00' }]
+		});
+		await page.goto('/sprint/plan');
+
+		await expect(page.getByRole('heading', { level: 1 })).toHaveText('Plan your week');
+		await expect(page.getByTestId('plan-suggestions')).toHaveCount(0);
+		await expect(page.getByTestId('plan-backlog').getByTestId('todo-row')).toHaveText([/File the tax return/]);
+	});
+
 	test('Scenario: No suggestion section when nothing is due', async ({ page, request }) => {
 		await seed(request, {
 			aspects: [...ASPECTS],

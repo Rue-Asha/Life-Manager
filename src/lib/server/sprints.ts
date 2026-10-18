@@ -9,13 +9,16 @@ import type {
 	Priority,
 	Result,
 	ReviewDecision,
+	Slot,
 	Sprint,
 	SprintPhase,
 	Status,
 	Todo
 } from '$lib/types';
 import { addDays, reviewState, targetWeek } from '$lib/week';
+import { validateSlot } from '$lib/slot';
 import { now } from './clock';
+import { landing } from './planning';
 import { generateInstances } from './recurring';
 import { deleteTodo } from './todos';
 import { todoWritable } from './uni';
@@ -100,6 +103,19 @@ export function transaction<T>(db: DatabaseSync, fn: () => T): T {
 	}
 }
 
+// Rolls back when the callback returns an error result, so a refused part leaves nothing half-written.
+export function atomic<T>(db: DatabaseSync, fn: () => Result<T>): Result<T> {
+	db.exec('BEGIN');
+	try {
+		const result = fn();
+		db.exec(result.ok ? 'COMMIT' : 'ROLLBACK');
+		return result;
+	} catch (err) {
+		db.exec('ROLLBACK');
+		throw err;
+	}
+}
+
 export function sprintPhase(db: DatabaseSync, today: IsoDate): { phase: SprintPhase; sprint: Sprint | null } {
 	const active = getActiveSprint(db);
 	if (active) return { phase: reviewState(active.weekStart!, today), sprint: active };
@@ -129,7 +145,23 @@ export function openPlanning(
 
 export function suggestedTodos(db: DatabaseSync, today: IsoDate): Todo[] {
 	const start = targetWeek(today);
-	return selectTodos(db, "sprint_id IS NULL AND status != 'done' AND due_date BETWEEN ? AND ?", start, addDays(start, 6));
+	return selectTodos(
+		db,
+		"sprint_id IS NULL AND status != 'done' AND due_date BETWEEN ? AND ? AND (day IS NULL OR day < ?)",
+		start,
+		addDays(start, 6),
+		start
+	);
+}
+
+export function listPlannedForWeek(db: DatabaseSync, weekStart: IsoDate): Todo[] {
+	return selectTodos(db, "sprint_id IS NULL AND status != 'done' AND day BETWEEN ? AND ?", weekStart, addDays(weekStart, 6)).sort(
+		(a, b) =>
+			a.day!.localeCompare(b.day!) ||
+			Number(a.startTime !== null) - Number(b.startTime !== null) ||
+			(a.startTime ?? '').localeCompare(b.startTime ?? '') ||
+			a.title.localeCompare(b.title)
+	);
 }
 
 export function pullTodo(db: DatabaseSync, todoId: Id): Result<Todo> {
@@ -138,13 +170,16 @@ export function pullTodo(db: DatabaseSync, todoId: Id): Result<Todo> {
 	if (getActiveSprint(db)) return { ok: false, error: 'sprint-active' };
 	const writable = todoWritable(db, todoId);
 	if (!writable.ok) return writable;
-	db.prepare('UPDATE todos SET sprint_id = ?, day = NULL WHERE id = ?').run(planningDraft(db).id, todoId);
+	db.prepare('UPDATE todos SET sprint_id = ?, day = NULL, start_time = NULL, end_time = NULL WHERE id = ?').run(
+		planningDraft(db).id,
+		todoId
+	);
 	return { ok: true, value: getTodo(db, todoId)! };
 }
 
 function toBacklog(db: DatabaseSync, todoId: Id): Todo {
 	db.prepare(
-		"UPDATE todos SET sprint_id = NULL, day = NULL, status = 'todo', completed_at = NULL WHERE id = ?"
+		"UPDATE todos SET sprint_id = NULL, day = NULL, start_time = NULL, end_time = NULL, status = 'todo', completed_at = NULL WHERE id = ?"
 	).run(todoId);
 	return getTodo(db, todoId)!;
 }
@@ -169,9 +204,25 @@ export function startSprint(db: DatabaseSync, today: IsoDate, suggestedIds: Id[]
 	if (active) return blockedBy(active, today);
 	return transaction(db, () => {
 		const draft = planningDraft(db);
-		const pull = db.prepare('UPDATE todos SET sprint_id = ?, day = NULL WHERE id = ? AND sprint_id IS NULL');
-		for (const id of suggestedIds) if (todoWritable(db, id).ok) pull.run(draft.id, id);
 		const weekStart = targetWeek(today);
+		const weekEnd = addDays(weekStart, 6);
+		// A suggested todo keeps a day inside the new week; any other planned date is dropped with its slot.
+		const pull = db.prepare(
+			`UPDATE todos SET sprint_id = ?1,
+			 day = CASE WHEN day BETWEEN ?3 AND ?4 THEN day END,
+			 start_time = CASE WHEN day BETWEEN ?3 AND ?4 THEN start_time END,
+			 end_time = CASE WHEN day BETWEEN ?3 AND ?4 THEN end_time END
+			 WHERE id = ?2 AND sprint_id IS NULL`
+		);
+		for (const id of suggestedIds) if (todoWritable(db, id).ok) pull.run(draft.id, id, weekStart, weekEnd);
+		const backlogIds = (where: string, ...params: SQLInputValue[]) =>
+			(db.prepare(`SELECT id FROM todos WHERE sprint_id IS NULL AND status != 'done' AND ${where}`).all(...params) as Row[])
+				.map((r) => Number(r.id))
+				.filter((id) => todoWritable(db, id).ok);
+		const join = db.prepare('UPDATE todos SET sprint_id = ? WHERE id = ?');
+		for (const id of backlogIds('day BETWEEN ? AND ?', weekStart, weekEnd)) join.run(draft.id, id);
+		const missed = db.prepare('UPDATE todos SET sprint_id = ?, day = NULL, start_time = NULL, end_time = NULL WHERE id = ?');
+		for (const id of backlogIds('day < ?', weekStart)) missed.run(draft.id, id);
 		db.prepare("UPDATE sprints SET state = 'active', week_start = ?, started_at = ? WHERE id = ?").run(
 			weekStart,
 			now().toISOString(),
@@ -215,9 +266,13 @@ export function addToActiveSprint(db: DatabaseSync, todoId: Id, today: IsoDate, 
 	}
 	const status = placement?.status ?? 'todo';
 	if (!STATUSES.includes(status)) return { ok: false, error: 'required', field: 'status' };
-	db.prepare('UPDATE todos SET sprint_id = ?, day = ?, status = ?, completed_at = ? WHERE id = ?').run(
+	db.prepare(
+		'UPDATE todos SET sprint_id = ?, day = ?, start_time = ?, end_time = ?, status = ?, completed_at = ? WHERE id = ?'
+	).run(
 		active.id,
 		day,
+		day === null ? null : todo.startTime,
+		day === null ? null : todo.endTime,
 		status,
 		status === 'done' ? now().toISOString() : null,
 		todoId
@@ -269,16 +324,24 @@ export function toggleDone(db: DatabaseSync, todoId: Id): Result<Todo> {
 	return setStatus(db, todoId, todo.status === 'done' ? 'todo' : 'done');
 }
 
-export function setDay(db: DatabaseSync, todoId: Id, day: IsoDate | null): Result<Todo> {
+export function setDay(db: DatabaseSync, todoId: Id, day: IsoDate | null, today: IsoDate, slot?: Slot): Result<Todo> {
 	const todo = getTodo(db, todoId);
 	if (!todo) return { ok: false, error: 'not-found' };
-	if (day !== null) {
-		const weekStart = todo.sprintId === null ? null : getSprint(db, todo.sprintId).weekStart;
-		if (weekStart === null || day < weekStart || day > addDays(weekStart, 6)) {
-			return { ok: false, error: 'day-outside-sprint', field: 'day' };
-		}
+	const next = day === null ? { startTime: null, endTime: null } : (slot ?? todo);
+	const invalid = validateSlot(next.startTime, next.endTime);
+	if (invalid) return { ok: false, ...invalid };
+	if (day === null) {
+		db.prepare('UPDATE todos SET day = NULL, start_time = NULL, end_time = NULL WHERE id = ?').run(todoId);
+		return { ok: true, value: getTodo(db, todoId)! };
 	}
-	db.prepare('UPDATE todos SET day = ? WHERE id = ?').run(day, todoId);
+	const placed = landing(db, todo.sprintId, day, today);
+	if (!placed.ok) return placed;
+	const { sprintId, resetStatus } = placed.value;
+	db.prepare(
+		`UPDATE todos SET sprint_id = ?1, day = ?2, start_time = ?3, end_time = ?4,
+		 status = CASE WHEN ?5 THEN 'todo' ELSE status END, completed_at = CASE WHEN ?5 THEN NULL ELSE completed_at END
+		 WHERE id = ?6`
+	).run(sprintId, day, next.startTime, next.endTime, resetStatus ? 1 : 0, todoId);
 	return { ok: true, value: getTodo(db, todoId)! };
 }
 
@@ -316,7 +379,7 @@ export function closeReview(
 	}
 	return transaction(db, () => {
 		const draft = planningDraft(db);
-		const carry = db.prepare('UPDATE todos SET sprint_id = ?, day = NULL WHERE id = ?');
+		const carry = db.prepare('UPDATE todos SET sprint_id = ?, day = NULL, start_time = NULL, end_time = NULL WHERE id = ?');
 		const drop = db.prepare('DELETE FROM todos WHERE id = ?');
 		for (const { todo, decision } of plan) {
 			if (decision === 'carry') carry.run(draft.id, todo.id);

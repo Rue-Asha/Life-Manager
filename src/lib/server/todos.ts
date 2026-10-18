@@ -1,6 +1,8 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { isPriority } from '$lib/todo-utils';
 import { CLASS_TYPES } from '$lib/uni';
+import { today as clockToday } from './clock';
+import { landing } from './planning';
 import { getItAspectId } from './projects';
 import { classWritable, getUniAspectId, todoWritable } from './uni';
 import type { ChecklistItem, ClassType, Id, IsoDate, NewTodo, Result, Todo, TodoPatch } from '$lib/types';
@@ -63,7 +65,7 @@ function classLinkFor(
 	return { ok: true, value: { classId, type: type ?? 'OTH', revisedAt } };
 }
 
-export function createTodo(db: DatabaseSync, input: NewTodo): Result<Todo> {
+export function createTodo(db: DatabaseSync, input: NewTodo, today: IsoDate = clockToday()): Result<Todo> {
 	const title = input.title.trim();
 	if (!title) return { ok: false, error: 'required', field: 'title' };
 	if (!aspectExists(db, input.aspectId)) return { ok: false, error: 'no-aspect', field: 'aspectId' };
@@ -82,18 +84,15 @@ export function createTodo(db: DatabaseSync, input: NewTodo): Result<Todo> {
 	const target = input.target ?? { kind: 'backlog' };
 	let sprintId: Id | null = null;
 	let day: IsoDate | null = null;
-	if (target.kind !== 'backlog') {
-		const sprint = db
-			.prepare("SELECT id, week_start AS weekStart, date(week_start, '+6 days') AS weekEnd FROM sprints WHERE state = 'active'")
-			.get() as { id: Id; weekStart: IsoDate; weekEnd: IsoDate } | undefined;
-		if (!sprint) return { ok: false, error: 'no-active-sprint' };
-		sprintId = sprint.id;
-		if (target.kind === 'day') {
-			if (target.day < sprint.weekStart || target.day > sprint.weekEnd) {
-				return { ok: false, error: 'day-outside-sprint', field: 'day' };
-			}
-			day = target.day;
-		}
+	if (target.kind === 'sprint') {
+		const active = db.prepare("SELECT id FROM sprints WHERE state = 'active'").get() as { id: Id } | undefined;
+		if (!active) return { ok: false, error: 'no-active-sprint' };
+		sprintId = active.id;
+	} else if (target.kind === 'day') {
+		const placed = landing(db, null, target.day, today);
+		if (!placed.ok) return placed;
+		sprintId = placed.value.sprintId;
+		day = target.day;
 	}
 
 	db.exec('BEGIN');
@@ -281,7 +280,7 @@ export function listBacklogDueToday(db: DatabaseSync, today: IsoDate): Todo[] {
 	const rows = db
 		.prepare(
 			`SELECT ${todoColumns} FROM todos
-			 WHERE sprint_id IS NULL AND due_date = ? AND status != 'done'
+			 WHERE sprint_id IS NULL AND (due_date = ?1 OR day = ?1) AND status != 'done'
 			 ORDER BY id`
 		)
 		.all(today) as unknown as TodoRow[];
