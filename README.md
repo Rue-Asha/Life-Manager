@@ -80,10 +80,25 @@ it is missing. `GET /healthz` answers `200 ok` once the database is open.
 | `DATABASE_PATH` | `./data/life-manager.db` | SQLite file; relative paths resolve against the working directory |
 | `PROTOCOL_HEADER` | unset | Header that carries the original protocol. Set to `x-forwarded-proto` behind a proxy (see below) |
 | `HOST_HEADER` | unset | Header that carries the original host. Set to `x-forwarded-host` only if the proxy rewrites `Host` |
+| `PROTON_CLI` | unset | Path to the [`proton`](https://github.com/roman-16/proton-cli) binary (v5.1.0). Unset or empty turns the Proton Calendar sync off |
+| `PROTON_PROFILE` | `default` | proton-cli profile the sync uses |
 | `LM_TEST` | unset | `1` enables the test hooks (`/__test/reset`, `/__test/seed`, `/__test/clock`) that wipe and seed the database. For the e2e suite only — **never set it in production** |
 
 `HOST` and the rest of adapter-node's variables work as documented for
 [`@sveltejs/adapter-node`](https://svelte.dev/docs/kit/adapter-node#Environment-variables).
+
+### Proton Calendar sync
+
+Planned todos, recurring rules and exams are pushed one way to Proton Calendar (one calendar per
+aspect) by the `proton` CLI. Sync is off without `PROTON_CLI`; set it to the binary's path and
+restart. The app never logs in itself. It reads the CLI's session from
+`$XDG_CONFIG_HOME/proton-cli/sessions/<profile>.json` (`PROTON_PROFILE`, default `default`), so the
+service and the login must share `XDG_CONFIG_HOME`. For the first login, and again whenever Proton
+asks for CAPTCHA or the session expires, run on the server:
+
+```sh
+proton account login --profile <profile>
+```
 
 ### Behind a reverse proxy
 
