@@ -218,4 +218,93 @@ describe('reconciler', () => {
 		expect(hashesSeen).toEqual([null, null, null, null]);
 		expect(row('rule:7')?.hash).toBe(specHash(series('Gym B').spec));
 	});
+
+	it('Scenario: Failing item does not stop the pass', async () => {
+		const a = health();
+		fake.fail({ kind: 'event.create', code: 1, error: 'Error: ambiguous local time', match: '2026-10-25' });
+		const ambiguous = item(1, a, { date: '2026-10-25', start: '02:30', end: '03:30' });
+		const out = await reconcile(db, [ambiguous, item(2, a)], run);
+		expect(out).toEqual({ kind: 'done', calls: 3, failed: 1 });
+		expect(row('todo:2')).toMatchObject({ event_ref: 'cal-1/evt-1', error: null });
+		expect(row('todo:1')).toMatchObject({ event_ref: null, hash: null, error: 'Error: ambiguous local time' });
+		expect(Object.keys(fake.state().events)).toEqual(['cal-1/evt-1']);
+	});
+
+	it('Scenario: Exit 5 or exit 2 aborts the pass', async () => {
+		const a = health();
+		const four = [1, 2, 3, 4].map((n) => item(n, a));
+		fake.fail({ kind: 'event.create', code: 5, error: 'Error: network unreachable', match: 'Run 2' });
+		expect(await reconcile(db, four, run)).toEqual({ kind: 'retry', error: 'Error: network unreachable' });
+		expect(ops().map((o) => o.kind)).toEqual(['calendar.create', 'event.create', 'event.create']);
+		expect(rows().filter((r) => r.error)).toEqual([]);
+
+		fake.reset();
+		db.exec('DELETE FROM proton_items; DELETE FROM proton_calendars');
+		fake.fail({ kind: 'event.create', code: 2, error: 'Error: session expired', match: 'Run 2' });
+		expect(await reconcile(db, four, run)).toEqual({ kind: 'relogin', error: 'Error: session expired' });
+		expect(ops().map((o) => o.kind)).toEqual(['calendar.create', 'event.create', 'event.create']);
+		expect(rows().filter((r) => r.error)).toEqual([]);
+	});
+
+	it('Spawn failure aborts the pass with outcome error', async () => {
+		const a = health();
+		run = async () => ({ ok: false, code: 'spawn', error: 'spawn ENOENT' });
+		expect(await reconcile(db, [item(1, a), item(2, a)], run)).toEqual({ kind: 'error', error: 'spawn ENOENT' });
+		expect(rows()).toEqual([]);
+	});
+
+	it('Scenario: Failed item waits for a change or Sync now', async () => {
+		const a = health();
+		fake.fail({ kind: 'event.create', code: 1, error: 'Error: bad title', match: 'Run 1' });
+		const first = item(1, a);
+		await reconcile(db, [first, item(2, a)], run);
+		const callsAfter = () => fake.calls().length;
+
+		let before = callsAfter();
+		expect(await reconcile(db, [first, item(2, a)], run)).toEqual({ kind: 'done', calls: 0, failed: 0 });
+		expect(callsAfter()).toBe(before);
+
+		expect(await reconcile(db, [first, item(2, a)], run, { retryFailed: true })).toEqual({ kind: 'done', calls: 1, failed: 1 });
+		expect(callsAfter()).toBe(before + 1);
+
+		before = callsAfter();
+		const changed = item(1, a, { title: 'Run 1 renamed' });
+		expect(await reconcile(db, [changed, item(2, a)], run)).toEqual({ kind: 'done', calls: 1, failed: 1 });
+		expect(ops()[before]).toMatchObject({ kind: 'event.create', spec: { title: 'Run 1 renamed' } });
+	});
+
+	it('Failed update keeps the previous ref and hash, failed delete keeps its row', async () => {
+		const a = health();
+		const old = item(1, a);
+		await reconcile(db, [old, item(2, a)], run);
+		fake.fail({ kind: 'event.update', code: 1, error: 'Error: rejected', match: 'Run 1 b' });
+		fake.fail({ kind: 'event.delete', code: 1, error: 'Error: cannot delete' });
+		const changed = item(1, a, { title: 'Run 1 b' });
+		expect(await reconcile(db, [changed], run)).toEqual({ kind: 'done', calls: 2, failed: 2 });
+		expect(row('todo:1')).toMatchObject({
+			event_ref: 'cal-1/evt-1',
+			hash: specHash(old.spec),
+			error: 'Error: rejected',
+			error_hash: specHash(changed.spec)
+		});
+		expect(row('todo:2')).toMatchObject({ event_ref: 'cal-1/evt-2', error: 'Error: cannot delete', error_hash: 'delete' });
+		const before = fake.calls().length;
+		expect(await reconcile(db, [changed], run)).toEqual({ kind: 'done', calls: 0, failed: 0 });
+		expect(fake.calls().length).toBe(before);
+	});
+
+	it('Scenario: Restart resumes from stored state', async () => {
+		const a = health();
+		const five = [1, 2, 3, 4, 5].map((n) => item(n, a));
+		fake.fail({ kind: 'event.create', code: 5, error: 'Error: network unreachable', match: 'Run 3', times: 1 });
+		expect((await reconcile(db, five, run)).kind).toBe('retry');
+		expect(Object.keys(fake.state().events)).toHaveLength(2);
+
+		const before = fake.calls().length;
+		expect(await reconcile(db, five, run)).toEqual({ kind: 'done', calls: 3, failed: 0 });
+		expect(ops().slice(before).map((o) => o.kind)).toEqual(['event.create', 'event.create', 'event.create']);
+		const titles = Object.values(fake.state().events).map((e) => e.spec.title).sort();
+		expect(titles).toEqual(['Run 1', 'Run 2', 'Run 3', 'Run 4', 'Run 5']);
+		expect(rows().every((r) => r.event_ref && r.error === null)).toBe(true);
+	});
 });
