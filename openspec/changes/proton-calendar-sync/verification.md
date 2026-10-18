@@ -74,3 +74,15 @@ Fresh-context reviewer (opus), three rounds; fixer (sonnet) after rounds 1 and 2
 - weak: "Series start lands on a rule weekday" never runs its no-sprint WHEN (roll into next week from Wed 2026-10-21).
 - weak (minor): "Non-JSON output ends the pass in state error" asserts the runner result only, not the pass state.
 - known gap (fixer round 2, not a reviewer finding): an item with a stored error whose aspect is later deleted, with an identical spec under the target aspect, stays skipped until Sync now / Resync all.
+
+### Extra round (Rue at Gate 2) — round-3 findings fixed (48dfacc, 15744dd, f9990ec)
+- correctness: no timeout on `proton` → 120 s per call (SIGKILL), resolves as exit 5 → network backoff; test "A hung proton call times out and backs off".
+- spec: failure skip ran before the clear check → clear first; test "Failed move clears when the item returns to its calendar".
+- known gap: failure skip now compares spec hash + target aspect (`error_hash = <specHash>:<aspectId>`); test "Failed item is retried when its target aspect changes".
+- weak tests tightened: worker scenarios use production defaults (30 s / 5 min), series-start no-sprint WHEN, non-JSON through a worker pass.
+
+### Extra-round review — no correctness or spec findings; 3 weak tests OPEN (for Rue at Gate 2)
+- weak: cli.test.ts:177 "A hung proton call times out and backs off" drives only the runner — "a pass ends 'retry' and enters backoff" not pinned; the follow-up call isn't queued behind the hung one.
+- weak: desired.test.ts:323 "Desired state starts today" lacks a tomorrow todo and a tomorrow exam — `>= today` vs `=== today` not pinned.
+- weak: desired.test.ts:250 "Series excludes days with a real instance" doesn't run its WHEN (no sprint, Sun 2026-10-25, done instance on the start day); only the journey test sync.test.ts:352 would catch done instances missing from exdates.
+- side effect (not a finding): db.test.ts:180 leaves the getDb() singleton open, so the existing Uni reset test runs on the previous test's DB instead of its own.
