@@ -171,11 +171,33 @@ export async function reconcile(
 }
 
 export function pendingCount(db: DatabaseSync, desired: DesiredItem[]): number {
-	return 0;
+	const rows = readRows(db);
+	const wanted = new Set(desired.map((d) => d.key));
+	const calendars = new Map(
+		(db.prepare('SELECT aspect_id, calendar_id FROM proton_calendars').all() as { aspect_id: Id; calendar_id: string }[]).map(
+			(c) => [c.aspect_id, c.calendar_id]
+		)
+	);
+	let n = 0;
+	for (const r of rows.values()) if (!wanted.has(r.key) && r.event_ref && r.error_hash !== 'delete') n++;
+	for (const d of desired) {
+		const hash = specHash(d.spec);
+		const row = rows.get(d.key);
+		if (row?.error_hash === hash) continue;
+		const target = calendars.get(d.aspectId) ?? null;
+		if (row?.event_ref && row.hash === hash && target && row.calendar_id === target) continue;
+		n += row?.event_ref && row.calendar_id !== target ? 2 : 1;
+		n += d.spec.exdates.length;
+	}
+	return n;
 }
 
 export function failedItems(db: DatabaseSync): FailedItem[] {
-	return [];
+	return (
+		db.prepare('SELECT key, label, error FROM proton_items WHERE error IS NOT NULL ORDER BY key').all() as unknown as FailedItem[]
+	);
 }
 
-export function forgetHashes(db: DatabaseSync): void {}
+export function forgetHashes(db: DatabaseSync): void {
+	db.exec('UPDATE proton_items SET hash = NULL, error = NULL, error_hash = NULL');
+}

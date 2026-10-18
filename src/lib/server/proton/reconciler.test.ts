@@ -7,7 +7,7 @@ import { ASPECT_COLORS } from '$lib/aspect-style';
 import { openDb } from '../db';
 import { createAspect } from '../aspects';
 import { PROTON_COLORS } from './colors';
-import { reconcile } from './reconciler';
+import { failedItems, forgetHashes, pendingCount, reconcile } from './reconciler';
 import { specHash } from './hash';
 import type { DesiredItem, EventSpec, ItemKey, Runner } from './types';
 import type { AspectInput, Id } from '$lib/types';
@@ -306,5 +306,63 @@ describe('reconciler', () => {
 		const titles = Object.values(fake.state().events).map((e) => e.spec.title).sort();
 		expect(titles).toEqual(['Run 1', 'Run 2', 'Run 3', 'Run 4', 'Run 5']);
 		expect(rows().every((r) => r.event_ref && r.error === null)).toBe(true);
+	});
+
+	it('Scenario: Pending count matches the calls a pass would make', async () => {
+		const a = health();
+		const b = uni();
+		const series = (title: string) =>
+			item(9, a, { title, rrule: 'FREQ=WEEKLY;BYDAY=TU', exdates: ['2026-10-27', '2026-11-03'] }, 'rule');
+		fake.fail({ kind: 'event.create', code: 1, error: 'Error: bad', match: 'Run 5', times: 1 });
+		const initial = [item(1, a), item(2, a), item(3, a), item(4, b), item(5, a), series('Gym'), item(8, a)];
+		await reconcile(db, initial, run);
+		expect(pendingCount(db, initial)).toBe(0);
+
+		const desired = [
+			item(1, a, { title: 'Run 1 changed' }),
+			item(2, a),
+			{ ...item(3, b), aspectId: b },
+			item(4, b),
+			item(5, a),
+			series('Gym B'),
+			item(6, a),
+			item(7, b)
+		];
+		const planned = pendingCount(db, desired);
+		const before = fake.calls().length;
+		await reconcile(db, desired, run);
+		expect(planned).toBe(fake.calls().length - before);
+		expect(planned).toBe(1 + 2 + 3 + 1 + 1 + 1); // update, move, series update + 2 occurrences, 2 creates, 1 delete
+		expect(fake.calls().slice(before).filter((c) => c.op!.kind === 'calendar.create')).toEqual([]);
+		expect(pendingCount(db, desired)).toBe(0);
+	});
+
+	it('Pending count includes deletes and ignores rows that never had an event', async () => {
+		const a = health();
+		fake.fail({ kind: 'event.create', code: 1, error: 'Error: bad', match: 'Run 2' });
+		await reconcile(db, [item(1, a), item(2, a)], run);
+		expect(pendingCount(db, [])).toBe(1);
+		const before = fake.calls().length;
+		await reconcile(db, [], run);
+		expect(fake.calls().length - before).toBe(1);
+		expect(rows()).toEqual([]);
+	});
+
+	it('Failed items are listed and Resync all forgets the hashes', async () => {
+		const a = health();
+		fake.fail({ kind: 'event.create', code: 1, error: 'Error: bad title', match: 'Run 2' });
+		await reconcile(db, [item(1, a), item(2, a), item(3, a)], run);
+		expect(failedItems(db)).toEqual([{ key: 'todo:2', label: 'Run 2', error: 'Error: bad title' }]);
+
+		fake.clearFailures();
+		forgetHashes(db);
+		expect(rows().map((r) => [r.hash, r.error, r.error_hash])).toEqual([[null, null, null], [null, null, null], [null, null, null]]);
+		expect(failedItems(db)).toEqual([]);
+		expect(rows().filter((r) => r.event_ref).map((r) => r.key)).toEqual(['todo:1', 'todo:3']);
+		const all = [item(1, a), item(2, a), item(3, a)];
+		expect(pendingCount(db, all)).toBe(3);
+		const before = fake.calls().length;
+		expect(await reconcile(db, all, run)).toEqual({ kind: 'done', calls: 3, failed: 0 });
+		expect(ops().slice(before).map((o) => o.kind)).toEqual(['event.update', 'event.create', 'event.update']);
 	});
 });
