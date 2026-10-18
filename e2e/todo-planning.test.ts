@@ -158,6 +158,44 @@ test('Scenario: Board card shows the planned date and slot', async ({ page, requ
 	await expect(card).toContainText('2d left');
 });
 
+test('Regression: saving a due-dated sprint todo plans it on its due day', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [HEALTH],
+		sprint: { state: 'active', weekStart: WEEK },
+		todos: [
+			{ title: 'Dentist', aspect: 0, inSprint: true, dueDate: '2026-10-16' },
+			{ title: 'Laundry', aspect: 0, inSprint: true, dueDate: '2026-10-14' }
+		]
+	});
+
+	await page.goto('/sprint?view=board');
+	const card = page.getByTestId('board-column-todo').getByTestId('sprint-card').filter({ hasText: 'Dentist' });
+	await expect(card).toContainText('2d left');
+	await expect(card.getByTestId('planned-label')).toHaveCount(0);
+	await card.getByRole('button', { name: 'Dentist', exact: true }).click();
+	await expect(editor(page).getByLabel('Planned', { exact: true })).toHaveValue('');
+	await editor(page).getByRole('textbox', { name: 'Title' }).fill('Dentist visit');
+	await page.getByRole('button', { name: 'Save' }).click();
+	await expect(editor(page)).toHaveCount(0);
+
+	await page.goto('/');
+	await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+	await rowOf(page, 'Laundry').getByRole('button', { name: 'Laundry', exact: true }).click();
+	await expect(editor(page).getByLabel('Planned', { exact: true })).toHaveValue('');
+	await editor(page).getByRole('textbox', { name: 'Title' }).fill('Laundry run');
+	await page.getByRole('button', { name: 'Save' }).click();
+	await expect(editor(page)).toHaveCount(0);
+
+	await page.goto('/sprint?view=week');
+	await expect(page.getByTestId('day-column-2026-10-16')).toContainText('Dentist visit');
+	await expect(page.getByTestId('day-column-2026-10-14')).toContainText('Laundry run');
+	await page.goto('/calendar');
+	await expect(page.getByRole('heading', { level: 1, name: 'Calendar' })).toBeVisible();
+	for (const day of ['2026-10-14', '2026-10-16']) {
+		await expect(page.getByTestId(`calendar-cell-${day}`).getByTestId('calendar-entry')).toHaveCount(0);
+	}
+});
+
 test('Scenario: Week cards show only the slot', async ({ page, request }) => {
 	await setClock(request, THURSDAY);
 	await seed(request, {

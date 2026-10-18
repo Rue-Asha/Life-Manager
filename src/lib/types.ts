@@ -55,6 +55,8 @@ export interface Todo {
 	sprintId: Id | null;
 	status: Status;
 	day: IsoDate | null;
+	// Set only by the sprint read models: a sprint todo without a day counts as on its due date there. Never stored.
+	dueDay?: IsoDate;
 	startTime: HhMm | null;
 	endTime: HhMm | null;
 	recurring: boolean;

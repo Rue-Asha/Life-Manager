@@ -24,6 +24,7 @@ import {
 	unpullTodo
 } from './sprints';
 import { backlogCounts } from './todos';
+import { shownDay } from '$lib/todo-utils';
 
 let db: DatabaseSync;
 let aspect: Id;
@@ -563,7 +564,7 @@ describe('mid-sprint changes', () => {
 		todo('Dated tomorrow', { sprintId: s, dueDate: '2026-10-07' });
 		todo('Placed tomorrow, due today', { sprintId: s, day: '2026-10-07', dueDate: '2026-10-06' });
 		todo('Backlog dated today', { dueDate: '2026-10-06' });
-		expect(listToday(db, '2026-10-06').map((t) => [t.id, t.day])).toEqual([[dated, '2026-10-06']]);
+		expect(listToday(db, '2026-10-06').map((t) => [t.id, shownDay(t)])).toEqual([[dated, '2026-10-06']]);
 	});
 
 	it('Regression: dated sprint todos are missing from their day in the week view', () => {
@@ -571,8 +572,19 @@ describe('mid-sprint changes', () => {
 		const dated = todo('Dated Tuesday', { sprintId: s, dueDate: '2026-10-06' });
 		const placed = todo('Placed Monday, due Tuesday', { sprintId: s, day: '2026-10-05', dueDate: '2026-10-06' });
 		const later = todo('Due next week', { sprintId: s, dueDate: '2026-10-13' });
-		const days = Object.fromEntries(listSprintTodos(db, s).map((t) => [t.id, t.day]));
+		const days = Object.fromEntries(listSprintTodos(db, s).map((t) => [t.id, shownDay(t)]));
 		expect(days).toEqual({ [dated]: '2026-10-06', [placed]: '2026-10-05', [later]: null });
+	});
+
+	it('Regression: a due date shown as the day reads back as a planned day', () => {
+		const s = sprint('active', '2026-10-12');
+		const dated = todo('Due Friday', { sprintId: s, dueDate: '2026-10-16' });
+		const placed = todo('Placed Tuesday', { sprintId: s, day: '2026-10-13', dueDate: '2026-10-16' });
+		const sprintTodos = listSprintTodos(db, s);
+		expect(sprintTodos.find((t) => t.id === dated)).toMatchObject({ day: null, dueDay: '2026-10-16' });
+		expect(sprintTodos.find((t) => t.id === placed)).toMatchObject({ day: '2026-10-13' });
+		expect(sprintTodos.find((t) => t.id === placed)).not.toHaveProperty('dueDay');
+		expect(listToday(db, '2026-10-16').map((t) => [t.id, t.day, t.dueDay])).toEqual([[dated, null, '2026-10-16']]);
 	});
 });
 

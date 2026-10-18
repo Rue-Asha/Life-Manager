@@ -6,7 +6,7 @@
 	import { MediaQuery } from 'svelte/reactivity';
 	import { ASPECT_COLORS } from '$lib/aspect-style';
 	import { plannedLabel } from '$lib/slot';
-	import { isOverdue } from '$lib/todo-utils';
+	import { isOverdue, shownDay } from '$lib/todo-utils';
 	import type { Aspect, ClassRef, IsoDate, ProjectRef, Todo } from '$lib/types';
 	import ClassBadge from '../uni/ClassBadge.svelte';
 	import { UI_ICONS } from '../ui/icons';
@@ -190,7 +190,7 @@
 	data-testid="todo-row"
 	data-todo-id={todo.id}
 	data-status={todo.status}
-	data-day={todo.day ?? ''}
+	data-day={shownDay(todo) ?? ''}
 	data-overdue={overdue}
 	style:--a={ASPECT_COLORS[aspect.color].fg}
 >
@@ -294,7 +294,7 @@
 			{/if}
 			{#if movable}
 				<span class="day-slot">
-					{#if sprintDays}<DayPicker todoId={todo.id} day={todo.day} {sprintDays} />{/if}
+					{#if sprintDays}<DayPicker todoId={todo.id} day={shownDay(todo)} {sprintDays} />{/if}
 				</span>
 				<span class="status-slot">
 					<StatusControl todoId={todo.id} status={todo.status} />

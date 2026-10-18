@@ -237,7 +237,7 @@ export function startSprint(db: DatabaseSync, today: IsoDate, suggestedIds: Id[]
 // A sprint todo without a day sits on its due date when that falls in the sprint's week.
 function onDueDay(todo: Todo, weekStart: IsoDate | null): Todo {
 	if (todo.day !== null || todo.dueDate === null || weekStart === null) return todo;
-	return todo.dueDate >= weekStart && todo.dueDate <= addDays(weekStart, 6) ? { ...todo, day: todo.dueDate } : todo;
+	return todo.dueDate >= weekStart && todo.dueDate <= addDays(weekStart, 6) ? { ...todo, dueDay: todo.dueDate } : todo;
 }
 
 export function listSprintTodos(db: DatabaseSync, sprintId: Id): Todo[] {
@@ -251,7 +251,7 @@ export function listToday(db: DatabaseSync, today: IsoDate): Todo[] {
 		"(day = ? OR (day IS NULL AND due_date = ?)) AND sprint_id = (SELECT id FROM sprints WHERE state = 'active')",
 		today,
 		today
-	).map((t) => ({ ...t, day: today }));
+	).map((t) => (t.day === null ? { ...t, dueDay: today } : t));
 }
 
 export function addToActiveSprint(db: DatabaseSync, todoId: Id, today: IsoDate, placement?: Placement): Result<Todo> {
