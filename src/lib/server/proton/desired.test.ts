@@ -170,16 +170,18 @@ describe('desiredState: todos', () => {
 
 	it('Scenario: Done todo is titled with a check mark', () => {
 		const id = todo('Taxes', { day: '2026-10-21', status: 'done' });
-		const done = item(desiredState(db, TODAY), `todo:${id}`);
-		expect(done.spec.title).toBe('✓ Taxes');
-		expect(done.label).toBe('Taxes');
+		const open = todo('Rent', { day: '2026-10-21' });
+		const items = desiredState(db, TODAY);
+		expect(item(items, `todo:${id}`).spec.title).toBe('✓ Taxes');
+		expect(item(items, `todo:${id}`).label).toBe('Taxes');
+		expect(item(items, `todo:${open}`).spec.title).toBe('Rent');
 	});
 });
 
 describe('desiredState: rule series', () => {
 	it('Scenario: Rule series starts the week after the active sprint', () => {
-		sprint('active', '2026-10-12');
-		const gym = rule('Gym', '1,4', '18:00', '19:00');
+		sprint('active', '2026-10-19');
+		const gym = rule('Gym', '2,4', '07:00', '08:00');
 		const items = desiredState(db, TODAY);
 		expect(item(items, `rule:${gym}`)).toEqual({
 			key: `rule:${gym}`,
@@ -189,11 +191,11 @@ describe('desiredState: rule series', () => {
 				title: 'Gym',
 				description: '',
 				location: '',
-				date: '2026-10-19',
-				start: '18:00',
-				end: '19:00',
+				date: '2026-10-27',
+				start: '07:00',
+				end: '08:00',
 				durationMin: null,
-				rrule: 'FREQ=WEEKLY;BYDAY=MO,TH',
+				rrule: 'FREQ=WEEKLY;BYDAY=TU,TH',
 				exdates: []
 			}
 		});

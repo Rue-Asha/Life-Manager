@@ -125,18 +125,19 @@ describe('proton worker', () => {
 		const pass = vi
 			.fn<() => Promise<PassOutcome>>()
 			.mockResolvedValueOnce(DONE)
-			.mockResolvedValueOnce({ kind: 'error', error: 'spawn proton ENOENT' });
+			.mockResolvedValueOnce({ kind: 'retry', error: 'Error: network down' });
 		configureWorker(CFG, { pass, db, debounceMs: 3_600_000, tickMs: 3_600_000 });
 		expect(syncStatus().lastSyncAt).toBeNull();
 		await syncNow();
 		expect(lastSync()?.value).toBe('2026-10-18T10:00:00.000Z');
 
-		vi.setSystemTime(new Date('2026-10-18T11:00:00Z'));
-		await syncNow();
-		expect(lastSync()?.value).toBe('2026-10-18T10:00:00.000Z');
-
 		configureWorker(CFG, { pass, db, debounceMs: 3_600_000, tickMs: 3_600_000 });
 		expect(syncStatus()).toMatchObject({ state: 'idle', lastSyncAt: '2026-10-18T10:00:00.000Z', passes: 0 });
+
+		vi.setSystemTime(new Date('2026-10-18T11:00:00Z'));
+		await syncNow();
+		expect(syncStatus()).toMatchObject({ state: 'error', lastSyncAt: '2026-10-18T10:00:00.000Z' });
+		expect(lastSync()?.value).toBe('2026-10-18T10:00:00.000Z');
 	});
 
 	it('Scenario: Network failure backs off up to 30 minutes', async () => {
