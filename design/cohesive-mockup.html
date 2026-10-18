@@ -1,0 +1,750 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Life Manager cohesive look</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&display=swap">
+<link rel="stylesheet" href="cohesive-tokens.css">
+<style>
+	/* Static mockup for openspec change cohesive-look. Every colour, size and duration comes from
+	   cohesive-tokens.css; the frames are rendered from the data at the bottom so desktop and phone
+	   show the same todos. Mobbin references per frame sit in each caption; full list in brief.md. */
+	*, *::before, *::after { box-sizing: border-box; }
+	html { -webkit-text-size-adjust: 100%; }
+	body {
+		margin: 0;
+		background: var(--sunk);
+		color: var(--ink);
+		font-family: var(--font-sans);
+		font-size: var(--text-md);
+		line-height: var(--leading-body);
+		letter-spacing: var(--tracking-body);
+		font-optical-sizing: auto;
+		-webkit-font-smoothing: antialiased;
+	}
+	h1, h2, h3, p { margin: 0; }
+	button { font: inherit; letter-spacing: inherit; color: inherit; cursor: pointer; }
+	a { color: inherit; text-decoration: none; }
+	.num { font-variant-numeric: tabular-nums; }
+	svg.i { width: var(--icon-md); height: var(--icon-md); flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+	svg.s { width: var(--icon-sm); height: var(--icon-sm); stroke-width: 1.85; }
+	svg.xs { width: 14px; height: 14px; stroke-width: 2; }
+
+	/* The alternative accent from design.md Open questions, switchable in the doc header. */
+	:root[data-accent='blue'] { --accent: #2f5bea; --accent-hover: #2449c8; --accent-soft: #e8eefd; }
+
+	.a-sage { --a: var(--aspect-sage); --a-tint: var(--aspect-sage-tint); --a-bright: var(--aspect-sage-bright); }
+	.a-sky { --a: var(--aspect-sky); --a-tint: var(--aspect-sky-tint); --a-bright: var(--aspect-sky-bright); }
+	.a-lavender { --a: var(--aspect-lavender); --a-tint: var(--aspect-lavender-tint); --a-bright: var(--aspect-lavender-bright); }
+	.a-ochre { --a: var(--aspect-ochre); --a-tint: var(--aspect-ochre-tint); --a-bright: var(--aspect-ochre-bright); }
+	.a-berry { --a: var(--aspect-berry); --a-tint: var(--aspect-berry-tint); --a-bright: var(--aspect-berry-bright); }
+	.a-lagoon { --a: var(--aspect-lagoon); --a-tint: var(--aspect-lagoon-tint); --a-bright: var(--aspect-lagoon-bright); }
+	.a-tangerine { --a: var(--aspect-tangerine); --a-tint: var(--aspect-tangerine-tint); --a-bright: var(--aspect-tangerine-bright); }
+	.a-slate { --a: var(--aspect-slate); --a-tint: var(--aspect-slate-tint); --a-bright: var(--aspect-slate-bright); }
+
+	/* ---------- Document around the frames ---------- */
+	.doc { padding: var(--space-9) var(--space-8) var(--space-10); display: grid; gap: var(--space-10); justify-items: start; }
+	.doc-head { max-width: 860px; display: grid; gap: var(--space-3); }
+	.doc-head h1 { font-size: var(--text-3xl); font-weight: var(--weight-heavy); letter-spacing: var(--tracking-title); line-height: var(--leading-tight); }
+	.doc-head p { color: var(--ink-2); }
+	.doc-head nav { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-2); }
+	.doc-head nav a { font-size: var(--text-sm); padding: var(--space-1) var(--space-3); border-radius: var(--radius-pill); background: var(--surface); color: var(--ink-2); }
+	.toggle { display: inline-flex; align-items: center; gap: var(--space-3); font-size: var(--text-sm); color: var(--ink-2); }
+	.screen { display: grid; gap: var(--space-4); }
+	.screen > header { display: grid; gap: var(--space-1); max-width: 1440px; }
+	.screen > header h2 { font-size: var(--text-xl); font-weight: var(--weight-bold); letter-spacing: var(--tracking-title); }
+	.screen > header p { font-size: var(--text-sm); color: var(--ink-2); }
+	.screen > header p a { color: var(--accent-hover); text-decoration: underline; text-underline-offset: 2px; }
+	.pair { display: flex; gap: var(--space-8); align-items: flex-start; }
+
+	/* ---------- Frames: one app per frame, laid out by container queries ---------- */
+	.frame {
+		container: app / inline-size;
+		position: relative;
+		overflow: hidden;
+		background: var(--canvas);
+		border-radius: var(--radius-md);
+		box-shadow: var(--shadow-float);
+	}
+	.frame.d { width: 1440px; min-height: 900px; display: grid; grid-template-columns: var(--sidebar-width) minmax(0, 1fr); }
+	.frame.d.has-rail { grid-template-columns: var(--sidebar-width) minmax(0, 1fr) var(--rail-width); }
+	.frame.m { width: 390px; min-height: 844px; }
+
+	/* Sidebar: Proton chrome. */
+	.side { background: var(--chrome); color: var(--on-chrome); padding: var(--space-5) var(--space-3); display: flex; flex-direction: column; gap: var(--space-0); }
+	.brand { display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-2) var(--space-4); font-weight: var(--weight-bold); font-size: var(--text-md); letter-spacing: -0.01em; }
+	.logo { width: 26px; height: 26px; border-radius: var(--radius-sm); background: var(--accent); display: grid; place-items: center; color: var(--ink-on-accent); }
+	.new-todo { display: flex; align-items: center; justify-content: center; gap: var(--space-2); height: 40px; margin-bottom: var(--space-4); border: 0; border-radius: var(--radius-md); background: var(--accent); color: var(--ink-on-accent); font-weight: var(--weight-semibold); font-size: 14px; }
+	.new-todo.pressed { background: var(--accent-hover); }
+	.nav-item { display: flex; align-items: center; gap: var(--space-3); height: 36px; padding: 0 var(--space-3); border-radius: 8px; font-size: 14px; color: var(--on-chrome); }
+	.nav-item .ic { color: var(--on-chrome-2); display: flex; }
+	.nav-item.aspect .ic { color: var(--a-bright); }
+	.nav-item.on { background: var(--chrome-hover); }
+	.nav-item.on .ic { color: var(--on-chrome); }
+	.nav-item .count { margin-left: auto; font-size: var(--text-xs); color: var(--on-chrome-2); }
+	.nav-item .count.late { color: var(--overdue-on-chrome); font-weight: var(--weight-semibold); }
+	.nav-label { margin: var(--space-3) 0 var(--space-1); padding: var(--space-4) var(--space-3) var(--space-1); border-top: 1px solid var(--chrome-hover); font-size: var(--text-xs); color: var(--on-chrome-2); }
+
+	/* Main column. */
+	.main { min-width: 0; padding: var(--space-8) var(--space-7) var(--space-9); }
+	.col { max-width: var(--content-max); margin: 0 auto; }
+	.main.wide .col { max-width: none; }
+	@container app (max-width: 767px) {
+		.main { padding: 0 var(--space-4) var(--space-8); }
+	}
+
+	/* Phone status bar and back link. */
+	.status { display: flex; justify-content: space-between; align-items: center; height: 47px; padding: 0 var(--space-6); font-size: 15px; font-weight: var(--weight-semibold); }
+	.status i { display: inline-block; width: 26px; height: 12px; border-radius: 3px; border: 1.5px solid var(--ink); position: relative; }
+	.status i::after { content: ''; position: absolute; inset: 1.5px 5px 1.5px 1.5px; background: var(--ink); border-radius: 1px; }
+	.back { display: flex; align-items: center; gap: var(--space-0); height: 36px; color: var(--accent); font-size: var(--text-md); }
+
+	/* Page header: bold title, actions on its line, subtitle aligned with the title text. */
+	.ph { display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-5); }
+	.ph .txt { min-width: 0; }
+	.ph h1 { font-size: var(--text-3xl); font-weight: var(--weight-heavy); letter-spacing: -0.025em; line-height: 1.1; }
+	.ph .sub { margin-top: var(--space-1); font-size: 14px; color: var(--ink-3); }
+	.ph .sub b { color: var(--ink-2); font-weight: var(--weight-semibold); }
+	.ph .actions { margin-left: auto; display: flex; gap: var(--space-2); align-self: center; }
+	.ph .tile { width: 44px; height: 44px; flex: none; border-radius: 12px; background: var(--a-tint); color: var(--a); display: grid; place-items: center; }
+	@container app (max-width: 767px) {
+		.ph { align-items: flex-end; margin-bottom: var(--space-4); }
+		.ph h1 { font-size: 34px; }
+		.ph .actions { position: absolute; top: 47px; right: var(--space-4); }
+		.ph .actions .btn { height: 32px; padding: 0 var(--space-3); font-size: var(--text-sm); }
+	}
+
+	/* Buttons, chips, inputs, segmented control. */
+	.btn { display: inline-flex; align-items: center; gap: var(--space-2); height: var(--control-height); padding: 0 var(--space-4); border-radius: var(--radius-md); border: 1px solid transparent; font-size: 14px; font-weight: var(--weight-semibold); white-space: nowrap; }
+	.btn.p { background: var(--accent); color: var(--ink-on-accent); }
+	.btn.s { background: var(--surface); border-color: var(--line); color: var(--ink); }
+	.btn.q { background: none; color: var(--ink-2); padding: 0 var(--space-2); }
+	.btn.sm { height: 30px; padding: 0 var(--space-3); font-size: var(--text-sm); }
+	.chip { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 var(--space-3); border-radius: var(--radius-pill); background: var(--sunk); color: var(--ink-2); font-size: var(--text-sm); white-space: nowrap; border: 0; }
+	.chip.on { background: var(--chrome); color: var(--on-chrome); }
+	.chip.aspect { background: var(--a-tint); color: var(--ink); }
+	.chip.aspect svg { color: var(--a); }
+	.chip.link { color: var(--accent-hover); background: var(--accent-soft); }
+	.chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+	.chips.scroll { flex-wrap: nowrap; overflow: hidden; }
+	.type { font-size: 10.5px; font-weight: var(--weight-semibold); letter-spacing: 0.04em; padding: 1px 5px; border-radius: 4px; background: var(--sunk); color: var(--ink-2); }
+	.seg { display: inline-flex; padding: 3px; border-radius: var(--radius-pill); background: var(--sunk); }
+	.seg span { height: 30px; padding: 0 var(--space-4); display: inline-flex; align-items: center; border-radius: var(--radius-pill); font-size: var(--text-sm); font-weight: var(--weight-medium); color: var(--ink-2); }
+	.seg span.on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-pop); }
+	.quick { display: flex; align-items: center; gap: var(--space-3); height: 46px; padding: 0 var(--space-4); margin-bottom: var(--space-2); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-group); color: var(--ink-3); font-size: var(--text-md); }
+	.quick svg { color: var(--accent); }
+	.input { display: flex; align-items: center; gap: var(--space-2); height: var(--control-height); padding: 0 var(--space-3); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-md); color: var(--ink-3); font-size: 14px; }
+	.input.focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); color: var(--ink); }
+	.toolbar { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-5); }
+
+	/* Hero summary header (C24). */
+	.hero { display: grid; gap: var(--space-1); margin-bottom: var(--space-5); padding: var(--space-5) var(--space-6); border-radius: 20px; background: var(--chrome); color: var(--on-chrome); }
+	.hero .k { font-size: var(--text-sm); color: var(--on-chrome-2); }
+	.hero .fig { display: flex; align-items: baseline; gap: var(--space-2); font-size: 44px; font-weight: var(--weight-heavy); letter-spacing: -0.03em; line-height: 1.05; }
+	.hero .fig small { font-size: var(--text-md); font-weight: var(--weight-medium); letter-spacing: 0; color: var(--on-chrome-2); }
+	.hero .line { font-size: 14px; color: var(--on-chrome-2); }
+	.hero .line b { color: var(--on-chrome); font-weight: var(--weight-semibold); }
+	.hero .row-top { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-4); }
+	.bar { display: flex; gap: 3px; height: 6px; margin-top: var(--space-3); }
+	.bar span { min-width: 6px; border-radius: 3px; overflow: hidden; background: rgb(255 255 255 / 0.14); }
+	.bar span i { display: block; height: 100%; background: var(--a-bright); }
+	@container app (max-width: 767px) {
+		.hero { padding: var(--space-4) var(--space-5); border-radius: 18px; }
+		.hero .fig { font-size: 40px; }
+		.hero .k { display: none; }
+	}
+
+	/* Group header above a grouped card. */
+	.gh { display: flex; align-items: center; gap: var(--space-2); margin: var(--space-6) 0 var(--space-2); padding: 0 var(--space-1); }
+	.gh:first-child { margin-top: 0; }
+	.gh h2 { font-size: var(--text-md); font-weight: var(--weight-semibold); }
+	.gh .ic { color: var(--a); display: flex; }
+	.gh .right { margin-left: auto; display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); color: var(--ink-3); }
+	.gh.late h2, .gh.late .right { color: var(--overdue); }
+	.mini { width: 48px; height: 3px; border-radius: 2px; background: var(--line); overflow: hidden; }
+	.mini i { display: block; height: 100%; background: var(--a); }
+	.gh button.collapse { display: flex; align-items: center; gap: var(--space-2); border: 0; background: none; padding: 0; color: var(--ink-2); font-weight: var(--weight-semibold); font-size: var(--text-md); }
+
+	/* List group: rows inside one white card, inset hairlines. */
+	.lg { background: var(--surface); border-radius: var(--radius-group); box-shadow: var(--shadow-card); overflow: hidden; }
+	.row { position: relative; display: grid; grid-template-columns: var(--checkbox-size) minmax(0, 1fr) auto; column-gap: var(--space-3); align-items: start; padding: 11px var(--space-4); min-height: var(--row-height); }
+	.row.plain { grid-template-columns: minmax(0, 1fr) auto; }
+	.row.icon { grid-template-columns: var(--icon-md) minmax(0, 1fr) auto; align-items: center; }
+	.row + .row::before { content: ''; position: absolute; top: 0; left: 46px; right: 0; border-top: 1px solid var(--line); }
+	.row.plain + .row::before, .row + .row.plain::before { left: var(--space-4); }
+	.cb { width: var(--checkbox-size); height: var(--checkbox-size); margin-top: 1px; border: 1.5px solid var(--line-strong); border-radius: var(--radius-xs); display: grid; place-items: center; color: var(--ink-on-accent); }
+	.cb svg { width: 12px; height: 12px; stroke-width: 3; opacity: 0; }
+	.done .cb { background: var(--a); border-color: var(--a); }
+	.done .cb svg { opacity: 1; }
+	.t { font-size: var(--text-md); line-height: var(--leading-snug); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+	.done .t { color: var(--ink-3); text-decoration: line-through; }
+	.meta { display: flex; flex-wrap: wrap; align-items: center; gap: 2px var(--space-3); margin-top: 3px; font-size: var(--text-sm); color: var(--ink-3); }
+	.meta > span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+	.dot { width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--a); }
+	.badge svg { color: var(--a); }
+	.trail { display: flex; align-items: center; gap: var(--space-3); min-height: 20px; font-size: var(--text-sm); color: var(--ink-2); white-space: nowrap; }
+	.trail .dayslot { width: 44px; display: flex; justify-content: flex-end; }
+	.trail .prioslot { width: 14px; display: flex; }
+	.st { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 6px; color: var(--ink-3); }
+	.st.doing { color: var(--accent); }
+	.st svg { width: 16px; height: 16px; }
+	.pick { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 6px; color: var(--ink-3); }
+	.prio { display: flex; color: var(--ink-2); }
+	.prio svg { width: 14px; height: 14px; }
+	.late-t { color: var(--overdue); font-weight: var(--weight-medium); }
+	.add-row { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 8px; background: var(--sunk); color: var(--ink-2); }
+	.revised { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 var(--space-2); border-radius: var(--radius-pill); border: 1px solid var(--line); color: var(--ink-2); font-size: var(--text-xs); }
+	@container app (max-width: 767px) {
+		.row.sprint { grid-template-columns: var(--checkbox-size) minmax(0, 1fr); }
+		.row.sprint .trail { grid-column: 2; margin-top: var(--space-2); flex-direction: row-reverse; justify-content: flex-end; }
+		.row.sprint .trail .dayslot, .row.sprint .trail .prioslot { width: auto; }
+		.row.sprint .trail .st { margin-left: -5px; }
+	}
+
+	/* Rail: white, hairline edge, field cards. */
+	.rail { background: var(--surface); border-left: 1px solid var(--line); padding: var(--space-8) var(--space-6); display: flex; flex-direction: column; gap: var(--space-5); min-width: 0; }
+	.rail h3, .sec-h { font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--ink-2); display: flex; align-items: center; gap: var(--space-2); }
+	.rail h3 .right, .sec-h .right { margin-left: auto; font-weight: var(--weight-regular); color: var(--ink-3); }
+	.fc { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+	.fr { display: grid; grid-template-columns: var(--icon-sm) minmax(0, 1fr) auto; gap: 0 var(--space-3); align-items: center; padding: 10px 14px; }
+	.fr + .fr { border-top: 1px solid var(--line); }
+	.fr .ic { color: var(--ink-3); display: flex; }
+	.fr .l { font-size: var(--text-xs); color: var(--ink-3); }
+	.fr .v { font-size: 14px; color: var(--ink); }
+	.fr .v.link { color: var(--accent-hover); }
+	.fr .end { font-size: var(--text-sm); color: var(--ink-3); text-align: right; }
+	.fr.aspect .ic { color: var(--a); }
+	.fr .mini { width: 100%; margin-top: 6px; }
+	.fr.edit { color: var(--accent-hover); font-size: 14px; font-weight: var(--weight-medium); }
+	.fc-note { font-size: var(--text-xs); color: var(--ink-3); }
+	.fc-note a { color: var(--accent-hover); font-weight: var(--weight-medium); }
+	.rail .input { width: 100%; }
+	.rail .lg { box-shadow: none; border: 1px solid var(--line); }
+	.rail .gh { margin-top: var(--space-4); }
+	.rail .gh:first-of-type { margin-top: 0; }
+
+	/* Board. */
+	.board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); align-items: stretch; }
+	.lane { display: flex; flex-direction: column; gap: var(--space-2); min-height: 600px; padding: var(--space-2) var(--space-2) var(--space-3); border-radius: var(--radius-group); background: var(--sunk); }
+	.lane-h { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-2) var(--space-1); font-size: var(--text-sm); font-weight: var(--weight-semibold); }
+	.lane-h .n { color: var(--ink-3); font-weight: var(--weight-regular); }
+	.lane-h .st { margin-left: -4px; }
+	.card { display: grid; grid-template-columns: var(--checkbox-size) minmax(0, 1fr) auto; gap: 0 var(--space-3); align-items: start; padding: var(--space-3); border-radius: var(--radius-md); background: var(--surface); box-shadow: var(--shadow-card); }
+	.card .t { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+	.card .meta { flex-wrap: nowrap; overflow: hidden; }
+	.ghost-add { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2); color: var(--ink-3); font-size: var(--text-sm); }
+	@container app (max-width: 767px) {
+		.board { grid-template-columns: 1fr; }
+		.lane { min-height: 0; }
+	}
+
+	/* Week: one white sheet, hairline days, one-line chips. */
+	.week { display: grid; grid-template-columns: repeat(7, minmax(var(--day-col-min), 1fr)); min-height: 640px; border-radius: var(--radius-group); background: var(--surface); box-shadow: var(--shadow-card); overflow: hidden; }
+	.day { display: flex; flex-direction: column; min-width: 0; border-left: 1px solid var(--line); }
+	.day:first-child { border-left: 0; }
+	.day-h { display: flex; align-items: center; gap: 6px; height: 48px; padding: 0 var(--space-3); border-bottom: 1px solid var(--line); font-size: var(--text-sm); font-weight: var(--weight-semibold); }
+	.day-h .n { margin-left: auto; color: var(--ink-3); font-weight: var(--weight-regular); }
+	.day.today .day-h { background: var(--accent-soft); }
+	.day.today .day-h b { display: inline-grid; place-items: center; min-width: 24px; height: 22px; padding: 0 5px; border-radius: 6px; background: var(--accent); color: var(--ink-on-accent); }
+	.day-list { display: grid; gap: 4px; padding: var(--space-2); }
+	.wchip { display: flex; align-items: center; gap: var(--space-2); height: 32px; padding: 0 var(--space-2); border-radius: 8px; background: var(--canvas); font-size: var(--text-sm); min-width: 0; }
+	.wchip .cb { width: 14px; height: 14px; margin: 0; border-radius: 4px; }
+	.wchip .cb svg { width: 10px; height: 10px; }
+	.wchip .t { font-size: var(--text-sm); flex: 1; }
+	.wchip .dot { margin-left: auto; }
+	.day-add { width: 28px; height: 28px; margin: 0 var(--space-2); display: grid; place-items: center; border-radius: 8px; color: var(--ink-3); }
+	.strip { display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; margin-bottom: var(--space-4); padding: 4px; border-radius: var(--radius-group); background: var(--surface); box-shadow: var(--shadow-card); }
+	.strip span { display: grid; justify-items: center; gap: 2px; padding: 6px 0; border-radius: 10px; font-size: var(--text-xs); color: var(--ink-3); }
+	.strip span b { font-size: var(--text-md); color: var(--ink); font-weight: var(--weight-semibold); }
+	.strip span.on { background: var(--accent); color: var(--ink-on-accent); }
+	.strip span.on b { color: var(--ink-on-accent); }
+
+	/* Entity cards (aspects, projects, classes). */
+	.cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+	.ecard { display: grid; gap: var(--space-2); align-content: start; min-height: 128px; padding: var(--space-4); border-radius: 16px; background: var(--surface); box-shadow: var(--shadow-card); }
+	.ecard .top { display: flex; align-items: flex-start; gap: var(--space-3); }
+	.ecard .tile { width: 36px; height: 36px; flex: none; border-radius: 10px; background: var(--a-tint); color: var(--a); display: grid; place-items: center; }
+	.ecard h3 { font-size: var(--text-lg); font-weight: var(--weight-semibold); letter-spacing: -0.01em; line-height: 1.25; }
+	.ecard .lect { font-size: var(--text-sm); color: var(--ink-3); }
+	.ecard .grade { margin-left: auto; font-size: var(--text-lg); font-weight: var(--weight-semibold); }
+	.ecard .foot { display: flex; align-items: center; gap: var(--space-3); margin-top: auto; font-size: var(--text-sm); color: var(--ink-3); }
+	.ecard .foot .chip { margin-left: auto; height: 24px; }
+	.ecard .foot > span { display: inline-flex; align-items: center; gap: 4px; }
+	.ecard.new { display: flex; align-items: center; justify-content: center; gap: var(--space-2); background: none; box-shadow: none; border: 1.5px dashed var(--line-strong); color: var(--ink-2); font-size: 14px; }
+	@container app (max-width: 767px) {
+		.cards { grid-template-columns: 1fr; }
+		.ecard { min-height: 0; }
+		.ecard.new { min-height: 52px; }
+	}
+
+	/* Markdown notes block. */
+	.notes { padding: var(--space-4); }
+	.notes h4 { margin: 0 0 var(--space-1); font-size: var(--text-md); font-weight: var(--weight-semibold); }
+	.notes ul { margin: 0; padding-left: 1.2em; color: var(--ink-2); }
+	.spill { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 var(--space-3); border-radius: var(--radius-pill); background: var(--accent-soft); color: var(--accent-hover); font-size: var(--text-sm); font-weight: var(--weight-semibold); }
+
+	/* Toast (Proton pill). */
+	.toast { position: absolute; left: 50%; bottom: var(--space-6); transform: translateX(-50%); display: flex; align-items: center; gap: var(--space-4); padding: 6px 6px 6px var(--space-5); border-radius: var(--radius-pill); background: var(--chrome); color: var(--on-chrome); font-size: 14px; box-shadow: var(--shadow-float); white-space: nowrap; }
+	.toast button { height: 30px; padding: 0 var(--space-3); border: 0; border-radius: var(--radius-pill); background: var(--chrome-hover); color: var(--accent-soft); font-weight: var(--weight-semibold); }
+
+	/* Dialog and phone sheet. */
+	.scrim { position: absolute; inset: 0; background: var(--scrim); }
+	.dialog { position: absolute; top: 120px; left: calc(50% + var(--sidebar-width) / 2); transform: translateX(-50%); width: 560px; padding: var(--space-6); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-float); display: grid; gap: var(--space-4); }
+	.dialog h2 { font-size: var(--text-xl); font-weight: var(--weight-bold); letter-spacing: var(--tracking-title); }
+	.dialog .title-in { font-size: var(--text-lg); }
+	.dialog textarea { height: 64px; resize: none; padding: var(--space-3); border: 1px solid var(--line); border-radius: var(--radius-md); font: inherit; color: var(--ink-3); }
+	.dialog footer { display: flex; align-items: center; gap: var(--space-2); }
+	.dialog footer .hint { margin-right: auto; font-size: var(--text-sm); color: var(--ink-3); display: inline-flex; align-items: center; gap: 6px; }
+	.sheet { position: absolute; left: 0; right: 0; bottom: 0; top: 64px; display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-2) var(--space-4) var(--space-7); border-radius: var(--radius-xl) var(--radius-xl) 0 0; background: var(--canvas); box-shadow: var(--shadow-float); }
+	.handle { width: 36px; height: 5px; margin: 0 auto; border-radius: 3px; background: var(--line-strong); opacity: 0.5; }
+	.sheet-h { display: flex; align-items: center; justify-content: space-between; font-size: var(--text-md); }
+	.sheet-h b { font-weight: var(--weight-semibold); }
+	.sheet-h a { color: var(--accent); }
+	.sheet-h a.strong { font-weight: var(--weight-semibold); }
+	.ed-title { padding: var(--space-4); font-size: var(--text-lg); font-weight: var(--weight-semibold); }
+	.ed-notes { padding: 0 var(--space-4) var(--space-4); color: var(--ink-3); font-size: 14px; }
+	.frow { position: relative; display: grid; grid-template-columns: 28px minmax(0, 1fr) auto 16px; align-items: center; gap: var(--space-3); min-height: 48px; padding: 0 var(--space-4); font-size: var(--text-md); }
+	.frow + .frow::before { content: ''; position: absolute; top: 0; left: 56px; right: 0; border-top: 1px solid var(--line); }
+	.frow .tile { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: var(--sunk); color: var(--ink-2); }
+	.frow.aspect .tile { background: var(--a-tint); color: var(--a); }
+	.frow .v { color: var(--ink-3); font-size: 14px; display: inline-flex; align-items: center; gap: 6px; }
+	.frow .chev { color: var(--line-strong); display: flex; }
+	.frow.danger { grid-template-columns: 28px 1fr; color: var(--ink); }
+
+	/* Palette strip. */
+	.palette { width: 1440px; padding: var(--space-7); border-radius: var(--radius-md); background: var(--surface); box-shadow: var(--shadow-float); display: grid; gap: var(--space-7); }
+	.palette h3 { font-size: var(--text-lg); font-weight: var(--weight-bold); margin-bottom: var(--space-3); }
+	.sw-row { display: grid; grid-template-columns: repeat(8, 1fr); gap: var(--space-3); }
+	.sw { display: grid; gap: var(--space-2); font-size: var(--text-xs); color: var(--ink-2); }
+	.sw i { display: block; height: 56px; border-radius: var(--radius-md); border: 1px solid var(--line); }
+	.sw b { font-size: var(--text-sm); color: var(--ink); }
+	.asp { display: grid; gap: var(--space-2); font-size: var(--text-xs); color: var(--ink-2); }
+	.asp .trio { display: grid; grid-template-columns: 1fr 1fr 1fr; height: 56px; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--line); }
+	.asp .trio span { display: grid; place-items: center; }
+	.asp .trio span:nth-child(1) { background: var(--a); color: var(--ink-on-accent); }
+	.asp .trio span:nth-child(2) { background: var(--a-tint); color: var(--a); }
+	.asp .trio span:nth-child(3) { background: var(--chrome); color: var(--a-bright); }
+	.compare { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-6); }
+	.compare > div { display: grid; gap: var(--space-3); align-content: start; padding: var(--space-5); border-radius: var(--radius-group); background: var(--canvas); }
+	.compare .lab { font-size: var(--text-sm); color: var(--ink-2); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+	<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+	<symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14 M12 5v14"/></symbol>
+	<symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18 M6 6l12 12"/></symbol>
+	<symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="M0 0m15 18-6-6 6-6"/></symbol>
+	<symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+	<symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+	<symbol id="i-calendar" viewBox="0 0 24 24"><path d="M8 2v3 M16 2v3 M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2Z M3 9h18"/></symbol>
+	<symbol id="i-calendar-days" viewBox="0 0 24 24"><path d="M8 2v3 M16 2v3 M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2Z M3 9h18 M8 13h.01 M12 13h.01 M16 13h.01 M8 17h.01 M12 17h.01 M16 17h.01"/></symbol>
+	<symbol id="i-list-checks" viewBox="0 0 24 24"><path d="M13 5h8 M13 12h8 M13 19h8 M0 0m3 17 2 2 4-4 M0 0m3 7 2 2 4-4"/></symbol>
+	<symbol id="i-repeat" viewBox="0 0 24 24"><path d="M0 0m17 2 4 4-4 4 M3 11v-1a4 4 0 0 1 4-4h14 M0 0m7 22-4-4 4-4 M21 13v1a4 4 0 0 1-4 4H3"/></symbol>
+	<symbol id="i-inbox" viewBox="0 0 24 24"><path d="M22 12L16 12L14 15L10 15L8 12L2 12 M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></symbol>
+	<symbol id="i-layers" viewBox="0 0 24 24"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12 M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/></symbol>
+	<symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol>
+	<symbol id="i-git-branch" viewBox="0 0 24 24"><path d="M6 3v12 M15 6a3 3 0 1 0 6 0a3 3 0 1 0 -6 0 M3 18a3 3 0 1 0 6 0a3 3 0 1 0 -6 0 M18 9a9 9 0 0 1-9 9"/></symbol>
+	<symbol id="i-sun" viewBox="0 0 24 24"><path d="M8 12a4 4 0 1 0 8 0a4 4 0 1 0 -8 0 M12 2v2 M12 20v2 M0 0m4.93 4.93 1.41 1.41 M0 0m17.66 17.66 1.41 1.41 M2 12h2 M20 12h2 M0 0m6.34 17.66-1.41 1.41 M0 0m19.07 4.93-1.41 1.41"/></symbol>
+	<symbol id="i-pen" viewBox="0 0 24 24"><path d="M13 21h8 M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></symbol>
+	<symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18 M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6 M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></symbol>
+	<symbol id="i-user" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2 M8 7a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"/></symbol>
+	<symbol id="i-pin" viewBox="0 0 24 24"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0 M9 10a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"/></symbol>
+	<symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71 M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+	<symbol id="i-external" viewBox="0 0 24 24"><path d="M15 3h6v6 M10 14 21 3 M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+	<symbol id="i-clock" viewBox="0 0 24 24"><path d="M12 6v6l4 2 M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0"/></symbol>
+	<symbol id="i-award" viewBox="0 0 24 24"><path d="m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526 M6 8a6 6 0 1 0 12 0a6 6 0 1 0 -12 0"/></symbol>
+	<symbol id="i-dots" viewBox="0 0 24 24"><path d="M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0 M18 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0 M4 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/></symbol>
+	<symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8 M3 3v5h5 M12 7v5l4 2"/></symbol>
+	<symbol id="i-archive" viewBox="0 0 24 24"><path d="M3 3h18a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8 M10 12h4"/></symbol>
+	<symbol id="i-flag" viewBox="0 0 24 24"><path d="M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.333 2q2 0 3.067-.8A1 1 0 0 1 20 4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.528"/></symbol>
+	<symbol id="i-panel" viewBox="0 0 24 24"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z M15 3v18"/></symbol>
+	<symbol id="i-heart" viewBox="0 0 24 24"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5 M3.22 13H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/></symbol>
+	<symbol id="i-cap" viewBox="0 0 24 24"><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z M22 10v6 M6 12.5V16a6 3 0 0 0 12 0v-3.5"/></symbol>
+	<symbol id="i-code" viewBox="0 0 24 24"><path d="M0 0m16 18 6-6-6-6 M0 0m8 6-6 6 6 6"/></symbol>
+	<symbol id="i-house" viewBox="0 0 24 24"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8 M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+	<symbol id="i-wallet" viewBox="0 0 24 24"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1 M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></symbol>
+	<symbol id="i-people" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M16 3.128a4 4 0 0 1 0 7.744 M22 21v-2a4 4 0 0 0-3-3.87 M5 7a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"/></symbol>
+	<symbol id="i-book" viewBox="0 0 24 24"><path d="M12 5v16 M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z"/></symbol>
+	<symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z M13 6.5a0.5 0.5 0 1 0 1 0a0.5 0.5 0 1 0 -1 0 M17 10.5a0.5 0.5 0 1 0 1 0a0.5 0.5 0 1 0 -1 0 M6 12.5a0.5 0.5 0 1 0 1 0a0.5 0.5 0 1 0 -1 0 M8 7.5a0.5 0.5 0 1 0 1 0a0.5 0.5 0 1 0 -1 0"/></symbol>
+	<symbol id="g-todo" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.75"/></symbol>
+	<symbol id="g-doing" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M8 4a4 4 0 0 1 0 8Z" fill="currentColor" stroke="none"/></symbol>
+	<symbol id="g-done" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="currentColor" stroke="none"/><path d="m5 8.2 2 2 4-4.2" fill="none" stroke="var(--surface)" stroke-width="1.75"/></symbol>
+	<symbol id="g-active" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M8 4a4 4 0 0 1 0 8Z" fill="currentColor" stroke="none"/></symbol>
+	<symbol id="g-backlog" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-dasharray="2.6 2.6"/></symbol>
+	<symbol id="g-paused" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M6.4 5.6v4.8 M9.6 5.6v4.8" stroke="currentColor" stroke-width="1.75"/></symbol>
+	<symbol id="p1" viewBox="0 0 16 16"><rect x="1" y="9" width="3" height="5" rx="1" fill="currentColor" stroke="none"/><rect x="6.5" y="5.5" width="3" height="8.5" rx="1" fill="currentColor" stroke="none"/><rect x="12" y="2" width="3" height="12" rx="1" fill="currentColor" stroke="none"/></symbol>
+	<symbol id="p2" viewBox="0 0 16 16"><rect x="1" y="9" width="3" height="5" rx="1" fill="currentColor" stroke="none"/><rect x="6.5" y="5.5" width="3" height="8.5" rx="1" fill="currentColor" stroke="none"/><rect x="12" y="2" width="3" height="12" rx="1" fill="currentColor" stroke="none" opacity="0.25"/></symbol>
+	<symbol id="p3" viewBox="0 0 16 16"><rect x="1" y="9" width="3" height="5" rx="1" fill="currentColor" stroke="none"/><rect x="6.5" y="5.5" width="3" height="8.5" rx="1" fill="currentColor" stroke="none" opacity="0.25"/><rect x="12" y="2" width="3" height="12" rx="1" fill="currentColor" stroke="none" opacity="0.25"/></symbol>
+</svg>
+
+<main class="doc">
+	<header class="doc-head">
+		<h1>Cohesive look</h1>
+		<p>Mockup for the openspec change <code>cohesive-look</code>: Proton's chrome sidebar, quiet lists and field cards, C24's hero number, white cards on grey and bold titles. Light theme only; motion unchanged. Every frame is 1440 px or 390 px wide and uses <code>cohesive-tokens.css</code> only. Seeded week: Mon 12 – Sun 18 Oct 2026, today is Thursday 15.</p>
+		<div class="toggle">Accent (design.md Open questions):
+			<span class="seg" role="group" aria-label="Accent"><span class="on" data-pick="violet">Proton violet</span><span data-pick="blue">Deep blue</span></span>
+		</div>
+		<nav aria-label="Frames">
+			<a href="#today">Today</a><a href="#sprint-aspect">Sprint · By aspect</a><a href="#sprint-board">Board</a><a href="#sprint-week">Week</a><a href="#backlog">Backlog</a><a href="#project">Project detail</a><a href="#uni">Uni</a><a href="#class">Class detail</a><a href="#states">Other states</a><a href="#palette">Palette</a>
+		</nav>
+	</header>
+	<div id="screens" style="display: contents"></div>
+</main>
+
+<script>
+const A = {
+	health: { name: 'Health', c: 'sage', i: 'heart' },
+	uni: { name: 'Uni', c: 'lavender', i: 'cap' },
+	it: { name: 'IT', c: 'sky', i: 'code' },
+	home: { name: 'Home', c: 'ochre', i: 'house' },
+	fin: { name: 'Finance', c: 'lagoon', i: 'wallet' },
+	soc: { name: 'Social', c: 'berry', i: 'people' }
+};
+const CLS = {
+	ana: { name: 'Analysis II', c: 'lavender', i: 'book' },
+	os: { name: 'Operating Systems', c: 'sky', i: 'code' },
+	stat: { name: 'Statistics', c: 'tangerine', i: 'palette' }
+};
+// Sprint todos. day = assigned/shown day; due = relative due text; late = overdue.
+const T = [
+	{ t: 'Book dentist appointment', a: 'health', st: 'todo', day: 'Tue 13', due: '2d late', late: true, p: 1 },
+	{ t: 'Gym — legs', a: 'health', st: 'todo', day: 'Thu 15', p: 2, rec: true },
+	{ t: 'Meal prep for the week', a: 'health', st: 'done', day: 'Mon 12' },
+	{ t: 'Übungsblatt 3 Analysis', a: 'uni', st: 'doing', day: 'Fri 16', due: 'Tomorrow', p: 1, cls: 'ana', type: 'EXC', check: '0/5' },
+	{ t: 'Read OS chapter 4', a: 'uni', st: 'todo', day: 'Thu 15', cls: 'os', type: 'LEC' },
+	{ t: 'Statistics quiz', a: 'uni', st: 'done', cls: 'stat', type: 'OTH' },
+	{ t: 'Fix sidebar counts', a: 'it', st: 'todo', day: 'Fri 16', p: 3, proj: 'Life Manager' },
+	{ t: 'Renew TLS certs on NAS', a: 'it', st: 'doing', day: 'Sat 17', due: '2d left', proj: 'Homelab' },
+	{ t: 'Water plants', a: 'home', st: 'todo', day: 'Thu 15', rec: true },
+	{ t: 'Call landlord about heating', a: 'home', st: 'todo' },
+	{ t: 'Tax return 2025', a: 'fin', st: 'todo', due: '16d left', p: 1, notes: true },
+	{ t: 'Birthday gift for Mia', a: 'soc', st: 'done', day: 'Sat 17' }
+];
+const BACKLOG = [
+	{ t: 'Cancel old gym contract', a: 'health', p: 2 },
+	{ t: 'Write blog post on SQLite backups', a: 'it', proj: 'Blog v2' },
+	{ t: 'Party Games: lobby UI', a: 'it', proj: 'Party Games' },
+	{ t: 'Clean out basement', a: 'home' },
+	{ t: 'Compare electricity tariffs', a: 'fin', due: '31d left' },
+	{ t: 'Plan weekend trip', a: 'soc' }
+];
+const DAYS = ['Mon 12', 'Tue 13', 'Wed 14', 'Thu 15', 'Fri 16', 'Sat 17', 'Sun 18'];
+
+const ic = (n, cls = 'i s') => `<svg class="${cls}"><use href="#i-${n}"/></svg>`;
+const glyph = (n, cls = '') => `<svg class="${cls}" style="width:16px;height:16px"><use href="#${n}"/></svg>`;
+const prio = (p) => (p ? `<span class="prio" title="Priority ${p}"><svg><use href="#p${p}"/></svg></span>` : '');
+const check = `<svg class="i"><use href="#i-check"/></svg>`;
+
+function sidebar(on, pressed = false) {
+	const items = [
+		['Today', 'sun', '1', true], ['Sprint', 'calendar-days', '9'], ['Backlog', 'inbox', '6'], ['Recurring', 'repeat', '3'],
+		['Projects', 'folder', '2'], ['Uni', 'cap', '2'], ['Aspects', 'layers', '6']
+	];
+	const counts = { health: 1, uni: '', it: 2, home: 1, fin: 1, soc: 1 };
+	return `<nav class="side" aria-label="Lists">
+		<div class="brand"><span class="logo"><svg class="i xs"><use href="#i-check"/></svg></span>Life Manager</div>
+		<button class="new-todo${pressed ? ' pressed' : ''}">${ic('plus')}New todo</button>
+		${items.map(([n, i, c, late]) => `<a class="nav-item${n === on ? ' on' : ''}"><span class="ic">${ic(i)}</span>${n}<span class="count num${late ? ' late' : ''}">${c}</span></a>`).join('')}
+		<div class="nav-label">Aspects</div>
+		${Object.entries(A).map(([k, a]) => `<a class="nav-item aspect a-${a.c}"><span class="ic">${ic(a.i)}</span>${a.name}<span class="count num">${counts[k]}</span></a>`).join('')}
+	</nav>`;
+}
+
+function phoneTop(back = 'Lists') {
+	return `<div class="status"><span>9:41</span><i></i></div><a class="back">${ic('chevron-left', 'i')}${back}</a>`;
+}
+
+function header({ title, sub, actions = '', tile }) {
+	return `<header class="ph">${tile ? `<span class="tile a-${tile.c}">${ic(tile.i, 'i')}</span>` : ''}<div class="txt"><h1>${title}</h1>${sub ? `<p class="sub">${sub}</p>` : ''}</div>${actions ? `<div class="actions">${actions}</div>` : ''}</header>`;
+}
+
+function segments(list) {
+	const by = {};
+	for (const t of list) { (by[t.a] ??= { total: 0, done: 0 }).total++; if (t.st === 'done') by[t.a].done++; }
+	return Object.entries(by).map(([k, v]) => ({ ...v, a: A[k] }));
+}
+function hero({ k, fig, small, line, aside = '' }) {
+	const segs = segments(T);
+	return `<section class="hero" data-testid="summary-header">
+		<div class="row-top"><div><div class="k">${k}</div><div class="fig num">${fig}<small>${small}</small></div></div>${aside}</div>
+		${line ? `<div class="line num">${line}</div>` : ''}
+		<div class="bar" aria-hidden="true">${segs.map((s) => `<span class="a-${s.a.c}" style="flex:${s.total}"><i style="width:${(s.done / s.total) * 100}%"></i></span>`).join('')}</div>
+	</section>`;
+}
+
+function gh({ a, name, right, late, icon }) {
+	const asp = a ? A[a] : null;
+	return `<div class="gh${late ? ' late' : ''}${asp ? ` a-${asp.c}` : ''}">${asp ? `<span class="ic">${ic(asp.i)}</span>` : icon ? `<span class="ic" style="color:var(--ink-3)">${ic(icon)}</span>` : ''}<h2>${name ?? asp.name}</h2><span class="right num">${right ?? ''}</span></div>`;
+}
+function progress(list) {
+	const done = list.filter((t) => t.st === 'done').length;
+	const a = A[list[0].a];
+	return `${done} / ${list.length}<span class="mini a-${a.c}"><i style="width:${(done / list.length) * 100}%"></i></span>`;
+}
+
+function meta(t, { aspect = false, status = false } = {}) {
+	const parts = [];
+	if (aspect) parts.push(`<span class="a-${A[t.a].c}"><span class="dot"></span>${A[t.a].name}</span>`);
+	if (t.cls) { const c = CLS[t.cls]; parts.push(`<span class="badge a-${c.c}">${ic(c.i, 'i xs')}${c.name}<span class="type">${t.type}</span></span>`); }
+	if (t.proj) parts.push(`<span>${ic('folder', 'i xs')}${t.proj}</span>`);
+	if (t.check) parts.push(`<span>${ic('list-checks', 'i xs')}${t.check}</span>`);
+	if (t.rec) parts.push(`<span>${ic('repeat', 'i xs')}Recurring</span>`);
+	if (t.notes) parts.push(`<span>${ic('pen', 'i xs')}Notes</span>`);
+	if (t.revised !== undefined) parts.push(t.revised ? `<span>${ic('history', 'i xs')}${t.revised}</span>` : `<span>Not revised</span><span class="revised">${ic('history', 'i xs')}Revised today</span>`);
+	return parts.length ? `<div class="meta">${parts.join('')}</div>` : '';
+}
+
+// Quiet row (design.md §4): status glyph, day as text or "Pick a day", priority, due.
+function row(t, { sprint = false, aspect = false, checkbox = true, trailExtra = '' } = {}) {
+	const done = t.st === 'done';
+	const trail = [];
+	if (t.due && !done) trail.push(`<span class="num${t.late ? ' late-t' : ''}">${t.due}</span>`);
+	trail.push(sprint ? `<span class="prioslot">${done ? '' : prio(t.p)}</span>` : done ? '' : prio(t.p));
+	if (sprint) trail.push(`<span class="dayslot">${t.day ? `<span class="num">${t.day}</span>` : done ? '' : `<span class="pick" aria-label="Pick a day">${ic('calendar')}</span>`}</span>`);
+	if (sprint) trail.push(done ? '<span style="width:24px"></span>' : `<span class="st ${t.st}" title="Status: ${t.st === 'doing' ? 'Doing' : 'To do'}" aria-label="Status: ${t.st === 'doing' ? 'Doing' : 'To do'}">${glyph(t.st === 'doing' ? 'g-doing' : 'g-todo')}</span>`);
+	if (trailExtra) trail.push(trailExtra);
+	return `<div class="row${checkbox ? '' : ' plain'}${sprint ? ' sprint' : ''}${done ? ' done' : ''} a-${A[t.a].c}">
+		${checkbox ? `<span class="cb">${check}</span>` : ''}
+		<div style="min-width:0"><div class="t">${t.t}</div>${meta(t, { aspect })}</div>
+		<div class="trail">${trail.join('')}</div>
+	</div>`;
+}
+const lg = (rows) => `<div class="lg" data-testid="list-group">${rows.join('')}</div>`;
+
+function fc(rows) {
+	return `<div class="fc" data-testid="field-card">${rows.map((r) => r.edit
+		? `<div class="fr edit"><span class="ic" style="color:inherit">${ic('pen')}</span><span>${r.edit}</span><span></span></div>`
+		: `<div class="fr${r.a ? ` aspect a-${r.a}` : ''}"><span class="ic">${r.icon ? ic(r.icon) : ''}</span><div style="min-width:0"><div class="l">${r.l}</div><div class="v${r.link ? ' link' : ''}">${r.v}</div>${r.bar ?? ''}</div><span class="end num">${r.end ?? ''}</span></div>`).join('')}</div>`;
+}
+
+// ---------- Screens ----------
+function today(m) {
+	const late = T.filter((t) => t.late);
+	const onToday = T.filter((t) => t.day === 'Thu 15' && !t.late);
+	const groups = ['health', 'uni', 'home'].map((a) => [a, onToday.filter((t) => t.a === a)]);
+	const content = `
+		${header({ title: 'Today', sub: 'Thursday 15 October' })}
+		${hero({ k: 'Thursday · Sprint Mon 12 – Sun 18 Oct', fig: '4', small: 'open today', line: 'Sprint <b>3 / 12</b> done · <b>3 days</b> left' })}
+		<div class="quick">${ic('plus', 'i')}Add a todo</div>
+		${gh({ name: 'Overdue', right: '1', late: true })}${lg(late.map((t) => row(t, { aspect: true })))}
+		${groups.map(([a, l]) => gh({ a, right: l.length }) + lg(l.map((t) => row(t)))).join('')}`;
+	const rail = `<aside class="rail"><h3>This sprint<span class="right num">3 / 12</span></h3>
+		${fc(Object.keys(A).map((k) => { const l = T.filter((t) => t.a === k); const d = l.filter((t) => t.st === 'done').length; return { a: A[k].c, icon: A[k].i, l: A[k].name, v: `<span class="num">${d} / ${l.length} done</span>`, bar: `<span class="mini a-${A[k].c}"><i style="width:${(d / l.length) * 100}%"></i></span>` }; }))}
+		<p class="fc-note">Open todos due today in the backlog show up here too when today isn't a sprint day.</p></aside>`;
+	return m ? `${phoneTop()}<div class="main">${content}</div>`
+		: `${sidebar('Today')}<div class="main"><div class="col">${content}</div></div>${rail}`;
+}
+
+function sprintHead(m, view, extra = '') {
+	const actions = view === 'Week' && !m ? `<button class="btn s sm">${ic('panel')}Backlog</button>` : m ? `<button class="btn s sm">Manage</button>` : '';
+	return `${header({ title: 'Sprint', actions })}
+		${hero({ k: 'Mon 12 – Sun 18 Oct · Thursday', fig: '3 / 12', small: 'done', line: '<b>3 days</b> left · 2 doing · 1 overdue' })}
+		<div class="toolbar"><span class="seg" role="tablist"><span class="${view === 'By aspect' ? 'on' : ''}">By aspect</span><span class="${view === 'Board' ? 'on' : ''}">Board</span><span class="${view === 'Week' ? 'on' : ''}">Week</span></span>${extra}</div>`;
+}
+
+function backlogRail() {
+	const groups = ['health', 'it', 'home', 'fin', 'soc'].map((a) => [a, BACKLOG.filter((t) => t.a === a)]);
+	return `<aside class="rail"><h3>Backlog<span class="right num">6</span></h3>
+		<div class="input">${ic('inbox')}Filter backlog</div>
+		<div>${groups.map(([a, l]) => gh({ a, right: l.length }) + lg(l.map((t) => row(t, { checkbox: false, trailExtra: `<span class="add-row" aria-label="Add to sprint">${ic('plus')}</span>` })))).join('')}</div></aside>`;
+}
+
+function sprintAspect(m) {
+	const groups = Object.keys(A).map((a) => [a, T.filter((t) => t.a === a)]);
+	const content = `${sprintHead(m, 'By aspect')}<div class="quick">${ic('plus', 'i')}Add a todo</div>
+		${groups.map(([a, l]) => gh({ a, right: progress(l) }) + lg(l.map((t) => row(t, { sprint: true })))).join('')}`;
+	return m ? `${phoneTop()}<div class="main">${content}</div>`
+		: `${sidebar('Sprint')}<div class="main"><div class="col">${content}</div></div>${backlogRail()}`;
+}
+
+function card(t) {
+	const a = A[t.a];
+	const bits = [`<span class="a-${a.c}"><span class="dot"></span>${a.name}</span>`];
+	if (t.due && t.st !== 'done') bits.push(`<span class="num${t.late ? ' late-t' : ''}">${t.due}</span>`);
+	else if (t.day) bits.push(`<span class="num">${t.day}</span>`);
+	if (t.st !== 'done' && t.p) bits.push(prio(t.p));
+	return `<div class="card${t.st === 'done' ? ' done' : ''} a-${a.c}"><span class="cb">${check}</span>
+		<div style="min-width:0"><div class="t">${t.t}</div><div class="meta">${bits.join('')}</div></div>
+		${t.st === 'done' ? '<span></span>' : `<span class="st ${t.st}" aria-label="Status: ${t.st === 'doing' ? 'Doing' : 'To do'}">${glyph(t.st === 'doing' ? 'g-doing' : 'g-todo')}</span>`}</div>`;
+}
+function sprintBoard(m, toast = false) {
+	const lanes = [['To do', 'todo', 'g-todo'], ['Doing', 'doing', 'g-doing'], ['Done', 'done', 'g-done']];
+	const order = ['Book dentist appointment', 'Tax return 2025', 'Gym — legs', 'Fix sidebar counts', 'Read OS chapter 4', 'Water plants', 'Call landlord about heating'];
+	const pick = (st) => T.filter((t) => t.st === st).sort((x, y) => order.indexOf(x.t) - order.indexOf(y.t));
+	const content = `${sprintHead(m, 'Board')}
+		<div class="board">${lanes.map(([n, st, g]) => `<section class="lane"><div class="lane-h"><span class="st ${st}">${glyph(g)}</span>${n}<span class="n num">${pick(st).length}</span></div>${pick(st).map(card).join('')}${st === 'todo' ? `<div class="ghost-add">${ic('plus')}Add a todo</div>` : ''}</section>`).join('')}</div>
+		${toast ? `<div class="toast">“Renew TLS certs on NAS” moved to Doing<button>Undo</button></div>` : ''}`;
+	return m ? `${phoneTop()}<div class="main">${content}</div>`
+		: `${sidebar('Sprint')}<div class="main wide"><div class="col">${content}</div></div>${backlogRail()}`;
+}
+
+function sprintWeek(m) {
+	const byDay = (d) => T.filter((t) => t.day === d);
+	if (m) {
+		const strip = `<div class="strip num">${DAYS.map((d) => { const [w, n] = d.split(' '); return `<span class="${n === '15' ? 'on' : ''}">${w}<b>${n}</b></span>`; }).join('')}<span>${ic('inbox')}<b>3</b></span></div>`;
+		const l = byDay('Thu 15');
+		return `${phoneTop()}<div class="main">${sprintHead(m, 'Week')}${strip}${gh({ name: 'Thursday 15', right: l.length, icon: 'calendar' })}${lg(l.map((t) => row(t, { sprint: true, aspect: true })))}<div class="quick" style="margin-top:var(--space-3)">${ic('plus', 'i')}Add a todo to Thursday</div></div>`;
+	}
+	const week = `<div class="week">${DAYS.map((d) => { const [w, n] = d.split(' '); const l = byDay(d); return `<section class="day${n === '15' ? ' today' : ''}"><div class="day-h num">${w} <b>${n}</b><span class="n">${l.length || ''}</span></div>
+		<div class="day-list">${l.map((t) => `<div class="wchip${t.st === 'done' ? ' done' : ''} a-${A[t.a].c}"><span class="cb">${check}</span><span class="t">${t.t}</span><span class="dot"></span></div>`).join('')}</div>
+		<button class="day-add" aria-label="Add a todo to ${w} ${n}" style="border:0;background:none">${ic('plus')}</button></section>`; }).join('')}</div>`;
+	return `${sidebar('Sprint')}<div class="main wide"><div class="col">${sprintHead(m, 'Week')}${week}</div></div>`;
+}
+
+function backlog(m) {
+	const groups = ['health', 'it', 'home', 'fin', 'soc'].map((a) => [a, BACKLOG.filter((t) => t.a === a)]);
+	const filters = `<div class="chips${m ? ' scroll' : ''}" style="margin:var(--space-4) 0 var(--space-5)"><span class="chip on">All</span>${Object.values(A).map((a) => `<span class="chip a-${a.c}">${ic(a.i, 'i xs')}${a.name}</span>`).join('')}</div>`;
+	const content = `${header({ title: 'Backlog', sub: '6 todos waiting for a sprint' })}<div class="quick">${ic('plus', 'i')}Add a todo</div>${filters}
+		${groups.map(([a, l]) => gh({ a, right: l.length }) + lg(l.map((t) => row(t, { checkbox: false })))).join('')}`;
+	return m ? `${phoneTop()}<div class="main">${content}</div>` : `${sidebar('Backlog')}<div class="main"><div class="col">${content}</div></div>`;
+}
+
+function project(m) {
+	const details = [
+		{ icon: 'git-branch', l: 'Repo', v: 'Rue-Asha/Life-Manager', link: true },
+		{ icon: 'flag', l: 'Tags', v: '<span class="chips"><span class="chip" style="height:22px">svelte</span><span class="chip" style="height:22px">sqlite</span></span>' },
+		{ icon: 'list-checks', l: 'Todos', v: '0 open · 1 planned · 0 done' },
+		{ icon: 'clock', l: 'Created', v: '3 Oct 2026', end: 'updated today' },
+		{ edit: 'Edit details' }
+	];
+	const t = T.find((x) => x.t === 'Fix sidebar counts');
+	const pills = `<div class="chips" style="margin:-4px 0 var(--space-5)"><span class="chip link">${ic('git-branch', 'i xs')}Rue-Asha/Life-Manager</span><span class="chip">svelte</span><span class="chip">sqlite</span><span class="chip">Created 3 Oct</span><span class="chip">${ic('pen', 'i xs')}Edit details</span></div>`;
+	const content = `${header({ title: 'Life Manager', tile: { c: 'sky', i: 'folder' }, sub: 'Weekly sprint planner for life aspects' })}
+		<div style="margin:-6px 0 var(--space-5) 60px"><span class="spill">${glyph('g-active')}Active${ic('chevron-down', 'i xs')}</span></div>
+		${m ? pills : ''}
+		<div class="gh"><h2>Notes</h2><span class="right"><button class="btn q sm">${ic('pen')}Edit</button></span></div>
+		<div class="lg notes"><h4>Next</h4><ul><li>Redesign</li><li>Dark mode?</li></ul></div>
+		${gh({ name: 'Planned', right: '1', icon: 'calendar-days' })}${lg([row(t, { sprint: true })])}
+		<div class="gh"><button class="collapse">${ic('chevron-right')}Done<span class="num" style="color:var(--ink-3);font-weight:400">0</span></button></div>
+		<div style="margin-top:var(--space-7)"><button class="btn q">${ic('trash')}Delete project</button></div>`;
+	return m ? `${phoneTop('Projects')}<div class="main">${content}</div>`
+		: `${sidebar('Projects')}<div class="main"><div class="col">${content}</div></div><aside class="rail"><h3>Details</h3>${fc(details)}</aside>`;
+}
+
+function uni(m) {
+	const cards = [
+		{ c: CLS.ana, lect: 'Prof. Weber', foot: `<span class="num">1 open</span><span>${ic('calendar', 'i xs')}Tomorrow</span><span class="chip num">Exam in 118 d</span>` },
+		{ c: CLS.os, lect: 'Dr. Lang', foot: '<span class="num">1 open</span>' },
+		{ c: CLS.stat, lect: 'Prof. Kim', grade: '1.7', foot: '<span class="num">0 open</span>' }
+	];
+	const due = `<h3 class="sec-h">Due next<span class="right num">2</span></h3>${fc([
+		{ icon: 'list-checks', l: '<span class="badge a-lavender" style="display:inline-flex;gap:4px;align-items:center">Analysis II <span class="type">EXC</span></span>', v: 'Übungsblatt 3 Analysis', end: 'Tomorrow' },
+		{ icon: 'award', l: 'Analysis II · Audimax', v: '<b style="font-weight:600">Exam</b>', end: 'Wed 10 Feb<br>09:00 · in 118 d' }
+	])}<p class="fc-note">Todos of the aspect <b>Uni</b> can be linked to a class. <a>Change</a></p>`;
+	const content = `${header({ title: 'Uni', sub: 'Overall average <b>2.09</b> · <b>14 ECTS</b> earned', actions: `<button class="btn p">${ic('plus')}New semester</button>` })}
+		${m ? `<div style="display:grid;gap:var(--space-2);margin-bottom:var(--space-6)">${due}</div>` : ''}
+		<div class="gh"><h2>WS 26/27</h2><span class="right num">Average <b style="color:var(--ink-2)">1.70</b> · 5 ECTS ${ic('dots')}</span></div>
+		<div class="cards">${cards.map((x) => `<article class="ecard a-${x.c.c}"><div class="top"><span class="tile">${ic(x.c.i, 'i')}</span><div><h3>${x.c.name}</h3><div class="lect">${x.lect}</div></div>${x.grade ? `<span class="grade num">${x.grade}</span>` : ''}</div><div class="foot">${x.foot}</div></article>`).join('')}<div class="ecard new">${ic('plus')} New class</div></div>
+		<div class="gh" style="margin-top:var(--space-6)"><button class="collapse">${ic('chevron-right')}${ic('archive')}Archived (1)</button></div>`;
+	return m ? `${phoneTop()}<div class="main">${content}</div>`
+		: `${sidebar('Uni')}<div class="main"><div class="col">${content}</div></div><aside class="rail" style="gap:var(--space-2)">${due}</aside>`;
+}
+
+function klass(m) {
+	const t = { ...T.find((x) => x.t === 'Übungsblatt 3 Analysis'), cls: undefined, revised: '' };
+	t.typeOnly = true;
+	const details = [
+		{ icon: 'user', l: 'Lecturer', v: 'Prof. Weber' },
+		{ icon: 'pin', l: 'Room', v: 'H 0104' },
+		{ icon: 'award', l: 'ECTS · Grade', v: '9 · —' },
+		{ icon: 'clock', l: 'Exam', v: 'Wed 10 Feb 2027, 09:00', end: 'Audimax<br>in 118 d' },
+		{ icon: 'link', l: 'Links', v: 'Moodle ↗', link: true },
+		{ edit: 'Edit details' }
+	];
+	const pills = `<div class="chips" style="margin:0 0 var(--space-5)"><span class="chip">${ic('user', 'i xs')}Prof. Weber</span><span class="chip">${ic('pin', 'i xs')}H 0104</span><span class="chip num">9 ECTS</span><span class="chip num">${ic('clock', 'i xs')}Exam Wed 10 Feb · in 118 d</span><span class="chip link">${ic('link', 'i xs')}Moodle</span><span class="chip">No grade yet</span><span class="chip">${ic('pen', 'i xs')}Edit details</span></div>`;
+	const rowHtml = row({ ...t, type: undefined }, { sprint: true }).replace('<div class="meta">', '<div class="meta"><span class="type">EXC</span>');
+	const content = `${header({ title: 'Analysis II', tile: CLS.ana, sub: 'WS 26/27' })}${m ? pills : ''}
+		<div class="gh"><h2>Notes</h2><span class="right"><button class="btn q sm">${ic('pen')}Edit</button></span></div>
+		<div class="lg notes"><h4>Klausur</h4><ul><li>Übungsblätter 50 %</li><li>Formelsammlung erlaubt</li></ul></div>
+		<div class="gh"><h2>Todos</h2></div><div class="quick">${ic('plus', 'i')}Add a todo to Analysis II</div>
+		${gh({ name: 'Planned', right: '1', icon: 'calendar-days' })}${lg([rowHtml])}
+		<div class="gh"><h2>Recurring</h2><span class="right"><a style="color:var(--accent-hover);font-weight:500">Edit in Recurring ›</a></span></div>
+		${lg([`<div class="row icon a-lavender"><span style="color:var(--ink-3);display:flex">${ic('repeat', 'i')}</span><div class="t">Analysis lecture notes <span class="type">LEC</span></div><div class="trail">Weekly, Tue</div></div>`])}
+		<div style="margin-top:var(--space-7)"><button class="btn q">${ic('trash')}Delete class</button></div>`;
+	return m ? `${phoneTop('Uni')}<div class="main">${content}</div>`
+		: `${sidebar('Uni')}<div class="main"><div class="col">${content}</div></div><aside class="rail"><h3>Details</h3>${fc(details)}</aside>`;
+}
+
+function dialogFrame() {
+	return `${sidebar('Recurring', true)}<div class="main"><div class="col">${header({ title: 'Recurring', sub: 'Each rule adds a todo on its days when a sprint starts.', actions: `<button class="btn p">${ic('plus')}New rule</button>` })}
+		${lg(['Gym|health|Mon · Wed · Fri', 'Water plants|home|Thu · Sun', 'Analysis lecture notes|uni|Tue'].map((s) => { const [t, a, d] = s.split('|'); return `<div class="row icon a-${A[a].c}"><span style="color:var(--a);display:flex">${ic(A[a].i, 'i')}</span><div class="t">${t}</div><div class="trail">${d}</div></div>`; }))}</div></div>
+		<div class="scrim"></div>
+		<section class="dialog" role="dialog" aria-label="New todo"><h2>New todo</h2>
+			<div class="input focus title-in">Buy stamps</div>
+			<textarea>Notes</textarea>
+			<div class="chips"><span class="chip aspect a-ochre">${ic('house', 'i xs')}Home</span><span class="chip">${ic('flag', 'i xs')}Priority</span><span class="chip">${ic('calendar', 'i xs')}Due</span><span class="chip">${ic('list-checks', 'i xs')}Checklist</span></div>
+			<footer><span class="hint">${ic('inbox', 'i xs')}Goes to the backlog</span><button class="btn s">Cancel</button><button class="btn p">Add todo</button></footer>
+		</section>`;
+}
+
+function editorFrame() {
+	const rows = [
+		['heart', 'Aspect', '<span class="dot a-sage"></span>Health', 'aspect a-sage'],
+		['calendar-days', 'Day', 'Unscheduled'],
+		['calendar', 'Due', '<span class="late-t">Tue 13 · 2d late</span>'],
+		['flag', 'Priority', `${prio(1)}High`],
+		['list-checks', 'Checklist', 'None'],
+		['repeat', 'Status', 'To do']
+	];
+	return `${phoneTop()}<div class="main">${header({ title: 'Today' })}</div><div class="scrim"></div>
+		<section class="sheet" role="dialog" aria-label="Edit todo"><div class="handle"></div>
+			<div class="sheet-h"><a>Cancel</a><b>Edit todo</b><a class="strong">Done</a></div>
+			<div class="lg"><div class="ed-title">Book dentist appointment</div><div class="ed-notes">Notes</div></div>
+			<div class="lg">${rows.map(([i, l, v, cls]) => `<div class="frow ${cls ?? ''}"><span class="tile">${ic(i)}</span><span>${l}</span><span class="v">${v}</span><span class="chev">${ic('chevron-right')}</span></div>`).join('')}</div>
+			<div class="lg"><div class="frow danger"><span class="tile">${ic('trash')}</span><span>Delete todo</span></div></div>
+		</section>`;
+}
+
+function palette() {
+	const surf = [['canvas', '#f3f4f7', 'page behind cards'], ['surface', '#ffffff', 'cards, rows, rails'], ['sunk', '#eceef3', 'chips, lanes, tracks'], ['chrome', '#1c1730', 'sidebar, hero, toast'], ['line', '#e3e5eb', 'hairlines'], ['ink', '#17151f', 'text'], ['accent', 'violet / blue', 'primary, focus, today'], ['overdue', '#c42f25', 'overdue only']];
+	const asp = ['sage', 'sky', 'lavender', 'ochre', 'berry', 'lagoon', 'tangerine', 'slate'];
+	const uniRows = T.filter((t) => t.a === 'uni').map((t) => row(t, { sprint: true }));
+	return `<section class="palette" id="palette-frame">
+		<div><h3>Surfaces</h3><div class="sw-row">${surf.map(([n, h, u]) => `<div class="sw"><i style="background:var(--${n})"></i><b>--${n}</b><span>${h} · ${u}</span></div>`).join('')}</div></div>
+		<div><h3>Aspects — colour · tint · bright on chrome</h3><div class="sw-row">${asp.map((a) => `<div class="asp a-${a}"><div class="trio"><span>${ic('heart')}</span><span>${ic('heart')}</span><span>${ic('heart')}</span></div><b style="color:var(--ink);font-size:var(--text-sm)">${a}</b></div>`).join('')}</div></div>
+		<div><h3>Accent next to the Uni aspect (lavender → plum)</h3><div class="compare">
+			<div><span class="lab">Uni group with a done and a doing todo</span>${gh({ a: 'uni', right: progress(T.filter((t) => t.a === 'uni')) })}${lg(uniRows)}</div>
+			<div><span class="lab">Accent jobs: primary, focus, today, links, status Doing</span>
+				<div style="display:flex;gap:var(--space-3);align-items:center;flex-wrap:wrap"><button class="btn p">${ic('plus')}Add todo</button><span class="input focus" style="width:200px">Focused field</span><span class="spill">${glyph('g-active')}Active</span></div>
+				<div class="strip num" style="margin:0"><span>Mon<b>12</b></span><span>Tue<b>13</b></span><span>Wed<b>14</b></span><span class="on">Thu<b>15</b></span><span>Fri<b>16</b></span><span>Sat<b>17</b></span><span>Sun<b>18</b></span><span>${ic('inbox')}<b>3</b></span></div>
+				<div class="toast" style="position:static;transform:none;justify-self:start">“Gym — legs” done<button>Undo</button></div>
+			</div></div></div>
+	</section>`;
+}
+
+// ---------- Assemble ----------
+const SCREENS = [
+	{ id: 'today', title: 'Today', fn: today, rail: true, refs: 'Hero: Revolut big number on a hero <a href="https://mobbin.com/screens/5be4e584-20cf-45a5-aade-d505997121b7">5be4e584</a>, Chime dark hero <a href="https://mobbin.com/screens/7f32e177-2c9a-4d29-a885-874140ea26d6">7f32e177</a>. Grouped rows: Todoist iOS widget <a href="https://mobbin.com/screens/d830160f-31d4-4753-b2d7-37e3739ff398">d830160f</a>. Sidebar: Proton Mail <a href="https://mobbin.com/screens/e0fea5e4-cf4b-4110-8794-1fcc0ab5536b">e0fea5e4</a>. Rail field card: Proton Pass <a href="https://mobbin.com/screens/e1dedc83-7827-4530-b5a2-098bf81663fe">e1dedc83</a>.' },
+	{ id: 'sprint-aspect', title: 'Sprint · By aspect', fn: sprintAspect, rail: true, refs: 'Quiet row with status glyph and priority bars: Linear <a href="https://mobbin.com/screens/410846e7-09d4-4ed8-baf2-ec94d96c29f4">410846e7</a>. Pill segmented control and bold title: Cleo <a href="https://mobbin.com/screens/628a69b6-0842-482e-be0c-51c11601e104">628a69b6</a>. Rows inside a card: Monzo activity card <a href="https://mobbin.com/screens/3bf008da-4e7f-467a-b556-64ebe1aa04fa">3bf008da</a>.' },
+	{ id: 'sprint-board', title: 'Sprint · Board (with toast)', fn: (m) => sprintBoard(m, !m), rail: true, refs: 'Compact cards, one meta line: Linear board <a href="https://mobbin.com/screens/410846e7-09d4-4ed8-baf2-ec94d96c29f4">410846e7</a>, Todoist board <a href="https://mobbin.com/screens/81403143-59c8-4506-9094-72a4669c3d9e">81403143</a>. Toast: Proton Mail “Message sent. Undo” <a href="https://mobbin.com/screens/e0fea5e4-cf4b-4110-8794-1fcc0ab5536b">e0fea5e4</a>.' },
+	{ id: 'sprint-week', title: 'Sprint · Week (rail is the overlay toggle)', fn: sprintWeek, rail: false, wide: true, refs: 'One-line chips per day: Asana calendar <a href="https://mobbin.com/screens/c3a2ce0b-22ad-4bcf-b13e-9bfd5a87e821">c3a2ce0b</a>. Boxed today in the header: Proton Calendar <a href="https://mobbin.com/screens/fd9a9a93-b244-41da-b363-6f779e5682ed">fd9a9a93</a>.' },
+	{ id: 'backlog', title: 'Backlog', fn: backlog, rail: false, refs: 'Pill filters: Cleo <a href="https://mobbin.com/screens/628a69b6-0842-482e-be0c-51c11601e104">628a69b6</a>. White cards on grey: Airtasker <a href="https://mobbin.com/screens/98d9c40c-e3c2-4697-931d-95d790b9cd0a">98d9c40c</a>.' },
+	{ id: 'project', title: 'Project detail', fn: project, rail: true, refs: 'Field cards: Proton Pass detail <a href="https://mobbin.com/screens/e1dedc83-7827-4530-b5a2-098bf81663fe">e1dedc83</a>, <a href="https://mobbin.com/screens/e54b93d3-8155-4f37-b5e4-27ac0d7e1a9d">e54b93d3</a>. Pill row below 1280 kept from the Projects brief (Linear Mobile f8e3aa03).' },
+	{ id: 'uni', title: 'Uni', fn: uni, rail: true, refs: 'Cards on grey: Airtasker <a href="https://mobbin.com/screens/98d9c40c-e3c2-4697-931d-95d790b9cd0a">98d9c40c</a>. “Due next” as a field card: Proton Pass <a href="https://mobbin.com/screens/e1dedc83-7827-4530-b5a2-098bf81663fe">e1dedc83</a>. Structure unchanged from the Uni brief.' },
+	{ id: 'class', title: 'Class detail', fn: klass, rail: true, refs: 'Details field card: Proton Pass <a href="https://mobbin.com/screens/e54b93d3-8155-4f37-b5e4-27ac0d7e1a9d">e54b93d3</a>. Entity tile beside the bold title: Proton settings titles <a href="https://mobbin.com/screens/e6c03bda-f827-40e1-a3ec-ae2481075f53">e6c03bda</a>.' }
+];
+
+const out = [];
+for (const s of SCREENS) {
+	out.push(`<section class="screen" id="${s.id}"><header><h2>${s.title}</h2><p>${s.refs}</p></header><div class="pair">
+		<div class="frame d${s.rail ? ' has-rail' : ''}" id="f-${s.id}-1440">${s.fn(false)}</div>
+		<div class="frame m" id="f-${s.id}-390">${s.fn(true)}</div></div></section>`);
+}
+out.push(`<section class="screen" id="states"><header><h2>Other states</h2><p>Sidebar “New todo” opens the quick add as a dialog that files into the backlog (Proton “New message”: <a href="https://mobbin.com/screens/fe61cd6a-e4e3-4df8-9360-e28b80e43519">fe61cd6a</a>; Proton dialog Cancel/primary pair <a href="https://mobbin.com/screens/efef0764-c2cc-4b9f-8e48-8ad2f66b8494">efef0764</a>). Phone editor as grouped field rows (Me+ <a href="https://mobbin.com/screens/91470e45-4c88-4d57-8391-7bca3c65247b">91470e45</a>, Structured <a href="https://mobbin.com/screens/dbc45f09-9767-46ec-a5ee-9cd0dfcb4263">dbc45f09</a>, Tiimo <a href="https://mobbin.com/screens/dacff541-c6e9-413c-a5e6-20213e5bbb85">dacff541</a>).</p></header><div class="pair">
+	<div class="frame d" id="f-dialog-1440">${dialogFrame()}</div>
+	<div class="frame m" id="f-editor-390">${editorFrame()}</div></div></section>`);
+out.push(`<section class="screen" id="palette"><header><h2>Palette</h2><p>All pairs checked by <code>node design/palettes/check-contrast.mjs --cohesive</code>. Use the accent switch at the top to compare violet and deep blue.</p></header>${palette()}</section>`);
+document.getElementById('screens').innerHTML = out.join('');
+
+document.querySelectorAll('[data-pick]').forEach((el) => el.addEventListener('click', () => {
+	document.documentElement.dataset.accent = el.dataset.pick;
+	document.querySelectorAll('[data-pick]').forEach((x) => x.classList.toggle('on', x === el));
+}));
+if (location.hash === '#blue') document.querySelector('[data-pick="blue"]').click();
+</script>
+</body>
+</html>

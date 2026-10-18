@@ -17,6 +17,8 @@
 		defaultClassId,
 		defaultType,
 		defaultDueDate,
+		variant = 'inline',
+		compactLabel,
 		open = $bindable(false)
 	}: {
 		aspects: Aspect[];
@@ -25,6 +27,10 @@
 		defaultClassId?: Id;
 		defaultType?: ClassType;
 		defaultDueDate?: IsoDate;
+		// `dialog` has no field of its own: something else opens it (the sidebar's "New todo").
+		variant?: 'inline' | 'dialog';
+		// On desktop the field shrinks to a "+" with this name (the week's day columns).
+		compactLabel?: string;
 		open?: boolean;
 	} = $props();
 
@@ -78,8 +84,8 @@
 
 	async function added() {
 		clear();
-		// Desktop keeps the card open for the next capture; the phone sheet steps aside.
-		if (desktop.current) titleInput?.focus();
+		// Desktop keeps the card open for the next capture; the phone sheet and the dialog step aside.
+		if (desktop.current && variant === 'inline') titleInput?.focus();
 		else open = false;
 	}
 
@@ -111,7 +117,7 @@
 			aria-invalid={error?.field === 'title'}
 			bind:value={title}
 			bind:this={titleInput}
-			onkeydown={(e) => e.key === 'Escape' && desktop.current && close()}
+			onkeydown={(e) => e.key === 'Escape' && desktop.current && variant === 'inline' && close()}
 		/>
 		<textarea class="notes" name="notes" placeholder="Notes" aria-label="Notes" rows="1" bind:value={notes}
 		></textarea>
@@ -152,23 +158,34 @@
 		{/if}
 
 		<footer>
-			<Button type="button" variant="quiet" onclick={close}>Cancel</Button>
+			{#if variant === 'dialog' && target.kind === 'backlog'}
+				<span class="hint">
+					<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.inbox} /></svg>Goes to the backlog
+				</span>
+			{/if}
+			<Button type="button" variant={variant === 'dialog' ? 'secondary' : 'quiet'} onclick={close}>Cancel</Button>
 			<Button type="submit" variant="primary">Add todo</Button>
 		</footer>
 	</form>
 {/snippet}
 
-<div class="quick-add">
-	{#if open && desktop.current}
-		<div class="card">{@render form()}</div>
-	{:else}
-		<button type="button" class="field" onclick={() => (open = true)}>
-			<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.plus} /></svg>Add a todo
-		</button>
-	{/if}
-</div>
+{#if variant === 'inline'}
+	<div class="quick-add">
+		{#if open && desktop.current}
+			<div class="card">{@render form()}</div>
+		{:else if compactLabel && desktop.current}
+			<button type="button" class="plus" aria-label={compactLabel} title={compactLabel} onclick={() => (open = true)}>
+				<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.plus} /></svg>
+			</button>
+		{:else}
+			<button type="button" class="field" onclick={() => (open = true)}>
+				<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.plus} /></svg>Add a todo
+			</button>
+		{/if}
+	</div>
+{/if}
 
-{#if !desktop.current}
+{#if !desktop.current || variant === 'dialog'}
 	<Sheet open={open} title="New todo" onclose={close}>{@render form()}</Sheet>
 {/if}
 
@@ -178,11 +195,11 @@
 		align-items: center;
 		gap: var(--space-3);
 		width: 100%;
-		height: var(--row-height);
-		padding: 0 var(--space-3);
-		border: 0;
-		border-radius: var(--radius-md);
-		background: var(--paper-sunk);
+		height: 46px;
+		padding: 0 var(--space-4);
+		border: 1px solid var(--line);
+		border-radius: var(--radius-group);
+		background: var(--surface);
 		color: var(--ink-3);
 		text-align: left;
 		cursor: text;
@@ -190,6 +207,7 @@
 
 	.field:hover {
 		color: var(--ink-2);
+		border-color: var(--line-strong);
 	}
 
 	.field svg {
@@ -199,12 +217,40 @@
 		stroke: currentColor;
 		stroke-width: 2;
 		stroke-linecap: round;
+		color: var(--accent);
+	}
+
+	.plus {
+		display: grid;
+		place-items: center;
+		width: 28px;
+		height: 28px;
+		padding: 0;
+		border: 0;
+		border-radius: 8px;
+		background: none;
+		color: var(--ink-3);
+		cursor: pointer;
+	}
+
+	.plus:hover {
+		background: var(--sunk);
+		color: var(--ink);
+	}
+
+	.plus svg {
+		width: var(--icon-sm);
+		height: var(--icon-sm);
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 2;
+		stroke-linecap: round;
 	}
 
 	.card {
 		padding: var(--space-4) var(--space-4) var(--space-3);
 		border-radius: var(--radius-lg);
-		background: var(--paper);
+		background: var(--surface);
 		box-shadow: var(--shadow-float);
 		animation: expand var(--dur-base) var(--ease-out);
 	}
@@ -272,6 +318,25 @@
 		flex: none;
 		border: 1.5px solid var(--line-strong);
 		border-radius: var(--radius-pill);
+	}
+
+	.hint {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-1);
+		margin-right: auto;
+		color: var(--ink-3);
+		font-size: var(--text-sm);
+	}
+
+	.hint svg {
+		width: var(--icon-sm);
+		height: var(--icon-sm);
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 1.75;
+		stroke-linecap: round;
+		stroke-linejoin: round;
 	}
 
 	.error {

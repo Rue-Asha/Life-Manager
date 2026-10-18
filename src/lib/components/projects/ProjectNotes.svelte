@@ -64,12 +64,11 @@
 		align-items: center;
 		justify-content: space-between;
 		margin-bottom: var(--space-3);
-		padding-bottom: var(--space-2);
-		border-bottom: 1px solid var(--line);
+		padding: 0 var(--space-1);
 	}
 
 	h2 {
-		font-size: var(--text-lg);
+		font-size: var(--text-md);
 		font-weight: var(--weight-semibold);
 		line-height: var(--leading-snug);
 	}
@@ -100,12 +99,15 @@
 	}
 
 	.edit:hover {
-		background: var(--paper-hover);
+		background: var(--hover);
 		color: var(--ink);
 	}
 
 	.notes {
-		max-width: 62ch;
+		padding: var(--space-4);
+		border-radius: var(--radius-group);
+		background: var(--surface);
+		box-shadow: var(--shadow-card);
 		line-height: 1.55;
 		overflow-wrap: anywhere;
 	}
@@ -143,7 +145,7 @@
 	.notes :global(code) {
 		padding: 1px 5px;
 		border-radius: var(--radius-xs);
-		background: var(--paper-sunk);
+		background: var(--sunk);
 		font-family: ui-monospace, 'SF Mono', Menlo, monospace;
 		font-size: 0.92em;
 	}
@@ -151,7 +153,7 @@
 	.notes :global(pre) {
 		padding: var(--space-3);
 		border-radius: var(--radius-md);
-		background: var(--paper-sunk);
+		background: var(--sunk);
 		overflow-x: auto;
 	}
 
@@ -202,18 +204,19 @@
 		align-items: center;
 		gap: var(--space-3);
 		padding: var(--space-4);
-		border-radius: var(--radius-md);
-		background: var(--paper-sunk);
+		border-radius: var(--radius-group);
+		background: var(--surface);
+		box-shadow: var(--shadow-card);
 		color: var(--ink-3);
 	}
 
 	textarea {
 		display: block;
 		width: 100%;
-		padding: var(--space-3);
-		border: 1px solid var(--line-strong);
-		border-radius: var(--radius-sm);
-		background: var(--paper);
+		padding: var(--space-3) var(--space-4);
+		border: 1px solid var(--line);
+		border-radius: var(--radius-group);
+		background: var(--surface);
 		line-height: 1.55;
 		resize: vertical;
 	}

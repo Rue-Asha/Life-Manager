@@ -59,7 +59,7 @@
 		padding: 0 var(--space-2) 0 6px;
 		border: 1px solid var(--line);
 		border-radius: var(--radius-sm);
-		background: var(--paper);
+		background: var(--surface);
 	}
 
 	.name:focus-within {

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { GLYPHS } from '../projects/glyphs';
+	import { UI_ICONS } from '../ui/icons';
 	import { dateLabel } from '../todo/format';
 	import { examCountdown } from '$lib/uni';
 	import type { ClassTodos, IsoDate, UniClass } from '$lib/types';
@@ -37,35 +38,51 @@
 
 {#if mode === 'rail'}
 	<h2>Details</h2>
-	<dl class="props" data-testid="class-meta">
-		{#if cls.lecturer}<dt>Lecturer</dt><dd>{cls.lecturer}</dd>{/if}
-		{#if cls.room}<dt>Room</dt><dd>{cls.room}</dd>{/if}
-		{#if cls.ects !== null}<dt>ECTS</dt><dd class="num">{cls.ects}</dd>{/if}
-		{#if cls.links.length}
-			<dt>Links</dt>
-			<dd class="links">
-				{#each cls.links as link, i (i)}
-					<a href={link.url} target="_blank" rel="noopener noreferrer">{linkLabel(link)}{@render icon(ICONS.external)}</a>
-				{/each}
-			</dd>
+	<!-- Proton Pass-style field card: icon, small label over the value, hairlines between. -->
+	<div class="card">
+		<dl class="props" data-testid="class-meta">
+			{#if cls.lecturer}
+				<div class="field">{@render icon(ICONS.user)}<dt>Lecturer</dt><dd>{cls.lecturer}</dd></div>
+			{/if}
+			{#if cls.room}
+				<div class="field">{@render icon(ICONS.pin)}<dt>Room</dt><dd>{cls.room}</dd></div>
+			{/if}
+			{#if cls.ects !== null}
+				<div class="field">{@render icon(UI_ICONS.layers)}<dt>ECTS</dt><dd class="num">{cls.ects}</dd></div>
+			{/if}
+			{#if cls.links.length}
+				<div class="field">
+					{@render icon(ICONS.link)}<dt>Links</dt>
+					<dd class="links">
+						{#each cls.links as link, i (i)}
+							<a href={link.url} target="_blank" rel="noopener noreferrer">{linkLabel(link)}{@render icon(ICONS.external)}</a>
+						{/each}
+					</dd>
+				</div>
+			{/if}
+			{#if examDay}
+				<div class="field">
+					{@render icon(ICONS.clock)}<dt>Exam</dt>
+					<dd class="num">
+						{dateLabel(examDay)} {examDay.slice(0, 4)}{examTime ? `, ${examTime}` : ''}
+						{#if cls.examRoom || countdown}
+							<span class="sub">{[cls.examRoom, countdown].filter(Boolean).join(' · ')}</span>
+						{/if}
+					</dd>
+				</div>
+			{/if}
+			<div class="field">
+				{@render icon(ICONS.award)}<dt>Grade</dt><dd class="num" class:muted={!grade}>{grade ?? '—'}</dd>
+			</div>
+			<div class="field">
+				{@render icon(UI_ICONS['list-checks'])}<dt>Todos</dt>
+				<dd class="num">{todos.open.length} open, {todos.planned.length} planned, {todos.done.length} done</dd>
+			</div>
+		</dl>
+		{#if onedit}
+			<button type="button" class="edit" onclick={onedit}>{@render icon(GLYPHS.pen)}Edit details</button>
 		{/if}
-		{#if examDay}
-			<dt>Exam</dt>
-			<dd class="num">
-				{dateLabel(examDay)} {examDay.slice(0, 4)}{examTime ? `, ${examTime}` : ''}
-				{#if cls.examRoom || countdown}
-					<span class="sub">{[cls.examRoom, countdown].filter(Boolean).join(' · ')}</span>
-				{/if}
-			</dd>
-		{/if}
-		<dt>Grade</dt>
-		<dd class="num" class:muted={!grade}>{grade ?? '—'}</dd>
-		<dt>Todos</dt>
-		<dd class="num">{todos.open.length} open, {todos.planned.length} planned, {todos.done.length} done</dd>
-	</dl>
-	{#if onedit}
-		<button type="button" class="edit" onclick={onedit}>{@render icon(GLYPHS.pen)}Edit details</button>
-	{/if}
+	</div>
 {:else}
 	<div class="row" data-testid="class-meta">
 		{#if cls.lecturer}<span class="pchip">{@render icon(ICONS.user)}{cls.lecturer}</span>{/if}
@@ -99,28 +116,45 @@
 	}
 
 	h2 {
-		margin-bottom: var(--space-4);
-		font-size: var(--text-lg);
+		margin-bottom: var(--space-3);
+		color: var(--ink-2);
+		font-size: var(--text-sm);
 		font-weight: var(--weight-semibold);
 	}
 
+	.card {
+		border: 1px solid var(--line);
+		border-radius: 12px;
+		background: var(--surface);
+	}
+
 	.props {
-		display: grid;
-		grid-template-columns: 76px minmax(0, 1fr);
-		align-items: start;
-		gap: var(--space-4) var(--space-3);
 		margin: 0;
 	}
 
-	dt {
-		padding-top: 2px;
+	.field {
+		display: grid;
+		grid-template-columns: var(--icon-sm) minmax(0, 1fr);
+		align-items: center;
+		gap: 0 var(--space-3);
+		padding: 10px 14px;
+		border-bottom: 1px solid var(--line);
+	}
+
+	.field > svg {
+		grid-row: span 2;
 		color: var(--ink-3);
-		font-size: var(--text-sm);
+	}
+
+	dt {
+		color: var(--ink-3);
+		font-size: var(--text-xs);
 	}
 
 	dd {
 		margin: 0;
 		min-width: 0;
+		font-size: 14px;
 		overflow-wrap: anywhere;
 	}
 
@@ -144,7 +178,7 @@
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-1);
-		color: var(--accent);
+		color: var(--accent-hover);
 		text-decoration: none;
 	}
 
@@ -153,21 +187,28 @@
 	}
 
 	.edit {
-		display: inline-flex;
+		display: flex;
 		align-items: center;
-		gap: var(--space-2);
-		height: var(--control-height);
-		margin-top: var(--space-6);
-		padding: 0 var(--space-4);
+		gap: var(--space-3);
+		width: 100%;
+		padding: 12px 14px;
 		border: 0;
-		border-radius: var(--radius-md);
-		background: var(--paper);
+		border-radius: 0 0 12px 12px;
+		background: none;
+		color: var(--accent-hover);
+		font-size: 14px;
 		font-weight: var(--weight-medium);
+		text-align: left;
 		cursor: pointer;
 	}
 
 	.edit:hover {
-		background: var(--paper-hover);
+		background: var(--hover);
+	}
+
+	/* Without an edit row the last field closes the card. */
+	.card:not(:has(.edit)) .field:last-child {
+		border-bottom: 0;
 	}
 
 	.row {
@@ -182,19 +223,20 @@
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-1);
-		min-height: 30px;
+		min-height: 28px;
 		max-width: 100%;
-		padding: 0 var(--space-2);
-		border: 1px solid var(--line-strong);
-		border-radius: var(--radius-sm);
-		background: var(--paper);
+		padding: 0 var(--space-3);
+		border: 0;
+		border-radius: var(--radius-pill);
+		background: var(--sunk);
 		color: var(--ink-2);
 		font-size: var(--text-sm);
 		overflow-wrap: anywhere;
 	}
 
 	.pchip.link {
-		color: var(--accent);
+		color: var(--accent-hover);
+		background: var(--accent-soft);
 	}
 
 	.pchip.exam {
@@ -206,6 +248,6 @@
 	}
 
 	button.pchip:hover {
-		background: var(--paper-hover);
+		background: var(--line);
 	}
 </style>

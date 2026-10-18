@@ -10,6 +10,9 @@
 <style>
 	.empty {
 		padding: var(--space-8) var(--space-4);
+		border-radius: var(--radius-group);
+		background: var(--surface);
+		box-shadow: var(--shadow-card);
 		text-align: center;
 		color: var(--ink-3);
 	}

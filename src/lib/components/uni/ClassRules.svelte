@@ -47,8 +47,7 @@
 		align-items: center;
 		justify-content: space-between;
 		margin-bottom: var(--space-2);
-		padding-bottom: var(--space-2);
-		border-bottom: 1px solid var(--line);
+		padding: 0 var(--space-1);
 	}
 
 	h2 {
@@ -86,6 +85,9 @@
 		margin: 0;
 		padding: 0;
 		list-style: none;
+		border-radius: var(--radius-group);
+		background: var(--surface);
+		box-shadow: var(--shadow-card);
 	}
 
 	li {
@@ -93,6 +95,7 @@
 		align-items: center;
 		gap: var(--space-3);
 		min-height: var(--row-height);
+		padding: 0 var(--space-4);
 		border-bottom: 1px solid var(--line);
 	}
 
@@ -112,7 +115,7 @@
 	.type {
 		padding: 1px 5px;
 		border-radius: var(--radius-xs);
-		background: var(--paper-sunk);
+		background: var(--sunk);
 		color: var(--ink-2);
 		font-size: 11px;
 		font-weight: var(--weight-semibold);

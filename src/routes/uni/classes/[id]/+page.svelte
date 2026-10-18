@@ -200,7 +200,7 @@
 	h1 {
 		min-width: 0;
 		font-size: var(--text-2xl);
-		font-weight: var(--weight-bold);
+		font-weight: var(--weight-heavy);
 		line-height: var(--leading-tight);
 		letter-spacing: var(--tracking-title);
 		overflow-wrap: anywhere;
@@ -256,7 +256,7 @@
 	.type {
 		padding: 1px 5px;
 		border-radius: var(--radius-xs);
-		background: var(--paper-sunk);
+		background: var(--sunk);
 		color: var(--ink-2);
 		font-size: 11px;
 		font-weight: var(--weight-semibold);

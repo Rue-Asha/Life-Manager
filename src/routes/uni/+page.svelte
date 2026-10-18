@@ -45,7 +45,7 @@
 {/snippet}
 
 <RailLayout railTitle="Deadlines" rail={wide.current && !prompting ? rail : undefined}>
-	<PageHeader title="Uni" icon="graduation-cap">
+	<PageHeader title="Uni">
 		{#if !prompting}
 			<Button type="button" variant="primary" onclick={() => (adding = true)}>
 				<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.plus} /></svg>New semester
@@ -117,9 +117,7 @@
 	}
 
 	.notes {
-		margin-top: var(--space-10);
-		padding-top: var(--space-2);
-		border-top: 1px solid var(--line-strong);
+		margin-top: var(--space-9);
 	}
 
 	.notes :global(.notes) {

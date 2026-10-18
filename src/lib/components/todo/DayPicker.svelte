@@ -10,9 +10,10 @@
 
 <form method="POST" action="/todos?/setDay" use:enhance={submit()}>
 	<input type="hidden" name="id" value={todoId} />
-	<label class="pill" class:set={day}>
-		<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.calendar} /></svg>
-		<span class="visually-hidden">Day</span>
+	<!-- A set day reads as plain text; without one only a calendar glyph shows and the select lies over it. -->
+	<label class="day" class:unset={!day}>
+		{#if !day}<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.calendar} /></svg>{/if}
+		<span class="visually-hidden">{day ? 'Day' : 'Pick a day'}</span>
 		<select name="day" value={day ?? ''} onchange={(e) => e.currentTarget.form?.requestSubmit()}>
 			<option value="">Unscheduled</option>
 			{#each sprintDays as d (d)}
@@ -23,33 +24,39 @@
 </form>
 
 <style>
-	.pill {
+	.day {
+		position: relative;
 		display: inline-flex;
 		align-items: center;
-		gap: var(--space-1);
 		height: 24px;
-		padding: 0 var(--space-2);
-		border: 1px solid var(--line);
-		border-radius: var(--radius-pill);
-		color: var(--ink-3);
+		padding: 0 var(--space-1);
+		border-radius: 6px;
+		color: var(--ink-2);
 		font-size: var(--text-sm);
 		font-variant-numeric: tabular-nums;
 	}
 
-	.set {
-		color: var(--ink-2);
+	.day:hover {
+		background: var(--sunk);
 	}
 
-	.pill:focus-within {
+	.day:focus-within {
 		box-shadow: var(--ring-focus);
 	}
 
+	.unset {
+		justify-content: center;
+		width: 24px;
+		padding: 0;
+		color: var(--ink-3);
+	}
+
 	svg {
-		width: 13px;
-		height: 13px;
+		width: 16px;
+		height: 16px;
 		fill: none;
 		stroke: currentColor;
-		stroke-width: 2;
+		stroke-width: 1.85;
 		stroke-linecap: round;
 		stroke-linejoin: round;
 	}
@@ -68,5 +75,12 @@
 
 	select:focus-visible {
 		box-shadow: none;
+	}
+
+	.unset select {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		opacity: 0;
 	}
 </style>

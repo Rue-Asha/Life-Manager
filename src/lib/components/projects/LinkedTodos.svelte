@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import type { Aspect, IsoDate, ProjectTodos, Todo } from '$lib/types';
 	import TodoRow from '../todo/TodoRow.svelte';
+	import ListGroup from '../ui/ListGroup.svelte';
 	import { GLYPHS } from './glyphs';
 
 	// `top` sits between the heading and the groups (the class page's quick add); `extra` joins each row's meta line.
@@ -48,11 +49,13 @@
 		{#if group.list.length}
 			<div class="group" data-testid="{testidPrefix}-{group.key}">
 				<h3>{group.label}<span class="count num">{group.list.length}</span></h3>
-				<ul>
-					{#each group.list as todo (todo.id)}
-						<TodoRow {todo} aspect={aspectOf(todo.aspectId)} {today} context={group.context} {sprintDays} {extra} {readonly} />
-					{/each}
-				</ul>
+				<ListGroup>
+					<ul>
+						{#each group.list as todo (todo.id)}
+							<TodoRow {todo} aspect={aspectOf(todo.aspectId)} {today} context={group.context} {sprintDays} {extra} {readonly} />
+						{/each}
+					</ul>
+				</ListGroup>
 			</div>
 		{/if}
 	{/each}
@@ -66,11 +69,13 @@
 				</button>
 			</h3>
 			{#if showDone}
-				<ul>
-					{#each todos.done as todo (todo.id)}
-						<TodoRow {todo} aspect={aspectOf(todo.aspectId)} {today} context="sprint" {sprintDays} {extra} {readonly} />
-					{/each}
-				</ul>
+				<ListGroup>
+					<ul>
+						{#each todos.done as todo (todo.id)}
+							<TodoRow {todo} aspect={aspectOf(todo.aspectId)} {today} context="sprint" {sprintDays} {extra} {readonly} />
+						{/each}
+					</ul>
+				</ListGroup>
 			{/if}
 		</div>
 	{/if}
@@ -83,8 +88,7 @@
 
 	h2 {
 		margin-bottom: var(--space-3);
-		padding-bottom: var(--space-2);
-		border-bottom: 1px solid var(--line);
+		padding: 0 var(--space-1);
 		font-size: var(--text-lg);
 		font-weight: var(--weight-semibold);
 		line-height: var(--leading-snug);
@@ -97,9 +101,9 @@
 	h3 {
 		display: flex;
 		align-items: center;
-		padding-bottom: var(--space-2);
-		border-bottom: 1px solid var(--line);
-		font-size: var(--text-md);
+		margin-bottom: var(--space-2);
+		padding: 0 var(--space-1);
+		font-size: var(--text-sm);
 		font-weight: var(--weight-semibold);
 		line-height: var(--leading-snug);
 	}

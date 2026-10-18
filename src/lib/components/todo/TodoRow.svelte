@@ -15,7 +15,7 @@
 	import StatusControl from './StatusControl.svelte';
 	import TodoEditor from './TodoEditor.svelte';
 	import { submit, type ActionError } from './form';
-	import { dueLabel } from './format';
+	import { dayLabel, dueLabel } from './format';
 
 	let {
 		todo,
@@ -25,6 +25,7 @@
 		sprintDays,
 		mixed = false,
 		readonly = false,
+		variant = 'row',
 		extra
 	}: {
 		todo: Todo;
@@ -35,6 +36,8 @@
 		mixed?: boolean;
 		// An archived class's rows: shown, but nothing on them can be changed.
 		readonly?: boolean;
+		// Board cards (`card`) and desktop week chips (`chip`) show less; the editor still shows everything.
+		variant?: 'row' | 'card' | 'chip';
 		// Takes the class badge's place: the class detail page passes it and already names the class.
 		extra?: Snippet<[Todo]>;
 	} = $props();
@@ -123,6 +126,38 @@
 	{/if}
 {/snippet}
 
+{#snippet rowMenu()}
+	{#if movable}
+		<div class="actions" bind:this={actionsEl}>
+			<button
+				type="button"
+				class="more"
+				data-testid="row-actions"
+				aria-label="More actions"
+				aria-haspopup="menu"
+				aria-expanded={menuOpen}
+				onclick={openMenu}
+			>
+				<svg viewBox="0 0 24 24" aria-hidden="true">
+					<circle cx="5" cy="12" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="19" cy="12" r="1.5" />
+				</svg>
+			</button>
+			{#if menuOpen}
+				<div class="menu" role="menu" aria-label="Actions for {todo.title}">
+					{#if todo.recurring}
+						<button type="button" role="menuitem" onclick={remove}>Remove from sprint</button>
+					{:else}
+						<form method="POST" action="/todos?/moveToBacklog" use:enhance={submit()}>
+							<input type="hidden" name="id" value={todo.id} />
+							<button role="menuitem">Move to backlog</button>
+						</form>
+					{/if}
+				</div>
+			{/if}
+		</div>
+	{/if}
+{/snippet}
+
 <svelte:window onpointerdown={closeMenu} onkeydown={closeMenu} />
 
 {#if removal !== 'none'}
@@ -140,6 +175,9 @@
 <li
 	class="row"
 	class:checkable
+	class:movable
+	class:card={variant === 'card'}
+	class:chip={variant === 'chip'}
 	class:done
 	class:expanded
 	data-testid="todo-row"
@@ -172,15 +210,29 @@
 			{:else}
 				<button type="button" class="title" onclick={() => (editing = true)}>{todo.title}</button>
 			{/if}
+			{#if variant === 'card'}
+				<div class="meta">
+					<span data-testid="aspect-tag"><i class="dot"></i>{aspect.name}</span>
+					{#if todo.dueDate && !done}
+						<span class="num" class:late={overdue}>
+							{#if overdue}<span class="visually-hidden">Overdue,</span>{/if}
+							{dueLabel(todo.dueDate, today)}
+						</span>
+					{:else if todo.day}
+						<span class="num">{dayLabel(todo.day)}</span>
+					{/if}
+					{#if todo.priority && !done}
+						<span class="prio" data-p={todo.priority} role="img" aria-label="Priority {todo.priority}">
+							<i></i><i></i><i></i>
+						</span>
+					{/if}
+				</div>
+			{:else if variant === 'row'}
 			<div class="meta">
 				{#if mixed}
 					<span><i class="dot"></i>{aspect.name}</span>
 				{/if}
 				{#if extra}{@render extra(todo)}{:else if classRef}<ClassBadge {classRef} type={todo.type} />{/if}
-				{#if movable}
-					<StatusControl todoId={todo.id} status={todo.status} />
-					{#if sprintDays}<DayPicker todoId={todo.id} day={todo.day} {sprintDays} />{/if}
-				{/if}
 				{#if todo.recurring}
 					<span><svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.repeat} /></svg>Recurring</span>
 				{/if}
@@ -195,6 +247,7 @@
 					<span><a class="badge" href="/projects/{project.id}" data-testid="project-badge"><svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.folder} /></svg>{project.name}</a></span>
 				{/if}
 			</div>
+			{/if}
 			{#if addError}
 				<p class="add-error" role="alert">
 					{#if addError === 'review-required'}
@@ -206,47 +259,40 @@
 			{/if}
 		</div>
 
-		<div class="end">
-			{#if todo.priority}
-				<span class="prio" data-p={todo.priority} role="img" aria-label="Priority {todo.priority}">
-					<i></i><i></i><i></i>
-				</span>
-			{/if}
+		{#if variant !== 'row'}
+			<div class="end compact">
+				{#if movable}
+					<span class="status-slot"><StatusControl todoId={todo.id} status={todo.status} /></span>
+					{@render rowMenu()}
+				{/if}
+			</div>
+		{:else}
+		<!-- Due, priority, day and status sit in fixed slots so they line up down a sprint list. -->
+		<div class="end" class:slots={movable}>
 			{#if todo.dueDate}
 				<span class="due num" class:late={overdue}>
 					{#if overdue}<span class="visually-hidden">Overdue,</span>{/if}
 					{dueLabel(todo.dueDate, today)}
 				</span>
 			{/if}
-			{#if movable}
-				<div class="actions" bind:this={actionsEl}>
-					<button
-						type="button"
-						class="more"
-						data-testid="row-actions"
-						aria-label="More actions"
-						aria-haspopup="menu"
-						aria-expanded={menuOpen}
-						onclick={openMenu}
-					>
-						<svg viewBox="0 0 24 24" aria-hidden="true">
-							<circle cx="5" cy="12" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="19" cy="12" r="1.5" />
-						</svg>
-					</button>
-					{#if menuOpen}
-						<div class="menu" role="menu" aria-label="Actions for {todo.title}">
-							{#if todo.recurring}
-								<button type="button" role="menuitem" onclick={remove}>Remove from sprint</button>
-							{:else}
-								<form method="POST" action="/todos?/moveToBacklog" use:enhance={submit()}>
-									<input type="hidden" name="id" value={todo.id} />
-									<button role="menuitem">Move to backlog</button>
-								</form>
-							{/if}
-						</div>
+			{#if todo.priority || movable}
+				<span class="prio-slot">
+					{#if todo.priority}
+						<span class="prio" data-p={todo.priority} role="img" aria-label="Priority {todo.priority}">
+							<i></i><i></i><i></i>
+						</span>
 					{/if}
-				</div>
+				</span>
 			{/if}
+			{#if movable}
+				<span class="day-slot">
+					{#if sprintDays}<DayPicker todoId={todo.id} day={todo.day} {sprintDays} />{/if}
+				</span>
+				<span class="status-slot">
+					<StatusControl todoId={todo.id} status={todo.status} />
+				</span>
+			{/if}
+			{@render rowMenu()}
 			{#if context === 'backlog' && sprintDays && !readonly}
 				<form method="POST" action="/todos?/addToSprint" use:enhance={submit({ onerror: addFailed })}>
 					<input type="hidden" name="id" value={todo.id} />
@@ -257,24 +303,21 @@
 				</form>
 			{/if}
 		</div>
+		{/if}
 	{/if}
 </li>
 {/if}
 
 <style>
+	/* No border of its own: rows sit in a ListGroup, which draws the card and the hairlines. */
 	.row {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) auto;
 		align-items: start;
 		column-gap: var(--space-3);
 		min-height: var(--row-height);
-		padding: var(--space-3) var(--space-2);
-		margin: var(--space-1) calc(-1 * var(--space-2));
-		border: 1px solid var(--line);
-		border-radius: var(--radius-md);
-		transition:
-			background-color var(--dur-fast) var(--ease-out),
-			border-color var(--dur-fast) var(--ease-out);
+		padding: 11px var(--space-4);
+		transition: background-color var(--dur-fast) var(--ease-out);
 	}
 
 	.removed {
@@ -284,7 +327,6 @@
 	.expanded {
 		display: block;
 		padding: 0;
-		border-color: transparent;
 	}
 
 	.expanded:hover {
@@ -295,7 +337,7 @@
 		position: fixed;
 		inset: 0;
 		z-index: 1;
-		background: var(--paper-scrim);
+		background: var(--scrim);
 		animation: fade var(--dur-slow) var(--ease-out);
 	}
 
@@ -310,8 +352,7 @@
 	}
 
 	.row:hover {
-		border-color: var(--line-strong);
-		background: var(--paper-hover);
+		background: var(--hover);
 	}
 
 	form {
@@ -327,7 +368,7 @@
 		padding: 0;
 		border: 1.5px solid var(--line-strong);
 		border-radius: var(--radius-xs);
-		background: var(--paper);
+		background: var(--surface);
 		cursor: pointer;
 		transition:
 			background-color var(--dur-fast) var(--ease-out),
@@ -435,10 +476,34 @@
 	.end {
 		display: flex;
 		align-items: center;
-		gap: var(--space-2);
-		padding-top: 1px;
+		gap: var(--space-3);
+		min-height: 20px;
 		color: var(--ink-2);
 		font-size: var(--text-sm);
+		white-space: nowrap;
+	}
+
+	.slots {
+		margin-top: -2px;
+	}
+
+	.prio-slot {
+		display: flex;
+		width: 14px;
+	}
+
+	.slots .prio-slot {
+		justify-content: flex-end;
+	}
+
+	.day-slot {
+		display: flex;
+		justify-content: flex-end;
+		width: 52px;
+	}
+
+	.status-slot {
+		width: 24px;
 	}
 
 	.add-error {
@@ -503,7 +568,7 @@
 		padding: 0 var(--space-2);
 		border: 1px solid var(--line-strong);
 		border-radius: var(--radius-sm);
-		background: var(--paper);
+		background: var(--surface);
 		color: var(--ink-2);
 		font-size: var(--text-sm);
 		white-space: nowrap;
@@ -576,7 +641,7 @@
 
 	.more:hover,
 	.more[aria-expanded='true'] {
-		background: var(--paper-sunk);
+		background: var(--sunk);
 		color: var(--ink);
 	}
 
@@ -595,7 +660,7 @@
 		padding: var(--space-1);
 		border: 1px solid var(--line);
 		border-radius: var(--radius-md);
-		background: var(--paper);
+		background: var(--surface);
 		box-shadow: var(--shadow-float);
 	}
 
@@ -616,11 +681,46 @@
 
 	.menu [role='menuitem']:hover,
 	.menu [role='menuitem']:focus-visible {
-		background: var(--paper-hover);
+		background: var(--hover);
 		outline: none;
 	}
 
 	@media (max-width: 767px) {
+		/* Phone: a sprint row's controls wrap under the meta line, in reading order: status, day, priority, due. */
+		.movable {
+			grid-template-columns: var(--checkbox-size) minmax(0, 1fr);
+		}
+
+		.slots {
+			grid-column: 2;
+			gap: var(--space-2);
+			margin-top: var(--space-2);
+		}
+
+		.slots .status-slot {
+			order: 1;
+			margin-left: -5px;
+		}
+
+		.slots .day-slot {
+			order: 2;
+			width: auto;
+		}
+
+		.slots .prio-slot {
+			order: 3;
+			width: auto;
+		}
+
+		.slots .due {
+			order: 4;
+		}
+
+		.slots .actions {
+			order: 5;
+			margin-left: auto;
+		}
+
 		.add-label {
 			display: none;
 		}
@@ -631,6 +731,92 @@
 			margin: -7px 0;
 			padding: 0;
 			justify-content: center;
+		}
+	}
+
+	/* Board card: the title may take two lines over one meta line; the status glyph sits top right.
+	   Declared last so it wins over the phone's wrapped sprint row. */
+	.row.card {
+		grid-template-columns: var(--checkbox-size) minmax(0, 1fr) auto;
+		padding: var(--space-3);
+	}
+
+	.card .title {
+		display: -webkit-box;
+		white-space: normal;
+		line-clamp: 2;
+		-webkit-line-clamp: 2;
+		-webkit-box-orient: vertical;
+	}
+
+	.card .meta {
+		flex-wrap: nowrap;
+		gap: var(--space-2);
+		overflow: hidden;
+		white-space: nowrap;
+	}
+
+	.compact {
+		display: flex;
+		align-items: center;
+		margin-top: -2px;
+	}
+
+	/* Week chip: one line. The status glyph takes the aspect colour and stands in for the aspect dot. */
+	.row.chip {
+		grid-template-columns: 14px minmax(0, 1fr) auto;
+		align-items: center;
+		column-gap: var(--space-2);
+		min-height: 32px;
+		padding: 2px var(--space-1) 2px var(--space-2);
+	}
+
+	.chip .check {
+		width: 14px;
+		height: 14px;
+		margin-top: 0;
+		border-radius: 4px;
+	}
+
+	.chip .check svg {
+		width: 10px;
+		height: 10px;
+	}
+
+	.chip .title {
+		font-size: var(--text-sm);
+	}
+
+	.chip .status-slot :global(.glyph) {
+		color: var(--a);
+	}
+
+	.chip .compact {
+		margin-top: 0;
+	}
+
+	/* With a mouse, card and chip menus wait for hover just left of the status glyph, so they take no width. */
+	@media (hover: hover) and (pointer: fine) {
+		.card,
+		.chip {
+			position: relative;
+		}
+
+		:is(.card, .chip) .actions {
+			position: absolute;
+			top: var(--space-2);
+			right: calc(var(--space-3) + 26px);
+			margin: 0;
+		}
+
+		.chip .actions {
+			top: 2px;
+			right: 30px;
+		}
+
+		:is(.card, .chip) .more {
+			background: var(--surface);
+			box-shadow: var(--shadow-pop);
 		}
 	}
 </style>

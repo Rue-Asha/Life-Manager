@@ -105,11 +105,11 @@
 	}
 
 	.target:hover {
-		background: var(--paper-hover);
+		background: var(--hover);
 	}
 
 	.target:has(:checked) {
-		background: var(--paper-sunk);
+		background: var(--sunk);
 		font-weight: var(--weight-medium);
 	}
 

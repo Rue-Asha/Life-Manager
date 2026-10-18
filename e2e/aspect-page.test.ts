@@ -43,7 +43,7 @@ test('Scenario: Aspect page shows this sprint and its backlog', async ({ page, r
 
 	const heading = page.getByRole('heading', { level: 1 });
 	await expect(heading).toHaveText('Health');
-	await expect(heading.locator('path')).toHaveAttribute('d', ASPECT_ICONS.heart);
+	await expect(page.getByTestId('page-icon').locator('path')).toHaveAttribute('d', ASPECT_ICONS.heart);
 	await expect(page).toHaveTitle(/Health/);
 
 	await expect(sprintSection(page).getByTestId('todo-row')).toHaveText([

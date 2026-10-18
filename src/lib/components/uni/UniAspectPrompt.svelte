@@ -79,7 +79,7 @@
 	.prompt {
 		padding: var(--space-5);
 		border-radius: var(--radius-md);
-		background: var(--paper-sunk);
+		background: var(--sunk);
 	}
 
 	h2 {
@@ -111,7 +111,7 @@
 	}
 
 	label:has(:checked) {
-		background: var(--paper);
+		background: var(--surface);
 	}
 
 	label:has(:focus-visible) {
