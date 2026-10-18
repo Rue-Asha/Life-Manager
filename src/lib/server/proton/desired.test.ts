@@ -175,3 +175,76 @@ describe('desiredState: todos', () => {
 		expect(done.label).toBe('Taxes');
 	});
 });
+
+describe('desiredState: rule series', () => {
+	it('Scenario: Rule series starts the week after the active sprint', () => {
+		sprint('active', '2026-10-12');
+		const gym = rule('Gym', '1,4', '18:00', '19:00');
+		const items = desiredState(db, TODAY);
+		expect(item(items, `rule:${gym}`)).toEqual({
+			key: `rule:${gym}`,
+			aspectId: aspect,
+			label: 'Gym',
+			spec: {
+				title: 'Gym',
+				description: '',
+				location: '',
+				date: '2026-10-19',
+				start: '18:00',
+				end: '19:00',
+				durationMin: null,
+				rrule: 'FREQ=WEEKLY;BYDAY=MO,TH',
+				exdates: []
+			}
+		});
+	});
+
+	it('Scenario: Series start lands on a rule weekday', () => {
+		sprint('active', '2026-10-12');
+		const tueThu = rule('Seminar', '4,2', '10:00');
+		const sun = rule('Review', '7');
+		const items = desiredState(db, TODAY);
+		expect(item(items, `rule:${tueThu}`).spec).toMatchObject({ date: '2026-10-20', rrule: 'FREQ=WEEKLY;BYDAY=TU,TH', durationMin: 30 });
+		expect(item(items, `rule:${sun}`).spec).toMatchObject({ date: '2026-10-25', rrule: 'FREQ=WEEKLY;BYDAY=SU' });
+	});
+
+	it('Scenario: Series start without an active sprint is the first rule weekday on or after today', () => {
+		const wed = rule('Midweek', '3');
+		const thu = rule('Later', '4');
+		const items = desiredState(db, TODAY);
+		expect(item(items, `rule:${wed}`).spec.date).toBe('2026-10-14');
+		expect(item(items, `rule:${thu}`).spec.date).toBe('2026-10-15');
+	});
+
+	it('Scenario: Rule without a slot is an all-day series', () => {
+		sprint('active', '2026-10-12');
+		const id = rule('Water plants', '5');
+		expect(item(desiredState(db, TODAY), `rule:${id}`).spec).toMatchObject({ start: null, end: null, durationMin: null });
+	});
+
+	it('Scenario: Rules of archived classes have no series', () => {
+		const uni = insert("INSERT INTO aspects (name, color, icon, position, created_at) VALUES ('Uni', 'sky', 'book', 1, '')");
+		setUni(uni);
+		const cls = uniClass(semester('SS', '2026-09-30'), 'Old class', { room: 'HS 1' });
+		const live = uniClass(semester('WS'), 'Live class', { room: 'HS 2' });
+		const archived = rule('Old lecture', '2', '08:00', null, cls);
+		const current = rule('Live lecture', '2', '08:00', null, live);
+		const items = desiredState(db, TODAY);
+		expect(items.map((i) => i.key)).not.toContain(`rule:${archived}`);
+		expect(item(items, `rule:${current}`).spec.location).toBe('HS 2');
+	});
+
+	it('Scenario: Series excludes days with a real instance', () => {
+		const active = sprint('active', '2026-10-12');
+		const gym = rule('Gym', '1,4');
+		const other = rule('Other', '1');
+		todo('Gym', { day: '2026-10-12', sprintId: active, ruleId: gym });
+		todo('Gym', { day: '2026-10-22', sprintId: active, ruleId: gym });
+		todo('Gym', { day: '2026-10-19', sprintId: active, ruleId: gym });
+		todo('Gym off day', { day: '2026-10-20', sprintId: active, ruleId: gym });
+		todo('Other', { day: '2026-10-26', ruleId: other });
+		const items = desiredState(db, TODAY);
+		expect(item(items, `rule:${gym}`).spec).toMatchObject({ date: '2026-10-19', exdates: ['2026-10-19', '2026-10-22'] });
+		expect(item(items, `rule:${other}`).spec).toMatchObject({ date: '2026-10-19', exdates: ['2026-10-26'] });
+	});
+});
