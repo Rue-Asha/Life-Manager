@@ -208,13 +208,13 @@ export function startSprint(db: DatabaseSync, today: IsoDate, suggestedIds: Id[]
 		const draft = planningDraft(db);
 		const weekStart = targetWeek(today);
 		const weekEnd = addDays(weekStart, 6);
-		// A suggested todo keeps a day inside the new week; any other planned date is dropped with its slot.
+		// A suggested todo keeps a day inside the new week and drops an earlier one with its slot; a later week's todo stays in the backlog, since the ids come from the client.
 		const pull = db.prepare(
 			`UPDATE todos SET sprint_id = ?1,
 			 day = CASE WHEN day BETWEEN ?3 AND ?4 THEN day END,
 			 start_time = CASE WHEN day BETWEEN ?3 AND ?4 THEN start_time END,
 			 end_time = CASE WHEN day BETWEEN ?3 AND ?4 THEN end_time END
-			 WHERE id = ?2 AND sprint_id IS NULL`
+			 WHERE id = ?2 AND sprint_id IS NULL AND (day IS NULL OR day <= ?4)`
 		);
 		for (const id of suggestedIds) if (todoWritable(db, id).ok) pull.run(draft.id, id, weekStart, weekEnd);
 		const backlogIds = (where: string, ...params: SQLInputValue[]) =>

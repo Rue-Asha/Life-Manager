@@ -182,6 +182,12 @@ describe('sprint planning', () => {
 		expect(row(id)).toMatchObject({ sprint_id: null, day: '2026-11-03', start_time: '10:00' });
 	});
 
+	it('Scenario: Stale suggested id of a todo planned for a later week stays in the backlog', () => {
+		const id = todo('Tax return', { dueDate: '2026-10-22', day: '2026-11-03', startTime: '10:00' });
+		startSprint(db, '2026-10-18', [id]);
+		expect(row(id)).toMatchObject({ sprint_id: null, day: '2026-11-03', start_time: '10:00' });
+	});
+
 	it('Scenario: Missed planned todo joins the next sprint unscheduled', () => {
 		const id = todo('Dentist', { day: '2026-10-14', startTime: '18:00' });
 		const started = startSprint(db, '2026-10-18', []);
