@@ -105,3 +105,35 @@ test('Scenario: Resync all re-pushes every item and recreates missing events', a
 	expect(ops.filter((k) => k === 'event.create')).toHaveLength(1);
 	expect(fake().calls().slice(before).find((c) => c.op!.kind === 'event.update' && c.code === 3)).toBeTruthy();
 });
+
+test('Scenario: Sync page fits a phone', async ({ page, request }) => {
+	await page.setViewportSize({ width: 375, height: 812 });
+	const fits = async (name: string) => {
+		await expect(page.getByRole('heading', { name: 'Proton sync' })).toBeVisible();
+		const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+		expect(overflow).toBeLessThanOrEqual(0);
+		await page.screenshot({ path: `test-results/shots/sync-${name}-375.png`, fullPage: true });
+	};
+
+	await seed(request, {
+		aspects: ASPECTS,
+		todos: [{ title: 'Draft the cover letter for the summer internship application and send it to everyone', day: TODAY }]
+	});
+	await page.goto('/sync');
+	await expect(page.getByTestId('sync-off')).toBeVisible();
+	await fits('off');
+
+	await protonOn(request, { profile: 'a-rather-long-profile-name-for-the-server-login' });
+	fake().fail({ kind: '*', code: 2, error: 'Error: session expired, run the login command again to get a new token' });
+	await protonPass(request);
+	await page.goto('/sync');
+	await expect(page.getByTestId('sync-login-command')).toBeVisible();
+	await fits('relogin');
+
+	fake().clearFailures();
+	fake().fail({ kind: 'event.create', code: 1, error: 'Error: ambiguous local time between two offsets in Europe/Berlin' });
+	await protonPass(request);
+	await page.goto('/sync');
+	await expect(page.getByTestId('sync-failed-item')).toBeVisible();
+	await fits('failed');
+});
