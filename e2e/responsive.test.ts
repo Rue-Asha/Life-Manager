@@ -122,6 +122,7 @@ const screens = (aspect: number, project: number, cls: number) => [
 	['/sprint?view=board', 'sprint-board'],
 	['/sprint?view=week', 'sprint-week'],
 	['/sprint/review', 'review'],
+	['/calendar', 'calendar'],
 	['/backlog', 'backlog'],
 	['/aspects', 'aspects'],
 	[`/aspects/${aspect}`, 'aspect-page'],
@@ -207,6 +208,7 @@ test('Scenario: Phone home list drills into each list', async ({ page, request }
 	for (const [name, path] of [
 		['Today', '/'],
 		['Sprint', '/sprint'],
+		['Calendar', '/calendar'],
 		['Backlog', '/backlog'],
 		['Recurring', '/recurring'],
 		['Projects', '/projects'],
