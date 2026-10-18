@@ -3,6 +3,7 @@ triage: 'feature — one-way sync of planned todos, recurring series and exams i
 base: main
 gate0: 2026-10-18
 gate1: 2026-10-18
+gate2: 2026-10-18
 ship_note: 'Rue at Gate 2 (2026-10-18): one extra fix round for the 6 open round-3 findings, then a short verify and back to Gate 2; ship = merge + tag v0.6.0'
 learnings:
   - 'Planner on a background sync worker (subprocess + DB reconciler) → add scenarios for: pacing across consecutive passes, a pass that throws, domain writes (e.g. aspect delete) landing mid-pass, malformed subprocess output with exit 0, and error state clearing when an item matches again (weil: reviewer rounds 1 and 2 found 5 correctness bugs in exactly these paths while 300+ tests were green) [2026-10-18 · proton-calendar-sync]'
