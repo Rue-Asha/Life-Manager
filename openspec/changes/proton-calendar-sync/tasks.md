@@ -75,4 +75,4 @@ Journeys drive the real domain functions (`setDay`, `updateTodo`, `toggleDone`, 
 
 > unit: depends=5,6 · scope=none · files=package.json, package-lock.json
 
-- [ ] 7.1 Bump the version to 0.6.0 (`npm version 0.6.0 --no-git-tag-version`; feature → minor, per the repo's ship memory); `npm run proof:full` green (background, full rerun on red). The tag `v0.6.0` is pushed by the shipper after the merge, not here. The manual scenario "Planned todo appears in a real Proton calendar" is Rue's Gate 2 check
+- [x] 7.1 Bump the version to 0.6.0 (`npm version 0.6.0 --no-git-tag-version`; feature → minor, per the repo's ship memory); `npm run proof:full` green (background, full rerun on red). The tag `v0.6.0` is pushed by the shipper after the merge, not here. The manual scenario "Planned todo appears in a real Proton calendar" is Rue's Gate 2 check
