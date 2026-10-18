@@ -1,20 +1,20 @@
-verified-at: 0df3b94
+verified-at: 8d4b067
 
 ## Layer 1: proof:full (PORT=4700), exit 0
 
 ```
 Test Files  21 passed (21)
-     Tests  294 passed (294)
-  323 passed (2.6m)   (e2e)
+     Tests  297 passed (297)
+  323 passed (2.5m)   (e2e)
 ```
 
 Last e2e line: `✓ 323 e2e/uni.test.ts:623:1 › Scenario: Nothing due shows an empty line`
 
 `openspec validate proton-calendar-sync --strict`: valid.
 
-## Layer 2: spec coverage (109 scenarios: 88 unit, 19 e2e, 2 manual)
+## Layer 2: spec coverage (112 scenarios: 91 unit, 19 e2e, 2 manual)
 
-Every unit/e2e scenario has a test named `Scenario: <title>` (or the name in its proof line) that appears as passed in the proof:full output: 107 of 107 covered, 0 gaps. Round 2 added 6 scenarios (103 -> 109), all with a direct name match in the output.
+Every unit/e2e scenario has a test named `Scenario: <title>` (or the name in its proof line) that appears as passed in the proof:full output: 110 of 110 covered, 0 gaps. Round 3 added 3 scenarios (109 -> 112), all with a direct name match in the output.
 Aliased proof lines, all resolved:
 
 | Scenario | proof | Evidence |
@@ -25,18 +25,18 @@ Aliased proof lines, all resolved:
 | README documents setup, scripts and env vars | manual (documentation) | see checklist |
 | Planned todo appears in a real Proton calendar | manual (needs a real Proton account) | see checklist |
 
-All other 104 scenarios: direct name match, passed in the output.
+All other 107 scenarios: direct name match, passed in the output.
 
 ## Manual checklist
 
 - README: read it; confirm it covers setup, npm scripts and the env vars PROTON_CLI, profile and XDG_CONFIG_HOME.
-- Real Proton: set PROTON_CLI to the real `proton` binary, `proton auth login`, `npm run dev`, plan a todo for today, open http://localhost:5173/sync, press Sync now, and check the event appears in the aspect's calendar in Proton.
+- Real Proton: set PROTON_CLI to the real `proton` binary, run `proton account login --profile <profile>`, `npm run dev`, plan a todo for today, open http://localhost:5173/sync, press Sync now, and check the event appears in the aspect's calendar in Proton.
 - Judge the /sync screenshots below (375 px and 1280 px states).
 
 ## Diffstat (origin/main...flow/proton-calendar-sync)
 
 ```
-50 files changed, 5284 insertions(+), 21 deletions(-)
+50 files changed, 5357 insertions(+), 21 deletions(-)
 ```
 
 ## Screenshots (not committed; no UI file changed since round 1)
