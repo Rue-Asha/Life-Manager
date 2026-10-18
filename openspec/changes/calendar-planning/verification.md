@@ -220,3 +220,25 @@ Counts: sprint-lifecycle 38, calendar 24, today 20, sprint-views 18, todos 18, r
 ## Screenshots
 
 Regenerated this round, not committed: `/tmp/claude-1001/-home-Rue-Repos-Life-Manager/7a0fc7a3-a8ec-4868-84ca-c29395789b5d/scratchpad/shots/` (calendar-oct-375, calendar-oct-1440, calendar-nov-375, calendar-nov-1440, backlog-planned-375, editor-375, editor-1440, plan-375, plan-1440, board-1440).
+
+## Review
+
+Three rounds of fresh-context review (opus), each followed by a fixer except the last.
+
+### Round 1 (at aa64055) → fixed in 842921d, 335e5a2, 4f08aab, a7df9f5
+- [correctness] Editor save turned a due date into a planned day (derived `day` from onDueDay/listToday posted back) → read models keep the stored `day`, derived day moved to `dueDay` + `shownDay()`; regression unit + e2e, red first.
+- [correctness] Recurring instance planned into a later week lost its date at sprint start (placeCarried), and doubled in the calendar → orchestrator decision D1: refused with `recurring-outside-week` (rule "recurring instances have no backlog" kept); spec + unit + e2e.
+- [spec] Board card showed a dated planned-label for undayed todos → same source fix.
+- [spec] createTodo day target vs sprint target under review-required → decision D2: scenario documents that a day target follows the placement rule; sprint target unchanged.
+- [weak] 4 tests tightened (instance slot vs rule, read models incl. listToday/listRules, migration 5 compares aspects/sprints, archived plan refusal checks the slot); each checked against a mutation.
+
+### Round 2 (at 519aeb6) → fixed in e8bcf04, 69e43de, a4c5b87
+- [visual, verifier] Board card clipped the slot at 1440 → meta line wraps; e2e measures it.
+- [weak + correctness] Calendar selection reset to today after every save → reset keyed on month; test asserts the day list heading.
+- [spec] Archived-class todos listed under "Joins automatically" but never pulled → excluded from listPlannedForWeek; spec states the skip.
+
+### Round 3 (at a4c5b87) — open, round limit reached, taken to Gate 2
+- [weak] e2e/todo-planning.test.ts:281 "Sprint row shows the slot next to its day": the THEN puts a day control on Today rows, which never render one; the test checks the control only on By aspect (spec wording issue, see also learning candidate).
+- [spec] Recurring instance set to a past date outside its week returns `day-in-past` instead of `recurring-outside-week` (nothing written; only the error code/message differs).
+- [spec] startSprint clears a later-week planned date when a stale plan page sends that todo's id in suggestedIds (two-tab race; server trusts client ids).
+- [correctness, interpretation] On the Sunday after the review closes, a Sunday rule's done instance and its projection both show on that day (projection starts at today when no sprint is active).
