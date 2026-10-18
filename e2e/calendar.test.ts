@@ -232,3 +232,40 @@ test('Scenario: Selected day defaults to the 1st in another month', async ({ pag
 	await expect(cell(page, '2026-12-01')).toHaveAttribute('aria-pressed', 'true');
 	await expect(page.getByTestId('calendar-day-list')).toContainText('Advent brunch');
 });
+
+test('Scenario: Todo entry opens the editor', async ({ page, request }) => {
+	await seed(request, { aspects: [HEALTH], todos: [{ title: 'Dentist', day: '2026-10-21', startTime: '09:00' }] });
+	await page.setViewportSize({ width: 1280, height: 900 });
+	await openCalendar(page);
+	await cell(page, '2026-10-21').click();
+
+	await page.getByTestId('calendar-day-list').getByTestId('calendar-entry').getByRole('button', { name: 'Dentist' }).click();
+	await expect(page.getByRole('form', { name: 'Edit todo' }).getByRole('textbox', { name: 'Title' })).toHaveValue('Dentist');
+});
+
+test('Scenario: Projected occurrence links to its rule', async ({ page, request }) => {
+	const { rules } = await seed(request, { aspects: [HEALTH], rules: [{ title: 'Gym', weekdays: [4] }] });
+	await page.setViewportSize({ width: 1280, height: 900 });
+	await openCalendar(page);
+	await cell(page, '2026-10-15').click();
+
+	await page.getByTestId('calendar-day-list').getByRole('link', { name: /Gym/ }).click();
+	await expect(page).toHaveURL(new RegExp(`/recurring#rule-${rules[0]}$`));
+	await expect(page.locator(`[data-testid="rule-row"][data-rule-id="${rules[0]}"]`)).toBeVisible();
+});
+
+test('Scenario: Exam links to its class', async ({ page, request }) => {
+	const { classes } = await seed(request, {
+		aspects: [HEALTH, { name: 'Uni', color: 'lavender', icon: 'book' }],
+		uniAspect: 1,
+		semesters: [{ name: 'WS 26/27' }],
+		classes: [{ semester: 0, name: 'Analysis', examAt: '2026-10-20T10:00', examRoom: 'H1' }]
+	});
+	await page.setViewportSize({ width: 1280, height: 900 });
+	await openCalendar(page);
+	await cell(page, '2026-10-20').click();
+
+	await page.getByTestId('calendar-day-list').getByRole('link', { name: /Analysis/ }).click();
+	await expect(page).toHaveURL(new RegExp(`/uni/classes/${classes[0]}$`));
+	await expect(page.getByRole('heading', { level: 1, name: 'Analysis' })).toBeVisible();
+});

@@ -13,11 +13,28 @@
 <script lang="ts">
 	import { dateLabel } from '$lib/components/todo/format';
 	import { slotLabel } from '$lib/slot';
-	import type { IsoDate } from '$lib/types';
+	import type { Id, IsoDate } from '$lib/types';
+	import TodoEditor from '../todo/TodoEditor.svelte';
 	import { UI_ICONS } from '../ui/icons';
 
 	let { day, entries, aspects }: { day: IsoDate; entries: CalendarEntry[]; aspects: Aspect[] } = $props();
+
+	let editing = $state<Id | null>(null);
 </script>
+
+{#snippet content(entry: CalendarEntry)}
+	<span class="title" class:done={entry.kind === 'todo' && entry.done}>{entry.title}</span>
+	<span class="meta num">
+		{slotLabel(entry.startTime, entry.endTime)}
+		{#if entry.kind === 'projection'}
+			<span class="tag">
+				<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.repeat} /></svg>Projected
+			</span>
+		{:else if entry.kind === 'exam'}
+			<span class="tag">Exam{entry.room ? ` · ${entry.room}` : ''}</span>
+		{/if}
+	</span>
+{/snippet}
 
 <section class="day" data-testid="calendar-day-list" aria-labelledby="day-title">
 	<h2 id="day-title">{dateLabel(day)}</h2>
@@ -28,19 +45,18 @@
 			{#each entries as entry, i (i)}
 				<li data-testid="calendar-entry" data-kind={entry.kind} style:--a={entryColor(entry, aspects)}>
 					<i class="mark" class:ring={entry.kind === 'projection'}></i>
-					<div class="body">
-						<span class="title" class:done={entry.kind === 'todo' && entry.done}>{entry.title}</span>
-						<span class="meta num">
-							{slotLabel(entry.startTime, entry.endTime)}
-							{#if entry.kind === 'projection'}
-								<span class="tag">
-									<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.repeat} /></svg>Projected
-								</span>
-							{:else if entry.kind === 'exam'}
-								<span class="tag">Exam{entry.room ? ` · ${entry.room}` : ''}</span>
-							{/if}
-						</span>
-					</div>
+					{#if entry.kind === 'todo'}
+						<button type="button" class="body" onclick={() => (editing = entry.todo.id)}>{@render content(entry)}</button>
+					{:else}
+						<a class="body" href={entry.kind === 'projection' ? `/recurring#rule-${entry.ruleId}` : `/uni/classes/${entry.classId}`}>
+							{@render content(entry)}
+						</a>
+					{/if}
+					{#if entry.kind === 'todo' && editing === entry.todo.id}
+						<div class="editor">
+							<TodoEditor todo={entry.todo} {aspects} open onclose={() => (editing = null)} />
+						</div>
+					{/if}
 				</li>
 			{/each}
 		</ul>
@@ -65,6 +81,7 @@
 
 	li {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: flex-start;
 		gap: var(--space-3);
 		padding: var(--space-3) var(--space-4);
@@ -91,8 +108,26 @@
 
 	.body {
 		display: grid;
+		flex: 1;
+		padding: 0;
+		border: 0;
+		background: none;
+		color: inherit;
+		font: inherit;
+		text-align: left;
+		text-decoration: none;
+		cursor: pointer;
 		min-width: 0;
 		gap: 2px;
+	}
+
+	.body:hover .title {
+		text-decoration: underline;
+	}
+
+	.editor {
+		flex: 0 0 100%;
+		min-width: 0;
 	}
 
 	.title {
