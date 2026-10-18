@@ -155,13 +155,15 @@ export function suggestedTodos(db: DatabaseSync, today: IsoDate): Todo[] {
 }
 
 export function listPlannedForWeek(db: DatabaseSync, weekStart: IsoDate): Todo[] {
-	return selectTodos(db, "sprint_id IS NULL AND status != 'done' AND day BETWEEN ? AND ?", weekStart, addDays(weekStart, 6)).sort(
-		(a, b) =>
+	// Archived-semester todos are read-only, so the start doesn't pull them and they don't join automatically.
+	return selectTodos(db, "sprint_id IS NULL AND status != 'done' AND day BETWEEN ? AND ?", weekStart, addDays(weekStart, 6))
+		.filter((t) => todoWritable(db, t.id).ok)
+		.sort((a, b) =>
 			a.day!.localeCompare(b.day!) ||
 			Number(a.startTime !== null) - Number(b.startTime !== null) ||
 			(a.startTime ?? '').localeCompare(b.startTime ?? '') ||
 			a.title.localeCompare(b.title)
-	);
+		);
 }
 
 export function pullTodo(db: DatabaseSync, todoId: Id): Result<Todo> {

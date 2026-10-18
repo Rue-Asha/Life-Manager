@@ -195,7 +195,9 @@ Starting a sprint SHALL pull every not-done backlog todo whose planned date fall
 sprint, keeping day and slot. The plan page SHALL list these todos in a section "Joins automatically" (test id
 `plan-auto`) with their planned label and without a pull or unpull control, and they are in neither the plan page's
 backlog list nor its suggestions; to exclude one, Rue changes its date. Done todos are not pulled. Pulling a backlog
-todo by hand into the draft clears its day and slot as before. (calendar-planning S6)
+todo by hand into the draft clears its day and slot as before. Todos of archived semesters are read-only: like the
+missed pull, the week pull skips them, and they are not listed under "Joins automatically"; they stay in the backlog
+with their day. (calendar-planning S6)
 
 #### Scenario: Starting a sprint pulls the week's planned todos
 - **WHEN** on Sunday 2026-10-18 the backlog holds "Dentist" planned Tuesday 2026-10-20 18:00–19:30, "Tax return" planned 2026-11-03, and a done todo planned 2026-10-21, and the sprint for 2026-10-19 is started
@@ -206,6 +208,11 @@ todo by hand into the draft clears its day and slot as before. (calendar-plannin
 - **WHEN** on Sunday a backlog todo planned for Tuesday of next week with 18:00–19:30 exists and Rue opens `/sprint/plan`
 - **THEN** it is listed under "Joins automatically", its row has no pull or unpull control and is not draggable, and it is not in the plan page's backlog list
 - **proof:** e2e
+
+#### Scenario: Archived class todo planned in the week is neither listed nor pulled
+- **WHEN** an open backlog todo of an archived semester's class is planned for Tuesday of the new week with 18:00, another open todo is planned for Wednesday, and the sprint starts
+- **THEN** `listPlannedForWeek` lists only the Wednesday todo, and after the start the archived todo is still in the backlog on Tuesday with 18:00 while the other is in the sprint
+- **proof:** unit
 
 #### Scenario: Pulling a planned todo by hand clears its date
 - **WHEN** during planning a backlog todo planned for a day three weeks ahead with 10:00 is pulled into the draft

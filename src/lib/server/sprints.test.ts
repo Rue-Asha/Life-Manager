@@ -210,6 +210,26 @@ describe('sprint planning', () => {
 		expect(row(id)).toMatchObject({ sprint_id: null, day: '2026-10-14', start_time: '18:00' });
 	});
 
+	it('Scenario: Archived class todo planned in the week is neither listed nor pulled', () => {
+		const semester = Number(
+			db.prepare("INSERT INTO semesters (name, archived_at, created_at) VALUES ('SS', 'a', 'c')").run().lastInsertRowid
+		);
+		const klass = Number(
+			db
+				.prepare(
+					"INSERT INTO classes (semester_id, name, color, icon, created_at, updated_at) VALUES (?, 'OS', 'sky', 'book', 'c', 'c')"
+				)
+				.run(semester).lastInsertRowid
+		);
+		const archived = todo('Lab report', { day: '2026-10-20', startTime: '18:00' });
+		db.prepare('UPDATE todos SET class_id = ? WHERE id = ?').run(klass, archived);
+		const open = todo('Dentist', { day: '2026-10-21' });
+		expect(listPlannedForWeek(db, '2026-10-19').map((t) => t.id)).toEqual([open]);
+		startSprint(db, '2026-10-18', []);
+		expect(row(archived)).toMatchObject({ sprint_id: null, day: '2026-10-20', start_time: '18:00' });
+		expect(row(open)?.sprint_id).not.toBeNull();
+	});
+
 	it('listPlannedForWeek lists open backlog todos of the week by day and start time', () => {
 		const late = todo('Late', { day: '2026-10-20', startTime: '18:00' });
 		const allDay = todo('All day', { day: '2026-10-20' });
