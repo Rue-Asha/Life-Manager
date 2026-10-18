@@ -10,6 +10,7 @@
 	import ListGroup from '../../lib/components/ui/ListGroup.svelte';
 	import PageHeader from '../../lib/components/ui/PageHeader.svelte';
 	import Sheet from '../../lib/components/ui/Sheet.svelte';
+	import { slotLabel } from '../../lib/slot';
 	import type { RecurringRule } from '../../lib/types';
 
 	let { data } = $props();
@@ -46,7 +47,7 @@
 			{#each data.rules as rule (rule.id)}
 				{@const aspect = aspectById.get(rule.aspectId)!}
 				{@const classRef = rule.classId === null ? undefined : classById.get(rule.classId)}
-				<li data-testid="rule-row" data-rule-id={rule.id}>
+				<li id="rule-{rule.id}" data-testid="rule-row" data-rule-id={rule.id}>
 					<button type="button" class="row" onclick={() => openForm(rule)}>
 						<span class="title">{rule.title}</span>
 						<span class="meta">
@@ -57,6 +58,9 @@
 							{#each WEEKDAYS.filter((d) => rule.weekdays.includes(d.value)) as day (day.value)}
 								<span class="day" data-testid="rule-weekday" title={day.long}>{day.short}</span>
 							{/each}
+							{#if rule.startTime}
+								<span class="slot num" data-testid="rule-slot">{slotLabel(rule.startTime, rule.endTime)}</span>
+							{/if}
 						</span>
 						<span class="end">
 							{#if rule.checklist.length}
@@ -177,6 +181,12 @@
 		background: var(--sunk);
 		color: var(--ink-2);
 		font-size: var(--text-sm);
+	}
+
+	.slot {
+		margin-left: var(--space-1);
+		font-size: var(--text-sm);
+		color: var(--ink-2);
 	}
 
 	.end {
