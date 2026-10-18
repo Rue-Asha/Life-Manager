@@ -115,4 +115,72 @@ describe('proton worker', () => {
 		configureWorker(CFG, { pass, db, debounceMs: 3_600_000, tickMs: 3_600_000 });
 		expect(syncStatus()).toMatchObject({ state: 'idle', lastSyncAt: '2026-10-18T10:00:00.000Z', passes: 0 });
 	});
+
+	it('Scenario: Network failure backs off up to 30 minutes', async () => {
+		const retry: PassOutcome = { kind: 'retry', error: 'Error: network down' };
+		const pass = vi.fn<() => Promise<PassOutcome>>(async () => retry);
+		configureWorker(CFG, { pass, db, debounceMs: 1000, tickMs: 60_000 });
+		await vi.advanceTimersByTimeAsync(1000);
+		expect(syncStatus()).toMatchObject({ state: 'error', lastError: 'Error: network down', nextRetryAt: '2026-10-18T10:01:01.000Z' });
+
+		nudge();
+		await vi.advanceTimersByTimeAsync(5000);
+		expect(pass).toHaveBeenCalledTimes(1);
+
+		const minutes = [1, 2, 4, 8, 16, 30, 30];
+		let calls = 1;
+		for (const [i, m] of minutes.entries()) {
+			const next = i + 1 < minutes.length ? minutes[i + 1] : 30;
+			await vi.advanceTimersByTimeAsync(m * 60_000 - (i === 0 ? 5000 : 0) - 1);
+			expect(pass).toHaveBeenCalledTimes(calls);
+			await vi.advanceTimersByTimeAsync(1);
+			expect(pass).toHaveBeenCalledTimes(++calls);
+			expect(syncStatus().nextRetryAt).toBe(new Date(Date.now() + next * 60_000).toISOString());
+		}
+
+		pass.mockResolvedValue(DONE);
+		await vi.advanceTimersByTimeAsync(30 * 60_000);
+		expect(syncStatus()).toMatchObject({ state: 'idle', lastError: null, nextRetryAt: null });
+		pass.mockResolvedValueOnce(retry);
+		await syncNow();
+		expect(syncStatus().nextRetryAt).toBe(new Date(Date.now() + 60_000).toISOString());
+	});
+
+	it('Scenario: Auth failure pauses sync until Sync now', async () => {
+		const pass = vi
+			.fn<() => Promise<PassOutcome>>()
+			.mockResolvedValueOnce({ kind: 'relogin', error: 'Error: session expired' })
+			.mockResolvedValue(DONE);
+		configureWorker(CFG, { pass, db, debounceMs: 1000, tickMs: 60_000 });
+		await vi.advanceTimersByTimeAsync(1000);
+		expect(syncStatus()).toMatchObject({ state: 'relogin', lastError: 'Error: session expired', nextRetryAt: '2026-10-18T10:30:01.000Z' });
+
+		nudge();
+		await vi.advanceTimersByTimeAsync(29 * 60_000);
+		expect(pass).toHaveBeenCalledTimes(1);
+
+		expect(await syncNow()).toEqual(DONE);
+		expect(syncStatus()).toMatchObject({ state: 'idle', lastError: null, nextRetryAt: null });
+
+		pass.mockResolvedValueOnce({ kind: 'relogin', error: 'again' });
+		await syncNow();
+		await vi.advanceTimersByTimeAsync(30 * 60_000);
+		expect(pass).toHaveBeenCalledTimes(4);
+		expect(syncStatus().state).toBe('idle');
+	});
+
+	it('Scenario: Missing binary sets state error', async () => {
+		const pass = vi
+			.fn<() => Promise<PassOutcome>>()
+			.mockResolvedValueOnce({ kind: 'error', error: 'spawn /bin/proton ENOENT' })
+			.mockResolvedValue(DONE);
+		configureWorker(CFG, { pass, db, debounceMs: 1000, tickMs: 3_600_000 });
+		await vi.advanceTimersByTimeAsync(1000);
+		expect(syncStatus()).toMatchObject({ state: 'error', lastError: 'spawn /bin/proton ENOENT', nextRetryAt: null });
+
+		nudge();
+		await vi.advanceTimersByTimeAsync(1000);
+		expect(pass).toHaveBeenCalledTimes(2);
+		expect(syncStatus()).toMatchObject({ state: 'idle', lastError: null });
+	});
 });
