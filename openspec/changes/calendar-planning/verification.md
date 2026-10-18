@@ -1,6 +1,6 @@
-verified-at: 827f1cf
+verified-at: 0437362
 
-## Layer 1 — `npm run proof:full` (round 4): green
+## Layer 1 — `npm run proof:full` (round 5, final pass): green
 
 ```
 Test Files  13 passed (13)
@@ -11,9 +11,9 @@ exit 0
 
 ## Layer 2 — spec coverage
 
-153 scenarios: 152 automated, all found by name in the green output; 1 manual. Gaps: none.
+155 scenarios: 154 automated, all found by name in the green output; 1 manual. Gaps: none.
 
-Counts: sprint-lifecycle 38, calendar 25, today 20, sprint-views 18, todos 18, recurring 16, navigation 11, backlog 7. No ✗ rows.
+Counts: sprint-lifecycle 40, calendar 25, today 20, sprint-views 18, todos 18, recurring 16, navigation 11, backlog 7. No ✗ rows.
 
 ### backlog
 
@@ -136,6 +136,8 @@ Counts: sprint-lifecycle 38, calendar 25, today 20, sprint-views 18, todos 18, r
 | Planned todo travels to its day in the Week view | e2e | `e2e/plan-ahead.test.ts` › "Scenario: Planned todo travels to its day in the Week view" ✓ |
 | Missed planned todo joins the next sprint unscheduled | unit | `src/lib/server/sprints.test.ts` › "Scenario: Missed planned todo joins the next sprint unscheduled" ✓ |
 | Archived class todos are not pulled | unit | `src/lib/server/sprints.test.ts` › "Scenario: Archived class todos are not pulled" ✓ |
+| Recurring instance planned for a past date is refused as outside its week | unit | `src/lib/server/sprints.test.ts` › "Scenario: Recurring instance planned for a past date is refused as outside its week" ✓ |
+| Stale suggested id of a todo planned for a later week stays in the backlog | unit | `src/lib/server/sprints.test.ts` › "Scenario: Stale suggested id of a todo planned for a later week stays in the backlog" ✓ |
 
 ### sprint-views
 
@@ -216,7 +218,7 @@ Counts: sprint-lifecycle 38, calendar 25, today 20, sprint-views 18, todos 18, r
 
 ## Diffstat
 
-67 files changed, 4628 insertions(+), 149 deletions(-)
+67 files changed, 4642 insertions(+), 149 deletions(-)
 
 ## Screenshots
 
