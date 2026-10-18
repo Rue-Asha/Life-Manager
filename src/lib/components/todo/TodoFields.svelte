@@ -3,6 +3,7 @@
 	import { ASPECT_COLORS } from '$lib/aspect-style';
 	import { page } from '$app/state';
 	import type { Aspect, ClassRef, ClassType, HhMm, Id, IsoDate, Priority, ProjectRef } from '$lib/types';
+	import { endAfter, lengthLabel, nextHour, shiftEnd, slotLength } from '$lib/slot';
 	import { CLASS_TYPES, TYPE_LABELS } from '$lib/uni';
 	import AspectIcon from '../ui/AspectIcon.svelte';
 	import { UI_ICONS } from '../ui/icons';
@@ -57,6 +58,35 @@
 	const classShown = $derived(aspectId === (page.data.uniAspectId ?? null) && classes.length > 0);
 	const cls = $derived(classes.find((c) => c.id === classId));
 	const typeShown = $derived(classShown && cls !== undefined);
+
+	const LENGTHS = [
+		[30, '30m'],
+		[60, '1h'],
+		[90, '1h30'],
+		[120, '2h']
+	] as const;
+	const length = $derived(startTime && endTime ? slotLength(startTime, endTime) : null);
+	const backwards = $derived(startTime !== '' && endTime !== '' && length === null);
+	// A start being retyped reads '' until it is complete again. Clearing it clears the end, but the
+	// slot is kept so the end comes back, moved along, once a new start is in.
+	let cleared: { startTime: HhMm; endTime: HhMm | '' } | null = null;
+
+	function setStart(value: HhMm | '') {
+		if (!value) {
+			if (startTime) cleared = { startTime, endTime };
+			startTime = endTime = '';
+			return;
+		}
+		const from = startTime ? { startTime, endTime } : endTime ? null : cleared;
+		if (from?.endTime) endTime = shiftEnd(from.startTime, value, from.endTime) ?? '';
+		startTime = value;
+		cleared = null;
+	}
+
+	function addTime() {
+		startTime = nextHour(new Date());
+		endTime = endAfter(startTime, 60) ?? '';
+	}
 </script>
 
 <div class="chips">
@@ -150,31 +180,38 @@
 				</button>
 			{/if}
 		</span>
-		<label class="chip" class:pressed={startTime} class:off={!plannedDay}>
-			<span class="field">From</span>
-			<span class="num value" class:unset={!startTime}>{startTime || 'From'}</span>
-			<input
-				type="time"
-				name="startTime"
-				aria-label="From"
-				disabled={!plannedDay}
-				bind:value={startTime}
-				oninput={() => startTime || (endTime = '')}
-				onclick={(e) => e.currentTarget.showPicker()}
-			/>
-		</label>
-		<label class="chip" class:pressed={endTime} class:off={!startTime}>
-			<span class="field">To</span>
-			<span class="num value" class:unset={!endTime}>{endTime || 'To'}</span>
-			<input
-				type="time"
-				name="endTime"
-				aria-label="To"
-				disabled={!startTime}
-				bind:value={endTime}
-				onclick={(e) => e.currentTarget.showPicker()}
-			/>
-		</label>
+		{#if plannedDay}
+			<div class="slot" role="group" aria-label="Time" data-testid="slot-field">
+				<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.clock} /></svg>
+				<span class="field">Time</span>
+				<span class="times">
+					<input type="time" name="startTime" aria-label="From" bind:value={() => startTime, setStart} />
+					<span class="arrow" aria-hidden="true">→</span>
+					<input type="time" name="endTime" aria-label="To" bind:value={endTime} />
+				</span>
+				{#if startTime}
+					{#if length}<span class="length num" data-testid="slot-length">{lengthLabel(length)}</span>{/if}
+					<span class="lengths" role="group" aria-label="Length">
+						{#each LENGTHS as [minutes, label] (minutes)}
+							<button
+								type="button"
+								aria-pressed={length === minutes}
+								disabled={endAfter(startTime, minutes) === null}
+								onclick={() => (endTime = endAfter(startTime, minutes)!)}>{label}</button
+							>
+						{/each}
+					</span>
+					<button type="button" class="clear" aria-label="Clear time" onclick={() => ((startTime = endTime = ''), (cleared = null))}>
+						<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.x} /></svg>
+					</button>
+				{:else}
+					<button type="button" class="add-time" onclick={addTime}>
+						<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.plus} /></svg>Add time
+					</button>
+				{/if}
+				{#if backwards}<span class="hint">End must be after start</span>{/if}
+			</div>
+		{/if}
 	{/if}
 
 	{#if projectShown}
@@ -224,11 +261,6 @@
 		box-shadow: var(--ring-focus);
 	}
 
-	.off {
-		opacity: 0.5;
-		cursor: default;
-	}
-
 	.pressed {
 		background: var(--chrome);
 		color: var(--on-chrome);
@@ -244,8 +276,8 @@
 		display: none;
 	}
 
-	select,
-	input {
+	.chip select,
+	.chip input {
 		position: absolute;
 		inset: 0;
 		width: 100%;
@@ -320,6 +352,103 @@
 	.clear svg {
 		width: 14px;
 		height: 14px;
+	}
+
+	/* The time row sits under the chips, so From → To reads as one line beside its shortcuts. */
+	.slot {
+		order: 1;
+		display: flex;
+		flex-basis: 100%;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-2);
+		color: var(--ink-2);
+		font-size: var(--text-sm);
+	}
+
+	.times {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-1);
+	}
+
+	.times input {
+		height: 28px;
+		padding: 0 var(--space-2);
+		border: 0;
+		border-radius: var(--radius-pill);
+		background: var(--sunk);
+		color: var(--ink);
+		font: inherit;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.times input:focus-visible {
+		outline: none;
+		box-shadow: var(--ring-focus);
+	}
+
+	.arrow {
+		color: var(--ink-3);
+	}
+
+	.length {
+		color: var(--ink-3);
+	}
+
+	.lengths {
+		display: inline-flex;
+		height: 28px;
+		padding: 2px;
+		border-radius: var(--radius-pill);
+		background: var(--sunk);
+	}
+
+	.lengths button {
+		padding: 0 10px;
+		border: 0;
+		border-radius: var(--radius-pill);
+		background: none;
+		color: var(--ink-2);
+		font-size: var(--text-xs);
+		font-weight: var(--weight-semibold);
+		font-variant-numeric: tabular-nums;
+		cursor: pointer;
+	}
+
+	.lengths button[aria-pressed='true'] {
+		background: var(--surface);
+		color: var(--ink);
+		box-shadow: var(--shadow-pop);
+	}
+
+	.lengths button:disabled {
+		color: var(--ink-3);
+		cursor: default;
+	}
+
+	.add-time {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-1);
+		height: 28px;
+		padding: 0 var(--space-3) 0 10px;
+		border: 1px dashed var(--line-strong);
+		border-radius: var(--radius-pill);
+		background: none;
+		color: var(--ink-2);
+		font-size: var(--text-sm);
+		cursor: pointer;
+	}
+
+	.add-time:hover {
+		background: var(--sunk);
+		color: var(--ink);
+	}
+
+	.hint {
+		flex-basis: 100%;
+		color: var(--overdue);
 	}
 
 	/* Phone: the chips become one grouped list of rows, "icon · name · value ›" (iOS / C24 settings). */
@@ -405,6 +534,39 @@
 		.seg {
 			align-self: flex-start;
 			margin: var(--space-2) var(--space-4);
+		}
+
+		.slot {
+			order: 0;
+			gap: var(--space-2) var(--space-3);
+			min-height: 48px;
+			padding: var(--space-2) var(--space-4);
+			color: var(--ink);
+			font-size: var(--text-md);
+		}
+
+		.slot .field {
+			margin-right: auto;
+		}
+
+		.times {
+			flex: 1 1 100%;
+		}
+
+		/* 16px keeps iOS from zooming in on the time fields. */
+		.times input {
+			flex: 1;
+			min-width: 0;
+			height: 36px;
+			font-size: 16px;
+		}
+
+		.slot .clear {
+			margin-right: 0;
+		}
+
+		.lengths {
+			height: 32px;
 		}
 
 		.label {

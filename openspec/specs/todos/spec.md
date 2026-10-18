@@ -247,7 +247,11 @@ models (`getTodo`/`listBacklog` and `selectTodos`) and the rule read model retur
 ### Requirement: Planned date and time slot
 The todo editor SHALL have a "Planned" field: a date (input labelled "Planned") plus an optional start and end
 time (inputs labelled "From" and "To", `HH:MM`, Europe/Berlin), settable on backlog and sprint todos and saved with the
-editor. Clearing the date clears both times. A date before today that is not a day of the active sprint week MUST be
+editor. Clearing the date clears both times.
+The time row ("From" → "To") SHALL be shown only while a date is set, as two visible, typeable time inputs that need no
+browser picker. "Add time" fills the next full hour (kept within 06:00–21:00) and one hour after it; length shortcuts
+30m, 1h, 1h30 and 2h set "To" from "From", the current one marked pressed, next to the length as text ("1 h 30 min");
+changing "From" moves "To" along, keeping the length, up to 23:59. A date before today that is not a day of the active sprint week MUST be
 refused with error `day-in-past` on field `day`, the editor showing a message and nothing being changed; every day of
 the active sprint week, including days before today, is allowed. For a recurring instance the `recurring-outside-week`
 rule of sprint-lifecycle "Mid-sprint changes" is checked first, so a past date outside its week is refused with that
@@ -278,7 +282,7 @@ with its day filled in, and a day column whose date was removed adds to the acti
 
 #### Scenario: Editor clears the times with the date
 - **WHEN** Rue opens a todo planned with 18:00–19:30, clears "Planned" and saves
-- **THEN** after reload the editor shows empty "Planned", "From" and "To" and the row has no `planned-label`
+- **THEN** "From" and "To" disappear at once, after reload the editor shows an empty "Planned" and the row has no `planned-label`, and setting a date again shows empty "From" and "To"
 - **proof:** e2e
 
 #### Scenario: Past date outside the active sprint week is refused
@@ -347,6 +351,26 @@ without a date is not stored. In the editor, clearing "From" clears "To". (S3)
 - **WHEN** Rue opens a todo planned with 18:00–19:30, clears "From" and saves
 - **THEN** "To" is empty, and after reload the todo keeps its date with no start or end time
 - **proof:** e2e
+
+#### Scenario: Time row appears only once a day is planned
+- **WHEN** Rue opens an unplanned todo, then sets "Planned" to 2026-11-03, types "To" 19:30 and then "From" 18:00
+- **THEN** there is no "From" or "To" before the date is set, both are editable after it, "To" keeps 19:30 and the length reads "1 h 30 min"
+- **proof:** e2e — `Regression: the time row appears only once a day is planned`
+
+#### Scenario: Add time and the length shortcuts set the end
+- **WHEN** Rue opens a todo planned for 2026-11-03 without a slot, clicks "Add time", then "2h", and saves
+- **THEN** "From" is a full hour, "To" is one hour after it with "1h" pressed, then two hours after it with the length "2 h", and the row shows that slot
+- **proof:** e2e — `Regression: Add time and the length chips set To`
+
+#### Scenario: Moving the start keeps the length
+- **WHEN** Rue changes "From" of a todo planned with 18:00–19:30 to 09:00 and saves
+- **THEN** "To" reads 10:30 and the row shows "Tue 3 Nov · 09:00–10:30"; `shiftEnd` stops the end at 23:59 and drops it when the start is 23:59
+- **proof:** e2e — `Regression: moving From keeps the length of the slot`; unit — `Regression: a moved start keeps the slot length`
+
+#### Scenario: Times are typed without a browser picker
+- **WHEN** in a browser whose `showPicker()` throws for time inputs (as Firefox does), Rue clicks "From" and types 1800, clicks "To" and types 1930, and saves
+- **THEN** no page error occurs, the fields read 18:00 and 19:30, and the row shows "Tue 3 Nov · 18:00–19:30"
+- **proof:** e2e — `Regression: From and To are typed in a browser without a time picker`
 
 #### Scenario: Creating with a bad slot or a past day stores nothing
 - **WHEN** today is 2026-10-14 with no active sprint, and todos are created for 2026-11-03 with 18:00–17:00, with only an end 17:00, with start 25:00, and for 2026-10-13 with 18:00

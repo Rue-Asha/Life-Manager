@@ -52,8 +52,8 @@ test('Scenario: Editor clears the times with the date', async ({ page, request }
 	await expect(editor(page).getByLabel('From', { exact: true })).toHaveValue('18:00');
 
 	await editor(page).getByLabel('Planned', { exact: true }).fill('');
-	await expect(editor(page).getByLabel('From', { exact: true })).toHaveValue('');
-	await expect(editor(page).getByLabel('To', { exact: true })).toHaveValue('');
+	await expect(editor(page).getByLabel('From', { exact: true })).toHaveCount(0);
+	await expect(editor(page).getByLabel('To', { exact: true })).toHaveCount(0);
 	await page.getByRole('button', { name: 'Save' }).click();
 	await expect(editor(page)).toHaveCount(0);
 
@@ -62,6 +62,7 @@ test('Scenario: Editor clears the times with the date', async ({ page, request }
 	await expect(row.getByTestId('planned-label')).toHaveCount(0);
 	await row.getByRole('button', { name: 'Dentist', exact: true }).click();
 	await expect(editor(page).getByLabel('Planned', { exact: true })).toHaveValue('');
+	await editor(page).getByLabel('Planned', { exact: true }).fill('2026-11-03');
 	await expect(editor(page).getByLabel('From', { exact: true })).toHaveValue('');
 	await expect(editor(page).getByLabel('To', { exact: true })).toHaveValue('');
 });
@@ -366,4 +367,86 @@ test('Regression: quick add in a week day column stores the slot on that day', a
 	await page.goto('/backlog');
 	await expect(page.getByRole('heading', { level: 1, name: 'Backlog' })).toBeVisible();
 	await expect(rowOf(page, 'Laundry')).toHaveCount(0);
+});
+
+const plusHour = (t: string, hours: number) => `${String(Number(t.slice(0, 2)) + hours).padStart(2, '0')}${t.slice(2)}`;
+
+test('Regression: the time row appears only once a day is planned', async ({ page, request }) => {
+	await seed(request, { aspects: [HEALTH], todos: [{ title: 'Dentist', aspect: 0 }] });
+	await openEditor(page, 'Dentist');
+
+	await expect(editor(page).getByLabel('From', { exact: true })).toHaveCount(0);
+	await expect(editor(page).getByLabel('To', { exact: true })).toHaveCount(0);
+	await editor(page).getByLabel('Planned', { exact: true }).fill('2026-11-03');
+	await expect(editor(page).getByLabel('From', { exact: true })).toBeVisible();
+	await expect(editor(page).getByLabel('To', { exact: true })).toBeVisible();
+	await editor(page).getByLabel('To', { exact: true }).fill('19:30');
+	await editor(page).getByLabel('From', { exact: true }).fill('18:00');
+	await expect(editor(page).getByLabel('To', { exact: true })).toHaveValue('19:30');
+	await expect(editor(page).getByTestId('slot-length')).toHaveText('1 h 30 min');
+});
+
+test('Regression: Add time and the length chips set To', async ({ page, request }) => {
+	await seed(request, { aspects: [HEALTH], todos: [{ title: 'Dentist', aspect: 0, day: '2026-11-03' }] });
+	await openEditor(page, 'Dentist');
+	const from = editor(page).getByLabel('From', { exact: true });
+	const to = editor(page).getByLabel('To', { exact: true });
+
+	await editor(page).getByRole('button', { name: 'Add time' }).click();
+	await expect(from).toHaveValue(/^\d\d:00$/);
+	const start = await from.inputValue();
+	await expect(to).toHaveValue(plusHour(start, 1));
+	await expect(editor(page).getByRole('button', { name: '1h', exact: true })).toHaveAttribute('aria-pressed', 'true');
+
+	await editor(page).getByRole('button', { name: '2h', exact: true }).click();
+	await expect(to).toHaveValue(plusHour(start, 2));
+	await expect(editor(page).getByTestId('slot-length')).toHaveText('2 h');
+	await page.getByRole('button', { name: 'Save' }).click();
+	await expect(editor(page)).toHaveCount(0);
+	await expect(rowOf(page, 'Dentist').getByTestId('planned-label')).toHaveText(`Tue 3 Nov · ${start}–${plusHour(start, 2)}`);
+});
+
+test('Regression: moving From keeps the length of the slot', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [HEALTH],
+		todos: [{ title: 'Dentist', aspect: 0, day: '2026-11-03', startTime: '18:00', endTime: '19:30' }]
+	});
+	await openEditor(page, 'Dentist');
+
+	await editor(page).getByLabel('From', { exact: true }).fill('09:00');
+	await expect(editor(page).getByLabel('To', { exact: true })).toHaveValue('10:30');
+	await page.getByRole('button', { name: 'Save' }).click();
+	await expect(editor(page)).toHaveCount(0);
+	await page.reload();
+	await expect(rowOf(page, 'Dentist').getByTestId('planned-label')).toHaveText('Tue 3 Nov · 09:00–10:30');
+});
+
+test.describe('without a native time picker', () => {
+	test.use({ locale: 'de-DE' });
+
+	test('Regression: From and To are typed in a browser without a time picker', async ({ page, request }) => {
+		// Firefox has no picker for time inputs and throws from showPicker(); Chromium is made to do the same.
+		await page.addInitScript(() => {
+			const showPicker = HTMLInputElement.prototype.showPicker;
+			HTMLInputElement.prototype.showPicker = function () {
+				if (this.type === 'time') throw new DOMException('No picker for time inputs', 'NotSupportedError');
+				return showPicker.call(this);
+			};
+		});
+		const errors: string[] = [];
+		page.on('pageerror', (e) => errors.push(e.message));
+		await seed(request, { aspects: [HEALTH], todos: [{ title: 'Dentist', aspect: 0, day: '2026-11-03' }] });
+		await openEditor(page, 'Dentist');
+
+		await editor(page).getByLabel('From', { exact: true }).click({ position: { x: 10, y: 10 } });
+		await page.keyboard.type('1800');
+		await expect(editor(page).getByLabel('From', { exact: true })).toHaveValue('18:00');
+		await editor(page).getByLabel('To', { exact: true }).click({ position: { x: 10, y: 10 } });
+		await page.keyboard.type('1930');
+		await expect(editor(page).getByLabel('To', { exact: true })).toHaveValue('19:30');
+		expect(errors).toEqual([]);
+		await page.getByRole('button', { name: 'Save' }).click();
+		await expect(editor(page)).toHaveCount(0);
+		await expect(rowOf(page, 'Dentist').getByTestId('planned-label')).toHaveText('Tue 3 Nov · 18:00–19:30');
+	});
 });
