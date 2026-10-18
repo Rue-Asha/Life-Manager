@@ -98,3 +98,107 @@ test('Scenario: Clearing the start clears the end in the editor', async ({ page,
 	await expect(editor(page).getByLabel('From', { exact: true })).toHaveValue('');
 	await expect(editor(page).getByLabel('To', { exact: true })).toHaveValue('');
 });
+
+const THURSDAY = '2026-10-15T10:00:00Z';
+const WEEK = '2026-10-12';
+const ASPECTS = [HEALTH, { name: 'Uni', color: 'lavender', icon: 'cap' }] as const;
+
+const rowOf = (scope: ReturnType<Page['getByTestId']> | Page, title: string) =>
+	scope.getByTestId('todo-row').filter({ hasText: title });
+
+test('Scenario: Backlog and aspect rows show the planned date and slot', async ({ page, request }) => {
+	const ids = await seed(request, {
+		aspects: [HEALTH],
+		todos: [{ title: 'Dentist', aspect: 0, day: '2026-10-27', startTime: '18:00', endTime: '19:30', dueDate: '2026-10-30' }]
+	});
+
+	await page.goto('/backlog');
+	await expect(page.getByRole('heading', { level: 1, name: 'Backlog' })).toBeVisible();
+	const backlogRow = rowOf(page, 'Dentist');
+	await expect(backlogRow.getByTestId('planned-label')).toHaveText('Tue 27 Oct · 18:00–19:30');
+	await expect(backlogRow).toContainText('16d left');
+
+	await page.goto(`/aspects/${ids.aspects[0]}`);
+	await expect(page.getByRole('heading', { level: 1, name: 'Health' })).toBeVisible();
+	const aspectRow = rowOf(page.getByTestId('aspect-backlog'), 'Dentist');
+	await expect(aspectRow.getByTestId('planned-label')).toHaveText('Tue 27 Oct · 18:00–19:30');
+	await expect(aspectRow).toContainText('16d left');
+});
+
+test('Scenario: Unplanned row shows only its due label', async ({ page, request }) => {
+	await seed(request, { aspects: [HEALTH], todos: [{ title: 'Dentist', aspect: 0, dueDate: '2026-10-30' }] });
+
+	await page.goto('/backlog');
+	await expect(page.getByRole('heading', { level: 1, name: 'Backlog' })).toBeVisible();
+	const backlogRow = rowOf(page, 'Dentist');
+	await expect(backlogRow).toContainText('16d left');
+	await expect(backlogRow.getByTestId('planned-label')).toHaveCount(0);
+});
+
+test('Scenario: Board card shows the planned date and slot', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [HEALTH],
+		sprint: { state: 'active', weekStart: WEEK },
+		todos: [
+			{
+				title: 'Dentist',
+				aspect: 0,
+				inSprint: true,
+				day: '2026-10-15',
+				startTime: '18:00',
+				endTime: '19:30',
+				dueDate: '2026-10-16'
+			}
+		]
+	});
+
+	await page.goto('/sprint?view=board');
+	const card = page.getByTestId('board-column-todo').getByTestId('sprint-card').filter({ hasText: 'Dentist' });
+	await expect(card.getByTestId('planned-label')).toHaveText('Thu 15 Oct · 18:00–19:30');
+	await expect(card).toContainText('2d left');
+});
+
+test('Scenario: Week cards show only the slot', async ({ page, request }) => {
+	await setClock(request, THURSDAY);
+	await seed(request, {
+		aspects: [HEALTH],
+		sprint: { state: 'active', weekStart: WEEK },
+		todos: [
+			{ title: 'Dentist', aspect: 0, inSprint: true, day: '2026-10-15', startTime: '18:00', endTime: '19:30' },
+			{ title: 'Laundry', aspect: 0, inSprint: true, day: '2026-10-15' }
+		]
+	});
+
+	for (const width of [1440, 375]) {
+		await page.setViewportSize({ width, height: 900 });
+		await page.goto('/sprint?view=week');
+		const column = page.getByTestId('day-column-2026-10-15');
+		const slotted = column.getByTestId('sprint-card').filter({ hasText: 'Dentist' });
+		const plain = column.getByTestId('sprint-card').filter({ hasText: 'Laundry' });
+		await expect(slotted.getByTestId('planned-label')).toHaveText('18:00–19:30');
+		await expect(plain).toBeVisible();
+		await expect(plain.getByTestId('planned-label')).toHaveCount(0);
+		if (width === 1440) {
+			for (const card of [slotted, plain]) {
+				expect((await card.boundingBox())!.height).toBeLessThanOrEqual(40);
+			}
+		}
+	}
+});
+
+test('Scenario: Sprint row shows the slot next to its day', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [HEALTH],
+		sprint: { state: 'active', weekStart: WEEK },
+		todos: [{ title: 'Dentist', aspect: 0, inSprint: true, day: '2026-10-14', startTime: '18:00', endTime: '19:30' }]
+	});
+
+	await page.goto('/sprint?view=aspect');
+	const sprintRow = rowOf(page, 'Dentist');
+	await expect(sprintRow.getByRole('combobox', { name: 'Day' })).toHaveValue('2026-10-14');
+	await expect(sprintRow.getByTestId('planned-label')).toHaveText('18:00–19:30');
+
+	await page.goto('/');
+	await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+	await expect(rowOf(page, 'Dentist').getByTestId('planned-label')).toHaveText('18:00–19:30');
+});
