@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { MediaQuery } from 'svelte/reactivity';
 	import { dateLabel } from '$lib/components/todo/format';
 	import type { CalendarEntry } from '$lib/server/calendar';
 	import type { Aspect, IsoDate } from '$lib/types';
@@ -23,6 +24,8 @@
 		onselect: (day: IsoDate) => void;
 	} = $props();
 
+	const tablet = new MediaQuery('min-width: 768px');
+
 	const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 </script>
 
@@ -45,17 +48,27 @@
 		>
 			<span class="visually-hidden">{dateLabel(day)}</span>
 			<span class="num day-num" aria-hidden="true">{Number(day.slice(8))}</span>
-			{#each list.slice(0, 3) as entry, i (i)}
-				<span class="entry" data-testid="calendar-entry" data-kind={entry.kind} style:--a={entryColor(entry, aspects)}>
-					<i class="mark" class:ring={entry.kind === 'projection'} data-testid="calendar-entry-mark"></i>
-					<span class="title" class:done={entry.kind === 'todo' && entry.done}>{entry.title}</span>
-					{#if entry.kind === 'projection'}
-						<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.repeat} /></svg>
-						<span class="visually-hidden">Projected</span>
-					{/if}
+			{#if tablet.current}
+				{#each list.slice(0, 3) as entry, i (i)}
+					<span class="entry" data-testid="calendar-entry" data-kind={entry.kind} style:--a={entryColor(entry, aspects)}>
+						<i class="mark" class:ring={entry.kind === 'projection'} data-testid="calendar-entry-mark"></i>
+						<span class="title" class:done={entry.kind === 'todo' && entry.done}>{entry.title}</span>
+						{#if entry.kind === 'projection'}
+							<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.repeat} /></svg>
+							<span class="visually-hidden">Projected</span>
+						{/if}
+					</span>
+				{/each}
+				{#if list.length > 3}<span class="more">+{list.length - 3} more</span>{/if}
+			{:else if list.length > 0}
+				<span class="dots" aria-hidden="true">
+					{#each list.slice(0, 3) as entry, i (i)}
+						<i class="dot" class:ring={entry.kind === 'projection'} data-testid="calendar-dot" style:--a={entryColor(entry, aspects)}></i>
+					{/each}
+					{#if list.length > 3}<span class="plus">+</span>{/if}
 				</span>
-			{/each}
-			{#if list.length > 3}<span class="more">+{list.length - 3} more</span>{/if}
+				<span class="visually-hidden">{list.length} planned</span>
+			{/if}
 		</button>
 	{/each}
 </div>
@@ -172,8 +185,52 @@
 		stroke-linejoin: round;
 	}
 
+	.dots {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 3px;
+		height: 8px;
+	}
+
+	.dot {
+		width: 6px;
+		height: 6px;
+		border-radius: var(--radius-pill);
+		background: var(--a);
+		box-sizing: border-box;
+	}
+
+	.dot.ring {
+		background: transparent;
+		border: 1.5px solid var(--a);
+	}
+
+	.plus {
+		color: var(--ink-3);
+		font-size: 10px;
+		line-height: 1;
+	}
+
 	.more {
 		color: var(--ink-3);
 		font-size: var(--text-xs);
+	}
+
+	@media (max-width: 767px) {
+		.cell {
+			align-items: center;
+			min-height: 52px;
+			padding: var(--space-2) 0;
+		}
+
+		.day-num {
+			align-self: center;
+		}
+
+		.weekday {
+			padding: var(--space-2) 0;
+			font-size: var(--text-xs);
+		}
 	}
 </style>

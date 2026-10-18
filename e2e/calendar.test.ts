@@ -185,3 +185,50 @@ test('Scenario: Empty month shows Nothing planned', async ({ page, request }) =>
 		await expect(page.getByTestId('calendar-day-list')).toContainText('Nothing planned');
 	}
 });
+
+test("Scenario: Phone shows dots and the selected day's list", async ({ page, request }) => {
+	await seed(request, {
+		aspects: [HEALTH, JOB],
+		todos: [
+			{ title: 'Standup', aspect: 1, day: '2026-10-14', startTime: '09:00', endTime: '09:15' },
+			{ title: 'Lunch', day: '2026-10-14', startTime: '12:30' },
+			{ title: 'Groceries', day: '2026-10-14' },
+			{ title: 'Call dentist', day: '2026-10-14' },
+			{ title: 'Read', aspect: 1, day: '2026-10-14', startTime: '21:00' },
+			{ title: 'Pay rent', day: '2026-10-16' }
+		]
+	});
+	await page.setViewportSize({ width: 375, height: 800 });
+	await openCalendar(page);
+
+	const today = cell(page, '2026-10-14');
+	await expect(today).toHaveAttribute('aria-pressed', 'true');
+	await expect(today.getByTestId('calendar-dot')).toHaveCount(3);
+	await expect(today).toContainText('+');
+	await expect(today.getByTestId('calendar-entry')).toHaveCount(0);
+	await expect(cell(page, '2026-10-16').getByTestId('calendar-dot')).toHaveCount(1);
+
+	const list = page.getByTestId('calendar-day-list');
+	await expect(list.getByTestId('calendar-entry')).toHaveCount(5);
+	await expect(list).toContainText('09:00–09:15');
+	await expect(list).toContainText('12:30');
+	await expect(list).toContainText('all day');
+	await expect(list).toContainText('Standup');
+
+	await cell(page, '2026-10-16').click();
+	await expect(cell(page, '2026-10-16')).toHaveAttribute('aria-pressed', 'true');
+	await expect(list.getByTestId('calendar-entry')).toHaveCount(1);
+	await expect(list).toContainText('Pay rent');
+
+	const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+	expect(overflow).toBeLessThanOrEqual(0);
+});
+
+test('Scenario: Selected day defaults to the 1st in another month', async ({ page, request }) => {
+	await seed(request, { aspects: [HEALTH], todos: [{ title: 'Advent brunch', day: '2026-12-01' }] });
+	await page.setViewportSize({ width: 1280, height: 900 });
+	await openCalendar(page, '/calendar?month=2026-12');
+
+	await expect(cell(page, '2026-12-01')).toHaveAttribute('aria-pressed', 'true');
+	await expect(page.getByTestId('calendar-day-list')).toContainText('Advent brunch');
+});
