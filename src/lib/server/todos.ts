@@ -280,7 +280,7 @@ export function listBacklogDueToday(db: DatabaseSync, today: IsoDate): Todo[] {
 	const rows = db
 		.prepare(
 			`SELECT ${todoColumns} FROM todos
-			 WHERE sprint_id IS NULL AND due_date = ? AND status != 'done'
+			 WHERE sprint_id IS NULL AND (due_date = ?1 OR day = ?1) AND status != 'done'
 			 ORDER BY id`
 		)
 		.all(today) as unknown as TodoRow[];

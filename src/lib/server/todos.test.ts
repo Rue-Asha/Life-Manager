@@ -296,11 +296,19 @@ describe('lists', () => {
 	function insert(
 		db: DatabaseSync,
 		title: string,
-		fields: { aspect: Id; priority?: number; dueDate?: string | null; sprintId?: Id | null; status?: string }
+		fields: { aspect: Id; priority?: number; dueDate?: string | null; sprintId?: Id | null; status?: string; day?: string | null }
 	) {
 		db.prepare(
-			"INSERT INTO todos (title, aspect_id, priority, due_date, sprint_id, status, created_at) VALUES (?, ?, ?, ?, ?, ?, '')"
-		).run(title, fields.aspect, fields.priority ?? 0, fields.dueDate ?? null, fields.sprintId ?? null, fields.status ?? 'todo');
+			"INSERT INTO todos (title, aspect_id, priority, due_date, sprint_id, status, day, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, '')"
+		).run(
+			title,
+			fields.aspect,
+			fields.priority ?? 0,
+			fields.dueDate ?? null,
+			fields.sprintId ?? null,
+			fields.status ?? 'todo',
+			fields.day ?? null
+		);
 	}
 
 	it('Scenario: Backlog lists only todos not in a sprint, in order', () => {
@@ -360,6 +368,23 @@ describe('lists', () => {
 		insert(db, 'sprint-today', { aspect, dueDate: '2026-10-01', sprintId: sprint });
 
 		expect(listBacklogDueToday(db, '2026-10-01').map((t) => t.title)).toEqual(['due-today']);
+	});
+
+	it('Scenario: Backlog todos planned for today are listed once', () => {
+		const { db, aspect } = setup();
+		const sprint = activeSprint(db);
+		insert(db, 'planned-today', { aspect, day: '2026-10-01' });
+		insert(db, 'due-and-planned', { aspect, day: '2026-10-01', dueDate: '2026-10-01' });
+		insert(db, 'due-today', { aspect, dueDate: '2026-10-01' });
+		insert(db, 'planned-tomorrow', { aspect, day: '2026-10-02' });
+		insert(db, 'done-planned', { aspect, day: '2026-10-01', status: 'done' });
+		insert(db, 'sprint-planned', { aspect, day: '2026-10-01', sprintId: sprint });
+
+		expect(listBacklogDueToday(db, '2026-10-01').map((t) => t.title)).toEqual([
+			'planned-today',
+			'due-and-planned',
+			'due-today'
+		]);
 	});
 
 	it('Scenario: A fallback todo is overdue the next day', () => {
