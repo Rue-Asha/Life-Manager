@@ -248,3 +248,88 @@ describe('desiredState: rule series', () => {
 		expect(item(items, `rule:${other}`).spec).toMatchObject({ date: '2026-10-19', exdates: ['2026-10-26'] });
 	});
 });
+
+describe('desiredState: exams and window', () => {
+	let uni: Id;
+
+	beforeEach(() => {
+		uni = insert("INSERT INTO aspects (name, color, icon, position, created_at) VALUES ('Uni', 'sky', 'book', 1, '')");
+	});
+
+	function synced(key: string): void {
+		db.prepare("INSERT INTO proton_items (key, label, calendar_id, event_ref, hash, updated_at) VALUES (?, 'x', 'cal', 'cal/ev', 'h', '')").run(key);
+	}
+
+	it('Scenario: Exam with a time becomes a two-hour event', () => {
+		setUni(uni);
+		const cls = uniClass(semester('WS'), 'Algebra', { examAt: '2026-11-03T09:30', examRoom: 'HS 7' });
+		expect(item(desiredState(db, TODAY), `exam:${cls}`)).toEqual({
+			key: `exam:${cls}`,
+			aspectId: uni,
+			label: 'Exam · Algebra',
+			spec: {
+				title: 'Exam · Algebra',
+				description: '',
+				location: 'HS 7',
+				date: '2026-11-03',
+				start: '09:30',
+				end: null,
+				durationMin: 120,
+				rrule: null,
+				exdates: []
+			}
+		});
+	});
+
+	it('Scenario: Date-only exam becomes an all-day event', () => {
+		setUni(uni);
+		const cls = uniClass(semester('WS'), 'Logic', { examAt: '2026-11-04' });
+		expect(item(desiredState(db, TODAY), `exam:${cls}`).spec).toMatchObject({
+			date: '2026-11-04',
+			start: null,
+			end: null,
+			durationMin: null,
+			location: ''
+		});
+	});
+
+	it('Scenario: Exams need a Uni aspect', () => {
+		const cls = uniClass(semester('WS'), 'Logic', { examAt: '2026-11-04' });
+		expect(desiredState(db, TODAY).map((i) => i.key)).not.toContain(`exam:${cls}`);
+	});
+
+	it('Scenario: Archived-semester exams are synced', () => {
+		setUni(uni);
+		const cls = uniClass(semester('SS', '2026-09-30'), 'Old', { examAt: '2026-11-05' });
+		expect(desiredState(db, TODAY).map((i) => i.key)).toContain(`exam:${cls}`);
+	});
+
+	it('Scenario: Desired state starts today', () => {
+		setUni(uni);
+		const past = todo('Past', { day: '2026-10-13' });
+		const now = todo('Today', { day: TODAY });
+		const pastExam = uniClass(semester('WS'), 'Past exam', { examAt: '2026-10-13T10:00' });
+		const todayExam = uniClass(semester('WS2'), 'Today exam', { examAt: '2026-10-14' });
+		const keys = desiredState(db, TODAY).map((i) => i.key);
+		expect(keys).toContain(`todo:${now}`);
+		expect(keys).toContain(`exam:${todayExam}`);
+		expect(keys).not.toContain(`todo:${past}`);
+		expect(keys).not.toContain(`exam:${pastExam}`);
+	});
+
+	it('Scenario: Past synced items stay in the desired state', () => {
+		setUni(uni);
+		const doneBefore = todo('Done before', { day: '2026-10-10', status: 'done' });
+		const neverSynced = todo('Never synced', { day: '2026-10-11' });
+		const pendingRow = todo('Row without event', { day: '2026-10-12' });
+		const exam = uniClass(semester('WS'), 'Past exam', { examAt: '2026-10-09' });
+		synced(`todo:${doneBefore}`);
+		synced(`exam:${exam}`);
+		db.prepare("INSERT INTO proton_items (key, label, updated_at) VALUES (?, 'x', '')").run(`todo:${pendingRow}`);
+		const items = desiredState(db, TODAY);
+		expect(item(items, `todo:${doneBefore}`).spec.title).toBe('✓ Done before');
+		expect(items.map((i) => i.key)).toContain(`exam:${exam}`);
+		expect(items.map((i) => i.key)).not.toContain(`todo:${neverSynced}`);
+		expect(items.map((i) => i.key)).not.toContain(`todo:${pendingRow}`);
+	});
+});

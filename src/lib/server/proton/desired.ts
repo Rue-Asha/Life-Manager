@@ -4,6 +4,7 @@ import { addDays, weekdayOf } from '$lib/week';
 import { archivedRuleIds, projectionStart } from '../calendar';
 import { listRules } from '../recurring';
 import { selectTodos } from '../sprints';
+import { getUniAspectId } from '../uni';
 import type { DesiredItem } from './types';
 
 function classRooms(db: DatabaseSync): Map<Id, string> {
@@ -57,13 +58,45 @@ function seriesItem(r: RecurringRule, from: IsoDate, todos: Todo[], rooms: Map<I
 	};
 }
 
+function examItems(db: DatabaseSync, today: IsoDate, synced: Set<string>): DesiredItem[] {
+	const aspectId = getUniAspectId(db);
+	if (aspectId === null) return [];
+	const rows = db
+		.prepare('SELECT id, name, exam_at, exam_room FROM classes WHERE exam_at IS NOT NULL ORDER BY id')
+		.all() as { id: number; name: string; exam_at: string; exam_room: string | null }[];
+	return rows
+		.filter((c) => c.exam_at.slice(0, 10) >= today || synced.has(`exam:${c.id}`))
+		.map((c) => {
+			const timed = c.exam_at.length > 10;
+			return {
+				key: `exam:${c.id}`,
+				aspectId,
+				label: `Exam · ${c.name}`,
+				spec: {
+					title: `Exam · ${c.name}`,
+					description: '',
+					location: c.exam_room ?? '',
+					date: c.exam_at.slice(0, 10),
+					start: timed ? c.exam_at.slice(11, 16) : null,
+					end: null,
+					durationMin: timed ? 120 : null,
+					rrule: null,
+					exdates: []
+				}
+			};
+		});
+}
+
 export function desiredState(db: DatabaseSync, today: IsoDate): DesiredItem[] {
 	const rooms = classRooms(db);
-	const todos = selectTodos(db, 'day IS NOT NULL');
+	const synced = new Set(
+		(db.prepare('SELECT key FROM proton_items WHERE event_ref IS NOT NULL').all() as { key: string }[]).map((r) => r.key)
+	);
+	const todos = selectTodos(db, 'day IS NOT NULL').filter((t) => t.day! >= today || synced.has(`todo:${t.id}`));
 	const from = projectionStart(db, today);
 	const archived = archivedRuleIds(db);
 	const series = listRules(db)
 		.filter((r) => !archived.has(r.id))
 		.map((r) => seriesItem(r, from, todos, rooms));
-	return [...todos.map((t) => todoItem(t, rooms)), ...series];
+	return [...todos.map((t) => todoItem(t, rooms)), ...series, ...examItems(db, today, synced)];
 }
