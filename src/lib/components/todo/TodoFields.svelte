@@ -71,6 +71,11 @@
 	// slot is kept so the end comes back, moved along, once a new start is in.
 	let cleared: { startTime: HhMm; endTime: HhMm | '' } | null = null;
 
+	// QuickAdd keeps this mounted across todos, so it drops the remembered slot itself.
+	export function forget() {
+		cleared = null;
+	}
+
 	function setStart(value: HhMm | '') {
 		if (!value) {
 			if (startTime) cleared = { startTime, endTime };
@@ -170,12 +175,12 @@
 					name="day"
 					aria-label="Planned"
 					bind:value={plannedDay}
-					oninput={() => plannedDay || (startTime = endTime = '')}
+					oninput={() => plannedDay || ((startTime = endTime = ''), (cleared = null))}
 					onclick={(e) => e.currentTarget.showPicker()}
 				/>
 			</label>
 			{#if plannedDay}
-				<button type="button" class="clear" aria-label="Remove plan" onclick={() => (plannedDay = startTime = endTime = '')}>
+				<button type="button" class="clear" aria-label="Remove plan" onclick={() => ((plannedDay = startTime = endTime = ''), (cleared = null))}>
 					<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.x} /></svg>
 				</button>
 			{/if}

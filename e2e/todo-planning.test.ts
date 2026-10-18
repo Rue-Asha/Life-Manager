@@ -421,6 +421,52 @@ test('Regression: moving From keeps the length of the slot', async ({ page, requ
 	await expect(rowOf(page, 'Dentist').getByTestId('planned-label')).toHaveText('Tue 3 Nov · 09:00–10:30');
 });
 
+test('Scenario: Retyping From after clearing it restores the slot length', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [HEALTH],
+		todos: [{ title: 'Dentist', aspect: 0, day: '2026-11-03', startTime: '18:00', endTime: '19:30' }]
+	});
+	await openEditor(page, 'Dentist');
+	const from = editor(page).getByLabel('From', { exact: true });
+	const to = editor(page).getByLabel('To', { exact: true });
+
+	await from.fill('');
+	await expect(to).toHaveValue('');
+	await from.fill('09:00');
+	await expect(to).toHaveValue('10:30');
+	await expect(editor(page).getByTestId('slot-length')).toHaveText('1 h 30 min');
+});
+
+test('Regression: a cleared slot does not leak into the next quick add', async ({ page, request }) => {
+	await seed(request, { aspects: [HEALTH] });
+	await page.goto('/backlog');
+	await expect(page.getByRole('heading', { level: 1, name: 'Backlog' })).toBeVisible();
+	await page.getByRole('button', { name: 'Add a todo' }).first().click();
+	const form = quickAddForm(page);
+	const planned = form.getByLabel('Planned', { exact: true });
+	const from = form.getByLabel('From', { exact: true });
+	const to = form.getByLabel('To', { exact: true });
+
+	await form.getByLabel('Title').fill('Dentist');
+	await planned.fill('2026-11-03');
+	await from.fill('18:00');
+	await to.fill('19:30');
+	await from.fill('');
+	await form.getByRole('button', { name: 'Add todo' }).click();
+	await expect(rowOf(page, 'Dentist').getByTestId('planned-label')).toHaveText('Tue 3 Nov');
+
+	await planned.fill('2026-11-03');
+	await from.fill('09:00');
+	await expect(to).toHaveValue('');
+
+	await to.fill('10:00');
+	await from.fill('');
+	await form.getByRole('button', { name: 'Remove plan' }).click();
+	await planned.fill('2026-11-04');
+	await from.fill('11:00');
+	await expect(to).toHaveValue('');
+});
+
 test.describe('without a native time picker', () => {
 	test.use({ locale: 'de-DE' });
 

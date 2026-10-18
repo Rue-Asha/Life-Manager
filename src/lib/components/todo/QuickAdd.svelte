@@ -50,6 +50,7 @@
 	let checklist = $state<string[]>([]);
 	let error = $state<ActionError | null>(null);
 	let titleInput = $state<HTMLInputElement>();
+	let fields = $state<ReturnType<typeof TodoFields>>();
 
 	const aspectId = $derived(chosenAspectId ?? defaultAspectId ?? aspects[0].id);
 	const classId = $derived(chosenClassId ?? defaultClassId ?? '');
@@ -74,6 +75,7 @@
 		chosenDueDate = null;
 		chosenPlannedDay = null;
 		startTime = endTime = '';
+		fields?.forget();
 		projectId = '';
 		chosenClassId = null;
 		chosenType = null;
@@ -130,6 +132,7 @@
 		></textarea>
 
 		<TodoFields
+			bind:this={fields}
 			{aspects}
 			bind:aspectId={() => aspectId, (id) => (chosenAspectId = id)}
 			bind:priority

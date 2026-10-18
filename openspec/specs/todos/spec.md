@@ -331,6 +331,16 @@ filled in, and a day column whose date was removed adds to the active sprint wit
 - **THEN** the first is in the active sprint on 2026-10-15 with the slot, the second is in the backlog on 2026-10-15 with the slot, and the third is refused with `day-in-past`
 - **proof:** unit — `Regression: createTodo is not refused by a required review for a sprint or backlog target`
 
+#### Scenario: Retyping From after clearing it restores the slot length
+- **WHEN** Rue opens a todo planned with 18:00–19:30, clears "From" (so "To" is empty) and types 09:00
+- **THEN** "To" is 10:30 and the length reads "1 h 30 min"
+- **proof:** e2e
+
+#### Scenario: A cleared slot does not leak into the next quick add
+- **WHEN** in a quick add on Backlog Rue plans 2026-11-03 with 18:00–19:30, clears "From", adds the todo, and in the same open form sets "Planned" again and types "From" 09:00; and after typing "To" 10:00, clearing "From" and "Remove plan", plans 2026-11-04 and types "From" 11:00
+- **THEN** "To" stays empty both times
+- **proof:** e2e — `Regression: a cleared slot does not leak into the next quick add`
+
 #### Scenario: Creating with a planned day stores it for every target
 - **WHEN** with an active sprint of 2026-10-12 to 2026-10-18 and today 2026-10-14, todos with slot 18:00–19:30 are created with the backlog target on 2026-11-03 and on 2026-10-16, the sprint target on 2026-10-15, and the day target 2026-10-17
 - **THEN** the first is in the backlog on 2026-11-03, the others are in the active sprint on their day, and all carry 18:00–19:30
@@ -341,7 +351,9 @@ A planned todo SHALL have either no slot (all-day, labelled "all day"), a start 
 start and an end time on the same day with the end after the start (shown "18:00–19:30"). An end without a start MUST
 be refused with `end-without-start` on `endTime`, an end at or before the start with `end-before-start` on `endTime`,
 and a value that is not `HH:MM` (00:00–23:59) with `invalid` on the field; a refused slot changes nothing. A slot
-without a date is not stored. In the editor, clearing "From" clears "To". (S3)
+without a date is not stored. In the editor, clearing "From" clears "To", and typing a new "From" afterwards brings "To"
+back with the old length; that memory is dropped when the todo is added or the form cleared, when the plan is removed
+and when "Planned" is cleared, so it never carries over to another todo. (S3)
 
 #### Scenario: Slot validation
 - **WHEN** `validateSlot` checks (18:00, none), (18:00, 19:30), (none, none), (none, 19:30), (18:00, 18:00), (18:00, 17:00) and (25:00, none)
