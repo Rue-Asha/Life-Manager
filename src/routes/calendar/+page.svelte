@@ -21,8 +21,10 @@
 
 	// A click picks a day; changing the month (or "Today") forgets it, so the default applies again.
 	let picked = $state<IsoDate | null>(null);
+	// Derived so a reload of the same month (a save from the day list) keeps the pick.
+	const month = $derived(data.month);
 	$effect.pre(() => {
-		data.month;
+		month;
 		picked = null;
 	});
 	const selected = $derived(picked ?? (data.today.startsWith(data.month) ? data.today : `${data.month}-01`));

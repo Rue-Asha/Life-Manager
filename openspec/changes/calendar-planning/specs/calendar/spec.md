@@ -95,7 +95,7 @@ Below 768 px the calendar SHALL show a compact grid with aspect-coloured dots pe
 titles (ellipsized) plus "+n more" for the rest, and the selected day's list sits in the context rail: docked at
 ≥1280 px, where the grid fills the content width, and as the rail overlay with its toggle between 768 and 1279 px.
 Selecting a day (its cell is a button, `aria-pressed="true"` when selected) shows that day's list, each entry with its
-slot or "all day"; the selected day defaults to today when it is in the shown month, else the 1st. A day without
+slot or "all day"; the selected day defaults to today when it is in the shown month, else the 1st. A save from the day list keeps the selection; only changing the month resets it. A day without
 entries lists "Nothing planned". No horizontal scroll at 375 px. Exam entries use their class colour. (calendar-planning S13)
 
 #### Scenario: Phone shows dots and the selected day's list
@@ -150,5 +150,5 @@ from the calendar, the calendar shows it on its new day, or no longer, when its 
 
 #### Scenario: Todo edited from the calendar leaves its day
 - **WHEN** on `/calendar` Rue opens the planned todo "Dentist" on 2026-10-21, changes "Planned" to 2026-10-23 and saves
-- **THEN** the 2026-10-21 cell and day list no longer show "Dentist" and the 2026-10-23 cell shows it
+- **THEN** the 2026-10-21 day stays selected, its cell and day list no longer show "Dentist" and the 2026-10-23 cell shows it
 - **proof:** e2e

@@ -84,6 +84,7 @@ test('Scenario: Todo edited from the calendar leaves its day', async ({ page, re
 	await expect(editor(page)).toHaveCount(0);
 
 	await expect(cell(page, '2026-10-21').getByTestId('calendar-entry')).toHaveCount(0);
+	await expect(list.getByRole('heading', { name: /21 Oct/ })).toBeVisible();
 	await expect(list.getByText('Dentist')).toHaveCount(0);
 	await expect(cell(page, '2026-10-23').getByTestId('calendar-entry')).toHaveCount(1);
 	await expect(cell(page, '2026-10-23')).toContainText('Dentist');
