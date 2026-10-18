@@ -20,6 +20,7 @@ rules:
   tasks:
     - Mark every irreversible step (data migration, deletion, infra apply, publish) with `⚠ irreversible`.
     - If CLAUDE.md declares no `proof` command, group 1 is "Establish the harness" (proof, proof-full, run) per ~/.claude/skills/flow/references/repo-setup.md.
+    - If the repo has a GitHub remote but no .github/workflows/ci.yml, the next group is "Establish CI" per ~/.claude/skills/flow/references/repo-setup.md; its ruleset task is ⚠.
     - 'Tasks that add behaviour include writing the scenario''s test ("Scenario: <title>") from its THEN clauses, before the code.'
     - 'Each "## N." group is a build unit. Directly under its heading, add one line: "> unit: depends=<group numbers|none> · files=<files it creates or edits>".'
     - Groups in parallel must touch disjoint files. If later groups share a contract, group 1 creates only the contract (types + stubs that typecheck).

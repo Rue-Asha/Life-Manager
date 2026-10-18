@@ -9,9 +9,21 @@
 
 	let adding = $state(false);
 
+	const planned = $derived(
+		data.todos
+			.filter((t) => t.day !== null)
+			.sort(
+				(a, b) =>
+					a.day!.localeCompare(b.day!) ||
+					Number(a.startTime !== null) - Number(b.startTime !== null) ||
+					(a.startTime ?? '').localeCompare(b.startTime ?? '') ||
+					a.title.localeCompare(b.title)
+			)
+	);
+
 	const groups = $derived(
 		data.aspects
-			.map((aspect) => ({ aspect, todos: data.todos.filter((t) => t.aspectId === aspect.id) }))
+			.map((aspect) => ({ aspect, todos: data.todos.filter((t) => t.day === null && t.aspectId === aspect.id) }))
 			.filter((g) => g.todos.length > 0)
 	);
 </script>
@@ -48,13 +60,30 @@
 	</nav>
 {/if}
 
-{#if groups.length === 0}
+{#if groups.length === 0 && planned.length === 0}
 	{@const filtered = data.aspects.find((a) => a.id === data.aspectId)}
 	<p class="empty" data-testid="empty-state">
 		{filtered ? `Nothing for ${filtered.name} in the backlog.` : 'Your backlog is empty.'}
 		<button type="button" onclick={() => (adding = true)}>Add a todo</button>
 		{filtered ? 'to it.' : 'to start planning.'}
 	</p>
+{/if}
+
+{#if planned.length > 0}
+	<section class="group" data-testid="planned-section" aria-labelledby="group-planned">
+		<h2 id="group-planned">
+			Planned
+			<span class="count num">{planned.length}</span>
+		</h2>
+		<ListGroup>
+			<ul>
+				{#each planned as todo (todo.id)}
+					{@const aspect = data.aspects.find((a) => a.id === todo.aspectId)!}
+					<TodoRow {todo} {aspect} today={data.today} context="backlog" sprintDays={data.sprintDays ?? undefined} />
+				{/each}
+			</ul>
+		</ListGroup>
+	</section>
 {/if}
 
 {#each groups as { aspect, todos } (aspect.id)}

@@ -1,0 +1,14 @@
+track: feature
+triage: "feature — plan todos onto any future day with an optional time slot, recurring slots + projection, read-only month calendar; Proton sync split off. Appetite: three evenings"
+base: main
+gate0: 2026-10-18
+gate1: 2026-10-18
+gate2: 2026-10-18
+ship_note: 'Rue at Gate 2: tag v0.5.0 after the merge and watch the release (release: tag is not in CLAUDE.md); one extra fix round for the 4 open round-3 findings before close'
+learnings:
+  - 'Request naming "due dates" for a calendar or schedule → ask which date field is meant (due vs planned day) before offering options (weil: Rue asked for due dates in Proton, then corrected to the planned time slot after a round of due-time questions) [2026-10-18 · calendar-planning]'
+  - 'Splitting a change off at explore → write its intent, decisions and research into a notes file in the change dir at the moment of the split (weil: Rue asked at Gate 0 whether the Proton plan was persisted; the research lived only in session context) [2026-10-18 · calendar-planning]'
+  - 'Scope strings for UI copy → write them in the app''s UI language (English here), even when the explore dialogue runs in German (weil: scope.md quoted German labels, the planner copied them into specs and had to ask at Gate 1; Rue chose English) [2026-10-18 · calendar-planning]'
+  - 'Single-file e2e runs in this repo → run `npm run build` first and again after each edit (weil: Playwright serves build/; U5, U6 and U7 each hit "Cannot find module .../build" in fresh worktrees) [2026-10-18 · calendar-planning]'
+  - 'Planner scenarios that name a control on a screen (day control, button) → check the screen renders it today (weil: the 5.2 scenario put a day control on Today rows, which have none; U5 had to reinterpret the THEN) [2026-10-18 · calendar-planning]'
+  - 'Planner contracts for a field that read models also derive (day from due date in onDueDay/listToday) → name stored vs derived as separate fields in ## Contracts before any write path uses it (weil: the editor posted the derived day back and saving any due-dated sprint todo planned it; all 305 tests were green, the fresh reviewer found it) [2026-10-18 · calendar-planning]'

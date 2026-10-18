@@ -30,7 +30,8 @@
 	const unplaced = (t: Todo): Todo => ({
 		...t,
 		status: placements[t.id]?.status ?? 'todo',
-		day: placements[t.id]?.day ?? null
+		day: placements[t.id]?.day ?? null,
+		dueDay: undefined
 	});
 	const todos = $derived([
 		...data.todos.filter((t) => moves[t.id] !== 'backlog'),

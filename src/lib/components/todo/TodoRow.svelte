@@ -5,7 +5,8 @@
 	import { page } from '$app/state';
 	import { MediaQuery } from 'svelte/reactivity';
 	import { ASPECT_COLORS } from '$lib/aspect-style';
-	import { isOverdue } from '$lib/todo-utils';
+	import { plannedLabel } from '$lib/slot';
+	import { isOverdue, shownDay } from '$lib/todo-utils';
 	import type { Aspect, ClassRef, IsoDate, ProjectRef, Todo } from '$lib/types';
 	import ClassBadge from '../uni/ClassBadge.svelte';
 	import { UI_ICONS } from '../ui/icons';
@@ -15,7 +16,7 @@
 	import StatusControl from './StatusControl.svelte';
 	import TodoEditor from './TodoEditor.svelte';
 	import { submit, type ActionError } from './form';
-	import { dayLabel, dueLabel } from './format';
+	import { dueLabel } from './format';
 
 	let {
 		todo,
@@ -47,6 +48,12 @@
 	const movable = $derived(!readonly && context === 'sprint');
 	const done = $derived(todo.status === 'done');
 	const overdue = $derived(isOverdue(todo, today));
+	// Where the row already shows the day (day control, Today's own day, a week column) the label is only the slot.
+	const planned = $derived(
+		todo.day === null
+			? ''
+			: plannedLabel(todo.day, todo.startTime, todo.endTime, variant === 'card' || !(movable || variant === 'chip' || (context === 'today' && todo.day === today)))
+	);
 	const checked = $derived(todo.checklist.filter((i) => i.done).length);
 
 	// The editor's aspect picker needs every aspect; pages showing rows return them from load.
@@ -183,7 +190,7 @@
 	data-testid="todo-row"
 	data-todo-id={todo.id}
 	data-status={todo.status}
-	data-day={todo.day ?? ''}
+	data-day={shownDay(todo) ?? ''}
 	data-overdue={overdue}
 	style:--a={ASPECT_COLORS[aspect.color].fg}
 >
@@ -205,6 +212,7 @@
 		{/if}
 
 		<div class="main">
+			{#if variant === 'chip' && planned}<span class="slot num" data-testid="planned-label">{planned}</span>{/if}
 			{#if readonly}
 				<span class="title">{todo.title}</span>
 			{:else}
@@ -218,9 +226,8 @@
 							{#if overdue}<span class="visually-hidden">Overdue,</span>{/if}
 							{dueLabel(todo.dueDate, today)}
 						</span>
-					{:else if todo.day}
-						<span class="num">{dayLabel(todo.day)}</span>
 					{/if}
+					{#if planned}<span class="num" data-testid="planned-label">{planned}</span>{/if}
 					{#if todo.priority && !done}
 						<span class="prio" data-p={todo.priority} role="img" aria-label="Priority {todo.priority}">
 							<i></i><i></i><i></i>
@@ -232,6 +239,7 @@
 				{#if mixed}
 					<span><i class="dot"></i>{aspect.name}</span>
 				{/if}
+				{#if planned}<span class="num" data-testid="planned-label">{planned}</span>{/if}
 				{#if extra}{@render extra(todo)}{:else if classRef}<ClassBadge {classRef} type={todo.type} />{/if}
 				{#if todo.recurring}
 					<span><svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.repeat} /></svg>Recurring</span>
@@ -286,7 +294,7 @@
 			{/if}
 			{#if movable}
 				<span class="day-slot">
-					{#if sprintDays}<DayPicker todoId={todo.id} day={todo.day} {sprintDays} />{/if}
+					{#if sprintDays}<DayPicker todoId={todo.id} day={shownDay(todo)} {sprintDays} />{/if}
 				</span>
 				<span class="status-slot">
 					<StatusControl todoId={todo.id} status={todo.status} />
@@ -734,7 +742,7 @@
 		}
 	}
 
-	/* Board card: the title may take two lines over one meta line; the status glyph sits top right.
+	/* Board card: the title may take two lines over a meta line that wraps rather than clips; the status glyph sits top right.
 	   Declared last so it wins over the phone's wrapped sprint row. */
 	.row.card {
 		grid-template-columns: var(--checkbox-size) minmax(0, 1fr) auto;
@@ -750,9 +758,10 @@
 	}
 
 	.card .meta {
-		flex-wrap: nowrap;
-		gap: var(--space-2);
-		overflow: hidden;
+		gap: var(--space-1) var(--space-2);
+	}
+
+	.card .meta span {
 		white-space: nowrap;
 	}
 
@@ -785,6 +794,24 @@
 
 	.chip .title {
 		font-size: var(--text-sm);
+	}
+
+	.chip .main {
+		display: flex;
+		align-items: baseline;
+		gap: var(--space-2);
+	}
+
+	.chip .slot {
+		flex: none;
+		color: var(--ink-3);
+		font-size: var(--text-xs);
+	}
+
+	.chip .title {
+		flex: 1;
+		width: auto;
+		min-width: 0;
 	}
 
 	.chip .status-slot :global(.glyph) {

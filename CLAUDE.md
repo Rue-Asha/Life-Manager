@@ -15,6 +15,7 @@ Single user, no auth; light theme only.
 - Before changing app-runtime, read openspec/specs/app-runtime/spec.md.
 - Before changing aspects, read openspec/specs/aspects/spec.md.
 - Before changing backlog, read openspec/specs/backlog/spec.md.
+- Before changing calendar, read openspec/specs/calendar/spec.md.
 - Before changing ci-pipeline, read openspec/specs/ci-pipeline/spec.md.
 - Before changing design-direction, read openspec/specs/design-direction/spec.md.
 - Before changing it-projects, read openspec/specs/it-projects/spec.md.
@@ -39,3 +40,4 @@ Single user, no auth; light theme only.
 - **Formatting in this repo** → don't run `npx prettier --write`. (weil: no prettier config; it rewrote files to double quotes/spaces and needed a revert commit) [2026-10-04 · uni-hub]
 - **e2e measurement at ≥1280 on RailLayout pages** → wait for `context-rail` before measuring. (weil: the MediaQuery swap after hydration re-mounts the column; earlier measurements read a detached node) [2026-10-04 · uni-hub]
 - **e2e helper `reset()`** → call `setClock` again after every reset in a multi-state test. (weil: reset() also clears the test clock, so the phase came out wrong) [2026-10-11 · today-quick-add-always]
+- **Single-file e2e runs** → run `npm run build` first and again after each edit. (weil: Playwright serves build/; fresh worktrees hit "Cannot find module .../build") [2026-10-18 · calendar-planning]

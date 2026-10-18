@@ -21,7 +21,10 @@
 	const MESSAGES: Record<string, string> = {
 		required: 'Give the rule a title.',
 		'weekdays-required': 'Pick at least one day.',
-		'not-found': 'This rule no longer exists.'
+		'not-found': 'This rule no longer exists.',
+		invalid: 'Use a time like 18:00.',
+		'end-without-start': 'Set a start time first.',
+		'end-before-start': 'End must be after the start.'
 	};
 
 	const CLASS_MESSAGES: Record<string, string> = {
@@ -67,6 +70,10 @@
 	let classId = $state<Id | ''>(rule?.classId ?? '');
 	// svelte-ignore state_referenced_locally
 	let type = $state<ClassType>(rule?.type ?? 'OTH');
+	// svelte-ignore state_referenced_locally
+	let startTime = $state(rule?.startTime ?? '');
+	// svelte-ignore state_referenced_locally
+	let endTime = $state(rule?.endTime ?? '');
 	// A rule keeps its archived class as an option, so saving other edits doesn't unlink it.
 	const classes = $derived(
 		((page.data.classes as ClassRef[] | undefined) ?? []).filter((c) => !c.archived || c.id === rule?.classId)
@@ -175,6 +182,43 @@
 			{/each}
 		</div>
 		{#if fieldError('weekdays')}
+			<p class="error" id="{id}-error" role="alert">{MESSAGES[failure!.error] ?? failure!.error}</p>
+		{/if}
+	</fieldset>
+
+	<fieldset class="field">
+		<legend class="label">Time</legend>
+		<div class="times">
+			<div>
+				<label class="label" for="{id}-from">From</label>
+				<input
+					id="{id}-from"
+					class="input num"
+					type="time"
+					name="startTime"
+					bind:value={startTime}
+					oninput={() => {
+						if (!startTime) endTime = '';
+					}}
+					aria-invalid={fieldError('startTime') ? true : undefined}
+					aria-describedby={fieldError('startTime') ? `${id}-error` : undefined}
+				/>
+			</div>
+			<div>
+				<label class="label" for="{id}-to">To</label>
+				<input
+					id="{id}-to"
+					class="input num"
+					type="time"
+					name="endTime"
+					bind:value={endTime}
+					disabled={!startTime}
+					aria-invalid={fieldError('endTime') ? true : undefined}
+					aria-describedby={fieldError('endTime') ? `${id}-error` : undefined}
+				/>
+			</div>
+		</div>
+		{#if fieldError('startTime') || fieldError('endTime')}
 			<p class="error" id="{id}-error" role="alert">{MESSAGES[failure!.error] ?? failure!.error}</p>
 		{/if}
 	</fieldset>
@@ -349,6 +393,17 @@
 		margin: 0;
 		opacity: 0;
 		cursor: pointer;
+	}
+
+	.times {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: var(--space-3);
+	}
+
+	.times .label {
+		font-weight: var(--weight-regular);
+		color: var(--ink-3);
 	}
 
 	.days {

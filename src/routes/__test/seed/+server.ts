@@ -1,7 +1,7 @@
 import { error, json } from '@sveltejs/kit';
 import { getDb } from '$lib/server/db';
 import type { AspectColor, AspectIcon } from '$lib/aspect-style';
-import type { ClassLink, ClassType, Grade, Id, IsoDate, ProjectStatus, Priority, Sprint, Status, Weekday } from '$lib/types';
+import type { ClassLink, ClassType, Grade, HhMm, Id, IsoDate, ProjectStatus, Priority, Sprint, Status, Weekday } from '$lib/types';
 import type { RequestHandler } from './$types';
 
 // `aspect`, `rule`, `itAspect`, `uniAspect`, `project`, `semester` and `class` are indexes into this request's
@@ -44,6 +44,8 @@ export interface SeedInput {
 		checklist?: string[];
 		class?: number;
 		type?: ClassType;
+		startTime?: HhMm | null;
+		endTime?: HhMm | null;
 	}[];
 	todos?: {
 		title: string;
@@ -54,6 +56,8 @@ export interface SeedInput {
 		inSprint?: boolean;
 		status?: Status;
 		day?: IsoDate | null;
+		startTime?: HhMm | null;
+		endTime?: HhMm | null;
 		recurring?: boolean;
 		rule?: number;
 		project?: number;
@@ -158,8 +162,8 @@ export const POST: RequestHandler = async ({ request }) => {
 	}
 
 	const insertRule = db.prepare(
-		`INSERT INTO recurring_rules (title, aspect_id, weekdays, notes, priority, checklist, class_id, type, created_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+		`INSERT INTO recurring_rules (title, aspect_id, weekdays, notes, priority, checklist, class_id, type, start_time, end_time, created_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	);
 	for (const r of input.rules ?? []) {
 		const { lastInsertRowid } = insertRule.run(
@@ -171,15 +175,17 @@ export const POST: RequestHandler = async ({ request }) => {
 			JSON.stringify(r.checklist ?? []),
 			r.class === undefined ? null : result.classes[r.class],
 			r.class === undefined ? null : (r.type ?? 'OTH'),
+			r.startTime ?? null,
+			r.endTime ?? null,
 			now
 		);
 		result.rules.push(Number(lastInsertRowid));
 	}
 
 	const insertTodo = db.prepare(
-		`INSERT INTO todos (title, aspect_id, notes, priority, due_date, sprint_id, status, day,
+		`INSERT INTO todos (title, aspect_id, notes, priority, due_date, sprint_id, status, day, start_time, end_time,
 		                    recurring, rule_id, project_id, class_id, type, revised_at, created_at, completed_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	);
 	const insertItem = db.prepare(
 		'INSERT INTO checklist_items (todo_id, text, position) VALUES (?, ?, ?)'
@@ -195,6 +201,8 @@ export const POST: RequestHandler = async ({ request }) => {
 			t.inSprint ? result.sprint : null,
 			status,
 			t.day ?? null,
+			t.startTime ?? null,
+			t.endTime ?? null,
 			t.recurring || t.rule !== undefined ? 1 : 0,
 			t.rule === undefined ? null : result.rules[t.rule],
 			t.project === undefined ? null : result.projects[t.project],

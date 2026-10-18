@@ -43,3 +43,17 @@ export function reviewState(weekStart: IsoDate, today: IsoDate): ReviewState {
 	if (today < sunday) return 'running';
 	return today === sunday ? 'review-available' : 'review-required';
 }
+
+export function monthGrid(month: string): IsoDate[][] {
+	const first = `${month}-01`;
+	const next = new Date(toUtc(first));
+	next.setUTCMonth(next.getUTCMonth() + 1);
+	const last = addDays(next.toISOString().slice(0, 10), -1);
+	const weeks: IsoDate[][] = [];
+	for (let start = weekStartOf(first); start <= last; start = addDays(start, 7)) weeks.push(weekDays(start));
+	return weeks;
+}
+
+export function parseMonth(param: string | null, today: IsoDate): string {
+	return param !== null && /^\d{4}-(0[1-9]|1[0-2])$/.test(param) ? param : today.slice(0, 7);
+}

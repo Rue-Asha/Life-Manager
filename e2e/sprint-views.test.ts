@@ -612,7 +612,10 @@ test('Scenario: Day picker offers only days of the active sprint', async ({ page
 	const { todos } = await seed(request, {
 		aspects: [...ASPECTS],
 		sprint: { state: 'active', weekStart: WEEK },
-		todos: [{ title: 'Clean the fridge', aspect: 2, inSprint: true }]
+		todos: [
+			{ title: 'Clean the fridge', aspect: 2, inSprint: true },
+			{ title: 'Water the plants', aspect: 2, inSprint: true }
+		]
 	});
 	// Week chips move by drag on desktop; the row's picker is the same one the phone's week uses.
 	await page.goto('/sprint?view=aspect');
@@ -628,15 +631,25 @@ test('Scenario: Day picker offers only days of the active sprint', async ({ page
 		'Sun 11'
 	]);
 
-	const refused = await request.post('/todos?/setDay', {
-		form: { id: String(todos[0]), day: '2026-10-12' },
-		headers: { origin: baseURL!, 'x-sveltekit-action': 'true' }
-	});
-	const body = await refused.json();
-	expect(body.type).toBe('failure');
-	expect(body.data).toContain('day-outside-sprint');
+	const setDay = async (id: number, day: string) => {
+		const response = await request.post('/todos?/setDay', {
+			form: { id: String(id), day },
+			headers: { origin: baseURL!, 'x-sveltekit-action': 'true' }
+		});
+		return response.json();
+	};
+	expect((await setDay(todos[0], '2026-10-12')).type).toBe('success');
+	const refused = await setDay(todos[1], '2026-10-04');
+	expect(refused.type).toBe('failure');
+	expect(refused.data).toContain('day-in-past');
+
 	await page.reload();
-	await expect(row(page, 'Clean the fridge')).toHaveAttribute('data-day', '');
+	const sprintList = page.getByTestId('sprint-list');
+	await expect(sprintList.getByTestId('todo-row')).toHaveCount(1);
+	await expect(sprintList.getByTestId('todo-row')).toContainText('Water the plants');
+	await expect(sprintList.getByTestId('todo-row')).toHaveAttribute('data-day', '');
+	await page.goto('/backlog');
+	await expect(row(page, 'Clean the fridge')).toHaveAttribute('data-day', '2026-10-12');
 });
 
 test('Scenario: Today is highlighted in the week view', async ({ page, request }) => {

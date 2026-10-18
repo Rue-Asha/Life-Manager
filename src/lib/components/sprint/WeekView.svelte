@@ -2,6 +2,7 @@
 	import { deserialize } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { MediaQuery } from 'svelte/reactivity';
+	import { shownDay } from '$lib/todo-utils';
 	import type { Id, IsoDate, Todo } from '$lib/types';
 
 	// From 1280 the week is one row and its Unscheduled column lives in the rail (UnscheduledList).
@@ -12,7 +13,7 @@
 	// A dropped card sits on its new day while the move saves, instead of springing back. Shared
 	// with UnscheduledList so a card leaves one component as it lands in the other.
 	const moved = $state<Record<Id, IsoDate | null>>({});
-	export const dayOf = (todo: Todo) => (todo.id in moved ? moved[todo.id] : todo.day);
+	export const dayOf = (todo: Todo) => (todo.id in moved ? moved[todo.id] : shownDay(todo));
 
 	export async function moveToDay(todo: Todo | undefined, day: IsoDate | null) {
 		if (!todo || dayOf(todo) === day) return;

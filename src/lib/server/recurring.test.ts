@@ -46,6 +46,25 @@ describe('recurring rules', () => {
 		expect(listRules(db)[0].weekdays).toEqual([1, 4]);
 	});
 
+	it('Scenario: Rule slot follows the slot rules', () => {
+		const cases = [
+			[{ startTime: null, endTime: '19:30' }, 'end-without-start', 'endTime'],
+			[{ startTime: '18:00', endTime: '18:00' }, 'end-before-start', 'endTime'],
+			[{ startTime: '7:5', endTime: null }, 'invalid', 'startTime']
+		] as const;
+		const rule = createRule(db, gym({ startTime: '18:00' }), '2026-10-07');
+		const id = rule.ok ? rule.value.id : 0;
+		for (const [slot, error, field] of cases) {
+			expect(createRule(db, gym(slot), '2026-10-07')).toEqual({ ok: false, error, field });
+			expect(updateRule(db, id, gym(slot))).toEqual({ ok: false, error, field });
+		}
+		expect(listRules(db).map((r) => [r.startTime, r.endTime])).toEqual([['18:00', null]]);
+		expect(updateRule(db, id, gym({ startTime: '18:00', endTime: '19:30' }))).toMatchObject({
+			ok: true,
+			value: { startTime: '18:00', endTime: '19:30' }
+		});
+	});
+
 	it('Scenario: Starting a sprint adds one instance per weekday', () => {
 		createRule(db, gym({ weekdays: [4, 1], checklist: ['Warm up', 'Stretch'], priority: 2 }), '2026-10-07');
 		startSprint(db, '2026-10-07', []);
@@ -62,27 +81,50 @@ describe('recurring rules', () => {
 		expect(instances[0].checklist[0].id).not.toBe(instances[1].checklist[0].id);
 	});
 
+	it("Scenario: Instances carry the rule's slot", () => {
+		createRule(db, gym({ startTime: '18:00', endTime: '19:30' }), '2026-10-07');
+		createRule(db, gym({ title: 'Read', weekdays: [2] }), '2026-10-07');
+		startSprint(db, '2026-10-07', []);
+		const slots = (title: string) =>
+			activeTodos()
+				.filter((t) => t.title === title)
+				.map((t) => [t.day, t.startTime, t.endTime]);
+		expect(slots('Gym')).toEqual([
+			['2026-10-05', '18:00', '19:30'],
+			['2026-10-08', '18:00', '19:30']
+		]);
+		expect(slots('Read')).toEqual([['2026-10-06', null, null]]);
+	});
+
 	it('Scenario: Rule created mid-sprint fills the remaining days', () => {
 		startSprint(db, '2026-10-05', []);
-		createRule(db, gym({ weekdays: [1, 3, 5] }), '2026-10-07');
-		expect(activeTodos().map((t) => t.day).sort()).toEqual(['2026-10-07', '2026-10-09']);
+		createRule(db, gym({ weekdays: [1, 3, 5], startTime: '07:00' }), '2026-10-07');
+		expect(activeTodos().map((t) => [t.day, t.startTime, t.endTime]).sort()).toEqual([
+			['2026-10-07', '07:00', null],
+			['2026-10-09', '07:00', null]
+		]);
 	});
 
 	it('Scenario: Editing a rule affects only future sprints', () => {
 		startSprint(db, '2026-10-05', []);
 		const rule = createRule(db, gym(), '2026-10-05');
 		const id = rule.ok ? rule.value.id : 0;
-		const updated = updateRule(db, id, gym({ title: 'Swim', weekdays: [2] }));
-		expect(updated).toMatchObject({ ok: true, value: { title: 'Swim', weekdays: [2] } });
+		const updated = updateRule(db, id, gym({ title: 'Swim', weekdays: [2], startTime: '07:00', endTime: '08:00' }));
+		expect(updated).toMatchObject({
+			ok: true,
+			value: { title: 'Swim', weekdays: [2], startTime: '07:00', endTime: '08:00' }
+		});
 		const current = activeTodos();
-		expect(current.map((t) => [t.title, t.day])).toEqual([
-			['Gym', '2026-10-05'],
-			['Gym', '2026-10-08']
+		expect(current.map((t) => [t.title, t.day, t.startTime, t.endTime])).toEqual([
+			['Gym', '2026-10-05', null, null],
+			['Gym', '2026-10-08', null, null]
 		]);
 
 		closeReview(db, '2026-10-11', Object.fromEntries(current.map((t) => [t.id, 'drop'])));
 		startSprint(db, '2026-10-11', []);
-		expect(activeTodos().map((t) => [t.title, t.day])).toEqual([['Swim', '2026-10-13']]);
+		expect(activeTodos().map((t) => [t.title, t.day, t.startTime, t.endTime])).toEqual([
+			['Swim', '2026-10-13', '07:00', '08:00']
+		]);
 	});
 
 	it('Scenario: Deleting a rule keeps existing instances', () => {
@@ -151,7 +193,7 @@ describe('recurring rules', () => {
 		const rule = createRule(db, gym({ title: ' Gym ', weekdays: [4, 1, 4], notes: 'Legs', checklist: ['Warm up'] }), '2026-10-07');
 		expect(rule).toEqual({
 			ok: true,
-			value: { id: expect.any(Number), title: 'Gym', aspectId: aspect, weekdays: [1, 4], notes: 'Legs', priority: 0, checklist: ['Warm up'], classId: null, type: null }
+			value: { id: expect.any(Number), title: 'Gym', aspectId: aspect, weekdays: [1, 4], notes: 'Legs', priority: 0, checklist: ['Warm up'], classId: null, type: null, startTime: null, endTime: null }
 		});
 		expect(listRules(db)).toEqual([rule.ok && rule.value]);
 		expect(updateRule(db, 999, gym())).toEqual({ ok: false, error: 'not-found' });
@@ -167,7 +209,7 @@ describe('carried recurring instances', () => {
 	}
 
 	it('Scenario: Carried recurring instance is not duplicated', () => {
-		const rule = createRule(db, gym(), '2026-10-01');
+		const rule = createRule(db, gym({ startTime: '18:00' }), '2026-10-01');
 		const id = rule.ok ? rule.value.id : 0;
 		startSprint(db, '2026-10-05', []);
 		const [monday, thursday] = activeTodos();
@@ -175,9 +217,9 @@ describe('carried recurring instances', () => {
 		setStatus(db, thursday.id, 'doing');
 		carryInto();
 		const instances = activeTodos().filter((t) => t.ruleId === id);
-		expect(instances.map((t) => [t.id === thursday.id, t.day, t.status])).toEqual([
-			[true, '2026-10-12', 'doing'],
-			[false, '2026-10-15', 'todo']
+		expect(instances.map((t) => [t.id === thursday.id, t.day, t.status, t.startTime])).toEqual([
+			[true, '2026-10-12', 'doing', '18:00'],
+			[false, '2026-10-15', 'todo', '18:00']
 		]);
 	});
 

@@ -1,6 +1,6 @@
 import { expect, test, reset, seed, setClock } from './helpers';
 
-const LISTS = ['Today', 'Sprint', 'Backlog', 'Recurring', 'Projects', 'Uni', 'Aspects'];
+const LISTS = ['Today', 'Sprint', 'Calendar', 'Backlog', 'Recurring', 'Projects', 'Uni', 'Aspects'];
 
 test.beforeEach(async ({ request }) => {
 	await reset(request);
@@ -12,6 +12,8 @@ test('Scenario: Desktop shows a sidebar', async ({ page }) => {
 	const screens: [string, string][] = [
 		['/', 'Today'],
 		['/sprint', 'Sprint'],
+		['/calendar', 'Calendar'],
+		['/calendar?month=2026-11', 'Calendar'],
 		['/backlog', 'Backlog'],
 		['/aspects', 'Aspects'],
 		['/recurring', 'Recurring'],
@@ -25,7 +27,7 @@ test('Scenario: Desktop shows a sidebar', async ({ page }) => {
 		const sidebar = page.getByRole('navigation', { name: 'Main' });
 		await expect(sidebar).toBeVisible();
 		const names = await sidebar.locator('a.item').evaluateAll((els) =>
-			els.slice(0, 7).map((el) => el.textContent!.replace(/\d+$/, '').trim())
+			els.slice(0, 8).map((el) => el.textContent!.replace(/\d+$/, '').trim())
 		);
 		expect(names).toEqual(LISTS);
 		await expect(sidebar.getByRole('link', { name: current, exact: true })).toHaveAttribute(
@@ -61,7 +63,7 @@ test('Scenario: Desktop sidebar marks Uni on a class detail page', async ({ page
 	await expect(sidebar.locator('[aria-current="page"]')).toHaveCount(1);
 });
 
-test('Scenario: Phone home list shows the seven lists', async ({ page }) => {
+test('Scenario: Phone home list shows the eight lists', async ({ page }) => {
 	await page.setViewportSize({ width: 375, height: 812 });
 	await page.goto('/menu');
 
@@ -70,6 +72,7 @@ test('Scenario: Phone home list shows the seven lists', async ({ page }) => {
 		.getByRole('link')
 		.evaluateAll((els) => els.map((el) => el.textContent!.replace(/\d+$/, '').trim()));
 	expect(names).toEqual(LISTS);
+	await expect(list.getByRole('link', { name: 'Calendar', exact: true }).locator('.count')).toHaveCount(0);
 	await expect(page.getByRole('navigation', { name: 'Main' })).toBeHidden();
 });
 

@@ -17,6 +17,7 @@ import {
 } from './todos';
 import type { Id, Priority, Todo } from '$lib/types';
 import { createProject, setItAspectId } from './projects';
+import { listRules } from './recurring';
 import { listSprintTodos, listToday } from './sprints';
 import { setUniAspectId } from './uni';
 
@@ -57,6 +58,36 @@ describe('createTodo', () => {
 		expect(todoCount(db)).toBe(0);
 	});
 
+	it('Scenario: Both todo read models carry the slot', () => {
+		const { db, aspect } = setup();
+		const sprint = activeSprint(db);
+		const insert = db.prepare(
+			'INSERT INTO todos (title, aspect_id, sprint_id, day, start_time, end_time, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+		);
+		const backlog = Number(insert.run('Dinner', aspect, null, '2026-11-03', '18:00', '19:30', '').lastInsertRowid);
+		const inSprint = Number(insert.run('Call', aspect, sprint, '2026-09-29', '18:00', '19:30', '').lastInsertRowid);
+		const plain = Number(insert.run('Plain', aspect, null, null, null, null, '').lastInsertRowid);
+		const plainSprint = Number(insert.run('Stretch', aspect, sprint, '2026-09-29', null, null, '').lastInsertRowid);
+		const rule = Number(
+			db
+				.prepare("INSERT INTO recurring_rules (title, aspect_id, weekdays, start_time, created_at) VALUES ('Run', ?, '1', '07:00', '')")
+				.run(aspect).lastInsertRowid
+		);
+		const slotted = { startTime: '18:00', endTime: '19:30' };
+		const none = { startTime: null, endTime: null };
+
+		expect(getTodo(db, backlog)).toMatchObject(slotted);
+		expect(getTodo(db, inSprint)).toMatchObject(slotted);
+		expect(getTodo(db, plain)).toMatchObject(none);
+		expect(listBacklog(db).find((t) => t.id === backlog)).toMatchObject(slotted);
+		expect(listBacklog(db).find((t) => t.id === plain)).toMatchObject(none);
+		expect(listSprintTodos(db, sprint).find((t) => t.id === inSprint)).toMatchObject(slotted);
+		expect(listSprintTodos(db, sprint).find((t) => t.id === plainSprint)).toMatchObject(none);
+		expect(listToday(db, '2026-09-29').find((t) => t.id === inSprint)).toMatchObject(slotted);
+		expect(listToday(db, '2026-09-29').find((t) => t.id === plainSprint)).toMatchObject(none);
+		expect(listRules(db).find((r) => r.id === rule)).toMatchObject({ startTime: '07:00', endTime: null });
+	});
+
 	it('Scenario: Todo stores all optional fields', () => {
 		const { db, aspect } = setup();
 		const created = value(
@@ -82,6 +113,8 @@ describe('createTodo', () => {
 			day: null,
 			recurring: false,
 			ruleId: null,
+			startTime: null,
+			endTime: null,
 			completedAt: null
 		});
 		expect(read.checklist.map(({ text, done, position }) => ({ text, done, position }))).toEqual([
@@ -129,18 +162,34 @@ describe('createTodo', () => {
 	it('lands on a day of the active sprint for target day', () => {
 		const { db, aspect } = setup();
 		const sprint = activeSprint(db, '2026-09-28');
-		const t = value(createTodo(db, { title: 'Run', aspectId: aspect, target: { kind: 'day', day: '2026-09-30' } }));
-		expect(t).toMatchObject({ sprintId: sprint, day: '2026-09-30' });
-		expect(value(createTodo(db, { title: 'Run', aspectId: aspect, target: { kind: 'day', day: '2026-10-04' } })).day).toBe(
-			'2026-10-04'
+		const make = (day: string) => createTodo(db, { title: 'Run', aspectId: aspect, target: { kind: 'day', day } }, '2026-09-30');
+		expect(value(make('2026-09-30'))).toMatchObject({ sprintId: sprint, day: '2026-09-30' });
+		expect(value(make('2026-10-04')).day).toBe('2026-10-04');
+		expect(value(make('2026-10-05'))).toMatchObject({ sprintId: null, day: '2026-10-05' });
+		expect(make('2026-09-27')).toEqual({ ok: false, error: 'day-in-past', field: 'day' });
+		expect(db.prepare('SELECT count(*) AS n FROM todos').get()).toEqual({ n: 3 });
+	});
+
+	it('keeps a day target in the backlog without an active sprint', () => {
+		const { db, aspect } = setup();
+		const t = value(
+			createTodo(db, { title: 'Run', aspectId: aspect, target: { kind: 'day', day: '2026-10-21' } }, '2026-10-18')
 		);
-		for (const day of ['2026-09-27', '2026-10-05']) {
-			expect(createTodo(db, { title: 'Run', aspectId: aspect, target: { kind: 'day', day } })).toEqual({
-				ok: false,
-				error: 'day-outside-sprint',
-				field: 'day'
-			});
-		}
+		expect(t).toMatchObject({ sprintId: null, day: '2026-10-21' });
+		expect(
+			createTodo(db, { title: 'Run', aspectId: aspect, target: { kind: 'day', day: '2026-10-17' } }, '2026-10-18')
+		).toEqual({ ok: false, error: 'day-in-past', field: 'day' });
+	});
+
+	it('Scenario: Creating on a day follows the placement rule', () => {
+		const { db, aspect } = setup();
+		const sprint = activeSprint(db, '2026-10-12');
+		const make = (target: NonNullable<Parameters<typeof createTodo>[1]['target']>) =>
+			createTodo(db, { title: 'Run', aspectId: aspect, target }, '2026-10-19');
+		expect(make({ kind: 'day', day: '2026-10-15' })).toEqual({ ok: false, error: 'review-required' });
+		expect(todoCount(db)).toBe(0);
+		expect(value(make({ kind: 'day', day: '2026-10-19' }))).toMatchObject({ sprintId: null, day: '2026-10-19' });
+		expect(value(make({ kind: 'sprint' }))).toMatchObject({ sprintId: sprint, day: null, status: 'todo' });
 	});
 
 	it('returns null for a missing todo', () => {
@@ -158,7 +207,7 @@ describe('updateTodo and deleteTodo', () => {
 				.run().lastInsertRowid
 		);
 		const sprint = activeSprint(db, '2026-09-28');
-		const t = value(createTodo(db, { title: 'Run', aspectId: aspect, target: { kind: 'day', day: '2026-09-29' } }));
+		const t = value(createTodo(db, { title: 'Run', aspectId: aspect, target: { kind: 'day', day: '2026-09-29' } }, '2026-09-29'));
 		db.prepare("UPDATE todos SET status = 'doing' WHERE id = ?").run(t.id);
 
 		const updated = value(updateTodo(db, t.id, { aspectId: other }));
@@ -270,11 +319,19 @@ describe('lists', () => {
 	function insert(
 		db: DatabaseSync,
 		title: string,
-		fields: { aspect: Id; priority?: number; dueDate?: string | null; sprintId?: Id | null; status?: string }
+		fields: { aspect: Id; priority?: number; dueDate?: string | null; sprintId?: Id | null; status?: string; day?: string | null }
 	) {
 		db.prepare(
-			"INSERT INTO todos (title, aspect_id, priority, due_date, sprint_id, status, created_at) VALUES (?, ?, ?, ?, ?, ?, '')"
-		).run(title, fields.aspect, fields.priority ?? 0, fields.dueDate ?? null, fields.sprintId ?? null, fields.status ?? 'todo');
+			"INSERT INTO todos (title, aspect_id, priority, due_date, sprint_id, status, day, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, '')"
+		).run(
+			title,
+			fields.aspect,
+			fields.priority ?? 0,
+			fields.dueDate ?? null,
+			fields.sprintId ?? null,
+			fields.status ?? 'todo',
+			fields.day ?? null
+		);
 	}
 
 	it('Scenario: Backlog lists only todos not in a sprint, in order', () => {
@@ -334,6 +391,23 @@ describe('lists', () => {
 		insert(db, 'sprint-today', { aspect, dueDate: '2026-10-01', sprintId: sprint });
 
 		expect(listBacklogDueToday(db, '2026-10-01').map((t) => t.title)).toEqual(['due-today']);
+	});
+
+	it('Scenario: Backlog todos planned for today are listed once', () => {
+		const { db, aspect } = setup();
+		const sprint = activeSprint(db);
+		insert(db, 'planned-today', { aspect, day: '2026-10-01' });
+		insert(db, 'due-and-planned', { aspect, day: '2026-10-01', dueDate: '2026-10-01' });
+		insert(db, 'due-today', { aspect, dueDate: '2026-10-01' });
+		insert(db, 'planned-tomorrow', { aspect, day: '2026-10-02' });
+		insert(db, 'done-planned', { aspect, day: '2026-10-01', status: 'done' });
+		insert(db, 'sprint-planned', { aspect, day: '2026-10-01', sprintId: sprint });
+
+		expect(listBacklogDueToday(db, '2026-10-01').map((t) => t.title)).toEqual([
+			'planned-today',
+			'due-and-planned',
+			'due-today'
+		]);
 	});
 
 	it('Scenario: A fallback todo is overdue the next day', () => {
@@ -405,7 +479,7 @@ describe('project link', () => {
 		const sprint = activeSprint(db, '2026-10-05');
 		const backlog = value(createTodo(db, { title: 'b', aspectId: it, projectId: project }));
 		const planned = value(
-			createTodo(db, { title: 's', aspectId: it, projectId: project, target: { kind: 'day', day: '2026-10-06' } })
+			createTodo(db, { title: 's', aspectId: it, projectId: project, target: { kind: 'day', day: '2026-10-06' } }, '2026-10-06')
 		);
 
 		expect(getTodo(db, backlog.id)!.projectId).toBe(project);
@@ -440,7 +514,7 @@ describe('class link', () => {
 		const sprint = activeSprint(db, '2026-10-05');
 		const backlog = value(createTodo(db, { title: 'b', aspectId: uni, classId: analysis, type: 'LEC' }));
 		const planned = value(
-			createTodo(db, { title: 's', aspectId: uni, classId: analysis, type: 'LEC', target: { kind: 'day', day: '2026-10-06' } })
+			createTodo(db, { title: 's', aspectId: uni, classId: analysis, type: 'LEC', target: { kind: 'day', day: '2026-10-06' } }, '2026-10-06')
 		);
 		value(setRevisedAt(db, backlog.id, '2026-10-02'));
 		value(setRevisedAt(db, planned.id, '2026-10-03'));
@@ -456,7 +530,7 @@ describe('class link', () => {
 		const { db, other, uni, analysis } = uniSetup();
 		const sprint = activeSprint(db, '2026-09-28');
 		const todo = value(
-			createTodo(db, { title: 'x', aspectId: uni, classId: analysis, type: 'LEC', target: { kind: 'day', day: '2026-09-29' } })
+			createTodo(db, { title: 'x', aspectId: uni, classId: analysis, type: 'LEC', target: { kind: 'day', day: '2026-09-29' } }, '2026-09-29')
 		);
 		db.prepare("UPDATE todos SET status = 'doing' WHERE id = ?").run(todo.id);
 		value(setRevisedAt(db, todo.id, '2026-09-30'));

@@ -7,3 +7,8 @@ export function isOverdue(todo: Pick<Todo, 'dueDate' | 'status'>, today: IsoDate
 export function isPriority(p: unknown): p is Priority {
 	return p === 0 || p === 1 || p === 2 || p === 3;
 }
+
+// The day the sprint views place a todo on: its planned day, else its due day in the sprint's week.
+export function shownDay(todo: Pick<Todo, 'day' | 'dueDay'>): IsoDate | null {
+	return todo.day ?? todo.dueDay ?? null;
+}

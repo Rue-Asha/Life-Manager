@@ -4,28 +4,28 @@
 TBD - created by archiving change build-life-manager. Update Purpose after archive.
 ## Requirements
 ### Requirement: Responsive layout and navigation
-Every screen SHALL work at 375 px phone width and on desktop. On desktop a sidebar links Today, Sprint,
+Every screen SHALL work at 375 px phone width and on desktop. On desktop a sidebar links Today, Sprint, Calendar,
 Backlog, Recurring, Projects, Uni and Aspects; on a phone a Things-style home list with those entries is
-drilled into, and every screen links back to it. Projects comes after Recurring, Uni after Projects, and
-both before Aspects. (S19, it-projects S14, uni-hub S17)
+drilled into, and every screen links back to it. Calendar (route `/calendar`) comes right after Sprint and shows no
+count; Projects comes after Recurring, Uni after Projects, and both before Aspects. (S19, it-projects S14, uni-hub S17, calendar-planning S11)
 
 #### Scenario: Desktop shows a sidebar
-- **WHEN** any screen is opened at 1280 px width
-- **THEN** a sidebar with Today, Sprint, Backlog, Recurring, Projects, Uni and Aspects, in that order, is visible and marks the current screen (Projects also on a project's detail page, Uni also on a class's detail page)
+- **WHEN** any screen, `/calendar` included, is opened at 1280 px width
+- **THEN** a sidebar with Today, Sprint, Calendar, Backlog, Recurring, Projects, Uni and Aspects, in that order, is visible and marks the current screen (Calendar on `/calendar` and `/calendar?month=…`, Projects also on a project's detail page, Uni also on a class's detail page)
 - **proof:** e2e
 
-#### Scenario: Phone home list shows the seven lists
+#### Scenario: Phone home list shows the eight lists
 - **WHEN** `/menu` is opened at 375 px width
-- **THEN** it lists Today, Sprint, Backlog, Recurring, Projects, Uni and Aspects, in that order, and no sidebar is shown
+- **THEN** it lists Today, Sprint, Calendar, Backlog, Recurring, Projects, Uni and Aspects, in that order, the Calendar entry without a count, and no sidebar is shown
 - **proof:** e2e
 
 #### Scenario: Phone home list drills into each list
 - **WHEN** at 375 px Rue taps each entry of the home list and then the back link
-- **THEN** each opens its screen and the back link returns to the home list
+- **THEN** each opens its screen (Calendar opens `/calendar` with the heading "Calendar") and the back link returns to the home list
 - **proof:** e2e
 
 #### Scenario: Every screen fits 375 px without horizontal scroll
-- **WHEN** Today, sprint (all three views), planning, review, backlog, aspects, recurring, onboarding, projects, a project's detail page, uni and a class's detail page are opened at 375 px
+- **WHEN** Today, sprint (all three views), planning, review, backlog, the calendar, aspects, recurring, onboarding, projects, a project's detail page, uni and a class's detail page are opened at 375 px
 - **THEN** none scrolls horizontally, and a screenshot of each is written to `test-results/shots/`
 - **proof:** e2e
 
@@ -51,14 +51,15 @@ sidebar and rail) | context rail (~320–360 px, `--surface` with a `--line` hai
 and a toggle overlay in Week even at ≥1280 px (with Unscheduled; see sprint-views "Wide board and week");
 Today → this sprint's progress per aspect; aspect page → the aspect's details (colour, counts); project
 detail → the project's metadata (repo, tags, created, updated); Uni → the deadline overview; class detail →
-the class's metadata (lecturer, room, ECTS, links, exam, grade). Screens without a rail (Backlog, Plan,
+the class's metadata (lecturer, room, ECTS, links, exam, grade); Calendar → the selected day's entries, its month grid
+filling the content width like Board. Screens without a rail (Backlog, Plan,
 Review, Recurring, Aspects, Projects, Welcome) centre their column in the free space. Between 768
 and 1279 px the rail collapses into a toggle button that opens it as an overlay panel and every screen's
 column is centred in the space right of the sidebar; the project detail, Uni and the class detail are the
 exceptions, showing their rail content in the column instead of a rail toggle (metadata as a row under the
 title; the deadline overview as a section above the semesters). Below 768 px the phone layout is unchanged.
-At ≥1280 px Board and Week fill the content width instead of centring a capped column (see sprint-views
-"Wide board and week"). No screen scrolls horizontally at any width. (S9, it-projects S4, S14, uni-hub S3, S9, S16, S17, cohesive-look)
+At ≥1280 px Board, Week and the calendar grid fill the content width instead of centring a capped column (see sprint-views
+"Wide board and week"). No screen scrolls horizontally at any width. (S9, it-projects S4, S14, uni-hub S3, S9, S16, S17, cohesive-look, calendar-planning S13)
 
 #### Scenario: Sprint at 1280 shows a context rail
 - **WHEN** Rue opens `/sprint` at 1280 px and at 1600 px during a running sprint, in the By aspect view and in the Board view
@@ -91,7 +92,7 @@ At ≥1280 px Board and Week fill the content width instead of centring a capped
 - **proof:** e2e
 
 #### Scenario: No screen scrolls horizontally at any width
-- **WHEN** every screen (Today, Sprint in all three views, Plan, Review, Backlog, Aspects, an aspect page, Recurring, Projects, a project's detail page, Uni, a class's detail page, Welcome) is opened at 768, 1024, 1280 and 1600 px
+- **WHEN** every screen (Today, Sprint in all three views, Plan, Review, Backlog, the calendar, Aspects, an aspect page, Recurring, Projects, a project's detail page, Uni, a class's detail page, Welcome) is opened at 768, 1024, 1280 and 1600 px
 - **THEN** none scrolls horizontally, and a 1280 px screenshot of each is written to `test-results/shots/`
 - **proof:** e2e
 

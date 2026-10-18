@@ -400,6 +400,24 @@ test('Scenario: Sunday after the review prompts to plan next week', async ({ pag
 	await expect(page.getByTestId('plan-week')).toHaveText('Mon 12 – Sun 18 Oct');
 });
 
+test('Scenario: Planned-today backlog todo shows on Today between sprints', async ({ page, request }) => {
+	const { aspects } = await seed(request, {
+		aspects: [...ASPECTS],
+		sprint: { state: 'closed', weekStart: '2026-10-12' },
+		todos: [
+			{ title: 'Dentist', aspect: 1, day: '2026-10-18', startTime: '18:00' },
+			{ title: 'Next week', aspect: 1, day: '2026-10-19' }
+		]
+	});
+	await setClock(request, '2026-10-18T10:00:00Z');
+	await page.goto('/');
+
+	await expect(page.getByRole('heading', { level: 1, name: 'Today' })).toBeVisible();
+	await expect(page.getByTestId(`aspect-group-${aspects[1]}`).getByTestId('todo-row')).toHaveText(/Dentist/);
+	await expect(row(page, 'Next week')).toHaveCount(0);
+	await expect(page.getByTestId('summary-header').getByTestId('summary-figure')).toHaveText('1');
+});
+
 test('Scenario: Header counts open todos on Today', async ({ page, request }) => {
 	await seed(request, {
 		aspects: [...ASPECTS],
@@ -455,4 +473,15 @@ test('Scenario: Header without a sprint shows only the count', async ({ page, re
 	await expect(header).toContainText('open today');
 	await expect(header.getByTestId('summary-line')).toHaveCount(0);
 	await expect(header.getByTestId('summary-bar')).toHaveCount(0);
+});
+
+test('Scenario: Overdue todo planned for today shows once on Today', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [...ASPECTS],
+		todos: [{ title: 'Send tax receipts', aspect: 1, dueDate: '2026-10-06', day: TODAY }]
+	});
+	await page.goto('/');
+
+	await expect(row(page, 'Send tax receipts')).toHaveCount(1);
+	await expect(page.getByTestId('overdue-group').getByTestId('todo-row')).toHaveCount(1);
 });

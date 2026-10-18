@@ -9,9 +9,10 @@
 		aspects: (Aspect & { backlog: number })[];
 	}
 
-	export const NAV_ITEMS: { label: string; href: string; icon: UiIcon; count: NavCount }[] = [
+	export const NAV_ITEMS: { label: string; href: string; icon: UiIcon; count?: NavCount }[] = [
 		{ label: 'Today', href: '/', icon: 'sun', count: 'today' },
 		{ label: 'Sprint', href: '/sprint', icon: 'calendar-days', count: 'sprint' },
+		{ label: 'Calendar', href: '/calendar', icon: 'calendar' },
 		{ label: 'Backlog', href: '/backlog', icon: 'inbox', count: 'backlog' },
 		{ label: 'Recurring', href: '/recurring', icon: 'repeat', count: 'recurring' },
 		{ label: 'Projects', href: '/projects', icon: 'folder', count: 'projects' },
@@ -53,7 +54,7 @@
 		</button>
 	{/if}
 	{#each NAV_ITEMS as item (item.href)}
-		{@const count = navCount(nav, item.count)}
+		{@const count = item.count ? navCount(nav, item.count) : null}
 		<a
 			class="item"
 			href={item.href}
@@ -61,7 +62,7 @@
 		>
 			<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS[item.icon]} /></svg>
 			{item.label}
-			{#if count.n > 0}<span class="count num" class:late={count.late} aria-hidden="true">{count.n}</span>{/if}
+			{#if count && count.n > 0}<span class="count num" class:late={count.late} aria-hidden="true">{count.n}</span>{/if}
 		</a>
 	{/each}
 	{#if nav.aspects.length > 0}

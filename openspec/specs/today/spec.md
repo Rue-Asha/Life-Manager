@@ -8,8 +8,9 @@ Today SHALL be the default landing screen, showing active-sprint todos assigned 
 todos (due before today, not done), with status toggles and a quick add in every phase (running, review
 available, review required, planning, none, Sunday after the review). While an active sprint has today
 among its days, quick add SHALL add to the sprint on today; otherwise it SHALL create a backlog todo due
-today, and Today SHALL list open backlog todos due today under their aspect. Today's todos are grouped by
-aspect; overdue todos are listed once, in a single "Overdue" group that names each todo's aspect. (S21)
+today, and Today SHALL list open backlog todos due today or planned for today under their aspect, each once even
+when both apply. Today's todos are grouped by aspect; overdue todos are listed once, in a single "Overdue" group that
+names each todo's aspect. (S21, calendar-planning S8)
 
 #### Scenario: Today shows today's sprint todos and overdue todos
 - **WHEN** Rue opens `/` with one sprint todo on today, one on tomorrow, and one backlog todo due yesterday
@@ -65,6 +66,16 @@ aspect; overdue todos are listed once, in a single "Overdue" group that names ea
 - **WHEN** backlog todos are queried for a given day, with a backlog todo due that day, one due another day, a done one due that day, and a sprint todo due that day
 - **THEN** only the open todo in no sprint and due that day is returned
 - **proof:** unit
+
+#### Scenario: Backlog todos planned for today are listed once
+- **WHEN** backlog todos are queried for a given day, with a backlog todo planned for that day, one planned for that day and also due that day, one planned for the next day, and a done one planned for that day
+- **THEN** the first two are returned, each once, and the others are not
+- **proof:** unit
+
+#### Scenario: Planned-today backlog todo shows on Today between sprints
+- **WHEN** it is the Sunday after the review was closed and a backlog todo is planned for today with 18:00
+- **THEN** Today lists it once under its aspect, and the summary header counts it
+- **proof:** e2e
 
 #### Scenario: Backlog todos due today are listed only when today is not a sprint day
 - **WHEN** a backlog todo is due today, once while an active sprint has today among its days and once while it has not (or no sprint exists)

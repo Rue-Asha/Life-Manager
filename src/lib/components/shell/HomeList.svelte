@@ -9,14 +9,14 @@
 <nav aria-label="Lists">
 	<ul>
 		{#each NAV_ITEMS as item (item.href)}
-			{@const count = navCount(nav, item.count)}
+			{@const count = item.count ? navCount(nav, item.count) : null}
 			<li class:aspects={item.href === '/aspects'}>
 				<a href={item.href}>
 					<svg viewBox="0 0 24 24" aria-hidden="true" class:today={item.href === '/'}>
 						<path d={UI_ICONS[item.icon]} />
 					</svg>
 					{item.label}
-					{#if count.n > 0}<span class="count num" class:late={count.late} aria-hidden="true">{count.n}</span>{/if}
+					{#if count && count.n > 0}<span class="count num" class:late={count.late} aria-hidden="true">{count.n}</span>{/if}
 				</a>
 			</li>
 		{/each}

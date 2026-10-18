@@ -2,7 +2,7 @@
 	import type { Snippet } from 'svelte';
 	import { ASPECT_COLORS } from '$lib/aspect-style';
 	import { page } from '$app/state';
-	import type { Aspect, ClassRef, ClassType, Id, IsoDate, Priority, ProjectRef } from '$lib/types';
+	import type { Aspect, ClassRef, ClassType, HhMm, Id, IsoDate, Priority, ProjectRef } from '$lib/types';
 	import { CLASS_TYPES, TYPE_LABELS } from '$lib/uni';
 	import AspectIcon from '../ui/AspectIcon.svelte';
 	import { UI_ICONS } from '../ui/icons';
@@ -18,6 +18,10 @@
 		projectId = $bindable(''),
 		classId = $bindable(''),
 		type = $bindable('OTH'),
+		planned = false,
+		plannedDay = $bindable(''),
+		startTime = $bindable(''),
+		endTime = $bindable(''),
 		linkedId = null,
 		clearProject = false,
 		clearClass = false,
@@ -30,6 +34,10 @@
 		projectId?: Id | '';
 		classId?: Id | '';
 		type?: ClassType;
+		planned?: boolean;
+		plannedDay?: IsoDate | '';
+		startTime?: HhMm | '';
+		endTime?: HhMm | '';
 		linkedId?: Id | null;
 		clearProject?: boolean;
 		clearClass?: boolean;
@@ -121,6 +129,54 @@
 		{/if}
 	</span>
 
+	{#if planned}
+		<span class="due">
+			<label class="chip" class:pressed={plannedDay}>
+				<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS['calendar-days']} /></svg>
+				<span class="field">Planned</span>
+				<span class="num value" class:unset={!plannedDay}>{plannedDay ? dateLabel(plannedDay) : 'Planned'}</span>
+				<input
+					type="date"
+					name="day"
+					aria-label="Planned"
+					bind:value={plannedDay}
+					oninput={() => plannedDay || (startTime = endTime = '')}
+					onclick={(e) => e.currentTarget.showPicker()}
+				/>
+			</label>
+			{#if plannedDay}
+				<button type="button" class="clear" aria-label="Remove plan" onclick={() => (plannedDay = startTime = endTime = '')}>
+					<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.x} /></svg>
+				</button>
+			{/if}
+		</span>
+		<label class="chip" class:pressed={startTime} class:off={!plannedDay}>
+			<span class="field">From</span>
+			<span class="num value" class:unset={!startTime}>{startTime || 'From'}</span>
+			<input
+				type="time"
+				name="startTime"
+				aria-label="From"
+				disabled={!plannedDay}
+				bind:value={startTime}
+				oninput={() => startTime || (endTime = '')}
+				onclick={(e) => e.currentTarget.showPicker()}
+			/>
+		</label>
+		<label class="chip" class:pressed={endTime} class:off={!startTime}>
+			<span class="field">To</span>
+			<span class="num value" class:unset={!endTime}>{endTime || 'To'}</span>
+			<input
+				type="time"
+				name="endTime"
+				aria-label="To"
+				disabled={!startTime}
+				bind:value={endTime}
+				onclick={(e) => e.currentTarget.showPicker()}
+			/>
+		</label>
+	{/if}
+
 	{#if projectShown}
 		<label class="chip" class:pressed={project} data-testid="project-field">
 			<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.folder} /></svg>
@@ -166,6 +222,11 @@
 
 	.chip:focus-within {
 		box-shadow: var(--ring-focus);
+	}
+
+	.off {
+		opacity: 0.5;
+		cursor: default;
 	}
 
 	.pressed {
