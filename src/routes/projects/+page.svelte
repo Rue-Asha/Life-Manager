@@ -44,12 +44,12 @@
 			<path d="M6.4 5.6v4.8 M9.6 5.6v4.8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
 		{:else}
 			<circle cx="8" cy="8" r="7" fill="currentColor" />
-			<path d="m5 8.2 2 2 4-4.2" fill="none" stroke="var(--paper)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
+			<path d="m5 8.2 2 2 4-4.2" fill="none" stroke="var(--surface)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
 		{/if}
 	</svg>
 {/snippet}
 
-<PageHeader title="Projects" icon="folder">
+<PageHeader title="Projects">
 	{#if !prompting}
 		<Button type="button" variant="primary" onclick={() => (adding = true)}>
 			<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.plus} /></svg>New project
@@ -130,8 +130,7 @@
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
-		padding-bottom: var(--space-2);
-		border-bottom: 1px solid var(--line);
+		padding: 0 var(--space-1);
 		font-size: var(--text-lg);
 		font-weight: var(--weight-semibold);
 		line-height: var(--leading-snug);

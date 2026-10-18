@@ -29,10 +29,10 @@
 		<h2 id="day-unscheduled">Unscheduled<span class="count num">{cards.length || ''}</span></h2>
 		{#each cards as todo (todo.id)}
 			<div in:receive={{ key: todo.id }} out:send={{ key: todo.id }} animate:flip={flipOpts()}>
-				<SprintCard {todo} aspect={aspectOf(todo)} {today} {sprintDays} />
+				<SprintCard {todo} aspect={aspectOf(todo)} {today} {sprintDays} variant="chip" />
 			</div>
 		{/each}
-		<div class="add"><QuickAdd {aspects} target={{ kind: 'sprint' }} /></div>
+		<div class="add"><QuickAdd {aspects} target={{ kind: 'sprint' }} compactLabel="Add a todo to Unscheduled" /></div>
 	</section>
 {/if}
 
@@ -40,8 +40,8 @@
 	.column {
 		display: flex;
 		flex-direction: column;
-		gap: var(--space-2);
-		/* Cards sit straight on the rail's stone, like they do in a day column. */
+		gap: 4px;
+		/* Chips sit on the white rail like they do on the white week sheet. */
 		margin: 0 calc(-1 * var(--space-2)) var(--space-7);
 		padding: var(--space-2);
 		border-radius: var(--radius-md);
@@ -72,6 +72,6 @@
 	}
 
 	.add {
-		margin: 0 calc(-1 * var(--space-1));
+		margin: var(--space-1) 0 0;
 	}
 </style>

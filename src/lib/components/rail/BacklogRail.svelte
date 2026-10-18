@@ -10,6 +10,7 @@
 	import TodoRow from '../todo/TodoRow.svelte';
 	import { submit, type ActionError } from '../todo/form';
 	import AspectIcon from '../ui/AspectIcon.svelte';
+	import ListGroup from '../ui/ListGroup.svelte';
 	import ProgressBar from '../ui/ProgressBar.svelte';
 	import { UI_ICONS } from '../ui/icons';
 
@@ -116,45 +117,47 @@
 					<span class="count num" data-testid="rail-count" aria-label="{count} in backlog">{count}</span>
 				</h3>
 				{#if !shut}
-					{#each todos as todo (todo.id)}
-						<div
-							class="item"
-							role="presentation"
-							in:receive={{ key: todo.id }}
-							out:send={{ key: todo.id }}
-							animate:flip={flipOpts()}
-							use:draggableTodo={{ id: todo.id, from: 'backlog', recurring: todo.recurring }}
-						>
-							<ul><TodoRow {todo} {aspect} {today} context="planning" /></ul>
-							{#if canAdd}
-								<!-- With `onadd` the page posts the add itself, so it can move the todo before the reload. -->
-								<form
-									method="POST"
-									action={addAction}
-									use:enhance={onadd
-										? ({ cancel }) => {
-												cancel();
-												onadd(todo.id);
-											}
-										: submit({ onerror: failed(todo.id), onsuccess: () => (failure = null) })}
-								>
-									<input type="hidden" name="id" value={todo.id} />
-									<button class="add" aria-label="{addLabel}: {todo.title}" title={addLabel}>
-										<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.plus} /></svg>
-									</button>
-								</form>
-							{/if}
-							{#if failure?.id === todo.id}
-								<p class="error" role="alert">
-									{#if failure.error === 'review-required'}
-										The sprint needs its review first. <a href="/sprint/review">Review</a>
-									{:else}
-										That didn’t work. Reload and try again.
-									{/if}
-								</p>
-							{/if}
-						</div>
-					{/each}
+					<ListGroup variant="outline">
+						{#each todos as todo (todo.id)}
+							<div
+								class="item"
+								role="presentation"
+								in:receive={{ key: todo.id }}
+								out:send={{ key: todo.id }}
+								animate:flip={flipOpts()}
+								use:draggableTodo={{ id: todo.id, from: 'backlog', recurring: todo.recurring }}
+							>
+								<ul><TodoRow {todo} {aspect} {today} context="planning" /></ul>
+								{#if canAdd}
+									<!-- With `onadd` the page posts the add itself, so it can move the todo before the reload. -->
+									<form
+										method="POST"
+										action={addAction}
+										use:enhance={onadd
+											? ({ cancel }) => {
+													cancel();
+													onadd(todo.id);
+												}
+											: submit({ onerror: failed(todo.id), onsuccess: () => (failure = null) })}
+									>
+										<input type="hidden" name="id" value={todo.id} />
+										<button class="add" aria-label="{addLabel}: {todo.title}" title={addLabel}>
+											<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.plus} /></svg>
+										</button>
+									</form>
+								{/if}
+								{#if failure?.id === todo.id}
+									<p class="error" role="alert">
+										{#if failure.error === 'review-required'}
+											The sprint needs its review first. <a href="/sprint/review">Review</a>
+										{:else}
+											That didn’t work. Reload and try again.
+										{/if}
+									</p>
+								{/if}
+							</div>
+						{/each}
+					</ListGroup>
 				{/if}
 			</section>
 		{/each}
@@ -179,9 +182,9 @@
 		height: 36px;
 		margin-bottom: var(--space-5);
 		padding: 0 var(--space-3);
-		border: 1px solid var(--line-strong);
-		border-radius: var(--radius-sm);
-		background: var(--paper);
+		border: 1px solid var(--line);
+		border-radius: var(--radius-md);
+		background: var(--surface);
 		color: var(--ink);
 		font: inherit;
 		font-size: var(--text-sm);
@@ -211,8 +214,8 @@
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
-		padding-bottom: var(--space-2);
-		border-bottom: 1px solid var(--line);
+		margin-bottom: var(--space-2);
+		padding: 0 var(--space-1);
 		font-size: var(--text-md);
 		font-weight: var(--weight-semibold);
 		line-height: var(--leading-snug);
@@ -261,12 +264,14 @@
 		font-weight: var(--weight-regular);
 	}
 
+	/* The add button sits inside the row's card, at its end. */
 	.item {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) auto;
 		align-items: start;
-		gap: var(--space-2);
-		border-radius: var(--radius-md);
+		gap: var(--space-1);
+		padding-right: var(--space-3);
+		border-radius: var(--radius-group);
 	}
 
 	.item:global([draggable='true']) {
@@ -274,7 +279,7 @@
 	}
 
 	.item:global([data-dragging]) {
-		background: var(--paper);
+		background: var(--surface);
 		box-shadow: var(--shadow-float);
 	}
 
@@ -291,20 +296,20 @@
 	.add {
 		display: grid;
 		place-items: center;
-		width: 32px;
-		height: 32px;
-		margin-top: var(--space-1);
+		width: 28px;
+		height: 28px;
+		margin-top: var(--space-2);
 		padding: 0;
-		border: 1px solid var(--line-strong);
-		border-radius: var(--radius-sm);
-		background: var(--paper);
+		border: 0;
+		border-radius: 8px;
+		background: var(--sunk);
 		color: var(--ink-2);
 		cursor: pointer;
 	}
 
 	.add:hover {
-		border-color: var(--ink-2);
-		color: var(--ink);
+		background: var(--accent-soft);
+		color: var(--accent-hover);
 	}
 
 	.add svg {
@@ -318,7 +323,7 @@
 
 	.error {
 		grid-column: 1 / -1;
-		padding-bottom: var(--space-2);
+		padding: 0 var(--space-4) var(--space-2);
 		color: var(--ink);
 		font-size: var(--text-sm);
 	}

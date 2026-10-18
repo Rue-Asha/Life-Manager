@@ -269,7 +269,7 @@
 		padding: var(--space-2) var(--space-3);
 		border: 0;
 		border-radius: var(--radius-sm);
-		background: var(--paper-sunk);
+		background: var(--sunk);
 		line-height: var(--leading-snug);
 	}
 
@@ -309,7 +309,7 @@
 		padding: 0 var(--space-3) 0 var(--space-2);
 		border: 1px solid var(--line-strong);
 		border-radius: var(--radius-sm);
-		background: var(--paper);
+		background: var(--surface);
 		color: var(--ink-2);
 		font-size: var(--text-sm);
 		white-space: nowrap;
@@ -330,7 +330,7 @@
 	.day:has(:checked) {
 		background: var(--ink);
 		border-color: var(--ink);
-		color: var(--paper);
+		color: var(--surface);
 	}
 
 	label:has(:focus-visible) {
@@ -421,7 +421,7 @@
 	}
 
 	.icon-btn:hover {
-		background: var(--paper-hover);
+		background: var(--hover);
 		color: var(--ink);
 	}
 

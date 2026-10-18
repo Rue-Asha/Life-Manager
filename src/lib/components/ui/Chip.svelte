@@ -23,27 +23,30 @@
 	.chip {
 		display: inline-flex;
 		align-items: center;
-		gap: var(--space-1);
-		height: 30px;
-		padding: 0 var(--space-3) 0 var(--space-2);
-		border: 1px solid var(--line-strong);
-		border-radius: var(--radius-sm);
-		background: var(--paper);
+		gap: 6px;
+		height: 28px;
+		padding: 0 var(--space-3) 0 10px;
+		border: 0;
+		border-radius: var(--radius-pill);
+		background: var(--sunk);
 		color: var(--ink-2);
 		font-size: var(--text-sm);
 		white-space: nowrap;
 		cursor: pointer;
+		transition: background-color var(--dur-fast) var(--ease-out);
+	}
+
+	.chip:hover {
+		background: var(--line);
 	}
 
 	.chip[aria-pressed='true'] {
-		background: var(--ink);
-		border-color: var(--ink);
-		color: var(--paper);
+		background: var(--chrome);
+		color: var(--on-chrome);
 	}
 
 	.late {
 		color: var(--overdue);
-		border-color: color-mix(in oklch, var(--overdue) 35%, var(--paper));
 		background: var(--overdue-soft);
 	}
 

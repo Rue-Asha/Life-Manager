@@ -113,7 +113,7 @@
 			<h2 id="column-{status}">{STATUS_LABELS[status]}<span class="num">{cards.length}</span></h2>
 			{#each cards as todo (todo.id)}
 				<div in:arrive={{ key: todo.id }} out:leave={{ key: todo.id }} animate:flip={flipOpts()}>
-					<SprintCard {todo} aspect={aspectOf(todo)} {today} {sprintDays} />
+					<SprintCard {todo} aspect={aspectOf(todo)} {today} {sprintDays} variant="card" />
 				</div>
 			{:else}
 				<p class="placeholder" data-testid="column-placeholder">{PLACEHOLDERS[status]}</p>
@@ -126,7 +126,7 @@
 	.board {
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: var(--space-3);
+		gap: var(--space-4);
 		align-items: start;
 	}
 
@@ -135,9 +135,9 @@
 		flex-direction: column;
 		gap: var(--space-2);
 		min-height: 180px;
-		padding: var(--space-3);
-		border-radius: var(--radius-md);
-		background: var(--paper-sunk);
+		padding: var(--space-2) var(--space-2) var(--space-3);
+		border-radius: var(--radius-group);
+		background: var(--sunk);
 		transition:
 			background-color var(--dur-fast) var(--ease-out),
 			box-shadow var(--dur-fast) var(--ease-out);
@@ -151,8 +151,9 @@
 
 	h2 {
 		display: flex;
-		justify-content: space-between;
-		margin-bottom: var(--space-1);
+		align-items: center;
+		gap: var(--space-2);
+		padding: var(--space-2) var(--space-2) var(--space-1);
 		font-size: var(--text-sm);
 		font-weight: var(--weight-semibold);
 	}
@@ -166,27 +167,10 @@
 		display: grid;
 		place-items: center;
 		height: 64px;
-		border: 1px dashed var(--line-strong);
+		border: 1.5px dashed var(--line-strong);
 		border-radius: var(--radius-md);
 		color: var(--ink-3);
 		font-size: var(--text-sm);
-	}
-
-	@media (min-width: 768px) {
-		/* Priority, due date and the row menu drop under the meta line instead of squeezing the
-		   title to nothing in a third-width column. */
-		.column :global(.row.checkable) {
-			grid-template-columns: var(--checkbox-size) minmax(0, 1fr);
-		}
-
-		.column :global(.row .end) {
-			grid-column: 2;
-			flex-wrap: wrap;
-		}
-
-		.column :global(.row .end:has(*)) {
-			margin-top: var(--space-2);
-		}
 	}
 
 	@media (min-width: 1280px) {

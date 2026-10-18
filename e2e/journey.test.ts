@@ -93,7 +93,7 @@ test('Done-when journey', async ({ page, request }) => {
 
 	await switchView(page, 'Week', 'week');
 	for (const gymDay of ['2026-10-06', '2026-10-08']) {
-		await expect(day(page, gymDay).getByTestId('todo-row').filter({ hasText: 'Gym' })).toContainText('Recurring');
+		await expect(day(page, gymDay).getByTestId('todo-row').filter({ hasText: 'Gym' })).toBeVisible();
 	}
 	// Without a day, the dated todo sits on its due date until it is moved.
 	await expect(day(page, '2026-10-08')).toContainText('Submit lab report');

@@ -32,16 +32,26 @@
 
 <script lang="ts">
 	import { page } from '$app/state';
-	import AspectIcon from '../ui/AspectIcon.svelte';
+	import { ASPECT_COLORS, ASPECT_ICONS } from '../../aspect-style';
+	import QuickAdd from '../todo/QuickAdd.svelte';
 	import { UI_ICONS } from '../ui/icons';
 
 	const nav = $derived(page.data.nav as NavData);
 	// On an aspect's page its own link is the current one, not Aspects as well.
 	const aspectHref = $derived(nav.aspects.map((a) => `/aspects/${a.id}`).find((h) => h === page.url.pathname));
+
+	let adding = $state(false);
 </script>
 
 <nav aria-label="Main">
-	<a class="brand" href="/">Life Manager</a>
+	<a class="brand" href="/">
+		<span class="logo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.check} /></svg></span>Life Manager
+	</a>
+	{#if nav.aspects.length > 0}
+		<button type="button" class="new" onclick={() => (adding = true)}>
+			<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.plus} /></svg>New todo
+		</button>
+	{/if}
 	{#each NAV_ITEMS as item (item.href)}
 		{@const count = navCount(nav, item.count)}
 		<a
@@ -63,7 +73,9 @@
 						href="/aspects/{aspect.id}"
 						aria-current={aspectHref === `/aspects/${aspect.id}` ? 'page' : undefined}
 					>
-						<AspectIcon icon={aspect.icon} color={aspect.color} />
+						<svg viewBox="0 0 24 24" aria-hidden="true" style:color={ASPECT_COLORS[aspect.color].bright}>
+							<path d={ASPECT_ICONS[aspect.icon]} />
+						</svg>
 						<span class="name">{aspect.name}</span>
 						{#if aspect.backlog > 0}<span class="count num" aria-hidden="true">{aspect.backlog}</span>{/if}
 					</a>
@@ -72,6 +84,10 @@
 		</ul>
 	{/if}
 </nav>
+
+{#if nav.aspects.length > 0}
+	<QuickAdd aspects={nav.aspects} target={{ kind: 'backlog' }} variant="dialog" bind:open={adding} />
+{/if}
 
 <style>
 	nav {
@@ -83,15 +99,61 @@
 		height: 100dvh;
 		overflow-y: auto;
 		padding: var(--space-5) var(--space-3);
-		background: var(--paper-sunk);
+		background: var(--chrome);
+		color: var(--on-chrome);
 	}
 
 	.brand {
-		padding: 0 var(--space-3) var(--space-5);
-		color: var(--ink);
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		padding: 0 var(--space-2) var(--space-4);
+		color: var(--on-chrome);
 		font-weight: var(--weight-bold);
-		letter-spacing: var(--tracking-title);
+		letter-spacing: -0.01em;
 		text-decoration: none;
+	}
+
+	.logo {
+		display: grid;
+		place-items: center;
+		width: 26px;
+		height: 26px;
+		border-radius: var(--radius-sm);
+		background: var(--accent);
+		color: var(--ink-on-accent);
+	}
+
+	.logo svg {
+		width: 14px;
+		height: 14px;
+		color: inherit;
+		stroke-width: 2.5;
+	}
+
+	.new {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: var(--space-2);
+		height: 40px;
+		margin-bottom: var(--space-4);
+		border: 0;
+		border-radius: var(--radius-md);
+		background: var(--accent);
+		color: var(--ink-on-accent);
+		font-size: 14px;
+		font-weight: var(--weight-semibold);
+		cursor: pointer;
+		transition: background-color var(--dur-fast) var(--ease-out);
+	}
+
+	.new:hover {
+		background: var(--accent-hover);
+	}
+
+	.new svg {
+		color: inherit;
 	}
 
 	.item {
@@ -100,17 +162,18 @@
 		gap: var(--space-3);
 		height: var(--control-height);
 		padding: 0 var(--space-3);
-		border-radius: var(--radius-md);
-		color: var(--ink);
+		border-radius: 8px;
+		color: var(--on-chrome);
+		font-size: 14px;
 		text-decoration: none;
 	}
 
 	.item:hover {
-		background: var(--paper-hover);
+		background: var(--chrome-hover);
 	}
 
 	.item[aria-current='page'] {
-		background: var(--paper);
+		background: var(--chrome-hover);
 		font-weight: var(--weight-medium);
 	}
 
@@ -123,23 +186,32 @@
 
 	.count {
 		margin-left: auto;
-		color: var(--ink-3);
-		font-size: var(--text-sm);
+		color: var(--on-chrome-2);
+		font-size: var(--text-xs);
 		font-weight: var(--weight-regular);
 	}
 
 	.count.late {
-		color: var(--overdue);
+		color: var(--overdue-on-chrome);
 		font-weight: var(--weight-semibold);
 	}
 
+	/* Aspects are the setup list, so a hairline and a label set them apart from the lists. */
 	ul {
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-0);
-		margin: 0;
-		padding: 0;
+		margin: var(--space-3) 0 0;
+		padding: var(--space-3) 0 0;
+		border-top: 1px solid var(--chrome-hover);
 		list-style: none;
+	}
+
+	ul::before {
+		content: 'Aspects' / '';
+		padding: var(--space-1) var(--space-3) var(--space-1);
+		color: var(--on-chrome-2);
+		font-size: var(--text-xs);
 	}
 
 	svg {
@@ -151,10 +223,10 @@
 		stroke-width: 2;
 		stroke-linecap: round;
 		stroke-linejoin: round;
-		color: var(--ink-2);
+		color: var(--on-chrome-2);
 	}
 
 	.item[aria-current='page'] svg {
-		color: var(--accent);
+		color: var(--on-chrome);
 	}
 </style>

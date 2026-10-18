@@ -8,7 +8,7 @@
 	<title>Not found · Life Manager</title>
 </svelte:head>
 
-<PageHeader title="Project not found" icon="folder" />
+<PageHeader title="Project not found" />
 
 {#if page.status === 404}
 	<EmptyState message="This project doesn’t exist, or it was deleted." href="/projects" actionLabel="Projects" />

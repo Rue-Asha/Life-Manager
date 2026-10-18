@@ -399,3 +399,60 @@ test('Scenario: Sunday after the review prompts to plan next week', async ({ pag
 	await expect(page).toHaveURL(/\/sprint\/plan$/);
 	await expect(page.getByTestId('plan-week')).toHaveText('Mon 12 – Sun 18 Oct');
 });
+
+test('Scenario: Header counts open todos on Today', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [...ASPECTS],
+		sprint: ACTIVE,
+		todos: [
+			{ title: 'Morning run', aspect: 0, inSprint: true, day: TODAY },
+			{ title: 'Stretch', aspect: 0, inSprint: true, day: TODAY },
+			{ title: 'Meal prep', aspect: 0, inSprint: true, day: TODAY, status: 'done' },
+			{ title: 'Pay the rent', aspect: 1, dueDate: '2026-10-06' }
+		]
+	});
+	await page.goto('/');
+
+	const header = page.getByTestId('summary-header');
+	await expect(header.getByTestId('summary-figure')).toHaveText('3');
+	await expect(header).toContainText('open today');
+});
+
+test('Scenario: Header shows sprint progress during a sprint', async ({ page, request }) => {
+	// Thursday 8 October: Friday, Saturday and Sunday are left.
+	await setClock(request, '2026-10-08T10:00:00Z');
+	await seed(request, {
+		aspects: [...ASPECTS],
+		sprint: ACTIVE,
+		todos: [
+			...['Run', 'Stretch', 'Swim', 'Physio', 'Yoga'].map((title, i) => ({
+				title,
+				aspect: 0,
+				inSprint: true,
+				status: i < 2 ? ('done' as const) : ('todo' as const)
+			})),
+			...['Rent', 'Taxes', 'Budget', 'Insurance'].map((title, i) => ({
+				title,
+				aspect: 1,
+				inSprint: true,
+				status: i < 1 ? ('done' as const) : ('todo' as const)
+			}))
+		]
+	});
+	await page.goto('/');
+
+	const header = page.getByTestId('summary-header');
+	await expect(header.getByTestId('summary-line')).toHaveText('Sprint 3 / 9 done · 3 days left');
+	await expect(header.getByTestId('summary-bar').locator('span')).toHaveCount(2);
+});
+
+test('Scenario: Header without a sprint shows only the count', async ({ page, request }) => {
+	await seed(request, { aspects: [...ASPECTS], todos: [{ title: 'Pay the rent', aspect: 1, dueDate: TODAY }] });
+	await page.goto('/');
+
+	const header = page.getByTestId('summary-header');
+	await expect(header.getByTestId('summary-figure')).toHaveText('1');
+	await expect(header).toContainText('open today');
+	await expect(header.getByTestId('summary-line')).toHaveCount(0);
+	await expect(header.getByTestId('summary-bar')).toHaveCount(0);
+});

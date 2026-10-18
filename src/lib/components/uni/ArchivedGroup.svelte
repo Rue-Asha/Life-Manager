@@ -38,9 +38,8 @@
 	}
 
 	h2 {
-		border-bottom: 1px solid var(--line);
 		color: var(--ink-2);
-		font-size: var(--text-lg);
+		font-size: var(--text-md);
 		font-weight: var(--weight-semibold);
 		line-height: var(--leading-snug);
 	}

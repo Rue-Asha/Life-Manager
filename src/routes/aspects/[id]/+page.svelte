@@ -7,6 +7,9 @@
 	import RailLayout from '$lib/components/shell/RailLayout.svelte';
 	import QuickAdd from '$lib/components/todo/QuickAdd.svelte';
 	import TodoRow from '$lib/components/todo/TodoRow.svelte';
+	import FieldCard from '$lib/components/ui/FieldCard.svelte';
+	import FieldRow from '$lib/components/ui/FieldRow.svelte';
+	import ListGroup from '$lib/components/ui/ListGroup.svelte';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import ProgressBar from '$lib/components/ui/ProgressBar.svelte';
 	import { submit, type ActionError } from '$lib/components/todo/form';
@@ -62,31 +65,27 @@
 </svelte:head>
 
 {#snippet details()}
-	<dl class="details">
-		<div>
-			<dt>Colour</dt>
-			<dd>
+	<h2 class="rail-title">Details</h2>
+	<FieldCard>
+		<FieldRow label="Colour" icon={aspect.icon} color={aspect.color}>
+			<span class="colour">
 				<i class="swatch" style:background={ASPECT_COLORS[aspect.color].fg}></i>
 				<span data-testid="aspect-color">{ASPECT_COLORS[aspect.color].label}</span>
-			</dd>
-		</div>
-		<div>
-			<dt>This sprint</dt>
-			<dd>
-				{#if progress}
-					<ProgressBar done={progress.done} total={progress.total} color={aspect.color} />
-				{:else if data.phase === 'review-required'}
-					Waiting for its review
-				{:else}
-					No sprint running
-				{/if}
-			</dd>
-		</div>
-		<div>
-			<dt>Backlog</dt>
-			<dd class="num" data-testid="backlog-count">{backlogList.length} in backlog</dd>
-		</div>
-	</dl>
+			</span>
+		</FieldRow>
+		<FieldRow label="This sprint" icon="calendar-days">
+			{#if progress}
+				<ProgressBar done={progress.done} total={progress.total} color={aspect.color} />
+			{:else if data.phase === 'review-required'}
+				Waiting for its review
+			{:else}
+				No sprint running
+			{/if}
+		</FieldRow>
+		<FieldRow label="Backlog" icon="inbox">
+			<span class="num" data-testid="backlog-count">{backlogList.length} in backlog</span>
+		</FieldRow>
+	</FieldCard>
 {/snippet}
 
 <form bind:this={addForm} method="POST" action="/todos?/addToSprint" hidden use:enhance={submit({ onsuccess: settle, onerror: moveFailed })}>
@@ -128,7 +127,7 @@
 		{#if sprintDays && sprintList.length === 0}
 			<p class="note">Nothing from {aspect.name} in this sprint yet.</p>
 		{/if}
-		<div class="list">
+		<ListGroup>
 			{#each sprintList as todo (todo.id)}
 				<ul
 					class="item"
@@ -140,7 +139,7 @@
 					<TodoRow {todo} {aspect} today={data.today} context="sprint" {sprintDays} />
 				</ul>
 			{/each}
-		</div>
+		</ListGroup>
 	</section>
 
 	<section
@@ -165,7 +164,7 @@
 		{:else if backlogList.length === 0}
 			<p class="note">Nothing from {aspect.name} in the backlog.</p>
 		{/if}
-		<div class="list">
+		<ListGroup>
 			{#each backlogList as todo (todo.id)}
 				<ul
 					class="item"
@@ -177,7 +176,7 @@
 					<TodoRow {todo} {aspect} today={data.today} context="backlog" {sprintDays} />
 				</ul>
 			{/each}
-		</div>
+		</ListGroup>
 	</section>
 </RailLayout>
 
@@ -194,7 +193,7 @@
 	}
 
 	.item {
-		border-radius: var(--radius-md);
+		border-radius: var(--radius-group);
 	}
 
 	.item:global([draggable='true']) {
@@ -202,7 +201,7 @@
 	}
 
 	.item:global([data-dragging]) {
-		background: var(--paper);
+		background: var(--surface);
 		box-shadow: var(--shadow-float);
 	}
 
@@ -221,9 +220,8 @@
 		align-items: center;
 		gap: var(--space-3);
 		margin-bottom: var(--space-2);
-		padding-bottom: var(--space-2);
-		border-bottom: 1px solid var(--line);
-		font-size: var(--text-lg);
+		padding: 0 var(--space-1);
+		font-size: var(--text-md);
 		font-weight: var(--weight-semibold);
 		line-height: var(--leading-snug);
 	}
@@ -278,24 +276,17 @@
 		text-decoration: underline;
 	}
 
-	.details {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-5);
-		margin: 0;
-	}
-
-	dt {
-		margin-bottom: var(--space-1);
-		color: var(--ink-3);
+	.rail-title {
+		margin-bottom: var(--space-3);
+		padding: 0;
+		color: var(--ink-2);
 		font-size: var(--text-sm);
 	}
 
-	dd {
+	.colour {
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
-		margin: 0;
 	}
 
 	.swatch {

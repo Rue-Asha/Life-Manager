@@ -11,9 +11,12 @@ shortcuts**, **plain quick-add form (no natural-language tokens)**. design-refs.
 "true dark mode", "printed shortcuts" and "`#aspect !1 fri` parsing" bullets are dropped.
 
 Tokens: `src/lib/styles/tokens.css`. Palette, icons, presets: `src/lib/aspect-style.ts`.
+Since cohesive-look the direction is section 12 (Proton × C24); sections 1–9 stay as the record where it doesn't replace them.
 Applied: `design/style-tile.html` (screenshots in `design/shots/`).
 
 ## 1. Colour
+
+> **Replaced by section 12 (Cohesive look)** for the surfaces, the accent and the aspect values (cream/forest → grey canvas, white cards, violet-ink chrome, Proton violet); the rest of this section still holds.
 
 **Chosen palette: C — Forest and stone** (taste gate 2.5, 2026-10-03; scope.md Decisions).
 A botanical journal: cream page, stone-beige sunk surfaces, green-black ink, a deep
@@ -72,6 +75,8 @@ Lifesum calendar with green-ringed today, https://mobbin.com/screens/3a530be6-95
 
 ## 3. Spacing and density
 
+> **Replaced by section 12 (Cohesive look)** for "lists have no cards" (rows now sit in grouped white cards) and the radius of list groups; the rest of this section still holds.
+
 - **4 px grid, generous rows.** Rows are at least 44 px (`--row-height`), which is also the
   phone touch target. Lists have no cards; one hairline sits under each group header. Page
   gutter is 16 px on phone and 32 px on desktop, and content is capped at 720 px so a
@@ -86,6 +91,8 @@ Lifesum calendar with green-ringed today, https://mobbin.com/screens/3a530be6-95
   — Things 3 expanded to-do (list dims behind a lifted card), https://mobbin.com/screens/18b05379-2af1-41ab-afef-0ca4870933c1
 
 ## 4. Rows and components
+
+> **Replaced by section 12 (Cohesive look)** for the todo row's trailing cluster, chips, buttons, quick add and the board/week cards; the rest of this section still holds.
 
 - **Todo row.** Left to right: checkbox, then title (one line, ellipsis), then a second line in
   13 px grey (aspect dot + name, only where aspects are mixed; checklist "2/5"; a recurring
@@ -233,6 +240,8 @@ Lifesum calendar with green-ringed today, https://mobbin.com/screens/3a530be6-95
   (screen d4a9c031-0cba-41a8-b0f0-63499d51119c)
 
 ## 9. Layout
+
+> **Replaced by section 12 (Cohesive look)** for the rail surface (`--paper-sunk` → `--surface` with a hairline edge); the column and rail geometry is unchanged; the rest of this section still holds.
 
 - **Phone (<768 px)** is unchanged: one column, no rail. A screen that needs the rail's
   content brings its own way to it (Sprint: the "Manage" sheet).
@@ -449,6 +458,113 @@ grouped data views (Mercury, Airtable).
 - ClickUp iOS "In Personal List · Today 9:00 PM" meta under the title, https://mobbin.com/screens/ecb1790e-e9b8-494c-8022-224b41476d34
 - Reused from section 10: Linear properties rail (ead350e6), Linear Mobile pill cluster (f8e3aa03),
   Things 3 home list (70077bc2), Things 3 Today with project names (edf4fbc7).
+
+## 12. Cohesive look (cohesive-look)
+
+Mockup: `design/cohesive-mockup.html` (colours only from `design/cohesive-tokens.css`), screenshots
+`design/shots/cohesive-*.png` (Today, Sprint By aspect / Board / Week, Backlog, project detail, Uni, class detail at
+1440 px and 390 px, plus the "New todo" dialog, the phone editor and the palette; `-blue` shots show the
+alternative accent). Contrast: `node design/palettes/check-contrast.mjs --cohesive`.
+
+Rue's brief (question round, 2026-10-18): from **Proton** the dark sidebar, calm dense lists, field cards in details
+and a strong accent; from **C24** the hero header with one big number, white cards on grey and bold titles; colour
+"hybrid"; scope look + components, navigation structure unchanged. **C24 is not on Mobbin** (searched "C24 Bank",
+"C24 Smartbanking"; only Lloyds, Monzo, Starling, Revolut and others came back), so every C24 decision below cites
+Mobbin screens that show the same pattern. Proton is on Mobbin as web only (Mail, Calendar, Drive, Pass, Settings).
+**Light theme only:** the violet-ink sidebar, hero and toast are chrome around light content, not a dark mode.
+**Motion is unchanged** (section 8): no new animation, no new duration.
+
+- **Canvas and cards (C24).** The page is a cool grey `--canvas` `#f3f4f7`; everything you read sits on white
+  `--surface` cards with a hairline lift (`--shadow-card`), radius 14 for list groups and 16 for entity cards.
+  Chips, lanes and tracks use `--sunk` `#eceef3`.
+  — C24 stand-in: Airtasker white cards on a grey canvas, https://mobbin.com/screens/98d9c40c-e3c2-4697-931d-95d790b9cd0a;
+  Monzo activity card on a soft background, https://mobbin.com/screens/3bf008da-4e7f-467a-b556-64ebe1aa04fa
+- **Sidebar chrome (Proton).** 248 px on `--chrome` `#1c1730`: app name, a full-width accent "New todo" button, the
+  lists with counts in `--on-chrome-2` (overdue count `--overdue-on-chrome`), selected item on `--chrome-hover`
+  without a bar, aspects under a sentence-case label with their icons in the `-bright` aspect variant. "New todo"
+  opens the quick add as a dialog that files into the backlog; the phone home list has no such button.
+  — Proton Mail sidebar with "New message" and counts, https://mobbin.com/screens/e0fea5e4-cf4b-4110-8794-1fcc0ab5536b;
+  Proton Drive "+ New" on chrome, https://mobbin.com/screens/fe61cd6a-e4e3-4df8-9360-e28b80e43519;
+  Proton Calendar "New event", https://mobbin.com/screens/fd9a9a93-b244-41da-b363-6f779e5682ed
+- **Accent (Proton).** One vivid violet `--accent` `#6d4aff` for the primary button, focus, today and links, white on
+  it 5.15:1; text on `--accent-soft` uses `--accent-hover`. The mockup's switch shows deep blue `#2f5bea` as the
+  alternative (5.52:1); Rue picks at the gate. Red stays overdue-only; delete stays ink.
+  — Proton Mail violet primary on white, https://mobbin.com/screens/f1689311-286a-43d5-9b58-7e703db7b592;
+  Proton settings violet accents on toggles and links, https://mobbin.com/screens/e6c03bda-f827-40e1-a3ec-ae2481075f53
+- **Aspect re-tune.** The eight hues stay the only saturation and get values for white (all ≥ 4.4:1 on surface).
+  Lavender moves towards plum `#9a4c8f` so a Uni checkbox never reads as the violet accent (palette frame, "Accent
+  next to the Uni aspect"); key and label stay "lavender". Each aspect gains a `-bright` variant (55 % with white)
+  for icons and bar segments on chrome, ≥ 3:1 there.
+  — Proton Mail label dots in the sidebar on chrome, https://mobbin.com/screens/f1689311-286a-43d5-9b58-7e703db7b592;
+  Linear label dots, https://mobbin.com/screens/10d46768-7ef5-4140-9f5f-22a97a207759
+- **List anatomy (C24 × Proton).** Header above the card on the canvas (icon, 15 px semibold name, count or
+  "done / total" with a hairline bar); rows inside one white card, hairlines inset to the title; no row draws its own
+  border. Every list uses it: Today, Sprint, Backlog, aspect, project and class todos, Recurring, Plan, Review and
+  the backlog rail (there with a hairline border instead of the lift, because the rail is already white).
+  — Todoist iOS widget, rows in one rounded card with hairlines, https://mobbin.com/screens/d830160f-31d4-4753-b2d7-37e3739ff398;
+  Proton Mail dense hairline rows, https://mobbin.com/screens/ef5134a8-70b3-43e5-93d1-437cc33d7e35
+- **Todo row.** Checkbox · title over a 13 px meta line (aspect dot where mixed, class/project badge, checklist,
+  recurring, revised) · trailing slots that line up down the list: due ("2d late" red), priority bars, day as text
+  or a "Pick a day" calendar button, status glyph (○ To do, ◐ Doing in accent, ● Done in grey). The words "To do" and
+  "Unscheduled" no longer appear in rows. On phone the trailing cluster wraps under the meta line in reading order.
+  — Linear status glyph and priority bars, https://mobbin.com/screens/410846e7-09d4-4ed8-baf2-ec94d96c29f4;
+  Things two-line row (section 4), https://mobbin.com/screens/29f65b3c-d42a-4873-a072-ff9de00f0121
+- **Board and week cards.** Board: `--sunk` lanes with a status glyph, name and count; white cards with the title
+  (two lines max) and one meta line — aspect dot and name, due date or else day, priority; badges only in the opened
+  card, since a lane beside the docked rail is ~230 px. Week: one white sheet, hairline day columns, today's header
+  on `--accent-soft` with the date in an accent badge, todos as 32 px one-line chips (checkbox, title, aspect dot),
+  a quiet "+" per day; phone keeps one day at a time with full rows.
+  — Linear board, compact cards, https://mobbin.com/screens/410846e7-09d4-4ed8-baf2-ec94d96c29f4;
+  Todoist board, https://mobbin.com/screens/81403143-59c8-4506-9094-72a4669c3d9e;
+  Asana calendar, one-line task chips per day, https://mobbin.com/screens/c3a2ce0b-22ad-4bcf-b13e-9bfd5a87e821;
+  Proton Calendar boxed today in the week header, https://mobbin.com/screens/fd9a9a93-b244-41da-b363-6f779e5682ed
+- **Hero header (C24).** A `--chrome` card under the title with one 44 px tabular figure (Today: "4 open today";
+  Sprint: "3 / 12 done"), a line ("Sprint 3 / 12 done · 3 days left"; "3 days left · 2 doing · 1 overdue") and a
+  segmented bar, one segment per aspect sized by its sprint todos and filled by its done share in the `-bright`
+  colour. On phone it drops the context label and stays ≤ 125 px. The chrome colour ties it to the sidebar.
+  — C24 stand-in: Revolut big number on a coloured hero, https://mobbin.com/screens/5be4e584-20cf-45a5-aade-d505997121b7;
+  Chime "Available" on a dark hero, https://mobbin.com/screens/7f32e177-2c9a-4d29-a885-874140ea26d6;
+  Mercury balance with a thin graphic, https://mobbin.com/screens/646c4676-c9c8-403d-86aa-fe93e411daf0
+- **Field cards (Proton Pass).** Rails are white with a hairline left edge. Their content is bordered groups of
+  icon · label (12 px grey) over value (14 px ink), with an end value right-aligned and an "Edit details" row in
+  accent: project details, class details, the aspect rail, Today's per-aspect progress, Uni's "Due next". Below
+  1280 px project and class keep the approved pill row, now in the new chip style.
+  — Proton Pass item detail, https://mobbin.com/screens/e1dedc83-7827-4530-b5a2-098bf81663fe;
+  Proton Pass "More info" group, https://mobbin.com/screens/e54b93d3-8155-4f37-b5e4-27ac0d7e1a9d
+- **Page header (C24 bold titles).** 36 px desktop / 34 px phone, weight 800, tracking −0.025em; subtitle under it
+  aligned with the title text; actions on the title's line (desktop) or the back-link row (phone, iOS nav-bar
+  style). List pages have no title icon (the sidebar shows it); entity pages (aspect, project, class) keep a 44 px
+  tinted tile. Sprint's date range moves into the hero; Week's "Backlog" toggle joins the actions.
+  — C24 stand-in: Cleo "Spend" bold title, https://mobbin.com/screens/628a69b6-0842-482e-be0c-51c11601e104;
+  Proton settings bold page titles, https://mobbin.com/screens/e6c03bda-f827-40e1-a3ec-ae2481075f53
+- **Segmented control.** View switch and Backlog filters are pills on a `--sunk` track, the selected one white with
+  `--shadow-pop`; filters scroll sideways on phone.
+  — Cleo pill tabs, https://mobbin.com/screens/628a69b6-0842-482e-be0c-51c11601e104
+- **Chips.** Property chip: `--sunk` fill, no border, pill, 26 px. Aspect tag: tint fill with the icon in colour.
+  Selected: `--chrome` fill, white text. Link chips: accent on `--accent-soft`. Type tags (LEC/EXC/OTH) unchanged.
+  — Proton Pass filter pills "All (1)" / "Recent", https://mobbin.com/screens/e1dedc83-7827-4530-b5a2-098bf81663fe
+- **Buttons.** Primary: accent fill, 36 px, radius 10. Secondary: white with a `--line` border (Proton's Cancel).
+  Quiet: text in `--ink-2`. Destructive stays ink.
+  — Proton dialog Cancel / primary pair, https://mobbin.com/screens/efef0764-c2cc-4b9f-8e48-8ad2f66b8494
+- **Inputs.** One look everywhere: white, `--line` border, radius 10–14, focus as an accent border with an
+  `--accent-soft` halo (plus the focus ring for keyboard). The quick add is a white field with an accent "+" on the
+  canvas; the rail filter uses the same input.
+  — Proton dialog inputs, https://mobbin.com/screens/efef0764-c2cc-4b9f-8e48-8ad2f66b8494;
+  Proton Pass search field, https://mobbin.com/screens/e1dedc83-7827-4530-b5a2-098bf81663fe
+- **Toast (Proton).** A `--chrome` pill at the bottom centre, white text, the action ("Undo") as a `--chrome-hover`
+  pill in `--accent-soft`.
+  — Proton Mail "Message sent. Undo", https://mobbin.com/screens/e0fea5e4-cf4b-4110-8794-1fcc0ab5536b
+- **Phone editor (C24/iOS).** The todo sheet on phone is Cancel · "Edit todo" · Done, title and notes in one group,
+  then grouped rows "tile · label · value ›" for Aspect, Day, Due, Priority, Checklist, Status (plus Class/Type for
+  Uni and Project for IT), and "Delete todo" as its own group in ink. Desktop keeps the chip row in the expanded card.
+  — Me+ task sheet, https://mobbin.com/screens/91470e45-4c88-4d57-8391-7bca3c65247b;
+  Structured task detail, https://mobbin.com/screens/dbc45f09-9767-46ec-a5ee-9cd0dfcb4263;
+  Tiimo add-task fields, https://mobbin.com/screens/dacff541-c6e9-413c-a5e6-20213e5bbb85
+- **Empty states.** Unchanged in words (section 7); the box is now a white card on the canvas instead of stone.
+  — Things 3 empty project (section 7), https://mobbin.com/screens/3b3a210d-25a0-4603-abba-66c9995c867e
+- **Not adopted.** C24's bottom tab bar (Rue liked it; it would replace the Things home list and is a separate
+  change, see `openspec/changes/cohesive-look/design.md` Open questions) and C24's wallpapers (decoration with no job
+  in a planner).
 
 ## Hand-off notes for feature units
 

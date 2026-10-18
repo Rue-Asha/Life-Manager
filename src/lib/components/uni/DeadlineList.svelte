@@ -65,8 +65,9 @@
 	h2 {
 		display: flex;
 		align-items: baseline;
-		margin-bottom: var(--space-2);
-		font-size: var(--text-lg);
+		margin-bottom: var(--space-3);
+		color: var(--ink-2);
+		font-size: var(--text-sm);
 		font-weight: var(--weight-semibold);
 	}
 
@@ -77,17 +78,21 @@
 		font-weight: var(--weight-regular);
 	}
 
+	/* A field card, like the class details: one bordered group, hairlines between deadlines. */
 	ul {
 		margin: 0;
 		padding: 0;
 		list-style: none;
+		border: 1px solid var(--line);
+		border-radius: 12px;
+		background: var(--surface);
 	}
 
 	li {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) auto;
 		column-gap: var(--space-3);
-		padding: var(--space-2) 0;
+		padding: 10px 14px;
 		border-bottom: 1px solid var(--line);
 	}
 
@@ -144,5 +149,6 @@
 	.empty {
 		padding: var(--space-3) 0;
 		color: var(--ink-3);
+		font-size: var(--text-sm);
 	}
 </style>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import { UI_ICONS } from '../ui/icons';
 	import { GLYPHS } from './glyphs';
 	import type { Project, ProjectTodos } from '$lib/types';
@@ -19,37 +20,50 @@
 	);
 </script>
 
-{#snippet repo(label: string)}
+{#snippet repo(label: string, glyph = true)}
 	<a href={project.repoUrl} target="_blank" rel="noopener noreferrer">
-		<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS['git-branch']} /></svg>{label}
+		{#if glyph}<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS['git-branch']} /></svg>{/if}{label}
 	</a>
+{/snippet}
+
+{#snippet field(icon: string, label: string, value: Snippet)}
+	<div class="field">
+		<svg viewBox="0 0 24 24" aria-hidden="true"><path d={icon} /></svg>
+		<dt>{label}</dt>
+		<dd>{@render value()}</dd>
+	</div>
 {/snippet}
 
 {#if mode === 'rail'}
 	<h2>Details</h2>
-	<dl class="props" data-testid="project-meta">
-		{#if project.repoUrl}
-			<dt>Repo</dt>
-			<dd>{@render repo(repoLabel.replace(/^github\.com\//, ''))}</dd>
-		{/if}
-		{#if project.tags.length}
-			<dt>Tags</dt>
-			<dd>
-				<ul class="tags">
-					{#each project.tags as tag (tag)}<li>{tag}</li>{/each}
-				</ul>
-			</dd>
-		{/if}
-		<dt>Todos</dt>
-		<dd class="num">{todos.open.length} open, {todos.planned.length} planned, {todos.done.length} done</dd>
-		<dt>Created</dt>
-		<dd class="num">{dateFull.format(new Date(project.createdAt))}</dd>
-		<dt>Updated</dt>
-		<dd class="num">{dateFull.format(new Date(project.updatedAt))}</dd>
-	</dl>
-	<button type="button" class="edit" onclick={onedit}>
-		<svg viewBox="0 0 24 24" aria-hidden="true"><path d={GLYPHS.pen} /></svg>Edit details
-	</button>
+	<!-- Proton Pass-style field card: icon, small label over the value, hairlines between. -->
+	<div class="card">
+		<dl class="props" data-testid="project-meta">
+			{#if project.repoUrl}
+				{#snippet repoValue()}{@render repo(repoLabel.replace(/^github\.com\//, ''), false)}{/snippet}
+				{@render field(UI_ICONS['git-branch'], 'Repo', repoValue)}
+			{/if}
+			{#if project.tags.length}
+				{#snippet tagsValue()}
+					<ul class="tags">
+						{#each project.tags as tag (tag)}<li>{tag}</li>{/each}
+					</ul>
+				{/snippet}
+				{@render field(UI_ICONS.flag, 'Tags', tagsValue)}
+			{/if}
+			{#snippet todosValue()}
+				<span class="num">{todos.open.length} open, {todos.planned.length} planned, {todos.done.length} done</span>
+			{/snippet}
+			{@render field(UI_ICONS['list-checks'], 'Todos', todosValue)}
+			{#snippet createdValue()}<span class="num">{dateFull.format(new Date(project.createdAt))}</span>{/snippet}
+			{@render field(UI_ICONS.calendar, 'Created', createdValue)}
+			{#snippet updatedValue()}<span class="num">{dateFull.format(new Date(project.updatedAt))}</span>{/snippet}
+			{@render field(UI_ICONS.repeat, 'Updated', updatedValue)}
+		</dl>
+		<button type="button" class="edit" onclick={onedit}>
+			<svg viewBox="0 0 24 24" aria-hidden="true"><path d={GLYPHS.pen} /></svg>Edit details
+		</button>
+	</div>
 {:else}
 	<div class="row" data-testid="project-meta">
 		{#if project.repoUrl}<span class="pchip link">{@render repo(repoLabel)}</span>{/if}
@@ -75,35 +89,52 @@
 	}
 
 	h2 {
-		margin-bottom: var(--space-4);
-		font-size: var(--text-lg);
+		margin-bottom: var(--space-3);
+		color: var(--ink-2);
+		font-size: var(--text-sm);
 		font-weight: var(--weight-semibold);
 	}
 
+	.card {
+		border: 1px solid var(--line);
+		border-radius: 12px;
+		background: var(--surface);
+	}
+
 	.props {
-		display: grid;
-		grid-template-columns: 76px minmax(0, 1fr);
-		align-items: start;
-		gap: var(--space-4) var(--space-3);
 		margin: 0;
 	}
 
-	dt {
-		padding-top: 2px;
+	.field {
+		display: grid;
+		grid-template-columns: var(--icon-sm) minmax(0, 1fr);
+		align-items: center;
+		gap: 0 var(--space-3);
+		padding: 10px 14px;
+		border-bottom: 1px solid var(--line);
+	}
+
+	.field svg {
+		grid-row: span 2;
 		color: var(--ink-3);
-		font-size: var(--text-sm);
+	}
+
+	dt {
+		color: var(--ink-3);
+		font-size: var(--text-xs);
 	}
 
 	dd {
 		margin: 0;
 		min-width: 0;
+		font-size: 14px;
 	}
 
 	a {
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-1);
-		color: var(--accent);
+		color: var(--accent-hover);
 		text-decoration: none;
 		word-break: break-all;
 	}
@@ -116,7 +147,7 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: var(--space-1);
-		margin: 0;
+		margin: 2px 0 0;
 		padding: 0;
 		list-style: none;
 	}
@@ -126,28 +157,30 @@
 		align-items: center;
 		height: 22px;
 		padding: 0 var(--space-2);
-		border-radius: var(--radius-xs);
-		background: var(--paper);
+		border-radius: var(--radius-pill);
+		background: var(--sunk);
 		color: var(--ink-2);
 		font-size: var(--text-xs);
 	}
 
 	.edit {
-		display: inline-flex;
+		display: flex;
 		align-items: center;
-		gap: var(--space-2);
-		height: var(--control-height);
-		margin-top: var(--space-6);
-		padding: 0 var(--space-4);
+		gap: var(--space-3);
+		width: 100%;
+		padding: 12px 14px;
 		border: 0;
-		border-radius: var(--radius-md);
-		background: var(--paper);
+		border-radius: 0 0 12px 12px;
+		background: none;
+		color: var(--accent-hover);
+		font-size: 14px;
 		font-weight: var(--weight-medium);
+		text-align: left;
 		cursor: pointer;
 	}
 
 	.edit:hover {
-		background: var(--paper-hover);
+		background: var(--hover);
 	}
 
 	.row {
@@ -162,19 +195,18 @@
 		display: inline-flex;
 		align-items: center;
 		gap: var(--space-1);
-		height: 30px;
-		padding: 0 var(--space-2);
-		border: 1px solid var(--line-strong);
-		border-radius: var(--radius-sm);
-		background: var(--paper);
+		height: 28px;
+		padding: 0 var(--space-3);
+		border: 0;
+		border-radius: var(--radius-pill);
+		background: var(--sunk);
 		color: var(--ink-2);
 		font-size: var(--text-sm);
 		white-space: nowrap;
 	}
 
-	.pchip.tag {
-		border-color: transparent;
-		background: var(--paper-sunk);
+	.pchip.link {
+		background: var(--accent-soft);
 	}
 
 	button.pchip {
@@ -182,7 +214,7 @@
 	}
 
 	button.pchip:hover {
-		background: var(--paper-hover);
+		background: var(--line);
 	}
 
 	.link {

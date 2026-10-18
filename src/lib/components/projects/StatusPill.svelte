@@ -63,7 +63,7 @@
 			<path d="M6.4 5.6v4.8 M9.6 5.6v4.8" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
 		{:else}
 			<circle cx="8" cy="8" r="7" fill="currentColor" />
-			<path d="m5 8.2 2 2 4-4.2" fill="none" stroke="var(--paper)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
+			<path d="m5 8.2 2 2 4-4.2" fill="none" stroke="var(--surface)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
 		{/if}
 	</svg>
 {/snippet}
@@ -143,7 +143,7 @@
 		padding: 0 var(--space-2) 0 var(--space-3);
 		border: 1px solid var(--line-strong);
 		border-radius: var(--radius-pill);
-		background: var(--paper);
+		background: var(--surface);
 		color: var(--ink);
 		font-size: var(--text-sm);
 		font-weight: var(--weight-medium);
@@ -185,7 +185,7 @@
 		min-width: 200px;
 		padding: var(--space-1);
 		border-radius: var(--radius-md);
-		background: var(--paper);
+		background: var(--surface);
 		box-shadow: var(--shadow-pop);
 	}
 
@@ -210,7 +210,7 @@
 	}
 
 	.menu button:hover {
-		background: var(--paper-hover);
+		background: var(--hover);
 	}
 
 	.tick {
