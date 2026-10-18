@@ -57,6 +57,25 @@ describe('createTodo', () => {
 		expect(todoCount(db)).toBe(0);
 	});
 
+	it('Scenario: Both todo read models carry the slot', () => {
+		const { db, aspect } = setup();
+		const sprint = activeSprint(db);
+		const insert = db.prepare(
+			'INSERT INTO todos (title, aspect_id, sprint_id, day, start_time, end_time, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+		);
+		const backlog = Number(insert.run('Dinner', aspect, null, '2026-11-03', '18:00', '19:30', '').lastInsertRowid);
+		const inSprint = Number(insert.run('Call', aspect, sprint, '2026-09-29', '09:15', null, '').lastInsertRowid);
+		const plain = Number(insert.run('Plain', aspect, null, null, null, null, '').lastInsertRowid);
+
+		expect(getTodo(db, backlog)).toMatchObject({ startTime: '18:00', endTime: '19:30' });
+		expect(listBacklog(db).find((t) => t.id === backlog)).toMatchObject({ startTime: '18:00', endTime: '19:30' });
+		expect(listBacklog(db).find((t) => t.id === plain)).toMatchObject({ startTime: null, endTime: null });
+		expect(listSprintTodos(db, sprint).find((t) => t.id === inSprint)).toMatchObject({
+			startTime: '09:15',
+			endTime: null
+		});
+	});
+
 	it('Scenario: Todo stores all optional fields', () => {
 		const { db, aspect } = setup();
 		const created = value(
@@ -82,6 +101,8 @@ describe('createTodo', () => {
 			day: null,
 			recurring: false,
 			ruleId: null,
+			startTime: null,
+			endTime: null,
 			completedAt: null
 		});
 		expect(read.checklist.map(({ text, done, position }) => ({ text, done, position }))).toEqual([

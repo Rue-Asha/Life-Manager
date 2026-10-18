@@ -1,5 +1,5 @@
 import type { DatabaseSync, SQLInputValue } from 'node:sqlite';
-import type { ClassType, Id, IsoDate, Priority, RecurringRule, Result, RuleInput, Sprint, Todo, Weekday } from '$lib/types';
+import type { ClassType, HhMm, Id, IsoDate, Priority, RecurringRule, Result, RuleInput, Sprint, Todo, Weekday } from '$lib/types';
 import { isPriority } from '$lib/todo-utils';
 import { CLASS_TYPES } from '$lib/uni';
 import { addDays } from '$lib/week';
@@ -19,7 +19,9 @@ function toRule(r: Row): RecurringRule {
 		priority: Number(r.priority) as Priority,
 		checklist: JSON.parse(r.checklist as string),
 		classId: r.class_id === null ? null : Number(r.class_id),
-		type: r.type as ClassType | null
+		type: r.type as ClassType | null,
+		startTime: r.start_time as HhMm | null,
+		endTime: r.end_time as HhMm | null
 	};
 }
 

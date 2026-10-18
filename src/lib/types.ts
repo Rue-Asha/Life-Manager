@@ -2,6 +2,7 @@ import type { AspectColor, AspectIcon } from '$lib/aspect-style';
 
 export type Id = number;
 export type IsoDate = string; // 'YYYY-MM-DD', Europe/Berlin calendar
+export type HhMm = string; // 'HH:MM', 00:00–23:59, Europe/Berlin wall time
 export type Priority = 0 | 1 | 2 | 3; // 0 = none, 1 = P1 (highest)
 export type Status = 'todo' | 'doing' | 'done';
 export type Weekday = 1 | 2 | 3 | 4 | 5 | 6 | 7; // ISO, 1 = Monday
@@ -12,6 +13,11 @@ export type Target = { kind: 'backlog' } | { kind: 'sprint' } | { kind: 'day'; d
 export type Result<T> = { ok: true; value: T } | { ok: false; error: string; field?: string; fields?: Record<string, string> };
 // 'review-required': adding to the sprint while its review is required.
 export type AddToSprintError = 'no-active-sprint' | 'review-required' | 'not-found' | 'day-outside-sprint';
+
+export interface Slot {
+	startTime: HhMm | null;
+	endTime: HhMm | null;
+}
 
 export interface Aspect {
 	id: Id;
@@ -49,6 +55,8 @@ export interface Todo {
 	sprintId: Id | null;
 	status: Status;
 	day: IsoDate | null;
+	startTime: HhMm | null;
+	endTime: HhMm | null;
 	recurring: boolean;
 	ruleId: Id | null;
 	projectId: Id | null;
@@ -78,6 +86,8 @@ export interface RecurringRule {
 	checklist: string[];
 	classId: Id | null;
 	type: ClassType | null;
+	startTime: HhMm | null;
+	endTime: HhMm | null;
 }
 
 export interface NewTodo {
@@ -119,6 +129,8 @@ export interface RuleInput {
 	checklist?: string[];
 	classId?: Id | null;
 	type?: ClassType | null;
+	startTime?: HhMm | null;
+	endTime?: HhMm | null;
 }
 
 export type ProjectStatus = 'backlog' | 'active' | 'in_progress' | 'paused' | 'implemented';
