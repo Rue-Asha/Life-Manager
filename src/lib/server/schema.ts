@@ -139,4 +139,22 @@ export const migrations: string[] = [
 	ALTER TABLE recurring_rules ADD COLUMN start_time TEXT NULL;
 	ALTER TABLE recurring_rules ADD COLUMN end_time TEXT NULL;
 	`
+,
+	`
+	CREATE TABLE proton_calendars (
+		aspect_id INTEGER PRIMARY KEY REFERENCES aspects (id) ON DELETE CASCADE,
+		calendar_id TEXT NOT NULL
+	);
+
+	CREATE TABLE proton_items (
+		key TEXT PRIMARY KEY,
+		label TEXT NOT NULL,
+		calendar_id TEXT NULL,
+		event_ref TEXT NULL,
+		hash TEXT NULL,
+		error TEXT NULL,
+		error_hash TEXT NULL,
+		updated_at TEXT NOT NULL
+	);
+	`
 ];

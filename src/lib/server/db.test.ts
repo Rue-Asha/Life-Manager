@@ -177,6 +177,23 @@ describe('db', () => {
 		rmSync(dir, { recursive: true, force: true });
 	});
 
+	it('Scenario: Reset clears the sync tables', () => {
+		const dir = mkdtempSync(join(tmpdir(), 'lm-db-'));
+		process.env.DATABASE_PATH = join(dir, 'reset-proton.db');
+		const db = getDb();
+		db.exec(`
+			INSERT INTO aspects (id, name, color, icon, position, created_at) VALUES (1, 'IT', 'sage', 'heart', 0, 'a');
+			INSERT INTO proton_calendars (aspect_id, calendar_id) VALUES (1, 'cal-1');
+			INSERT INTO proton_items (key, label, calendar_id, event_ref, hash, updated_at) VALUES ('todo:1', 'A', 'cal-1', 'cal-1/evt-1', 'h', 'u');
+		`);
+		expect(() => resetDb()).not.toThrow();
+		for (const table of ['proton_items', 'proton_calendars']) {
+			expect(db.prepare(`SELECT count(*) AS n FROM ${table}`).get()).toEqual({ n: 0 });
+		}
+		// getDb() is a singleton: the next test closes it
+		rmSync(dir, { recursive: true, force: true });
+	});
+
 	it('Scenario: Reset clears the Uni tables', () => {
 		const dir = mkdtempSync(join(tmpdir(), 'lm-db-'));
 		process.env.DATABASE_PATH = join(dir, 'reset.db');
@@ -197,4 +214,37 @@ describe('db', () => {
 		db.close();
 		rmSync(dir, { recursive: true, force: true });
 	});
+
+	it('Scenario: Migration 6 adds the sync tables without touching existing data', () => {
+		const dir = mkdtempSync(join(tmpdir(), 'lm-db-'));
+		const path = join(dir, 'v5.db');
+		const old = new DatabaseSync(path);
+		old.exec('PRAGMA foreign_keys = ON');
+		for (const m of migrations.slice(0, 5)) old.exec(m);
+		old.exec(`
+			INSERT INTO aspects (id, name, color, icon, position, created_at) VALUES (1, 'IT', 'sage', 'heart', 0, 'a');
+			INSERT INTO settings (key, value) VALUES ('uni_aspect_id', '1');
+			INSERT INTO sprints (id, week_start, state, started_at) VALUES (1, '2026-09-28', 'active', 's');
+			INSERT INTO semesters (id, name, created_at) VALUES (1, 'WS', 'c');
+			INSERT INTO classes (id, semester_id, name, color, icon, exam_at, created_at, updated_at) VALUES (1, 1, 'Analysis', 'sage', 'heart', '2026-10-30', 'c', 'u');
+			INSERT INTO it_projects (id, name, created_at, updated_at) VALUES (1, 'Proj', 'p', 'p');
+			INSERT INTO recurring_rules (id, title, aspect_id, weekdays, start_time, end_time, created_at) VALUES (1, 'Rule', 1, '1', '09:00', '10:00', 'r');
+			INSERT INTO todos (id, title, aspect_id, sprint_id, rule_id, day, start_time, end_time, created_at) VALUES
+				(1, 'A', 1, 1, 1, '2026-09-29', '09:00', '10:00', 't'), (2, 'B', 1, NULL, NULL, NULL, NULL, NULL, 't');
+			INSERT INTO checklist_items (id, todo_id, text, position) VALUES (1, 1, 'item', 0);
+			PRAGMA user_version = 5;
+		`);
+		const tables = ['aspects', 'settings', 'sprints', 'semesters', 'classes', 'it_projects', 'recurring_rules', 'todos', 'checklist_items'];
+		const before = tables.map((t) => old.prepare(`SELECT * FROM ${t}`).all());
+		old.close();
+
+		const db = openDb(path);
+		expect(db.prepare('PRAGMA user_version').get()).toEqual({ user_version: migrations.length });
+		expect(db.prepare('SELECT count(*) AS n FROM proton_items').get()).toEqual({ n: 0 });
+		expect(db.prepare('SELECT count(*) AS n FROM proton_calendars').get()).toEqual({ n: 0 });
+		expect(tables.map((t) => db.prepare(`SELECT * FROM ${t}`).all())).toEqual(before);
+		db.close();
+		rmSync(dir, { recursive: true, force: true });
+	});
+
 });

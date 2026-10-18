@@ -44,6 +44,8 @@ export function resetDb(): void {
 		DELETE FROM settings;
 		DELETE FROM it_projects;
 		DELETE FROM sprints;
+		DELETE FROM proton_items;
+		DELETE FROM proton_calendars;
 		DELETE FROM aspects;
 	`);
 }
