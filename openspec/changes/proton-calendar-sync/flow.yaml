@@ -4,6 +4,8 @@ base: main
 gate0: 2026-10-18
 gate1: 2026-10-18
 learnings:
+  - 'Planner on a background sync worker (subprocess + DB reconciler) → add scenarios for: pacing across consecutive passes, a pass that throws, domain writes (e.g. aspect delete) landing mid-pass, malformed subprocess output with exit 0, and error state clearing when an item matches again (weil: reviewer rounds 1 and 2 found 5 correctness bugs in exactly these paths while 300+ tests were green) [2026-10-18 · proton-calendar-sync]'
+  - 'Fixer with several finding groups → one proof:full per commit group, never two commits off one run (weil: fixer round 1 committed two groups off one combined proof run after a red typecheck) [2026-10-18 · proton-calendar-sync]'
   - 'Builder of a test-only unit over merged code → still one commit per task (weil: U6 bundled 6.1–6.3 into one commit; fail-first held per task, but commits no longer map to tasks) [2026-10-18 · proton-calendar-sync]'
   - 'e2e on /sync or any page in a fresh DB → seed an aspect first (weil: no aspects redirects to /welcome; U5 lost a run on it) [2026-10-18 · proton-calendar-sync]'
   - 'Builders running vitest or proof:full output → `node_modules/.bin/vitest run <file>` (never bare `npx vitest`, it starts watch mode and hangs past 120s), and read only exit code + tail of a background proof log (weil: U4 hung on npx vitest; U2 read a whole proof:full log and burned ~27k tokens) [2026-10-18 · proton-calendar-sync]'
