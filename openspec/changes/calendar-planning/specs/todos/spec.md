@@ -21,7 +21,9 @@ The todo editor SHALL have a "Planned" field: a date (input labelled "Planned") 
 time (inputs labelled "From" and "To", `HH:MM`, Europe/Berlin), settable on backlog and sprint todos and saved with the
 editor. Clearing the date clears both times. A date before today that is not a day of the active sprint week MUST be
 refused with error `day-in-past` on field `day`, the editor showing a message and nothing being changed; every day of
-the active sprint week, including days before today, is allowed. Todos of archived semesters stay read-only (`archived`).
+the active sprint week, including days before today, is allowed. For a recurring instance the `recurring-outside-week`
+rule of sprint-lifecycle "Mid-sprint changes" is checked first, so a past date outside its week is refused with that
+error, not `day-in-past`. Todos of archived semesters stay read-only (`archived`).
 A done todo's planned date is edited like any other field and keeps its status where it stays in its sprint. Where the
 todo lands (sprint or backlog) follows sprint-lifecycle "Mid-sprint changes". Creating a todo with a day target (quick
 add in a Week view column) places it by the same rule, `review-required` while the active sprint's review is required

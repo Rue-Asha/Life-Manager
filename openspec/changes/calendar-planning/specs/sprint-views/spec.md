@@ -103,8 +103,9 @@ tint behind its header. (cohesive-look, calendar-planning S4)
 ### Requirement: Quiet status and day controls in rows
 In By aspect, Today, an aspect page and project or class todo lists, a sprint todo row SHALL show its status
 as a compact glyph control (empty circle To do, half circle Doing in the accent, filled grey circle Done, so a done todo can go back from the menu) whose
-accessible name is "Status: <status>", and its day as plain text ("Thu 15") or, without a day, as a calendar
+accessible name is "Status: <status>", and, except in Today, its day as plain text ("Thu 15") or, without a day, as a calendar
 icon button named "Pick a day"; a slot follows the day as the row's `planned-label` with the slot only ("18:00–19:30").
+Today rows show the `planned-label` alone, with no day control.
 The visible words "To do" and "Unscheduled" are not shown in rows; the status and day menus and their options are
 unchanged. (cohesive-look, calendar-planning S4)
 

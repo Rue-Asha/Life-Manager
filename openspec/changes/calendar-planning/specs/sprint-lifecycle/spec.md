@@ -131,6 +131,11 @@ editor alike, where the UI points to Review instead. (S12, S2, S3, S7, calendar-
 - **THEN** 2026-10-21, 2026-10-22 and the draft's instance fail with `recurring-outside-week` on `day` and stay where they were with their day and slot, and the instance is then in the sprint on 2026-10-17 with 07:00
 - **proof:** unit
 
+#### Scenario: Recurring instance planned for a past date is refused as outside its week
+- **WHEN** today is Wednesday 2026-10-14 in a sprint of 2026-10-12 to 2026-10-18 holding the Thursday instance of a rule, and the instance is planned for 2026-10-05; and an open instance carried into a planning draft is planned for 2026-10-10 on Sunday 2026-10-18
+- **THEN** both fail with `recurring-outside-week` on `day`, not `day-in-past`, and the first stays on Thursday in its sprint and the second stays in the draft without a day
+- **proof:** unit
+
 #### Scenario: Editor shows the recurring-outside-week message
 - **WHEN** Rue opens a recurring instance on Thursday of the active sprint in the editor, sets "Planned" to a day of next week and saves
 - **THEN** the editor stays open with an alert message, and after reload the instance is still on Thursday in the sprint
@@ -223,6 +228,11 @@ with their day. (calendar-planning S6)
 - **WHEN** on Wednesday 2026-10-14 Rue plans a backlog todo for Tuesday 2026-11-03 with 18:00–19:30 in the editor, checks the Backlog, and on Sunday 2026-11-01 plans and starts the sprint for 2026-11-02
 - **THEN** the Backlog lists it under "Planned" with "Tue 3 Nov · 18:00–19:30", the plan page lists it under "Joins automatically" with the same label, and the Week view shows it in the 2026-11-03 column with "18:00–19:30"
 - **proof:** e2e
+
+#### Scenario: Stale suggested id of a todo planned for a later week stays in the backlog
+- **WHEN** a backlog todo due 2026-10-22 and planned for 2026-11-03 at 10:00 is passed to the sprint start on Sunday 2026-10-18 as a suggested id
+- **THEN** it stays in the backlog with its day 2026-11-03 and its slot 10:00
+- **proof:** unit
 
 ### Requirement: Missed planned days join the next sprint
 Starting a sprint SHALL also pull every not-done backlog todo whose planned date lies before the new sprint's week into
