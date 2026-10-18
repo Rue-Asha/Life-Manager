@@ -1,0 +1,106 @@
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { createFake } from '../../../../scripts/fake-proton.mjs';
+import { ASPECT_COLORS } from '$lib/aspect-style';
+import { openDb } from '../db';
+import { createAspect } from '../aspects';
+import { PROTON_COLORS } from './colors';
+import { reconcile } from './reconciler';
+import { specHash } from './hash';
+import type { DesiredItem, EventSpec, ItemKey, Runner } from './types';
+import type { AspectInput, Id } from '$lib/types';
+
+let dir: string;
+let fake: ReturnType<typeof createFake>;
+let db: ReturnType<typeof openDb>;
+let run: Runner;
+
+beforeEach(() => {
+	dir = mkdtempSync(join(tmpdir(), 'lm-reconcile-'));
+	fake = createFake(dir);
+	db = openDb(':memory:');
+	run = async (op) => fake.apply(op);
+});
+afterEach(() => {
+	rmSync(dir, { recursive: true, force: true });
+});
+
+function aspect(input: AspectInput): Id {
+	const r = createAspect(db, input);
+	if (!r.ok) throw new Error(r.error);
+	return r.value.id;
+}
+const health = (): Id => aspect({ name: 'Health', color: 'sage', icon: 'heart' });
+const uni = (): Id => aspect({ name: 'Uni', color: 'lavender', icon: 'cap' });
+
+const spec = (over: Partial<EventSpec> = {}): EventSpec => ({
+	title: 'Run',
+	description: '',
+	location: '',
+	date: '2026-10-20',
+	start: '09:00',
+	end: '10:00',
+	durationMin: null,
+	rrule: null,
+	exdates: [],
+	...over
+});
+const item = (n: number, aspectId: Id, over: Partial<EventSpec> = {}, kind: 'todo' | 'rule' | 'exam' = 'todo'): DesiredItem => ({
+	key: `${kind}:${n}` as ItemKey,
+	aspectId,
+	label: over.title ?? `Run ${n}`,
+	spec: spec({ title: `Run ${n}`, ...over })
+});
+
+interface Row {
+	key: string;
+	label: string;
+	calendar_id: string | null;
+	event_ref: string | null;
+	hash: string | null;
+	error: string | null;
+	error_hash: string | null;
+}
+const rows = () => db.prepare('SELECT key, label, calendar_id, event_ref, hash, error, error_hash FROM proton_items ORDER BY key').all() as unknown as Row[];
+const row = (key: string) => rows().find((r) => r.key === key);
+const ops = () => fake.calls().map((c) => c.op!);
+const kinds = () => ops().map((o) => o.kind);
+
+describe('reconciler', () => {
+	it('Scenario: Aspect colours map to fixed Proton colours', () => {
+		expect(PROTON_COLORS).toEqual({
+			sage: '#258723',
+			sky: '#0A77A6',
+			lavender: '#A839A4',
+			ochre: '#807304',
+			berry: '#BA1E55',
+			lagoon: '#0F735A',
+			tangerine: '#C44800',
+			slate: '#936D58'
+		});
+		expect(Object.keys(PROTON_COLORS).sort()).toEqual(Object.keys(ASPECT_COLORS).sort());
+		expect(new Set(Object.values(PROTON_COLORS)).size).toBe(Object.keys(ASPECT_COLORS).length);
+	});
+
+	it('Scenario: First item of an aspect creates its calendar', async () => {
+		const a = health();
+		const out = await reconcile(db, [item(1, a), item(2, a, { date: '2026-10-21' })], run);
+		expect(out).toEqual({ kind: 'done', calls: 3, failed: 0 });
+		const calls = ops();
+		expect(calls.map((o) => o.kind)).toEqual(['calendar.create', 'event.create', 'event.create']);
+		expect(calls[0]).toEqual({ kind: 'calendar.create', name: 'Health', color: PROTON_COLORS.sage });
+		expect(calls[1]).toMatchObject({ kind: 'event.create', calendarId: 'cal-1' });
+		expect(calls[2]).toMatchObject({ kind: 'event.create', calendarId: 'cal-1' });
+		expect(db.prepare('SELECT aspect_id, calendar_id FROM proton_calendars').all()).toEqual([{ aspect_id: a, calendar_id: 'cal-1' }]);
+		expect(row('todo:1')).toMatchObject({
+			label: 'Run 1',
+			calendar_id: 'cal-1',
+			event_ref: 'cal-1/evt-1',
+			hash: specHash(item(1, a).spec),
+			error: null
+		});
+		expect(row('todo:2')?.event_ref).toBe('cal-1/evt-2');
+	});
+});
