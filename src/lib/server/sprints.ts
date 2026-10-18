@@ -154,13 +154,16 @@ export function pullTodo(db: DatabaseSync, todoId: Id): Result<Todo> {
 	if (getActiveSprint(db)) return { ok: false, error: 'sprint-active' };
 	const writable = todoWritable(db, todoId);
 	if (!writable.ok) return writable;
-	db.prepare('UPDATE todos SET sprint_id = ?, day = NULL WHERE id = ?').run(planningDraft(db).id, todoId);
+	db.prepare('UPDATE todos SET sprint_id = ?, day = NULL, start_time = NULL, end_time = NULL WHERE id = ?').run(
+		planningDraft(db).id,
+		todoId
+	);
 	return { ok: true, value: getTodo(db, todoId)! };
 }
 
 function toBacklog(db: DatabaseSync, todoId: Id): Todo {
 	db.prepare(
-		"UPDATE todos SET sprint_id = NULL, day = NULL, status = 'todo', completed_at = NULL WHERE id = ?"
+		"UPDATE todos SET sprint_id = NULL, day = NULL, start_time = NULL, end_time = NULL, status = 'todo', completed_at = NULL WHERE id = ?"
 	).run(todoId);
 	return getTodo(db, todoId)!;
 }
@@ -231,9 +234,13 @@ export function addToActiveSprint(db: DatabaseSync, todoId: Id, today: IsoDate, 
 	}
 	const status = placement?.status ?? 'todo';
 	if (!STATUSES.includes(status)) return { ok: false, error: 'required', field: 'status' };
-	db.prepare('UPDATE todos SET sprint_id = ?, day = ?, status = ?, completed_at = ? WHERE id = ?').run(
+	db.prepare(
+		'UPDATE todos SET sprint_id = ?, day = ?, start_time = ?, end_time = ?, status = ?, completed_at = ? WHERE id = ?'
+	).run(
 		active.id,
 		day,
+		day === null ? null : todo.startTime,
+		day === null ? null : todo.endTime,
 		status,
 		status === 'done' ? now().toISOString() : null,
 		todoId
@@ -340,7 +347,7 @@ export function closeReview(
 	}
 	return transaction(db, () => {
 		const draft = planningDraft(db);
-		const carry = db.prepare('UPDATE todos SET sprint_id = ?, day = NULL WHERE id = ?');
+		const carry = db.prepare('UPDATE todos SET sprint_id = ?, day = NULL, start_time = NULL, end_time = NULL WHERE id = ?');
 		const drop = db.prepare('DELETE FROM todos WHERE id = ?');
 		for (const { todo, decision } of plan) {
 			if (decision === 'carry') carry.run(draft.id, todo.id);

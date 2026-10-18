@@ -165,6 +165,12 @@ describe('sprint planning', () => {
 		expect(pullTodo(db, 999)).toEqual({ ok: false, error: 'not-found' });
 	});
 
+	it('Scenario: Pulling a planned todo by hand clears its date', () => {
+		const id = todo('Dentist', { day: '2026-11-04', startTime: '10:00' });
+		expect(pullTodo(db, id)).toMatchObject({ ok: true, value: { day: null, startTime: null, endTime: null } });
+		expect(row(id)).toMatchObject({ day: null, start_time: null, end_time: null });
+	});
+
 	it('only backlog or draft todos can be pulled', () => {
 		const closed = sprint('closed', '2026-09-28');
 		const done = todo('Done last week', { sprintId: closed, status: 'done', day: '2026-09-30' });
@@ -177,10 +183,33 @@ describe('sprint planning', () => {
 });
 
 describe('mid-sprint changes', () => {
-	it('Scenario: Moving back to the backlog clears day and status', () => {
-		const id = todo('Write essay', { sprintId: sprint('active', '2026-10-05'), status: 'doing', day: '2026-10-07' });
-		expect(moveToBacklog(db, id)).toMatchObject({ ok: true, value: { sprintId: null, day: null, status: 'todo' } });
-		expect(row(id)).toMatchObject({ sprint_id: null, day: null, status: 'todo' });
+	it('Scenario: Moving back to the backlog clears day, slot and status', () => {
+		const id = todo('Write essay', {
+			sprintId: sprint('active', '2026-10-05'),
+			status: 'doing',
+			day: '2026-10-07',
+			startTime: '18:00',
+			endTime: '19:30'
+		});
+		expect(moveToBacklog(db, id)).toMatchObject({
+			ok: true,
+			value: { sprintId: null, day: null, startTime: null, endTime: null, status: 'todo' }
+		});
+		expect(row(id)).toMatchObject({ sprint_id: null, day: null, start_time: null, end_time: null, status: 'todo' });
+	});
+
+	it('Scenario: Add to sprint without a day drops a planned date', () => {
+		const s = sprint('active', '2026-10-05');
+		const first = todo('Dentist', { day: '2026-10-28', startTime: '18:00' });
+		const second = todo('Tax return', { day: '2026-10-28', startTime: '09:00' });
+		expect(addToActiveSprint(db, first, '2026-10-07')).toMatchObject({
+			ok: true,
+			value: { sprintId: s, day: null, startTime: null, endTime: null }
+		});
+		expect(addToActiveSprint(db, second, '2026-10-07', { day: '2026-10-08' })).toMatchObject({
+			ok: true,
+			value: { sprintId: s, day: '2026-10-08', startTime: '09:00' }
+		});
 	});
 
 	it('Scenario: Unchecking done returns to To do', () => {
@@ -276,7 +305,7 @@ describe('mid-sprint changes', () => {
 		const monday = todo('Gym', { sprintId: s, day: '2026-10-05', recurring: true });
 		const thursday = todo('Gym', { sprintId: s, day: '2026-10-08', recurring: true });
 		db.prepare('UPDATE todos SET rule_id = ? WHERE id IN (?, ?)').run(rule, monday, thursday);
-		const essay = todo('Write essay', { sprintId: s, status: 'doing', day: '2026-10-07' });
+		const essay = todo('Write essay', { sprintId: s, status: 'doing', day: '2026-10-07', startTime: '18:00' });
 
 		expect(removeFromSprint(db, monday)).toMatchObject({ ok: true, value: { deleted: true, todo: { id: monday } } });
 		expect(row(monday)).toBeUndefined();
@@ -285,9 +314,9 @@ describe('mid-sprint changes', () => {
 
 		expect(removeFromSprint(db, essay)).toMatchObject({
 			ok: true,
-			value: { deleted: false, todo: { sprintId: null, day: null, status: 'todo' } }
+			value: { deleted: false, todo: { sprintId: null, day: null, startTime: null, status: 'todo' } }
 		});
-		expect(row(essay)).toMatchObject({ sprint_id: null, day: null, status: 'todo' });
+		expect(row(essay)).toMatchObject({ sprint_id: null, day: null, start_time: null, status: 'todo' });
 		expect(removeFromSprint(db, essay)).toEqual({ ok: false, error: 'not-found' });
 	});
 
@@ -476,6 +505,16 @@ describe('mid-sprint changes', () => {
 });
 
 describe('sprint review', () => {
+	it('Scenario: Carried and returned todos lose their slot', () => {
+		const s = sprint('active', '2026-10-05');
+		const carried = todo('Run', { sprintId: s, day: '2026-10-06', startTime: '18:00', endTime: '19:30' });
+		const back = todo('Read', { sprintId: s, day: '2026-10-07', startTime: '09:00' });
+		const result = closeReview(db, '2026-10-12', { [carried]: 'carry', [back]: 'backlog' });
+		expect(result.ok).toBe(true);
+		expect(row(carried)).toMatchObject({ sprint_id: result.ok && result.value.id, day: null, start_time: null, end_time: null });
+		expect(row(back)).toMatchObject({ sprint_id: null, day: null, start_time: null, end_time: null });
+	});
+
 	it('Scenario: Open recurring instance is carried or dropped', () => {
 		const s = sprint('active', '2026-10-05');
 		const dropped = todo('Gym Mon', { sprintId: s, day: '2026-10-05', recurring: true });
