@@ -59,6 +59,7 @@
 	function planError({ error }: ActionError): string | undefined {
 		if (error === 'day-in-past') return 'That day has already passed. Pick today or a later day.';
 		if (error === 'review-required') return 'The sprint needs its review before a day can be changed.';
+		if (error === 'recurring-outside-week') return 'A recurring todo stays in its sprint’s week. Pick a day of that week.';
 		if (error === 'end-before-start') return 'The end time has to be after the start time.';
 		if (error === 'end-without-start') return 'Set a start time before the end time.';
 		if (error === 'invalid') return 'Use a time like 18:00.';

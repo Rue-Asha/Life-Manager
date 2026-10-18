@@ -49,7 +49,8 @@ rule's weekday slots in the new week in order (the first carried instance gets t
 rule's time slot, and only the remaining weekdays get fresh instances; carried instances beyond the rule's weekday
 count, and carried instances whose rule was deleted, keep no day and no slot. A rule created during an active sprint
 adds instances for the remaining days, today onward, with its slot. An instance's slot is edited like any todo's
-and does not change its rule. (S18, S8, calendar-planning S10)
+and does not change its rule; its planned date stays within its sprint's week (`recurring-outside-week` otherwise, see
+sprint-lifecycle "Mid-sprint changes"). (S18, S8, calendar-planning S10)
 
 #### Scenario: Starting a sprint adds one instance per weekday
 - **WHEN** a sprint starts and a rule exists for Monday and Thursday with a two-item checklist template

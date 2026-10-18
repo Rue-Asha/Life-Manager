@@ -47,7 +47,10 @@ date and slot; setting a date inside the active sprint week on a backlog todo SH
 that day with status To do; with no active sprint a backlog todo keeps its date in the backlog; a backlog todo planned
 in the planning draft's target week stays in the backlog until the sprint starts; a todo in the planning draft that
 gets a date returns to the backlog with it; a todo of a closed sprint keeps its sprint and only takes days of that
-sprint's week (`day-outside-sprint` otherwise). While the active sprint's review is required (from the Monday after
+sprint's week (`day-outside-sprint` otherwise). Since recurring instances have no backlog, a recurring instance never
+leaves its sprint by its planned date: a date outside its sprint's week (for an instance in the planning draft, any date)
+MUST be refused with `recurring-outside-week` on `day` and nothing is written, the editor showing an alert like for the
+other planning errors; moving it to another day of its week, clearing its day and editing its slot keep working. While the active sprint's review is required (from the Monday after
 the sprint until the review closes) adding to the sprint, by "Add to sprint" or by a planned date in the sprint week,
 MUST be refused with `review-required` and nothing is written — on the Backlog page, the rail, the aspect page and the
 editor alike, where the UI points to Review instead. (S12, S2, S3, S7, calendar-planning S2, S9)
@@ -122,6 +125,16 @@ editor alike, where the UI points to Review instead. (S12, S2, S3, S7, calendar-
 - **WHEN** today is the Monday after the active sprint and a backlog todo is planned for a day of the active sprint's week
 - **THEN** it fails with `review-required` and the todo is unchanged; planning it for today instead is accepted and keeps it in the backlog
 - **proof:** unit
+
+#### Scenario: Recurring instance cannot be planned outside its week
+- **WHEN** today is Wednesday 2026-10-14 in a sprint of 2026-10-12 to 2026-10-18 holding the Thursday instance of a rule for Monday and Thursday with 18:00, and the instance is planned for Wednesday 2026-10-21 with 07:00, then for Thursday 2026-10-22, then for Saturday 2026-10-17 with 07:00; and an open instance carried into a planning draft is planned for a day of the draft's target week
+- **THEN** 2026-10-21, 2026-10-22 and the draft's instance fail with `recurring-outside-week` on `day` and stay where they were with their day and slot, and the instance is then in the sprint on 2026-10-17 with 07:00
+- **proof:** unit
+
+#### Scenario: Editor shows the recurring-outside-week message
+- **WHEN** Rue opens a recurring instance on Thursday of the active sprint in the editor, sets "Planned" to a day of next week and saves
+- **THEN** the editor stays open with an alert message, and after reload the instance is still on Thursday in the sprint
+- **proof:** e2e
 
 #### Scenario: Closed-sprint todo keeps its sprint
 - **WHEN** a done todo of a closed sprint is planned for another day of that sprint's week and then for a day next month

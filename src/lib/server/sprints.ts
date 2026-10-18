@@ -337,6 +337,10 @@ export function setDay(db: DatabaseSync, todoId: Id, day: IsoDate | null, today:
 	const placed = landing(db, todo.sprintId, day, today);
 	if (!placed.ok) return placed;
 	const { sprintId, resetStatus } = placed.value;
+	// Recurring instances have no backlog, and one carried back in by sprint start would lose its day to its rule.
+	if (todo.recurring && todo.sprintId !== null && sprintId !== todo.sprintId) {
+		return { ok: false, error: 'recurring-outside-week', field: 'day' };
+	}
 	db.prepare(
 		`UPDATE todos SET sprint_id = ?1, day = ?2, start_time = ?3, end_time = ?4,
 		 status = CASE WHEN ?5 THEN 'todo' ELSE status END, completed_at = CASE WHEN ?5 THEN NULL ELSE completed_at END

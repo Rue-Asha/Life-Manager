@@ -80,6 +80,26 @@ test('Scenario: Editor shows the past-date message', async ({ page, request }) =
 	await expect(editor(page).getByLabel('Planned', { exact: true })).toHaveValue('');
 });
 
+test('Scenario: Editor shows the recurring-outside-week message', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [HEALTH],
+		sprint: { state: 'active', weekStart: '2026-10-12' },
+		rules: [{ title: 'Gym', aspect: 0, weekdays: [4], startTime: '18:00' }],
+		todos: [{ title: 'Gym', aspect: 0, inSprint: true, rule: 0, day: '2026-10-15', startTime: '18:00' }]
+	});
+	await page.goto('/sprint?view=aspect');
+	await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+	await page.getByTestId('todo-row').filter({ hasText: 'Gym' }).getByRole('button', { name: 'Gym', exact: true }).click();
+
+	await editor(page).getByLabel('Planned', { exact: true }).fill('2026-10-22');
+	await page.getByRole('button', { name: 'Save' }).click();
+	await expect(editor(page).getByRole('alert')).toHaveText('A recurring todo stays in its sprint’s week. Pick a day of that week.');
+	await expect(editor(page)).toBeVisible();
+
+	await page.reload();
+	await expect(page.getByTestId('todo-row').filter({ hasText: 'Gym' })).toHaveAttribute('data-day', '2026-10-15');
+});
+
 test('Scenario: Clearing the start clears the end in the editor', async ({ page, request }) => {
 	await seed(request, {
 		aspects: [HEALTH],
