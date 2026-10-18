@@ -579,6 +579,20 @@ describe('mid-sprint changes', () => {
 			expect(row(carried)).toMatchObject({ sprint_id: draft, day: null });
 		});
 
+		it('Scenario: Recurring instance planned for a past date is refused as outside its week', () => {
+			const s = sprint('active', '2026-10-12');
+			const instance = todo('Gym', { sprintId: s, day: '2026-10-15', recurring: true });
+			const refused = { ok: false, error: 'recurring-outside-week', field: 'day' };
+			expect(setDay(db, instance, '2026-10-05', '2026-10-14')).toEqual(refused);
+			expect(row(instance)).toMatchObject({ sprint_id: s, day: '2026-10-15' });
+
+			db.prepare("UPDATE sprints SET state = 'closed'").run();
+			const draft = sprint('planning', null);
+			const carried = todo('Gym', { sprintId: draft, recurring: true });
+			expect(setDay(db, carried, '2026-10-10', '2026-10-18')).toEqual(refused);
+			expect(row(carried)).toMatchObject({ sprint_id: draft, day: null });
+		});
+
 		it('Scenario: Instance slot is edited like any todo', () => {
 			const s = sprint('active', '2026-10-12');
 			const rule = Number(

@@ -336,13 +336,17 @@ export function setDay(db: DatabaseSync, todoId: Id, day: IsoDate | null, today:
 		db.prepare('UPDATE todos SET day = NULL, start_time = NULL, end_time = NULL WHERE id = ?').run(todoId);
 		return { ok: true, value: getTodo(db, todoId)! };
 	}
+	// Recurring instances have no backlog, and one carried back in by sprint start would lose its day to its rule.
+	// This runs before landing() so a past date outside the week is not reported as day-in-past.
+	if (todo.recurring && todo.sprintId !== null) {
+		const own = getSprint(db, todo.sprintId);
+		if (own.state === 'planning' || (own.state === 'active' && (day < own.weekStart! || day > addDays(own.weekStart!, 6)))) {
+			return { ok: false, error: 'recurring-outside-week', field: 'day' };
+		}
+	}
 	const placed = landing(db, todo.sprintId, day, today);
 	if (!placed.ok) return placed;
 	const { sprintId, resetStatus } = placed.value;
-	// Recurring instances have no backlog, and one carried back in by sprint start would lose its day to its rule.
-	if (todo.recurring && todo.sprintId !== null && sprintId !== todo.sprintId) {
-		return { ok: false, error: 'recurring-outside-week', field: 'day' };
-	}
 	db.prepare(
 		`UPDATE todos SET sprint_id = ?1, day = ?2, start_time = ?3, end_time = ?4,
 		 status = CASE WHEN ?5 THEN 'todo' ELSE status END, completed_at = CASE WHEN ?5 THEN NULL ELSE completed_at END
