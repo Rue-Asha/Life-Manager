@@ -1,4 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
+import { validateSlot } from '$lib/slot';
 import { isPriority } from '$lib/todo-utils';
 import { CLASS_TYPES } from '$lib/uni';
 import { today as clockToday } from './clock';
@@ -82,25 +83,29 @@ export function createTodo(db: DatabaseSync, input: NewTodo, today: IsoDate = cl
 	}
 
 	const target = input.target ?? { kind: 'backlog' };
+	const day = target.kind === 'day' ? target.day : (input.day ?? null);
+	// Like setDay, a slot without a day is not stored.
+	const slot =
+		day === null ? { startTime: null, endTime: null } : { startTime: input.startTime ?? null, endTime: input.endTime ?? null };
+	const invalid = validateSlot(slot.startTime, slot.endTime);
+	if (invalid) return { ok: false, ...invalid };
 	let sprintId: Id | null = null;
-	let day: IsoDate | null = null;
-	if (target.kind === 'sprint') {
+	if (day !== null) {
+		const placed = landing(db, null, day, today);
+		if (!placed.ok) return placed;
+		sprintId = placed.value.sprintId;
+	} else if (target.kind === 'sprint') {
 		const active = db.prepare("SELECT id FROM sprints WHERE state = 'active'").get() as { id: Id } | undefined;
 		if (!active) return { ok: false, error: 'no-active-sprint' };
 		sprintId = active.id;
-	} else if (target.kind === 'day') {
-		const placed = landing(db, null, target.day, today);
-		if (!placed.ok) return placed;
-		sprintId = placed.value.sprintId;
-		day = target.day;
 	}
 
 	db.exec('BEGIN');
 	try {
 		const { lastInsertRowid } = db
 			.prepare(
-				`INSERT INTO todos (title, aspect_id, notes, priority, due_date, sprint_id, day, project_id, class_id, type, created_at)
-				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+				`INSERT INTO todos (title, aspect_id, notes, priority, due_date, sprint_id, day, start_time, end_time, project_id, class_id, type, created_at)
+				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 			)
 			.run(
 				title,
@@ -110,6 +115,8 @@ export function createTodo(db: DatabaseSync, input: NewTodo, today: IsoDate = cl
 				input.dueDate ?? null,
 				sprintId,
 				day,
+				slot.startTime,
+				slot.endTime,
 				linkFor(db, input.projectId, input.aspectId),
 				link.value.classId,
 				link.value.type,

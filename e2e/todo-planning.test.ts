@@ -316,3 +316,54 @@ test('Scenario: Planned labels do not scroll the phone sideways', async ({ page,
 		expect(overflow, path).toBeLessThanOrEqual(0);
 	}
 });
+
+const quickAddForm = (page: Page) => page.getByRole('form', { name: 'New todo' });
+
+test('Regression: quick add on the backlog stores the planned day and slot', async ({ page, request }) => {
+	await seed(request, { aspects: [HEALTH] });
+	await page.goto('/backlog');
+	await expect(page.getByRole('heading', { level: 1, name: 'Backlog' })).toBeVisible();
+
+	await page.getByRole('button', { name: 'Add a todo' }).first().click();
+	const form = quickAddForm(page);
+	await form.getByLabel('Title').fill('Dentist');
+	await form.getByLabel('Planned', { exact: true }).fill('2026-11-03');
+	await form.getByLabel('From', { exact: true }).fill('18:00');
+	await form.getByLabel('To', { exact: true }).fill('19:30');
+	await form.getByRole('button', { name: 'Add todo' }).click();
+
+	await expect(rowOf(page, 'Dentist').getByTestId('planned-label')).toHaveText('Tue 3 Nov · 18:00–19:30');
+	await page.reload();
+	await expect(rowOf(page, 'Dentist').getByTestId('planned-label')).toHaveText('Tue 3 Nov · 18:00–19:30');
+	await rowOf(page, 'Dentist').getByRole('button', { name: 'Dentist', exact: true }).click();
+	await expect(editor(page).getByLabel('Planned', { exact: true })).toHaveValue('2026-11-03');
+	await expect(editor(page).getByLabel('From', { exact: true })).toHaveValue('18:00');
+	await expect(editor(page).getByLabel('To', { exact: true })).toHaveValue('19:30');
+});
+
+test('Regression: quick add in a week day column stores the slot on that day', async ({ page, request }) => {
+	await seed(request, { aspects: [HEALTH], sprint: { state: 'active', weekStart: WEEK } });
+	await page.goto('/sprint?view=week');
+	const column = page.getByTestId('day-column-2026-10-15');
+
+	await page.getByRole('button', { name: 'Add a todo to Thu 15' }).click();
+	const form = quickAddForm(page);
+	await expect(form.getByLabel('Planned', { exact: true })).toHaveValue('2026-10-15');
+	await form.getByLabel('Title').fill('Dentist');
+	await form.getByLabel('From', { exact: true }).fill('09:00');
+	await form.getByLabel('To', { exact: true }).fill('10:00');
+	await form.getByRole('button', { name: 'Add todo' }).click();
+
+	await expect(column.getByTestId('sprint-card').filter({ hasText: 'Dentist' }).getByTestId('planned-label')).toHaveText(
+		'09:00–10:00'
+	);
+
+	await form.getByLabel('Title').fill('Laundry');
+	await form.getByRole('button', { name: 'Remove plan' }).click();
+	await form.getByRole('button', { name: 'Add todo' }).click();
+	await page.goto('/sprint?view=aspect');
+	await expect(rowOf(page, 'Laundry')).toHaveAttribute('data-day', '');
+	await page.goto('/backlog');
+	await expect(page.getByRole('heading', { level: 1, name: 'Backlog' })).toBeVisible();
+	await expect(rowOf(page, 'Laundry')).toHaveCount(0);
+});

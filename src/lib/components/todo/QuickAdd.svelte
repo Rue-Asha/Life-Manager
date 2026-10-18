@@ -2,13 +2,13 @@
 	import { enhance } from '$app/forms';
 	import { tick } from 'svelte';
 	import { MediaQuery } from 'svelte/reactivity';
-	import type { Aspect, ClassType, Id, IsoDate, Priority, Target } from '$lib/types';
+	import type { Aspect, ClassType, HhMm, Id, IsoDate, Priority, Target } from '$lib/types';
 	import Button from '../ui/Button.svelte';
 	import Chip from '../ui/Chip.svelte';
 	import Sheet from '../ui/Sheet.svelte';
 	import { UI_ICONS } from '../ui/icons';
 	import TodoFields from './TodoFields.svelte';
-	import { submit, type ActionError } from './form';
+	import { planError, submit, type ActionError } from './form';
 
 	let {
 		aspects,
@@ -41,6 +41,9 @@
 	let chosenAspectId = $state<Id | null>(null);
 	let priority = $state<Priority>(0);
 	let chosenDueDate = $state<IsoDate | '' | null>(null);
+	let chosenPlannedDay = $state<IsoDate | '' | null>(null);
+	let startTime = $state<HhMm | ''>('');
+	let endTime = $state<HhMm | ''>('');
 	let projectId = $state<Id | ''>('');
 	let chosenClassId = $state<Id | '' | null>(null);
 	let chosenType = $state<ClassType | null>(null);
@@ -52,6 +55,9 @@
 	const classId = $derived(chosenClassId ?? defaultClassId ?? '');
 	const dueDate = $derived(chosenDueDate ?? defaultDueDate ?? '');
 	const type = $derived(chosenType ?? defaultType ?? 'OTH');
+	const plannedDay = $derived(chosenPlannedDay ?? (target.kind === 'day' ? target.day : ''));
+	// A day column whose plan was removed still adds to its sprint, just without a day.
+	const postedTarget = $derived(target.kind === 'day' && !plannedDay ? 'sprint' : target.kind);
 
 	const MESSAGES: Record<string, string> = {
 		required: 'Give the todo a title.',
@@ -66,6 +72,8 @@
 		chosenAspectId = null;
 		priority = 0;
 		chosenDueDate = null;
+		chosenPlannedDay = null;
+		startTime = endTime = '';
 		projectId = '';
 		chosenClassId = null;
 		chosenType = null;
@@ -105,8 +113,7 @@
 		aria-label="New todo"
 		use:enhance={submit({ onerror: (e) => (error = e), onsuccess: added })}
 	>
-		<input type="hidden" name="target" value={target.kind} />
-		{#if target.kind === 'day'}<input type="hidden" name="day" value={target.day} />{/if}
+		<input type="hidden" name="target" value={postedTarget} />
 
 		<input
 			class="title"
@@ -147,6 +154,10 @@
 			bind:projectId
 			bind:classId={() => classId, (id) => (chosenClassId = id)}
 			bind:type={() => type, (t) => (chosenType = t)}
+			planned
+			bind:plannedDay={() => plannedDay, (d) => (chosenPlannedDay = d)}
+			bind:startTime
+			bind:endTime
 		>
 			<Chip icon="list-checks" pressed={checklist.length > 0} onclick={() => (checklist = checklist.length ? [] : [''])}>
 				Checklist
@@ -154,7 +165,7 @@
 		</TodoFields>
 
 		{#if error}
-			<p class="error" role="alert">{MESSAGES[error.error] ?? `Couldn’t add the todo (${error.error}).`}</p>
+			<p class="error" role="alert">{MESSAGES[error.error] ?? planError(error) ?? `Couldn’t add the todo (${error.error}).`}</p>
 		{/if}
 
 		<footer>
