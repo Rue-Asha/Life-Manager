@@ -126,12 +126,13 @@ export async function reconcile(
 		for (const d of desired) {
 			const hash = specHash(d.spec);
 			const row = rows.get(d.key);
-			if (row?.error_hash === hash && !o?.retryFailed) continue;
 			const target = storedCalendar(d.aspectId);
 			if (row?.event_ref && row.hash === hash && target && row.calendar_id === target) {
 				if (row.error !== null) writeRow(db, { ...row, label: d.label, error: null, error_hash: null });
 				continue;
 			}
+			const attempt = `${hash}:${d.aspectId}`;
+			if (row?.error_hash === attempt && !o?.retryFailed) continue;
 			try {
 				let calendarId = await calendarFor(d.aspectId);
 				const base = { key: d.key, label: d.label, error: null, error_hash: null };
@@ -169,7 +170,7 @@ export async function reconcile(
 			} catch (e) {
 				if (e instanceof Skip) continue;
 				if (!(e instanceof Failure)) throw e;
-				recordFailure(d.key, d.label, e.error, hash);
+				recordFailure(d.key, d.label, e.error, attempt);
 			}
 		}
 	} catch (e) {
@@ -192,9 +193,9 @@ export function pendingCount(db: DatabaseSync, desired: DesiredItem[]): number {
 	for (const d of desired) {
 		const hash = specHash(d.spec);
 		const row = rows.get(d.key);
-		if (row?.error_hash === hash) continue;
 		const target = calendars.get(d.aspectId) ?? null;
 		if (row?.event_ref && row.hash === hash && target && row.calendar_id === target) continue;
+		if (row?.error_hash === `${hash}:${d.aspectId}`) continue;
 		n += row?.event_ref && row.calendar_id !== target ? 2 : 1;
 		n += d.spec.exdates.length;
 	}

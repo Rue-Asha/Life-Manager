@@ -80,7 +80,7 @@ Technical choices for this change:
      row without `event_ref` is just removed.
   2. For each desired item in key order (todos, rules, exams; ascending id): the target calendar is
      `proton_calendars[aspectId]`, created first if missing (name = aspect name, colour = `PROTON_COLORS[aspect.color]`).
-     - no row, or a row without `event_ref` → create; a row with `error_hash = specHash` is skipped unless `retryFailed`.
+     - no row, or a row without `event_ref` → create; a row with `error_hash = <specHash>:<aspectId>` (the attempted content and target aspect) is skipped unless `retryFailed`; a row that already matches Proton (ref, hash, target calendar) is never skipped, its failure is cleared first.
      - row with `calendar_id` ≠ target → delete old ref (exit 3 ok), then create in target.
      - row with `hash` ≠ `specHash(spec)` → update the stored ref; exit 3 → create in target.
      - otherwise nothing.
@@ -93,7 +93,7 @@ Technical choices for this change:
   3. After every successful call the row is written at once (`event_ref`, `calendar_id`, `hash`, `label`, errors
      cleared), so an interrupted pass resumes from the stored state (R4 duplicates accepted).
   4. Exit 2 → stop, outcome `relogin`; exit 5 → stop, outcome `retry`; spawn failure → stop, outcome `error`; any
-     other non-zero → store `error` (stderr's `Error:` line) and `error_hash` (for a failed delete: `'delete'`), keep the
+     other non-zero → store `error` (stderr's `Error:` line) and `error_hash` (`<specHash>:<aspectId>`; for a failed delete: `'delete'`), keep the
      previous ref and hash, go on.
   `pendingCount` runs steps 1–2 as a plan without calls and counts event calls including occurrence deletes (calendar
   creates excluded, skipped failed items excluded). `forgetHashes` sets `hash`, `error`, `error_hash` to NULL on every row ("Resync all").
@@ -161,7 +161,7 @@ Unit 1 creates these (types, stubs that typecheck, the fake and the test hooks);
 | `proton_items.event_ref` | stored whole, `<calendarId>/<eventId>` from event create `ids[0]` | update/delete ref |
 | `proton_items.calendar_id` | stored (calendar the event was created in) | detects aspect moves |
 | `proton_items.hash` | stored `specHash` of the last pushed spec; NULL = push again | diff |
-| `proton_items.error`, `error_hash` | stored last item failure and the spec hash (or `'delete'`) that failed | skip until change / Sync now |
+| `proton_items.error`, `error_hash` | stored last item failure and the spec hash and target aspect (`<hash>:<aspectId>`, or `'delete'`) that failed | skip until change / Sync now |
 | `exdates` of a series | derived per pass (days ≥ series start on a rule weekday with a todo of that rule) | yes, in the spec and hash |
 | `settings` key `proton_last_sync_at` | stored ISO instant of the end of the last pass that ended `done`; cleared by `resetDb()` (settings) | `SyncStatus.lastSyncAt` |
 | rest of `SyncStatus` | in memory only | sync page, nav marker |

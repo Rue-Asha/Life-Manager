@@ -285,7 +285,7 @@ describe('reconciler', () => {
 			event_ref: 'cal-1/evt-1',
 			hash: specHash(old.spec),
 			error: 'Error: rejected',
-			error_hash: specHash(changed.spec)
+			error_hash: `${specHash(changed.spec)}:${a}`
 		});
 		expect(row('todo:2')).toMatchObject({ event_ref: 'cal-1/evt-2', error: 'Error: cannot delete', error_hash: 'delete' });
 		const before = fake.calls().length;
@@ -320,6 +320,39 @@ describe('reconciler', () => {
 		expect(fake.calls().length).toBe(before);
 		expect(failedItems(db)).toEqual([]);
 		expect(row('todo:2')).toMatchObject({ error: null, error_hash: null });
+	});
+
+	it('Scenario: Failed move clears when the item returns to its calendar', async () => {
+		const a = health();
+		const b = uni();
+		await reconcile(db, [item(1, a)], run);
+		fake.fail({ kind: 'event.delete', code: 1, error: 'Error: cannot delete', times: 1 });
+		expect(await reconcile(db, [item(1, b)], run)).toMatchObject({ failed: 1 });
+		expect(failedItems(db)).toHaveLength(1);
+
+		const before = fake.calls().length;
+		expect(pendingCount(db, [item(1, a)])).toBe(0);
+		expect(await reconcile(db, [item(1, a)], run)).toEqual({ kind: 'done', calls: 0, failed: 0 });
+		expect(fake.calls().length).toBe(before);
+		expect(failedItems(db)).toEqual([]);
+		expect(row('todo:1')).toMatchObject({ calendar_id: 'cal-1', error: null, error_hash: null });
+	});
+
+	it('Scenario: Failed item is retried when its target aspect changes', async () => {
+		const a = health();
+		const b = uni();
+		fake.fail({ kind: 'event.create', code: 1, error: 'Error: bad', match: 'Run 1', times: 1 });
+		await reconcile(db, [item(1, a)], run);
+		expect(failedItems(db)).toHaveLength(1);
+		expect(pendingCount(db, [item(1, a)])).toBe(0);
+		expect(await reconcile(db, [item(1, a)], run)).toEqual({ kind: 'done', calls: 0, failed: 0 });
+
+		expect(pendingCount(db, [item(1, b)])).toBe(1);
+		const before = fake.calls().length;
+		expect(await reconcile(db, [item(1, b)], run)).toEqual({ kind: 'done', calls: 2, failed: 0 });
+		expect(ops().slice(before).map((o) => o.kind)).toEqual(['calendar.create', 'event.create']);
+		expect(failedItems(db)).toEqual([]);
+		expect(row('todo:1')).toMatchObject({ event_ref: 'cal-2/evt-1', error: null });
 	});
 
 	it('Scenario: Aspect deleted during its calendar create skips the item', async () => {

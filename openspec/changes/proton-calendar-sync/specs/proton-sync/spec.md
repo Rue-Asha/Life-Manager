@@ -430,7 +430,7 @@ Calls to `proton` SHALL run one at a time with at least 1 s between mutations, w
 `PROTON_NO_UPDATE_CHECK=1`, `PROTON_NO_LOG=1`, `--output json` and `--profile <profile>`; deletes SHALL pass `--yes`.
 Exit 5 SHALL stop the pass and retry after a backoff of 1, 2, 4 … minutes capped at 30 minutes; exit 2 SHALL pause sync in
 state "re-login needed" until "Sync now" or the next 30-minute retry; any other non-zero exit SHALL mark that item failed
-with stderr's `Error:` line while the rest continue. A failed item SHALL be tried again only when its content changes,
+with stderr's `Error:` line while the rest continue. A failed item SHALL be tried again only when its content or target aspect changes,
 on "Sync now" or on "Resync all", and its failure SHALL be cleared once its content matches Proton again without a call.
 The one-second gap SHALL hold across passes, including a queued pass that follows a running one. Any other failure
 inside a pass SHALL end it in state "error" with the message, and requests queued behind it SHALL still run. A missing or non-executable binary SHALL put sync in state "error" with the message,
@@ -480,6 +480,16 @@ without crashing the app. A call that has not finished after 120 s SHALL be kill
 #### Scenario: Failed update clears when the item matches Proton again
 - **WHEN** a synced item's update exits 1, and the item is then changed back to the content Proton still holds
 - **THEN** the next pass makes no call, and the item is no longer listed as failed
+- **proof:** unit
+
+#### Scenario: Failed move clears when the item returns to its calendar
+- **WHEN** a synced item moves to another aspect, the delete of its old event exits 1, and the item then moves back to its original aspect
+- **THEN** the next regular pass makes no call, the pending count is 0, and the item is no longer listed as failed
+- **proof:** unit
+
+#### Scenario: Failed item is retried when its target aspect changes
+- **WHEN** an item failed with exit 1 and a later regular pass finds the same content under another aspect (for example after `deleteAspect` with a target)
+- **THEN** that pass counts the item as pending and tries it again in the new aspect's calendar, while the same content under the same aspect stays skipped
 - **proof:** unit
 
 #### Scenario: Failed delete clears when the item is desired again
