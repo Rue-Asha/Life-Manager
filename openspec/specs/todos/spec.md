@@ -263,13 +263,13 @@ error, not `day-in-past`. Todos of archived semesters stay read-only (`archived`
 A done todo's planned date is edited like any other field and keeps its status where it stays in its sprint. Where the
 todo lands (sprint or backlog) follows sprint-lifecycle "Mid-sprint changes". Creating a todo with a day target (quick
 add in a Week view column) places it by the same rule, `review-required` while the active sprint's review is required
-included; creating with the sprint or backlog target (quick add in By aspect, Unscheduled or Backlog) is never refused
-by a required review. (S1)
+included; creating with the sprint or backlog target (quick add in By aspect, Unscheduled or Backlog) without a planned
+day keeps its existing behaviour and is not refused by a required review. (S1)
 Every quick-add form SHALL offer the same "Planned" field with "From" and "To", stored on create under the same rules
-as an edit: a backlog or sprint target with a planned date lands by the placement rule, except that while the active
-sprint's review is required a sprint target with a date in the sprint week goes into the active sprint on that day and a
-backlog target stays in the backlog with its date, neither being refused; a day-column quick add starts with its day
-filled in, and a day column whose date was removed adds to the active sprint without a day.
+as an edit: any target with a planned date lands by the placement rule and the same refusals as setting that date in the
+editor (`day-in-past`, and `review-required` for a date in the active sprint week while its review is required, as
+sprint-lifecycle "Mid-sprint changes" demands), the quick add showing the message and keeping its input; a day-column
+quick add starts with its day filled in, and a day column whose date was removed adds to the active sprint without a day.
 
 #### Scenario: Plan a backlog todo three weeks out with a slot
 - **WHEN** Rue opens a backlog todo, sets "Planned" to the Tuesday three weeks after today with "From" 18:00 and "To" 19:30, and saves
@@ -326,10 +326,10 @@ filled in, and a day column whose date was removed adds to the active sprint wit
 - **THEN** the first card is in the Thursday column labelled "09:00–10:00", and the second is in the active sprint with no day
 - **proof:** e2e — `Regression: quick add in a week day column stores the slot on that day`
 
-#### Scenario: Quick add with a planned day is not refused by a required review
-- **WHEN** today is the Monday 2026-10-19 after an active sprint of 2026-10-12 to 2026-10-18, and todos with slot 18:00–19:30 are created with the sprint target on 2026-10-15, the backlog target on 2026-10-15, and the sprint target on 2026-10-11
-- **THEN** the first is in the active sprint on 2026-10-15 with the slot, the second is in the backlog on 2026-10-15 with the slot, and the third is refused with `day-in-past`
-- **proof:** unit — `Regression: createTodo is not refused by a required review for a sprint or backlog target`
+#### Scenario: Quick add with a planned day in a review-required week is refused, without a day it is not
+- **WHEN** today is the Monday 2026-10-19 after an active sprint of 2026-10-12 to 2026-10-18, and todos with slot 18:00–19:30 are created with the sprint target on 2026-10-15, the backlog target on 2026-10-15, and the sprint target on 2026-10-11, then with the sprint target on 2026-10-26, the sprint target without a day, and the backlog target without a day
+- **THEN** the first two fail with `review-required` and the third with `day-in-past`, nothing being stored; the fourth is in the backlog on 2026-10-26, the fifth is in the active sprint with no day, and the sixth is in the backlog with no day
+- **proof:** unit — `Regression: createTodo with a planned day in a review-required week is refused, without a day it is not`
 
 #### Scenario: Retyping From after clearing it restores the slot length
 - **WHEN** Rue opens a todo planned with 18:00–19:30, clears "From" (so "To" is empty) and types 09:00
