@@ -6,8 +6,10 @@ TBD - created by archiving change build-life-manager. Update Purpose after archi
 ### Requirement: Create todos
 Rue SHALL create a todo with a required title and aspect and optional notes, priority (none/P1/P2/P3),
 due date and checklist, through a plain quick-add form (title field plus chips/pickers, no
-natural-language parsing). The todo lands in the backlog by default, in the active sprint when created
-from a sprint view, and on a specific day when created in a week-by-day column. (S6)
+natural-language parsing). Without a planned day the todo lands in the backlog by default, in the active
+sprint when created from a sprint view, and on a specific day when created in a week-by-day column, whose
+"Planned" field is prefilled with that day. A planned day chosen in the form places the todo by the "Planned"
+rule below instead, whatever the target. (S6)
 
 #### Scenario: Quick add creates a todo in the backlog
 - **WHEN** Rue enters a title, picks an aspect in the quick-add form on the backlog and submits

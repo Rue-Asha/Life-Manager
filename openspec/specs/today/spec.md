@@ -7,7 +7,7 @@ TBD - created by archiving change build-life-manager. Update Purpose after archi
 Today SHALL be the default landing screen, showing active-sprint todos assigned to today plus overdue
 todos (due before today, not done), with status toggles and a quick add in every phase (running, review
 available, review required, planning, none, Sunday after the review). While an active sprint has today
-among its days, quick add SHALL add to the sprint on today; otherwise it SHALL create a backlog todo due
+among its days, quick add SHALL add to the sprint on today unless its "Planned" field, prefilled with today, is changed or removed (the todo then lands on the chosen day, or in the sprint with no day); otherwise it SHALL create a backlog todo due
 today, and Today SHALL list open backlog todos due today or planned for today under their aspect, each once even
 when both apply. Today's todos are grouped by aspect; overdue todos are listed once, in a single "Overdue" group that
 names each todo's aspect. (S21, calendar-planning S8)
@@ -46,6 +46,11 @@ names each todo's aspect. (S21, calendar-planning S8)
 - **WHEN** Rue quick-adds a todo on Today during an active sprint whose days include today
 - **THEN** the todo is in the active sprint with status To do, assigned to today, and listed on Today
 - **proof:** e2e
+
+#### Scenario: Changing or removing Planned in Today's quick add
+- **WHEN** during an active sprint whose days include today, Rue quick-adds on Today with "Planned" (prefilled with today) changed to a later day of the sprint, and another with "Planned" removed
+- **THEN** the first is in the active sprint on that later day and the second is in the active sprint with no day, so it is not listed on Today
+- **proof:** e2e — `Scenario: Changing or removing Planned in Today's quick add`
 
 #### Scenario: Quick add on Today outside the sprint's days saves a backlog todo due today
 - **WHEN** Rue quick-adds a todo on a day that is not among the active sprint's days (the Sunday before next week's sprint, or review required)
