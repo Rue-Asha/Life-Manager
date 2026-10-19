@@ -335,7 +335,7 @@ quick add starts with its day filled in, and a day column whose date was removed
 
 #### Scenario: The New todo dialog says where a planned day sends the todo
 - **WHEN** with an active sprint of 2026-10-12 to 2026-10-18 Rue opens "New todo" from the sidebar, then sets "Planned" to 2026-10-16, then to 2026-11-03
-- **THEN** the footer hint reads "Goes to the backlog" before a day is set, "Goes to this sprint" for 2026-10-16, and "Goes to the backlog" again for 2026-11-03
+- **THEN** the footer hint reads "Goes to the backlog" before a day is set, "Goes to this sprint" for 2026-10-16, and "Goes to the backlog" again for 2026-11-03; while the sprint's review is required (today 2026-10-19), a day in its week such as 2026-10-15 shows no hint, since that add is refused
 - **proof:** e2e — `Regression: the New todo dialog says where a planned day sends the todo`
 
 #### Scenario: Retyping From after clearing it restores the slot length

@@ -2,6 +2,7 @@ import { redirect } from '@sveltejs/kit';
 import { listAspects } from '$lib/server/aspects';
 import { today } from '$lib/server/clock';
 import { getDb } from '$lib/server/db';
+import { reviewState } from '$lib/week';
 import { countActiveProjects, getItAspectId, listProjectRefs } from '$lib/server/projects';
 import { syncStatus } from '$lib/server/proton/worker';
 import { listRules } from '$lib/server/recurring';
@@ -32,7 +33,8 @@ export const load: LayoutServerLoad = ({ url }) => {
 		},
 		aspects: aspects.map((a) => ({ ...a, backlog: backlog.filter((t) => t.aspectId === a.id).length })),
 		sync: syncStatus().state,
-		activeWeekStart: active?.weekStart ?? null
+		activeWeekStart: active?.weekStart ?? null,
+		reviewRequired: active?.weekStart ? reviewState(active.weekStart, day) === 'review-required' : false
 	};
 	return {
 		aspects,

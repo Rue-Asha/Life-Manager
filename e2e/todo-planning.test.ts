@@ -357,6 +357,18 @@ test('Regression: the New todo dialog says where a planned day sends the todo', 
 
 	await form.getByLabel('Planned', { exact: true }).fill('2026-11-03');
 	await expect(form.getByText('Goes to the backlog')).toBeVisible();
+
+	await reset(request);
+	await seed(request, { aspects: [HEALTH], sprint: { state: 'active', weekStart: WEEK } });
+	await setClock(request, '2026-10-19T10:00:00Z');
+	await page.goto('/backlog');
+	await expect(page.getByRole('heading', { level: 1, name: 'Backlog' })).toBeVisible();
+	await page.getByRole('button', { name: 'New todo' }).click();
+	await form.getByLabel('Planned', { exact: true }).fill('2026-10-15');
+	await expect(form.getByText('Goes to this sprint')).toHaveCount(0);
+	await expect(form.getByText('Goes to the backlog')).toHaveCount(0);
+	await form.getByLabel('Planned', { exact: true }).fill('2026-11-03');
+	await expect(form.getByText('Goes to the backlog')).toBeVisible();
 });
 
 test('Regression: quick add in a week day column stores the slot on that day', async ({ page, request }) => {

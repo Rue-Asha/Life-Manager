@@ -20,6 +20,7 @@
 		defaultDueDate,
 		variant = 'inline',
 		sprintWeekStart = null,
+		reviewRequired = false,
 		compactLabel,
 		open = $bindable(false)
 	}: {
@@ -33,6 +34,8 @@
 		variant?: 'inline' | 'dialog';
 		// The running sprint's Monday: a planned day in its week sends a backlog-target todo into the sprint.
 		sprintWeekStart?: IsoDate | null;
+		// While the sprint's review is required, a day in its week is refused, so the hint stays silent.
+		reviewRequired?: boolean;
 		// On desktop the field shrinks to a "+" with this name (the week's day columns).
 		compactLabel?: string;
 		open?: boolean;
@@ -180,7 +183,7 @@
 		{/if}
 
 		<footer>
-			{#if variant === 'dialog' && target.kind === 'backlog'}
+			{#if variant === 'dialog' && target.kind === 'backlog' && !(intoSprint && reviewRequired)}
 				<span class="hint">
 					<svg viewBox="0 0 24 24" aria-hidden="true"><path d={intoSprint ? UI_ICONS['calendar-days'] : UI_ICONS.inbox} /></svg>{intoSprint
 						? 'Goes to this sprint'
