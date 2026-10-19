@@ -58,6 +58,33 @@ run on the tagged commit, and publishes that run's tarball, with its checksum an
 build-provenance attestation. Tag soon after the merge: the tarball expires with the artifact
 retention, and if it has, `gh run rerun <id>` the push run and push the tag again.
 
+## Docker
+
+Each release also publishes an image to `ghcr.io/rue-asha/life-manager` (tags `<version>`,
+`<major>.<minor>`, `latest`). It is built in the release workflow from the verified release
+tarball, not from source, and only on a version tag, never on pushes to `main` or PRs.
+
+```yaml
+services:
+  life-manager:
+    image: ghcr.io/rue-asha/life-manager:<version>
+    ports:
+      - "3000:3000"
+    volumes:
+      - life-manager-data:/data
+    environment:
+      ORIGIN: http://localhost:3000   # the URL you open the app at, else form posts get a 403
+    restart: unless-stopped
+
+volumes:
+  life-manager-data:
+```
+
+The server binds `0.0.0.0:3000` as the unprivileged `node` user and keeps its SQLite database in
+`/data`. Behind a reverse proxy, drop `ORIGIN` and set `PROTOCOL_HEADER=x-forwarded-proto` as in
+[Behind a reverse proxy](#behind-a-reverse-proxy). The other variables from
+[Environment](#environment) apply too.
+
 ## Running the build
 
 ```sh
