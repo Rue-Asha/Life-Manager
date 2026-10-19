@@ -5,6 +5,7 @@ export const UI_ICONS = {
 	plus: 'M5 12h14 M12 5v14',
 	x: 'M18 6 6 18 M6 6l12 12',
 	'chevron-left': 'M0 0m15 18-6-6 6-6',
+	clock: 'M2 12a10 10 0 1 0 20 0a10 10 0 1 0 -20 0 M12 6v6l4 2',
 	calendar: 'M8 2v3 M16 2v3 M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2Z M3 9h18',
 	'calendar-days':
 		'M8 2v3 M16 2v3 M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2Z M3 9h18 M8 13h.01 M12 13h.01 M16 13h.01 M8 17h.01 M12 17h.01 M16 17h.01',

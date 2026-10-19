@@ -64,6 +64,9 @@ export const actions: Actions = {
 			dueDate: optionalDate(data, 'dueDate'),
 			checklist: data.getAll('checklist').map(String),
 			target: target(data),
+			day: optionalDate(data, 'day'),
+			startTime: optionalText(data, 'startTime'),
+			endTime: optionalText(data, 'endTime'),
 			projectId: optionalId(data, 'projectId'),
 			classId: optionalId(data, 'classId'),
 			type: classType(data)

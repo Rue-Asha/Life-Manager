@@ -103,7 +103,7 @@ test('Scenario: Edit every field of a todo', async ({ page, request }) => {
 	const form = editor(page);
 	await form.getByLabel('Title').fill('Book a physio appointment');
 	await form.getByLabel('Aspect').selectOption({ label: 'Uni' });
-	await form.getByLabel('Notes').fill('Ask about the knee');
+	await form.getByLabel('Description').fill('Ask about the knee');
 	await form.getByLabel('Priority').selectOption({ label: 'Priority 1' });
 	await form.getByLabel('Due date', { exact: true }).fill('2026-10-09');
 	await page.getByRole('button', { name: 'Save' }).click();
@@ -119,7 +119,7 @@ test('Scenario: Edit every field of a todo', async ({ page, request }) => {
 	await openTodo(page, 'Book a physio appointment');
 	await expect(form.getByLabel('Title')).toHaveValue('Book a physio appointment');
 	await expect(form.getByLabel('Aspect')).toHaveValue(String(aspects[1]));
-	await expect(form.getByLabel('Notes')).toHaveValue('Ask about the knee');
+	await expect(form.getByLabel('Description')).toHaveValue('Ask about the knee');
 	await expect(form.getByLabel('Priority')).toHaveValue('1');
 	await expect(form.getByLabel('Due date', { exact: true })).toHaveValue('2026-10-09');
 });

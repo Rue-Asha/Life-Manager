@@ -2,13 +2,14 @@
 	import { enhance } from '$app/forms';
 	import { tick } from 'svelte';
 	import { MediaQuery } from 'svelte/reactivity';
-	import type { Aspect, ClassType, Id, IsoDate, Priority, Target } from '$lib/types';
+	import { addDays } from '$lib/week';
+	import type { Aspect, ClassType, HhMm, Id, IsoDate, Priority, Target } from '$lib/types';
 	import Button from '../ui/Button.svelte';
 	import Chip from '../ui/Chip.svelte';
 	import Sheet from '../ui/Sheet.svelte';
 	import { UI_ICONS } from '../ui/icons';
 	import TodoFields from './TodoFields.svelte';
-	import { submit, type ActionError } from './form';
+	import { planError, submit, type ActionError } from './form';
 
 	let {
 		aspects,
@@ -18,6 +19,8 @@
 		defaultType,
 		defaultDueDate,
 		variant = 'inline',
+		sprintWeekStart = null,
+		reviewRequired = false,
 		compactLabel,
 		open = $bindable(false)
 	}: {
@@ -29,6 +32,10 @@
 		defaultDueDate?: IsoDate;
 		// `dialog` has no field of its own: something else opens it (the sidebar's "New todo").
 		variant?: 'inline' | 'dialog';
+		// The running sprint's Monday: a planned day in its week sends a backlog-target todo into the sprint.
+		sprintWeekStart?: IsoDate | null;
+		// While the sprint's review is required, a day in its week is refused, so the hint stays silent.
+		reviewRequired?: boolean;
 		// On desktop the field shrinks to a "+" with this name (the week's day columns).
 		compactLabel?: string;
 		open?: boolean;
@@ -41,17 +48,28 @@
 	let chosenAspectId = $state<Id | null>(null);
 	let priority = $state<Priority>(0);
 	let chosenDueDate = $state<IsoDate | '' | null>(null);
+	let chosenPlannedDay = $state<IsoDate | '' | null>(null);
+	let startTime = $state<HhMm | ''>('');
+	let endTime = $state<HhMm | ''>('');
 	let projectId = $state<Id | ''>('');
 	let chosenClassId = $state<Id | '' | null>(null);
 	let chosenType = $state<ClassType | null>(null);
 	let checklist = $state<string[]>([]);
 	let error = $state<ActionError | null>(null);
 	let titleInput = $state<HTMLInputElement>();
+	let fields = $state<ReturnType<typeof TodoFields>>();
 
 	const aspectId = $derived(chosenAspectId ?? defaultAspectId ?? aspects[0].id);
 	const classId = $derived(chosenClassId ?? defaultClassId ?? '');
 	const dueDate = $derived(chosenDueDate ?? defaultDueDate ?? '');
 	const type = $derived(chosenType ?? defaultType ?? 'OTH');
+	const plannedDay = $derived(chosenPlannedDay ?? (target.kind === 'day' ? target.day : ''));
+	// A day column whose plan was removed still adds to its sprint, just without a day.
+	const postedTarget = $derived(target.kind === 'day' && !plannedDay ? 'sprint' : target.kind);
+
+	const intoSprint = $derived(
+		sprintWeekStart !== null && plannedDay >= sprintWeekStart && plannedDay <= addDays(sprintWeekStart, 6)
+	);
 
 	const MESSAGES: Record<string, string> = {
 		required: 'Give the todo a title.',
@@ -66,6 +84,9 @@
 		chosenAspectId = null;
 		priority = 0;
 		chosenDueDate = null;
+		chosenPlannedDay = null;
+		startTime = endTime = '';
+		fields?.forget();
 		projectId = '';
 		chosenClassId = null;
 		chosenType = null;
@@ -105,8 +126,7 @@
 		aria-label="New todo"
 		use:enhance={submit({ onerror: (e) => (error = e), onsuccess: added })}
 	>
-		<input type="hidden" name="target" value={target.kind} />
-		{#if target.kind === 'day'}<input type="hidden" name="day" value={target.day} />{/if}
+		<input type="hidden" name="target" value={postedTarget} />
 
 		<input
 			class="title"
@@ -119,8 +139,27 @@
 			bind:this={titleInput}
 			onkeydown={(e) => e.key === 'Escape' && desktop.current && variant === 'inline' && close()}
 		/>
-		<textarea class="notes" name="notes" placeholder="Notes" aria-label="Notes" rows="1" bind:value={notes}
+		<textarea class="notes" name="notes" placeholder="Add a description" aria-label="Description" rows="1" bind:value={notes}
 		></textarea>
+
+		<TodoFields
+			bind:this={fields}
+			{aspects}
+			bind:aspectId={() => aspectId, (id) => (chosenAspectId = id)}
+			bind:priority
+			bind:dueDate={() => dueDate, (d) => (chosenDueDate = d)}
+			bind:projectId
+			bind:classId={() => classId, (id) => (chosenClassId = id)}
+			bind:type={() => type, (t) => (chosenType = t)}
+			planned
+			bind:plannedDay={() => plannedDay, (d) => (chosenPlannedDay = d)}
+			bind:startTime
+			bind:endTime
+		>
+			<Chip icon="list-checks" pressed={checklist.length > 0} onclick={() => (checklist = checklist.length ? [] : [''])}>
+				Checklist
+			</Chip>
+		</TodoFields>
 
 		{#if checklist.length}
 			<ul class="checklist">
@@ -139,28 +178,16 @@
 			</ul>
 		{/if}
 
-		<TodoFields
-			{aspects}
-			bind:aspectId={() => aspectId, (id) => (chosenAspectId = id)}
-			bind:priority
-			bind:dueDate={() => dueDate, (d) => (chosenDueDate = d)}
-			bind:projectId
-			bind:classId={() => classId, (id) => (chosenClassId = id)}
-			bind:type={() => type, (t) => (chosenType = t)}
-		>
-			<Chip icon="list-checks" pressed={checklist.length > 0} onclick={() => (checklist = checklist.length ? [] : [''])}>
-				Checklist
-			</Chip>
-		</TodoFields>
-
 		{#if error}
-			<p class="error" role="alert">{MESSAGES[error.error] ?? `Couldn’t add the todo (${error.error}).`}</p>
+			<p class="error" role="alert">{MESSAGES[error.error] ?? planError(error) ?? `Couldn’t add the todo (${error.error}).`}</p>
 		{/if}
 
 		<footer>
-			{#if variant === 'dialog' && target.kind === 'backlog'}
+			{#if variant === 'dialog' && target.kind === 'backlog' && !(intoSprint && reviewRequired)}
 				<span class="hint">
-					<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.inbox} /></svg>Goes to the backlog
+					<svg viewBox="0 0 24 24" aria-hidden="true"><path d={intoSprint ? UI_ICONS['calendar-days'] : UI_ICONS.inbox} /></svg>{intoSprint
+						? 'Goes to this sprint'
+						: 'Goes to the backlog'}
 				</span>
 			{/if}
 			<Button type="button" variant={variant === 'dialog' ? 'secondary' : 'quiet'} onclick={close}>Cancel</Button>
@@ -299,7 +326,7 @@
 	}
 
 	.checklist {
-		margin: calc(-1 * var(--space-2)) 0 var(--space-4);
+		margin: var(--space-3) 0 0;
 		padding: 0;
 		list-style: none;
 	}

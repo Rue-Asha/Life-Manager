@@ -485,3 +485,27 @@ test('Scenario: Overdue todo planned for today shows once on Today', async ({ pa
 	await expect(row(page, 'Send tax receipts')).toHaveCount(1);
 	await expect(page.getByTestId('overdue-group').getByTestId('todo-row')).toHaveCount(1);
 });
+
+test('Scenario: Changing or removing Planned in Today\'s quick add', async ({ page, request }) => {
+	await seed(request, { aspects: [...ASPECTS], sprint: ACTIVE });
+	await page.goto('/');
+	await page.getByRole('button', { name: 'Add a todo' }).first().click();
+	const form = page.getByRole('form', { name: 'New todo' });
+	await expect(form.getByLabel('Planned', { exact: true })).toHaveValue(TODAY);
+
+	await form.getByLabel('Title').fill('Pack the gym bag');
+	await form.getByLabel('Planned', { exact: true }).fill('2026-10-09');
+	await form.getByRole('button', { name: 'Add todo' }).click();
+	await expect(form.getByLabel('Title')).toHaveValue('');
+	await form.getByLabel('Title').fill('Water the plants');
+	await form.getByRole('button', { name: 'Remove plan' }).click();
+	await form.getByRole('button', { name: 'Add todo' }).click();
+	await expect(form.getByLabel('Title')).toHaveValue('');
+
+	await page.goto('/sprint?view=aspect');
+	await expect(row(page, 'Pack the gym bag')).toHaveAttribute('data-day', '2026-10-09');
+	await expect(row(page, 'Water the plants')).toHaveAttribute('data-day', '');
+	await page.goto('/');
+	await expect(row(page, 'Water the plants')).toHaveCount(0);
+	await expect(row(page, 'Pack the gym bag')).toHaveCount(0);
+});

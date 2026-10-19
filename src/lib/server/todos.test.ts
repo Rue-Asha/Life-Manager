@@ -192,6 +192,54 @@ describe('createTodo', () => {
 		expect(value(make({ kind: 'sprint' }))).toMatchObject({ sprintId: sprint, day: null, status: 'todo' });
 	});
 
+	it('Regression: createTodo with a planned day in a review-required week is refused, without a day it is not', () => {
+		const { db, aspect } = setup();
+		const sprint = activeSprint(db, '2026-10-12');
+		const make = (target: NonNullable<Parameters<typeof createTodo>[1]['target']>, day?: string) =>
+			createTodo(db, { title: 'Run', aspectId: aspect, target, day, startTime: '18:00', endTime: '19:30' }, '2026-10-19');
+
+		expect(make({ kind: 'sprint' }, '2026-10-15')).toEqual({ ok: false, error: 'review-required' });
+		expect(make({ kind: 'backlog' }, '2026-10-15')).toEqual({ ok: false, error: 'review-required' });
+		expect(make({ kind: 'day', day: '2026-10-15' })).toEqual({ ok: false, error: 'review-required' });
+		expect(make({ kind: 'sprint' }, '2026-10-11')).toEqual({ ok: false, error: 'day-in-past', field: 'day' });
+		expect(todoCount(db)).toBe(0);
+
+		expect(value(make({ kind: 'sprint' }, '2026-10-26'))).toMatchObject({ sprintId: null, day: '2026-10-26', startTime: '18:00' });
+		expect(value(make({ kind: 'sprint' }))).toMatchObject({ sprintId: sprint, day: null, startTime: null });
+		expect(value(make({ kind: 'backlog' }))).toMatchObject({ sprintId: null, day: null });
+	});
+
+	it('Regression: createTodo stores the planned day and slot for every target', () => {
+		const { db, aspect } = setup();
+		const sprint = activeSprint(db, '2026-10-12');
+		const slot = { startTime: '18:00', endTime: '19:30' };
+		const make = (target: NonNullable<Parameters<typeof createTodo>[1]['target']>, day?: string) =>
+			value(createTodo(db, { title: 'Run', aspectId: aspect, target, day, ...slot }, '2026-10-14'));
+
+		expect(make({ kind: 'backlog' }, '2026-11-03')).toMatchObject({ sprintId: null, day: '2026-11-03', ...slot });
+		expect(make({ kind: 'backlog' }, '2026-10-16')).toMatchObject({ sprintId: sprint, day: '2026-10-16', ...slot });
+		expect(make({ kind: 'sprint' }, '2026-10-15')).toMatchObject({ sprintId: sprint, day: '2026-10-15', ...slot });
+		expect(make({ kind: 'day', day: '2026-10-17' })).toMatchObject({ sprintId: sprint, day: '2026-10-17', ...slot });
+	});
+
+	it('Regression: createTodo refuses a bad slot or a past day and stores nothing', () => {
+		const { db, aspect } = setup();
+		const make = (day: string | undefined, startTime: string | null, endTime: string | null) =>
+			createTodo(db, { title: 'Run', aspectId: aspect, day, startTime, endTime }, '2026-10-14');
+
+		expect(make('2026-11-03', '18:00', '17:00')).toEqual({ ok: false, error: 'end-before-start', field: 'endTime' });
+		expect(make('2026-11-03', null, '17:00')).toEqual({ ok: false, error: 'end-without-start', field: 'endTime' });
+		expect(make('2026-11-03', '25:00', null)).toEqual({ ok: false, error: 'invalid', field: 'startTime' });
+		expect(make('2026-10-13', '18:00', null)).toEqual({ ok: false, error: 'day-in-past', field: 'day' });
+		expect(todoCount(db)).toBe(0);
+	});
+
+	it('createTodo drops a slot without a day', () => {
+		const { db, aspect } = setup();
+		const t = value(createTodo(db, { title: 'Run', aspectId: aspect, startTime: '18:00', endTime: '19:30' }, '2026-10-14'));
+		expect(t).toMatchObject({ sprintId: null, day: null, startTime: null, endTime: null });
+	});
+
 	it('returns null for a missing todo', () => {
 		const { db } = setup();
 		expect(getTodo(db, 42)).toBeNull();

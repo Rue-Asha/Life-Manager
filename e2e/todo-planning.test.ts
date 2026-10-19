@@ -52,8 +52,8 @@ test('Scenario: Editor clears the times with the date', async ({ page, request }
 	await expect(editor(page).getByLabel('From', { exact: true })).toHaveValue('18:00');
 
 	await editor(page).getByLabel('Planned', { exact: true }).fill('');
-	await expect(editor(page).getByLabel('From', { exact: true })).toHaveValue('');
-	await expect(editor(page).getByLabel('To', { exact: true })).toHaveValue('');
+	await expect(editor(page).getByLabel('From', { exact: true })).toHaveCount(0);
+	await expect(editor(page).getByLabel('To', { exact: true })).toHaveCount(0);
 	await page.getByRole('button', { name: 'Save' }).click();
 	await expect(editor(page)).toHaveCount(0);
 
@@ -62,6 +62,7 @@ test('Scenario: Editor clears the times with the date', async ({ page, request }
 	await expect(row.getByTestId('planned-label')).toHaveCount(0);
 	await row.getByRole('button', { name: 'Dentist', exact: true }).click();
 	await expect(editor(page).getByLabel('Planned', { exact: true })).toHaveValue('');
+	await editor(page).getByLabel('Planned', { exact: true }).fill('2026-11-03');
 	await expect(editor(page).getByLabel('From', { exact: true })).toHaveValue('');
 	await expect(editor(page).getByLabel('To', { exact: true })).toHaveValue('');
 });
@@ -315,4 +316,212 @@ test('Scenario: Planned labels do not scroll the phone sideways', async ({ page,
 		const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 		expect(overflow, path).toBeLessThanOrEqual(0);
 	}
+});
+
+const quickAddForm = (page: Page) => page.getByRole('form', { name: 'New todo' });
+
+test('Regression: quick add on the backlog stores the planned day and slot', async ({ page, request }) => {
+	await seed(request, { aspects: [HEALTH] });
+	await page.goto('/backlog');
+	await expect(page.getByRole('heading', { level: 1, name: 'Backlog' })).toBeVisible();
+
+	await page.getByRole('button', { name: 'Add a todo' }).first().click();
+	const form = quickAddForm(page);
+	await form.getByLabel('Title').fill('Dentist');
+	await form.getByLabel('Planned', { exact: true }).fill('2026-11-03');
+	await form.getByLabel('From', { exact: true }).fill('18:00');
+	await form.getByLabel('To', { exact: true }).fill('19:30');
+	await form.getByRole('button', { name: 'Add todo' }).click();
+
+	await expect(rowOf(page, 'Dentist').getByTestId('planned-label')).toHaveText('Tue 3 Nov · 18:00–19:30');
+	await page.reload();
+	await expect(rowOf(page, 'Dentist').getByTestId('planned-label')).toHaveText('Tue 3 Nov · 18:00–19:30');
+	await rowOf(page, 'Dentist').getByRole('button', { name: 'Dentist', exact: true }).click();
+	await expect(editor(page).getByLabel('Planned', { exact: true })).toHaveValue('2026-11-03');
+	await expect(editor(page).getByLabel('From', { exact: true })).toHaveValue('18:00');
+	await expect(editor(page).getByLabel('To', { exact: true })).toHaveValue('19:30');
+});
+
+test('Regression: the New todo dialog says where a planned day sends the todo', async ({ page, request }) => {
+	await seed(request, { aspects: [HEALTH], sprint: { state: 'active', weekStart: WEEK } });
+	await page.goto('/backlog');
+	await expect(page.getByRole('heading', { level: 1, name: 'Backlog' })).toBeVisible();
+
+	await page.getByRole('button', { name: 'New todo' }).click();
+	const form = quickAddForm(page);
+	await expect(form.getByText('Goes to the backlog')).toBeVisible();
+
+	await form.getByLabel('Planned', { exact: true }).fill('2026-10-16');
+	await expect(form.getByText('Goes to this sprint')).toBeVisible();
+	await expect(form.getByText('Goes to the backlog')).toHaveCount(0);
+
+	await form.getByLabel('Planned', { exact: true }).fill('2026-11-03');
+	await expect(form.getByText('Goes to the backlog')).toBeVisible();
+
+	await reset(request);
+	await seed(request, { aspects: [HEALTH], sprint: { state: 'active', weekStart: WEEK } });
+	await setClock(request, '2026-10-19T10:00:00Z');
+	await page.goto('/backlog');
+	await expect(page.getByRole('heading', { level: 1, name: 'Backlog' })).toBeVisible();
+	await page.getByRole('button', { name: 'New todo' }).click();
+	await form.getByLabel('Planned', { exact: true }).fill('2026-10-15');
+	await expect(form.getByText('Goes to this sprint')).toHaveCount(0);
+	await expect(form.getByText('Goes to the backlog')).toHaveCount(0);
+	await form.getByLabel('Planned', { exact: true }).fill('2026-11-03');
+	await expect(form.getByText('Goes to the backlog')).toBeVisible();
+});
+
+test('Regression: quick add in a week day column stores the slot on that day', async ({ page, request }) => {
+	await seed(request, { aspects: [HEALTH], sprint: { state: 'active', weekStart: WEEK } });
+	await page.goto('/sprint?view=week');
+	const column = page.getByTestId('day-column-2026-10-15');
+
+	await page.getByRole('button', { name: 'Add a todo to Thu 15' }).click();
+	const form = quickAddForm(page);
+	await expect(form.getByLabel('Planned', { exact: true })).toHaveValue('2026-10-15');
+	await form.getByLabel('Title').fill('Dentist');
+	await form.getByLabel('From', { exact: true }).fill('09:00');
+	await form.getByLabel('To', { exact: true }).fill('10:00');
+	await form.getByRole('button', { name: 'Add todo' }).click();
+
+	await expect(column.getByTestId('sprint-card').filter({ hasText: 'Dentist' }).getByTestId('planned-label')).toHaveText(
+		'09:00–10:00'
+	);
+
+	await form.getByLabel('Title').fill('Laundry');
+	await form.getByRole('button', { name: 'Remove plan' }).click();
+	await form.getByRole('button', { name: 'Add todo' }).click();
+	await page.goto('/sprint?view=aspect');
+	await expect(rowOf(page, 'Laundry')).toHaveAttribute('data-day', '');
+	await page.goto('/backlog');
+	await expect(page.getByRole('heading', { level: 1, name: 'Backlog' })).toBeVisible();
+	await expect(rowOf(page, 'Laundry')).toHaveCount(0);
+});
+
+const plusHour = (t: string, hours: number) => `${String(Number(t.slice(0, 2)) + hours).padStart(2, '0')}${t.slice(2)}`;
+
+test('Regression: the time row appears only once a day is planned', async ({ page, request }) => {
+	await seed(request, { aspects: [HEALTH], todos: [{ title: 'Dentist', aspect: 0 }] });
+	await openEditor(page, 'Dentist');
+
+	await expect(editor(page).getByLabel('From', { exact: true })).toHaveCount(0);
+	await expect(editor(page).getByLabel('To', { exact: true })).toHaveCount(0);
+	await editor(page).getByLabel('Planned', { exact: true }).fill('2026-11-03');
+	await expect(editor(page).getByLabel('From', { exact: true })).toBeVisible();
+	await expect(editor(page).getByLabel('To', { exact: true })).toBeVisible();
+	await editor(page).getByLabel('To', { exact: true }).fill('19:30');
+	await editor(page).getByLabel('From', { exact: true }).fill('18:00');
+	await expect(editor(page).getByLabel('To', { exact: true })).toHaveValue('19:30');
+	await expect(editor(page).getByTestId('slot-length')).toHaveText('1 h 30 min');
+});
+
+test('Regression: Add time and the length chips set To', async ({ page, request }) => {
+	await seed(request, { aspects: [HEALTH], todos: [{ title: 'Dentist', aspect: 0, day: '2026-11-03' }] });
+	await openEditor(page, 'Dentist');
+	const from = editor(page).getByLabel('From', { exact: true });
+	const to = editor(page).getByLabel('To', { exact: true });
+
+	await editor(page).getByRole('button', { name: 'Add time' }).click();
+	await expect(from).toHaveValue(/^\d\d:00$/);
+	const start = await from.inputValue();
+	await expect(to).toHaveValue(plusHour(start, 1));
+	await expect(editor(page).getByRole('button', { name: '1h', exact: true })).toHaveAttribute('aria-pressed', 'true');
+
+	await editor(page).getByRole('button', { name: '2h', exact: true }).click();
+	await expect(to).toHaveValue(plusHour(start, 2));
+	await expect(editor(page).getByTestId('slot-length')).toHaveText('2 h');
+	await page.getByRole('button', { name: 'Save' }).click();
+	await expect(editor(page)).toHaveCount(0);
+	await expect(rowOf(page, 'Dentist').getByTestId('planned-label')).toHaveText(`Tue 3 Nov · ${start}–${plusHour(start, 2)}`);
+});
+
+test('Regression: moving From keeps the length of the slot', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [HEALTH],
+		todos: [{ title: 'Dentist', aspect: 0, day: '2026-11-03', startTime: '18:00', endTime: '19:30' }]
+	});
+	await openEditor(page, 'Dentist');
+
+	await editor(page).getByLabel('From', { exact: true }).fill('09:00');
+	await expect(editor(page).getByLabel('To', { exact: true })).toHaveValue('10:30');
+	await page.getByRole('button', { name: 'Save' }).click();
+	await expect(editor(page)).toHaveCount(0);
+	await page.reload();
+	await expect(rowOf(page, 'Dentist').getByTestId('planned-label')).toHaveText('Tue 3 Nov · 09:00–10:30');
+});
+
+test('Scenario: Retyping From after clearing it restores the slot length', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [HEALTH],
+		todos: [{ title: 'Dentist', aspect: 0, day: '2026-11-03', startTime: '18:00', endTime: '19:30' }]
+	});
+	await openEditor(page, 'Dentist');
+	const from = editor(page).getByLabel('From', { exact: true });
+	const to = editor(page).getByLabel('To', { exact: true });
+
+	await from.fill('');
+	await expect(to).toHaveValue('');
+	await from.fill('09:00');
+	await expect(to).toHaveValue('10:30');
+	await expect(editor(page).getByTestId('slot-length')).toHaveText('1 h 30 min');
+});
+
+test('Regression: a cleared slot does not leak into the next quick add', async ({ page, request }) => {
+	await seed(request, { aspects: [HEALTH] });
+	await page.goto('/backlog');
+	await expect(page.getByRole('heading', { level: 1, name: 'Backlog' })).toBeVisible();
+	await page.getByRole('button', { name: 'Add a todo' }).first().click();
+	const form = quickAddForm(page);
+	const planned = form.getByLabel('Planned', { exact: true });
+	const from = form.getByLabel('From', { exact: true });
+	const to = form.getByLabel('To', { exact: true });
+
+	await form.getByLabel('Title').fill('Dentist');
+	await planned.fill('2026-11-03');
+	await from.fill('18:00');
+	await to.fill('19:30');
+	await from.fill('');
+	await form.getByRole('button', { name: 'Add todo' }).click();
+	await expect(rowOf(page, 'Dentist').getByTestId('planned-label')).toHaveText('Tue 3 Nov');
+
+	await planned.fill('2026-11-03');
+	await from.fill('09:00');
+	await expect(to).toHaveValue('');
+
+	await to.fill('10:00');
+	await from.fill('');
+	await form.getByRole('button', { name: 'Remove plan' }).click();
+	await planned.fill('2026-11-04');
+	await from.fill('11:00');
+	await expect(to).toHaveValue('');
+});
+
+test.describe('without a native time picker', () => {
+	test.use({ locale: 'de-DE' });
+
+	test('Regression: From and To are typed in a browser without a time picker', async ({ page, request }) => {
+		// Firefox has no picker for time inputs and throws from showPicker(); Chromium is made to do the same.
+		await page.addInitScript(() => {
+			const showPicker = HTMLInputElement.prototype.showPicker;
+			HTMLInputElement.prototype.showPicker = function () {
+				if (this.type === 'time') throw new DOMException('No picker for time inputs', 'NotSupportedError');
+				return showPicker.call(this);
+			};
+		});
+		const errors: string[] = [];
+		page.on('pageerror', (e) => errors.push(e.message));
+		await seed(request, { aspects: [HEALTH], todos: [{ title: 'Dentist', aspect: 0, day: '2026-11-03' }] });
+		await openEditor(page, 'Dentist');
+
+		await editor(page).getByLabel('From', { exact: true }).click({ position: { x: 10, y: 10 } });
+		await page.keyboard.type('1800');
+		await expect(editor(page).getByLabel('From', { exact: true })).toHaveValue('18:00');
+		await editor(page).getByLabel('To', { exact: true }).click({ position: { x: 10, y: 10 } });
+		await page.keyboard.type('1930');
+		await expect(editor(page).getByLabel('To', { exact: true })).toHaveValue('19:30');
+		expect(errors).toEqual([]);
+		await page.getByRole('button', { name: 'Save' }).click();
+		await expect(editor(page)).toHaveCount(0);
+		await expect(rowOf(page, 'Dentist').getByTestId('planned-label')).toHaveText('Tue 3 Nov · 18:00–19:30');
+	});
 });

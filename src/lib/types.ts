@@ -100,6 +100,10 @@ export interface NewTodo {
 	dueDate?: IsoDate | null;
 	checklist?: string[];
 	target?: Target;
+	// The planned day for a backlog or sprint target; a day target brings its own.
+	day?: IsoDate | null;
+	startTime?: HhMm | null;
+	endTime?: HhMm | null;
 	projectId?: Id | null;
 	classId?: Id | null;
 	type?: ClassType | null;
