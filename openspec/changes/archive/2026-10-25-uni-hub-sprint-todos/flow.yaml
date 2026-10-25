@@ -1,0 +1,6 @@
+track: tweak
+triage: "tweak — Uni Hub reorder + kind colours + paged sprint list, one session, no schema. Appetite: one evening."
+base: origin/main
+gate1: 2026-10-25
+gate2: 2026-10-25
+learnings: []

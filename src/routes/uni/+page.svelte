@@ -6,10 +6,10 @@
 	import { UI_ICONS } from '$lib/components/ui/icons';
 	import PageHeader from '$lib/components/ui/PageHeader.svelte';
 	import ArchivedGroup from '$lib/components/uni/ArchivedGroup.svelte';
-	import DeadlineList from '$lib/components/uni/DeadlineList.svelte';
 	import GradeLine from '$lib/components/uni/GradeLine.svelte';
 	import NewSemesterForm from '$lib/components/uni/NewSemesterForm.svelte';
 	import SemesterSection from '$lib/components/uni/SemesterSection.svelte';
+	import SprintTodos from '$lib/components/uni/SprintTodos.svelte';
 	import UniAspectPrompt from '$lib/components/uni/UniAspectPrompt.svelte';
 	import type { PageProps } from './$types';
 
@@ -21,16 +21,11 @@
 
 	const uniAspect = $derived(data.aspects.find((a) => a.id === data.uniAspectId));
 	const prompting = $derived(!uniAspect || changing);
-	const examAt = $derived(new Map(data.active.flatMap((s) => s.classes).map((c) => [c.id, c.examAt])));
 </script>
 
 <svelte:head>
 	<title>Uni · Life Manager</title>
 </svelte:head>
-
-{#snippet deadlines()}
-	<DeadlineList deadlines={data.deadlines} classes={data.classes} {examAt} today={data.today} />
-{/snippet}
 
 {#snippet aspectLine()}
 	<p class="aspect">
@@ -39,12 +34,7 @@
 	</p>
 {/snippet}
 
-{#snippet rail()}
-	{@render deadlines()}
-	{@render aspectLine()}
-{/snippet}
-
-<RailLayout railTitle="Deadlines" rail={wide.current && !prompting ? rail : undefined}>
+<RailLayout railTitle="Uni" rail={wide.current && !prompting ? aspectLine : undefined}>
 	<PageHeader title="Uni">
 		{#if !prompting}
 			<Button type="button" variant="primary" onclick={() => (adding = true)}>
@@ -64,10 +54,6 @@
 	{:else}
 		<div class="sub"><GradeLine grades={data.overall} overall /></div>
 
-		{#if !wide.current}
-			<div class="deadlines">{@render deadlines()}</div>
-		{/if}
-
 		{#if adding}
 			<NewSemesterForm oncancel={() => (adding = false)} onsaved={() => (adding = false)} />
 		{/if}
@@ -84,6 +70,12 @@
 				<SemesterSection {semester} counts={data.counts[semester.id]} today={data.today} />
 			{/each}
 		</div>
+
+		{#if data.active.length > 0 || data.archived.length > 0}
+			<div class="sprint">
+				<SprintTodos todos={data.sprintTodos} classes={data.classes} today={data.today} />
+			</div>
+		{/if}
 
 		{#if data.archived.length > 0}
 			<ArchivedGroup semesters={data.archived} counts={data.counts} today={data.today} />
@@ -107,8 +99,8 @@
 		margin: calc(-1 * var(--space-4)) 0 var(--space-6);
 	}
 
-	.deadlines {
-		margin-bottom: var(--space-8);
+	.sprint {
+		margin-top: var(--space-8);
 	}
 
 	.semesters {

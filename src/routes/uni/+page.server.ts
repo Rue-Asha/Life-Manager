@@ -10,8 +10,8 @@ import {
 	deleteSemester,
 	getUniAspectId,
 	getUniNotes,
-	listDeadlines,
 	listSemesters,
+	listSprintClassTodos,
 	renameSemester,
 	semesterCounts,
 	setUniAspectId,
@@ -61,7 +61,7 @@ export const load: PageServerLoad = () => {
 		active,
 		archived,
 		overall,
-		deadlines: listDeadlines(db, day),
+		sprintTodos: listSprintClassTodos(db),
 		today: day,
 		// The archive and delete confirms name these counts before anything is posted.
 		counts: Object.fromEntries([...active, ...archived].map((s) => [s.id, semesterCounts(db, s.id)]))

@@ -24,6 +24,7 @@ test('Scenario: First run prompts for the Uni aspect', async ({ page, request })
 	const prompt = page.getByTestId('uni-aspect-prompt');
 	await expect(prompt).toBeVisible();
 	await expect(page.getByTestId('semester-section')).toHaveCount(0);
+	await expect(page.getByTestId('sprint-todos')).toHaveCount(0);
 	await expect(page.getByRole('button', { name: 'New semester' })).toHaveCount(0);
 	await expect(prompt.getByRole('radio', { name: 'Uni' })).toBeChecked();
 	await prompt.getByRole('button', { name: 'Use Uni for classes' }).click();
@@ -171,6 +172,7 @@ test('Scenario: No semesters shows an empty state', async ({ page, request }) =>
 
 	await expect(page.getByTestId('empty-state').getByRole('button', { name: 'New semester' })).toBeVisible();
 	await expect(page.getByTestId('semester-section')).toHaveCount(0);
+	await expect(page.getByTestId('sprint-todos')).toHaveCount(0);
 });
 
 test('Scenario: Semester without classes offers New class', async ({ page, request }) => {
@@ -580,61 +582,4 @@ test('Scenario: No grades shows a dash', async ({ page, request }) => {
 
 	await expect(page.getByTestId('semester-section').getByTestId('grade-summary')).toContainText('Average — ·');
 	await expect(page.getByTestId('grade-overall')).toContainText('Overall average — ·');
-});
-
-test('Scenario: Deadline overview sits in the rail at 1280', async ({ page, request }) => {
-	await setClock(request, NOW);
-	await seed(request, {
-		aspects: [UNI],
-		uniAspect: 0,
-		semesters: [{ name: 'WS 26/27' }],
-		classes: [{ semester: 0, name: 'Analysis II', examAt: '2026-10-17T10:00' }],
-		todos: [
-			{ title: 'Sheet 3', aspect: 0, class: 0, type: 'EXC', dueDate: '2026-10-04' },
-			{ title: 'Sheet 4', aspect: 0, class: 0, type: 'EXC', dueDate: '2026-10-08' }
-		]
-	});
-	await page.setViewportSize({ width: 1600, height: 900 });
-	await page.goto('/uni');
-
-	const rail = page.getByTestId('context-rail');
-	const rows = rail.getByTestId('deadline-row');
-	await expect(rows).toHaveCount(3);
-	await expect(rows.nth(0)).toContainText('Sheet 3');
-	await expect(rows.nth(0)).toContainText('Yesterday');
-	await expect(rows.nth(0)).toContainText('Overdue');
-	await expect(rows.nth(1)).toContainText('Sheet 4');
-	await expect(rows.nth(1)).toContainText('Thu 8 Oct');
-	await expect(rows.nth(1).getByTestId('class-badge')).toContainText('Analysis II · EXC');
-	await expect(rows.nth(2)).toContainText('Exam');
-	await expect(rows.nth(2)).toContainText('Sat 17 Oct');
-	await expect(rows.nth(2)).toContainText('10:00 · in 12 d');
-	await expect(rows.nth(2).getByTestId('class-badge')).toContainText('Analysis II');
-	await expect(page.getByTestId('deadline-row')).toHaveCount(3);
-
-	await page.setViewportSize({ width: 375, height: 812 });
-	await expect(page.getByTestId('context-rail')).toHaveCount(0);
-	const list = page.getByTestId('deadline-list');
-	await expect(list.getByTestId('deadline-row')).toHaveCount(3);
-	const [listBox, sectionBox] = [await list.boundingBox(), await page.getByTestId('semester-section').boundingBox()];
-	expect(listBox!.y + listBox!.height).toBeLessThanOrEqual(sectionBox!.y);
-});
-
-test('Scenario: Nothing due shows an empty line', async ({ page, request }) => {
-	await setClock(request, NOW);
-	await seed(request, {
-		aspects: [UNI],
-		uniAspect: 0,
-		semesters: [{ name: 'WS 26/27' }],
-		classes: [{ semester: 0, name: 'Algorithms', examAt: '2026-10-01' }],
-		todos: [
-			{ title: 'Undated', aspect: 0, class: 0 },
-			{ title: 'Done', aspect: 0, class: 0, dueDate: '2026-10-08', status: 'done' }
-		]
-	});
-	await page.goto('/uni');
-
-	const list = page.getByTestId('deadline-list');
-	await expect(list).toContainText('Nothing due.');
-	await expect(list.getByTestId('deadline-row')).toHaveCount(0);
 });

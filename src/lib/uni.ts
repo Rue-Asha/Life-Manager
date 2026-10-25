@@ -29,6 +29,16 @@ export function uniMessage(error: string, field?: string): string {
 	return UNI_MESSAGES[`${error}.${field}`] ?? UNI_MESSAGES[error] ?? error;
 }
 
+export const PAGE_SIZE = 6;
+
+export function pageCount(total: number): number {
+	return Math.max(1, Math.ceil(total / PAGE_SIZE));
+}
+
+export function clampPage(page: number, total: number): number {
+	return Math.min(Math.max(page, 1), pageCount(total));
+}
+
 const DAY_MS = 86_400_000;
 
 function daysFrom(today: IsoDate, date: IsoDate): number {

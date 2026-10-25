@@ -4,7 +4,7 @@
 	import { examCountdown } from '$lib/uni';
 	import AspectIcon from '../ui/AspectIcon.svelte';
 	import { UI_ICONS } from '../ui/icons';
-	import { dueText } from './DeadlineList.svelte';
+	import { dueText } from './SprintTodos.svelte';
 
 	let { cls, today }: { cls: ClassSummary; today: IsoDate } = $props();
 
