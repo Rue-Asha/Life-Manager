@@ -248,14 +248,12 @@ export interface SemesterView extends Semester {
 	grades: GradeSummary;
 }
 
-export interface Deadline {
-	kind: 'todo' | 'exam';
-	date: IsoDate;
+export interface SprintClassTodo {
+	id: Id;
 	title: string;
+	dueDate: IsoDate | null;
 	classId: Id;
-	todoId: Id | null;
 	type: ClassType | null;
-	overdue: boolean;
 }
 
 export interface ClassTodos {

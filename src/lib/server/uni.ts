@@ -6,7 +6,6 @@ import type {
 	ClassSummary,
 	ClassTodos,
 	ClassType,
-	Deadline,
 	Grade,
 	GradeSummary,
 	Id,
@@ -15,6 +14,7 @@ import type {
 	Result,
 	Semester,
 	SemesterView,
+	SprintClassTodo,
 	UniClass
 } from '$lib/types';
 import { GRADES } from '$lib/uni';
@@ -348,34 +348,14 @@ export function gradeSummary(classes: Pick<UniClass, 'ects' | 'grade'>[]): Grade
 	return { average: weight > 0 ? weighted / weight : null, earnedEcts };
 }
 
-export function listDeadlines(db: DatabaseSync, today: IsoDate): Deadline[] {
-	const todos = db
+export function listSprintClassTodos(db: DatabaseSync): SprintClassTodo[] {
+	return db
 		.prepare(
-			`SELECT t.id, t.title, t.due_date AS date, t.class_id AS classId, t.type FROM todos t
+			`SELECT t.id, t.title, t.due_date AS dueDate, t.class_id AS classId, t.type FROM todos t
+			 JOIN sprints sp ON sp.id = t.sprint_id
 			 JOIN classes c ON c.id = t.class_id JOIN semesters s ON s.id = c.semester_id
-			 WHERE s.archived_at IS NULL AND t.status != 'done' AND t.due_date IS NOT NULL
-			 ORDER BY t.due_date, t.id`
+			 WHERE sp.state = 'active' AND s.archived_at IS NULL AND t.status != 'done'
+			 ORDER BY t.due_date IS NULL, t.due_date, t.id`
 		)
-		.all() as { id: Id; title: string; date: IsoDate; classId: Id; type: ClassType | null }[];
-	const exams = db
-		.prepare(
-			`SELECT c.id AS classId, substr(c.exam_at, 1, 10) AS date FROM classes c JOIN semesters s ON s.id = c.semester_id
-			 WHERE s.archived_at IS NULL AND c.exam_at IS NOT NULL AND substr(c.exam_at, 1, 10) >= ?
-			 ORDER BY c.exam_at, c.id`
-		)
-		.all(today) as { classId: Id; date: IsoDate }[];
-	const deadlines: Deadline[] = [
-		...todos.map((t): Deadline => ({
-			kind: 'todo',
-			date: t.date,
-			title: t.title,
-			classId: t.classId,
-			todoId: t.id,
-			type: t.type,
-			overdue: t.date < today
-		})),
-		...exams.map((e): Deadline => ({ kind: 'exam', date: e.date, title: 'Exam', classId: e.classId, todoId: null, type: null, overdue: false }))
-	];
-	// Stable sort keeps each list's own order within a date; todos come first.
-	return deadlines.sort((a, b) => a.date.localeCompare(b.date) || (a.kind === b.kind ? 0 : a.kind === 'todo' ? -1 : 1));
+		.all() as unknown as SprintClassTodo[];
 }

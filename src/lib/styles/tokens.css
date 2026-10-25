@@ -65,6 +65,17 @@
 	--aspect-tangerine-bright: color-mix(in oklab, var(--aspect-tangerine) 55%, var(--surface));
 	--aspect-slate-bright: color-mix(in oklab, var(--aspect-slate) 55%, var(--surface));
 
+	/* Todo types on the Uni hub list. Hex literals, not color-mix(): the e2e contrast check parses computed rgb(). Ink stays --ink on the tints. */
+	--lec: #c2570c;
+	--lec-tint: #fdeedf;
+	--lec-line: #f0b985;
+	--exc: #0e8a94;
+	--exc-tint: #def4f3;
+	--exc-line: #82cdcb;
+	--oth: #6b7280;
+	--oth-tint: #eff0f3;
+	--oth-line: #c5c8d0;
+
 	/* Type: one family, Bricolage Grotesque — its optical-size axis makes titles
 	   characterful and rows quiet. Loaded by the app (self-hosted) or the mockups. */
 	--font-sans: 'Bricolage Grotesque', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
