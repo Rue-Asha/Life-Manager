@@ -1,12 +1,16 @@
 <script lang="ts" module>
 	import { ASPECT_COLORS } from '$lib/aspect-style';
 	import type { Aspect } from '$lib/types';
-	import type { CalendarEntry } from '$lib/server/calendar';
+	import type { CalendarEntry, DueTodo } from '$lib/server/calendar';
+
+	function aspectColor(aspectId: number, aspects: Aspect[]): string {
+		const aspect = aspects.find((a) => a.id === aspectId) ?? aspects[0];
+		return ASPECT_COLORS[aspect.color].fg;
+	}
 
 	export function entryColor(entry: CalendarEntry, aspects: Aspect[]): string {
 		if (entry.kind === 'exam') return ASPECT_COLORS[entry.color].fg;
-		const aspect = aspects.find((a) => a.id === entry.aspectId) ?? aspects[0];
-		return ASPECT_COLORS[aspect.color].fg;
+		return aspectColor(entry.aspectId, aspects);
 	}
 </script>
 
@@ -17,7 +21,9 @@
 	import TodoEditor from '../todo/TodoEditor.svelte';
 	import { UI_ICONS } from '../ui/icons';
 
-	let { day, entries, aspects }: { day: IsoDate; entries: CalendarEntry[]; aspects: Aspect[] } = $props();
+	let { day, entries, due, aspects }: { day: IsoDate; entries: CalendarEntry[]; due: DueTodo[]; aspects: Aspect[] } = $props();
+
+	const aspectName = (id: Id) => aspects.find((a) => a.id === id)?.name ?? '';
 
 	let editing = $state<Id | null>(null);
 </script>
@@ -38,9 +44,25 @@
 
 <section class="day" data-testid="calendar-day-list" aria-labelledby="day-title">
 	<h2 id="day-title">{dateLabel(day)}</h2>
-	{#if entries.length === 0}
+	{#if due.length > 0}
+		<div class="due" data-testid="calendar-due-list">
+			<h3>Due</h3>
+			<ul>
+				{#each due as t (t.id)}
+					<li data-testid="calendar-due-row" style:--a={aspectColor(t.aspectId, aspects)}>
+						<svg class="flag" viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.flag} /></svg>
+						<span class="body">
+							<span class="title">{t.title}</span>
+							<span class="meta">{aspectName(t.aspectId)}</span>
+						</span>
+					</li>
+				{/each}
+			</ul>
+		</div>
+	{/if}
+	{#if entries.length === 0 && due.length === 0}
 		<p class="empty">Nothing planned</p>
-	{:else}
+	{:else if entries.length > 0}
 		<ul>
 			{#each entries as entry, i (i)}
 				<li data-testid="calendar-entry" data-kind={entry.kind} style:--a={entryColor(entry, aspects)}>
@@ -68,6 +90,23 @@
 		margin-bottom: var(--space-3);
 		font-size: var(--text-lg);
 		font-weight: var(--weight-semibold);
+	}
+
+	h3 {
+		margin-bottom: var(--space-2);
+		color: var(--ink-3);
+		font-size: var(--text-sm);
+		font-weight: var(--weight-semibold);
+	}
+
+	.due {
+		margin-bottom: var(--space-4);
+	}
+
+	.flag {
+		flex: none;
+		margin-top: 3px;
+		color: var(--a);
 	}
 
 	ul {

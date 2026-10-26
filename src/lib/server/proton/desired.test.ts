@@ -152,11 +152,13 @@ describe('desiredState: todos', () => {
 		expect(item(items, `todo:${linked}`).spec).toMatchObject({ description: 'sheet 4', location: 'HS 3' });
 	});
 
-	it('Scenario: Due date alone creates no event', () => {
+	it('Scenario: Due date alone creates no planned-todo event', () => {
 		const active = sprint('active', '2026-10-12');
 		const id = todo('Due only', { due: '2026-10-16', sprintId: active });
 		expect(listSprintTodos(db, active).find((t) => t.id === id)?.dueDay).toBe('2026-10-16');
-		expect(desiredState(db, TODAY).filter((i) => i.key === `todo:${id}`)).toEqual([]);
+		const items = desiredState(db, TODAY);
+		expect(items.filter((i) => i.key === `todo:${id}`)).toEqual([]);
+		expect(item(items, `due:${aspect}:2026-10-16`).spec.title).toBe('Due: Due only');
 	});
 
 	it('Scenario: Backlog and draft-sprint todos with a day get events', () => {
@@ -347,5 +349,54 @@ describe('desiredState: exams and window', () => {
 		expect(items.map((i) => i.key)).toContain(`exam:${exam}`);
 		expect(items.map((i) => i.key)).not.toContain(`todo:${neverSynced}`);
 		expect(items.map((i) => i.key)).not.toContain(`todo:${pendingRow}`);
+	});
+});
+
+describe('desiredState: due bundles', () => {
+	const allDay = { location: '', start: null, end: null, durationMin: null, rrule: null, exdates: [] };
+
+	it('Scenario: Open due todos become one all-day bundle per aspect and day', () => {
+		const other = insert("INSERT INTO aspects (name, color, icon, position, created_at) VALUES ('Work', 'sky', 'book', 1, '')");
+		const active = sprint('active', '2026-10-12');
+		todo('Backlog due', { due: '2026-10-16' });
+		todo('Sprint due', { due: '2026-10-16', sprintId: active });
+		const planned = todo('Planned due', { due: '2026-10-16', day: '2026-10-15', sprintId: active });
+		todo('Done due', { due: '2026-10-16', status: 'done' });
+		todo('Yesterday', { due: '2026-10-13' });
+		db.prepare("INSERT INTO todos (title, aspect_id, due_date, status, created_at) VALUES ('Work due', ?, '2026-10-16', 'todo', '')").run(other);
+		const items = desiredState(db, TODAY);
+		expect(items.filter((i) => i.key.startsWith('due:')).map((i) => i.key)).toEqual([
+			`due:${aspect}:2026-10-16`,
+			`due:${other}:2026-10-16`
+		]);
+		const bundle = item(items, `due:${aspect}:2026-10-16`);
+		expect(bundle).toMatchObject({ aspectId: aspect, label: 'Due: Backlog due · Planned due · Sprint due' });
+		expect(bundle.spec).toMatchObject({ ...allDay, date: '2026-10-16' });
+		expect(item(items, `due:${other}:2026-10-16`).spec.title).toBe('Due: Work due');
+		expect(item(items, `todo:${planned}`).spec.date).toBe('2026-10-15');
+	});
+
+	it('Scenario: Bundle title and description', () => {
+		const d = '2026-10-20';
+		todo('only', { due: d });
+		expect(item(desiredState(db, TODAY), `due:${aspect}:${d}`).spec).toMatchObject({ title: 'Due: only', description: 'only' });
+
+		const e = '2026-10-21';
+		todo('banana', { due: e });
+		todo('Cherry', { due: e });
+		todo('apple', { due: e });
+		expect(item(desiredState(db, TODAY), `due:${aspect}:${e}`).spec.title).toBe('Due: apple · banana · Cherry');
+
+		const f = '2026-10-22';
+		const long = 'x'.repeat(200);
+		for (const t of ['d4', 'a1', 'c3', long]) todo(t, { due: f });
+		const spec = item(desiredState(db, TODAY), `due:${aspect}:${f}`).spec;
+		expect(spec.title).toBe('Due (4): a1 · c3 · d4 …');
+		expect(spec.description).toBe(['a1', 'c3', 'd4', long].join('\n'));
+		expect(spec).toMatchObject({ ...allDay });
+
+		const g = '2026-10-23';
+		todo(long, { due: g });
+		expect(item(desiredState(db, TODAY), `due:${aspect}:${g}`).spec.title).toBe(`Due: ${long}`);
 	});
 });

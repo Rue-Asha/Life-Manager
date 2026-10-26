@@ -10,6 +10,12 @@ export type CalendarEntry =
 	| { kind: 'projection'; ruleId: Id; title: string; aspectId: Id; startTime: HhMm | null; endTime: HhMm | null }
 	| { kind: 'exam'; classId: Id; title: string; color: AspectColor; room: string | null; startTime: HhMm | null; endTime: null };
 
+export interface DueTodo {
+	id: Id;
+	title: string;
+	aspectId: Id;
+}
+
 type Row = Record<string, SQLInputValue>;
 
 function byTime(a: CalendarEntry, b: CalendarEntry): number {
@@ -40,7 +46,7 @@ export function calendarMonth(
 	db: DatabaseSync,
 	month: string,
 	today: IsoDate
-): { month: string; weeks: IsoDate[][]; entries: Record<IsoDate, CalendarEntry[]> } {
+): { month: string; weeks: IsoDate[][]; entries: Record<IsoDate, CalendarEntry[]>; due: Record<IsoDate, DueTodo[]> } {
 	const weeks = monthGrid(month);
 	const days = weeks.flat().filter((d) => d.startsWith(month));
 	const entries: Record<IsoDate, CalendarEntry[]> = {};
@@ -82,6 +88,17 @@ export function calendarMonth(
 		});
 	}
 
+	const due: Record<IsoDate, DueTodo[]> = {};
+	const dueRows = db
+		.prepare(
+			`SELECT id, title, aspect_id, due_date FROM todos
+			 WHERE status != 'done' AND due_date >= ? AND due_date <= ?
+			 ORDER BY id`
+		)
+		.all(days[0], days[days.length - 1]) as Row[];
+	for (const r of dueRows) (due[r.due_date as IsoDate] ??= []).push({ id: Number(r.id), title: r.title as string, aspectId: Number(r.aspect_id) });
+	for (const list of Object.values(due)) list.sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base' }));
+
 	for (const list of Object.values(entries)) list.sort(byTime);
-	return { month, weeks, entries };
+	return { month, weeks, entries, due };
 }

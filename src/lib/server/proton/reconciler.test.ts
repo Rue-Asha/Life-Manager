@@ -47,7 +47,7 @@ const spec = (over: Partial<EventSpec> = {}): EventSpec => ({
 	exdates: [],
 	...over
 });
-const item = (n: number, aspectId: Id, over: Partial<EventSpec> = {}, kind: 'todo' | 'rule' | 'exam' = 'todo'): DesiredItem => ({
+const item = (n: number, aspectId: Id, over: Partial<EventSpec> = {}, kind: 'todo' | 'rule' | 'exam' | 'due' = 'todo'): DesiredItem => ({
 	key: `${kind}:${n}` as ItemKey,
 	aspectId,
 	label: over.title ?? `Run ${n}`,
@@ -464,6 +464,17 @@ describe('reconciler', () => {
 		await reconcile(db, [], run);
 		expect(fake.calls().length - before).toBe(1);
 		expect(rows()).toEqual([]);
+	});
+
+	it('Scenario: Past due bundles are kept by the delete pass and the pending count', async () => {
+		const a = health();
+		const bundle = (date: string): DesiredItem => ({ ...item(1, a, { date }), key: `due:${a}:${date}` });
+		await reconcile(db, [bundle('2026-10-15'), bundle('2026-10-20'), item(1, a)], run);
+		const before = fake.calls().length;
+		expect(pendingCount(db, [], '2026-10-16')).toBe(2);
+		expect(await reconcile(db, [], run, { today: '2026-10-16' })).toEqual({ kind: 'done', calls: 2, failed: 0 });
+		expect(fake.calls().length - before).toBe(2);
+		expect(rows().map((r) => r.key)).toEqual([`due:${a}:2026-10-15`]);
 	});
 
 	it('Failed items are listed and Resync all forgets the hashes', async () => {

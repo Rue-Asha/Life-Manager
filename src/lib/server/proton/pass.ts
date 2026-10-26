@@ -10,5 +10,5 @@ export function runPass(
 	run: Runner,
 	o?: { retryFailed?: boolean }
 ): Promise<PassOutcome> {
-	return reconcile(db, desiredState(db, today), run, o);
+	return reconcile(db, desiredState(db, today), run, { ...o, today });
 }

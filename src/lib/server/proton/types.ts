@@ -1,7 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type { HhMm, Id, IsoDate } from '$lib/types';
 
-export type ItemKey = `todo:${number}` | `rule:${number}` | `exam:${number}`;
+export type ItemKey = `todo:${number}` | `rule:${number}` | `exam:${number}` | `due:${number}:${string}`;
 
 // Field order is the hash order.
 export interface EventSpec {

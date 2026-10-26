@@ -1,6 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type { AspectColor } from '$lib/aspect-style';
-import type { Id } from '$lib/types';
+import type { Id, IsoDate } from '$lib/types';
 import { now } from '../clock';
 import { PROTON_COLORS } from './colors';
 import { specHash } from './hash';
@@ -14,6 +14,11 @@ interface Row {
 	hash: string | null;
 	error: string | null;
 	error_hash: string | null;
+}
+
+// A due bundle whose date has passed is no longer desired but keeps its last synced event.
+function frozen(key: string, today: IsoDate | undefined): boolean {
+	return today !== undefined && key.startsWith('due:') && key.slice(key.lastIndexOf(':') + 1) < today;
 }
 
 const selectRows = 'SELECT key, label, calendar_id, event_ref, hash, error, error_hash FROM proton_items';
@@ -55,7 +60,7 @@ export async function reconcile(
 	db: DatabaseSync,
 	desired: DesiredItem[],
 	run: Runner,
-	o?: { retryFailed?: boolean }
+	o?: { retryFailed?: boolean; today?: IsoDate }
 ): Promise<PassOutcome> {
 	let calls = 0;
 	let failed = 0;
@@ -109,7 +114,7 @@ export async function reconcile(
 		const rows = readRows(db);
 		const wanted = new Set(desired.map((d) => d.key));
 		for (const r of rows.values()) {
-			if (wanted.has(r.key)) continue;
+			if (wanted.has(r.key) || frozen(r.key, o?.today)) continue;
 			if (r.error_hash === 'delete' && !o?.retryFailed) continue;
 			try {
 				if (r.event_ref) {
@@ -180,7 +185,7 @@ export async function reconcile(
 	return { kind: 'done', calls, failed };
 }
 
-export function pendingCount(db: DatabaseSync, desired: DesiredItem[]): number {
+export function pendingCount(db: DatabaseSync, desired: DesiredItem[], today?: IsoDate): number {
 	const rows = readRows(db);
 	const wanted = new Set(desired.map((d) => d.key));
 	const calendars = new Map(
@@ -189,7 +194,7 @@ export function pendingCount(db: DatabaseSync, desired: DesiredItem[]): number {
 		)
 	);
 	let n = 0;
-	for (const r of rows.values()) if (!wanted.has(r.key) && r.event_ref && r.error_hash !== 'delete') n++;
+	for (const r of rows.values()) if (!wanted.has(r.key) && !frozen(r.key, today) && r.event_ref && r.error_hash !== 'delete') n++;
 	for (const d of desired) {
 		const hash = specHash(d.spec);
 		const row = rows.get(d.key);
