@@ -198,3 +198,34 @@ test('Scenario: Setting an exam in the app creates its event', async ({ page, re
 		durationMin: 120
 	});
 });
+
+test('Scenario: Due date syncs as a bundled event and done removes it', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [HEALTH],
+		sprint: { state: 'active', weekStart: WEEK },
+		todos: [{ title: 'File taxes', aspect: 0, inSprint: true }]
+	});
+	await protonOn(request);
+	const m = mark();
+
+	await page.goto('/sprint');
+	await expect(page.getByTestId('sprint-list').getByTestId('todo-row')).toHaveCount(1);
+	await openTodo(page, 'File taxes');
+	await editor(page).getByLabel('Due date').fill('2026-10-20');
+	await page.getByRole('button', { name: 'Save' }).click();
+	await expect(editor(page)).toHaveCount(0);
+	await protonPass(request);
+
+	expect(ops(m).map((o) => o.kind)).toEqual(['calendar.create', 'event.create']);
+	const [create] = byKind(ops(m), 'event.create');
+	expect(create.spec).toMatchObject({ title: 'Due: File taxes', date: '2026-10-20', start: null, end: null });
+	expect(Object.keys(fake().state().events)).toEqual([onlyRef()]);
+
+	const eventRef = onlyRef();
+	const m2 = mark();
+	await page.getByRole('checkbox', { name: 'Done: File taxes' }).click();
+	await expect(row(page, 'File taxes')).toHaveAttribute('data-status', 'done');
+	await protonPass(request);
+	expect(ops(m2)).toEqual([{ kind: 'event.delete', ref: eventRef }]);
+	expect(Object.keys(fake().state().events)).toEqual([]);
+});

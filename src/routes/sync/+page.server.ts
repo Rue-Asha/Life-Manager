@@ -13,7 +13,7 @@ export const load: PageServerLoad = () => {
 	return {
 		status,
 		lastSync: status.lastSyncAt ? stamp.format(new Date(status.lastSyncAt)) : null,
-		pending: status.state === 'off' ? 0 : pendingCount(db, desiredState(db, today())),
+		pending: status.state === 'off' ? 0 : pendingCount(db, desiredState(db, today()), today()),
 		failed: failedItems(db)
 	};
 };

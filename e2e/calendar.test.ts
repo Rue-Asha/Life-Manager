@@ -110,6 +110,7 @@ test('Scenario: Calendar shows aspect colours and marks projections', async ({ p
 	await expect(gym).toContainText('Projected');
 
 	await expect(page.getByTestId('calendar-grid').getByText('Pay invoice')).toHaveCount(0);
+	await expect(cell(page, '2026-10-22').getByTestId('calendar-due')).toHaveText('1');
 });
 
 test('Scenario: Recurring rule with a slot shows in later months', async ({ page, request }) => {
@@ -268,4 +269,79 @@ test('Scenario: Exam links to its class', async ({ page, request }) => {
 	await page.getByTestId('calendar-day-list').getByRole('link', { name: /Analysis/ }).click();
 	await expect(page).toHaveURL(new RegExp(`/uni/classes/${classes[0]}$`));
 	await expect(page.getByRole('heading', { level: 1, name: 'Analysis' })).toBeVisible();
+});
+
+test('Scenario: Due todos show as marker and Due section', async ({ page, request }) => {
+	await seed(request, {
+		aspects: [HEALTH, JOB],
+		todos: [
+			...five(),
+			{ title: 'File taxes', dueDate: '2026-10-21' },
+			{ title: 'Send report', aspect: 1, dueDate: '2026-10-21' },
+			{ title: 'Paid rent', dueDate: '2026-10-21', status: 'done' },
+			{ title: 'Overdue form', dueDate: '2026-10-05' }
+		]
+	});
+	await page.setViewportSize({ width: 1280, height: 900 });
+	await openCalendar(page);
+	await cell(page, '2026-10-21').click();
+	await expect(cell(page, '2026-10-21')).toHaveAttribute('aria-pressed', 'true');
+
+	await expect(cell(page, '2026-10-21').getByTestId('calendar-entry')).toHaveCount(3);
+	await expect(cell(page, '2026-10-21')).toContainText('+2 more');
+	await expect(cell(page, '2026-10-21').getByTestId('calendar-due')).toHaveText('2');
+	await expect(cell(page, '2026-10-05').getByTestId('calendar-due')).toHaveText('1');
+	await expect(cell(page, '2026-10-22').getByTestId('calendar-due')).toHaveCount(0);
+
+	const list = page.getByTestId('calendar-day-list');
+	const due = list.getByTestId('calendar-due-list');
+	await expect(due.getByTestId('calendar-due-row')).toHaveCount(2);
+	await expect(due).toContainText('File taxes');
+	await expect(due).toContainText('Health');
+	await expect(due).toContainText('Send report');
+	await expect(due).toContainText('Job');
+	await expect(due).not.toContainText('Paid rent');
+	const dueBox = (await due.boundingBox())!;
+	const firstEntry = (await list.getByTestId('calendar-entry').first().boundingBox())!;
+	expect(dueBox.y + dueBox.height).toBeLessThanOrEqual(firstEntry.y);
+
+	await cell(page, '2026-10-22').click();
+	await expect(list.getByTestId('calendar-due-list')).toHaveCount(0);
+
+	await page.setViewportSize({ width: 375, height: 800 });
+	await openCalendar(page);
+	await cell(page, '2026-10-21').click();
+	await expect(cell(page, '2026-10-21').getByTestId('calendar-due')).toHaveText('2');
+	await expect(cell(page, '2026-10-22').getByTestId('calendar-due')).toHaveCount(0);
+	await expect(list.getByTestId('calendar-due-list')).toContainText('Send report');
+	await expect(list.getByTestId('calendar-due-list')).toContainText('Job');
+	const phoneDue = (await list.getByTestId('calendar-due-list').boundingBox())!;
+	const phoneEntry = (await list.getByTestId('calendar-entry').first().boundingBox())!;
+	expect(phoneDue.y + phoneDue.height).toBeLessThanOrEqual(phoneEntry.y);
+	const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+	expect(overflow).toBeLessThanOrEqual(0);
+
+	await reset(request);
+	await setClock(request, WEDNESDAY);
+	await seed(request, { aspects: [HEALTH], todos: [...five(), { title: 'Paid rent', dueDate: '2026-10-21', status: 'done' }] });
+	await openCalendar(page);
+	await cell(page, '2026-10-21').click();
+	await expect(cell(page, '2026-10-21')).toHaveAttribute('aria-pressed', 'true');
+	await expect(page.getByTestId('calendar-grid').getByTestId('calendar-due')).toHaveCount(0);
+	await expect(list.getByTestId('calendar-due-list')).toHaveCount(0);
+});
+
+test('Scenario: Deadline-only day shows Due without empty text', async ({ page, request }) => {
+	await seed(request, { aspects: [HEALTH], todos: [{ title: 'File taxes', dueDate: '2026-10-21' }] });
+	for (const width of [375, 1280]) {
+		await page.setViewportSize({ width, height: 900 });
+		await openCalendar(page);
+		await cell(page, '2026-10-21').click();
+		await expect(cell(page, '2026-10-21')).toHaveAttribute('aria-pressed', 'true');
+		await expect(cell(page, '2026-10-21').getByTestId('calendar-due')).toHaveText('1');
+		const list = page.getByTestId('calendar-day-list');
+		await expect(list.getByTestId('calendar-due-list')).toContainText('File taxes');
+		await expect(list).not.toContainText('Nothing planned');
+		await expect(list.getByTestId('calendar-entry')).toHaveCount(0);
+	}
 });

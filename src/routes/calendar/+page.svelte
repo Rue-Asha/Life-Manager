@@ -29,6 +29,7 @@
 	});
 	const selected = $derived(picked ?? (data.today.startsWith(data.month) ? data.today : `${data.month}-01`));
 	const entries = $derived(data.entries[selected] ?? []);
+	const due = $derived(data.due[selected] ?? []);
 </script>
 
 <svelte:head>
@@ -36,7 +37,7 @@
 </svelte:head>
 
 {#snippet list()}
-	<DayList day={selected} {entries} aspects={data.aspects} />
+	<DayList day={selected} {entries} {due} aspects={data.aspects} />
 {/snippet}
 
 <RailLayout wide railTitle="Day list" rail={tablet.current ? list : undefined}>
@@ -59,6 +60,7 @@
 		month={data.month}
 		weeks={data.weeks}
 		entries={data.entries}
+		due={data.due}
 		{selected}
 		today={data.today}
 		aspects={data.aspects}

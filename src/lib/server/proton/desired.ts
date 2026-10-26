@@ -87,6 +87,44 @@ function examItems(db: DatabaseSync, today: IsoDate, synced: Set<string>): Desir
 		});
 }
 
+function dueItems(db: DatabaseSync, today: IsoDate): DesiredItem[] {
+	const rows = db
+		.prepare("SELECT id, title, aspect_id AS aspectId, due_date AS dueDate FROM todos WHERE status != 'done' AND due_date >= ?")
+		.all(today) as { id: Id; title: string; aspectId: Id; dueDate: IsoDate }[];
+	const groups = new Map<string, typeof rows>();
+	for (const r of rows) {
+		const key = `due:${r.aspectId}:${r.dueDate}`;
+		groups.set(key, [...(groups.get(key) ?? []), r]);
+	}
+	return [...groups]
+		.sort(([a], [b]) => (a < b ? -1 : 1))
+		.map(([key, list]) => {
+			const titles = list
+				.sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base' }) || a.id - b.id)
+				.map((r) => r.title);
+			const title =
+				titles.length > 3
+					? `Due (${titles.length}): ${titles.slice(0, 3).join(' · ')} …`
+					: `Due: ${titles.join(' · ')}`;
+			return {
+				key: key as DesiredItem['key'],
+				aspectId: list[0].aspectId,
+				label: title,
+				spec: {
+					title,
+					description: titles.join('\n'),
+					location: '',
+					date: list[0].dueDate,
+					start: null,
+					end: null,
+					durationMin: null,
+					rrule: null,
+					exdates: []
+				}
+			};
+		});
+}
+
 export function desiredState(db: DatabaseSync, today: IsoDate): DesiredItem[] {
 	const rooms = classRooms(db);
 	const synced = new Set(
@@ -98,5 +136,5 @@ export function desiredState(db: DatabaseSync, today: IsoDate): DesiredItem[] {
 	const series = listRules(db)
 		.filter((r) => !archived.has(r.id))
 		.map((r) => seriesItem(r, from, todos, rooms));
-	return [...todos.map((t) => todoItem(t, rooms)), ...series, ...examItems(db, today, synced)];
+	return [...todos.map((t) => todoItem(t, rooms)), ...series, ...examItems(db, today, synced), ...dueItems(db, today)];
 }

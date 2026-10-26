@@ -88,7 +88,7 @@ beforeEach(() => {
 });
 
 describe('calendarMonth', () => {
-	it('Scenario: Planned todos are entries, due dates are not', () => {
+	it('Scenario: Planned todos are entries, due dates are a separate list', () => {
 		const active = sprint('active', '2026-10-12');
 		const closed = sprint('closed', '2026-09-28');
 		todo('Dentist', { day: '2026-10-21', start: '18:00', end: '19:30' });
@@ -97,12 +97,34 @@ describe('calendarMonth', () => {
 		todo('Due in sprint', { due: '2026-10-16', sprintId: active });
 		todo('Due backlog', { due: '2026-10-22' });
 
-		const { entries } = calendarMonth(db, '2026-10', '2026-10-14');
+		const { entries, due } = calendarMonth(db, '2026-10', '2026-10-14');
 		expect(entries['2026-10-21']).toMatchObject([{ kind: 'todo', title: 'Dentist', startTime: '18:00', endTime: '19:30', done: false }]);
 		expect(entries['2026-10-15']).toMatchObject([{ kind: 'todo', title: 'Sprint item', startTime: null, endTime: null }]);
 		expect(entries['2026-10-02']).toMatchObject([{ kind: 'todo', title: 'Old done', done: true }]);
 		expect(entries['2026-10-16'] ?? []).toEqual([]);
 		expect(entries['2026-10-22'] ?? []).toEqual([]);
+		expect(due['2026-10-16']).toMatchObject([{ title: 'Due in sprint', aspectId: aspect }]);
+		expect(due['2026-10-22']).toMatchObject([{ title: 'Due backlog', aspectId: aspect }]);
+	});
+
+	it('Scenario: Due lists open todos per day including past days', () => {
+		const active = sprint('active', '2026-10-12');
+		const a = todo('banana', { due: '2026-10-16' });
+		const b = todo('Apple', { due: '2026-10-16', sprintId: active });
+		todo('Elsewhere', { due: '2026-10-16', day: '2026-10-20', sprintId: active });
+		todo('Done one', { due: '2026-10-16', status: 'done' });
+		const past = todo('Overdue', { due: '2026-10-03' });
+		todo('Next month', { due: '2026-11-03' });
+
+		const { entries, due } = calendarMonth(db, '2026-10', '2026-10-14');
+		expect(due['2026-10-16'].map((d) => d.title)).toEqual(['Apple', 'banana', 'Elsewhere']);
+		expect(due['2026-10-16'].slice(0, 2).map((d) => d.id)).toEqual([b, a]);
+		expect(due['2026-10-03']).toEqual([{ id: past, title: 'Overdue', aspectId: aspect }]);
+		expect(due['2026-11-03']).toBeUndefined();
+		expect(Object.values(due).flat().map((d) => d.title)).not.toContain('Done one');
+		expect(entries['2026-10-16'] ?? []).toEqual([]);
+		expect(entries['2026-10-03'] ?? []).toEqual([]);
+		expect(entries['2026-10-20']).toHaveLength(1);
 	});
 
 	it('Scenario: Rules are projected after the active sprint week', () => {

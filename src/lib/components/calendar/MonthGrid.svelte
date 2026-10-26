@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { MediaQuery } from 'svelte/reactivity';
 	import { dateLabel } from '$lib/components/todo/format';
-	import type { CalendarEntry } from '$lib/server/calendar';
+	import type { CalendarEntry, DueTodo } from '$lib/server/calendar';
 	import type { Aspect, IsoDate } from '$lib/types';
 	import { UI_ICONS } from '../ui/icons';
 	import { entryColor } from './DayList.svelte';
@@ -10,6 +10,7 @@
 		month,
 		weeks,
 		entries,
+		due,
 		selected,
 		today,
 		aspects,
@@ -18,6 +19,7 @@
 		month: string;
 		weeks: IsoDate[][];
 		entries: Record<IsoDate, CalendarEntry[]>;
+		due: Record<IsoDate, DueTodo[]>;
 		selected: IsoDate;
 		today: IsoDate;
 		aspects: Aspect[];
@@ -36,6 +38,7 @@
 	{#each weeks.flat() as day (day)}
 		{@const outside = !day.startsWith(month)}
 		{@const list = entries[day] ?? []}
+		{@const dueCount = due[day]?.length ?? 0}
 		<button
 			type="button"
 			class="cell"
@@ -47,7 +50,14 @@
 			onclick={() => onselect(day)}
 		>
 			<span class="visually-hidden">{dateLabel(day)}</span>
-			<span class="num day-num" aria-hidden="true">{Number(day.slice(8))}</span>
+			<span class="top">
+				<span class="num day-num" aria-hidden="true">{Number(day.slice(8))}</span>
+				{#if dueCount > 0}
+					<span class="due num" data-testid="calendar-due" role="img" aria-label="{dueCount} due">
+						<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.flag} /></svg>{dueCount}
+					</span>
+				{/if}
+			</span>
 			{#if tablet.current}
 				{#each list.slice(0, 3) as entry, i (i)}
 					<span class="entry" data-testid="calendar-entry" data-kind={entry.kind} style:--a={entryColor(entry, aspects)}>
@@ -122,6 +132,32 @@
 		background: var(--canvas);
 		color: var(--ink-3);
 		cursor: default;
+	}
+
+	.top {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--space-1);
+	}
+
+	.due {
+		display: inline-flex;
+		align-items: center;
+		gap: 2px;
+		color: var(--ink-2);
+		font-size: var(--text-xs);
+		font-weight: var(--weight-semibold);
+	}
+
+	.due svg {
+		width: 11px;
+		height: 11px;
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 2;
+		stroke-linecap: round;
+		stroke-linejoin: round;
 	}
 
 	.day-num {
@@ -222,6 +258,11 @@
 			align-items: center;
 			min-height: 52px;
 			padding: var(--space-2) 0;
+		}
+
+		.top {
+			flex-direction: column;
+			gap: 2px;
 		}
 
 		.day-num {

@@ -1,0 +1,9 @@
+track: tweak
+triage: 'tweak — due dates of open todos shown in the in-app month calendar and as one bundled all-day Proton event per aspect and day; no schema, one session. Appetite: one evening.'
+base: main
+gate1: 2026-10-26
+gate2: 2026-10-26
+learnings:
+  - 'verify.md Layer 2 step 3 (copy test-results/shots into the change and commit) → align with the no-committed-screenshots learning (weil: the verifier followed verify.md and committed 50 e2e shots; a fixer had to git rm them)'
+  - 'Planner unit file lists for UI changes → check which component renders the touched area, not only the route (weil: the marker and Due section live in MonthGrid/DayList, not +page.svelte; builder needed 2 deviation commits)'
+  - 'Planner brief release task → read package.json and git tags for the current version before naming the bump in the brief (weil: brief said 0.7.x → 0.8.0, repo was already 0.8.0)'
