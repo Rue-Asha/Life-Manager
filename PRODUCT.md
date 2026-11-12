@@ -47,4 +47,7 @@ README, `openspec/specs/*`, the Playwright suite in `e2e/`, and `docs/functional
 6. The app never loses or silently rewrites user data: destructive actions confirm, deletes move or cascade explicitly, and failures say what happened.
 
 ## Accessibility & Inclusion
+
+Target: WCAG 2.2 AA, set for every app in the shared design fingerprint (Design-System).
+
 Keyboard and touch operation are required on every route. State must be exposed through roles, labels and ARIA (not only visuals); only the two hooks allow-listed in the contract (`data-hydrated`, `data-day`) may carry state outside the accessibility tree. No formal conformance standard has been confirmed.
