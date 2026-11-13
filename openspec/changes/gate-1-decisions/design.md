@@ -43,6 +43,10 @@ Five gate-1 decisions need backend work before the redesign. Facts found in the 
 
 No schema migration. Deploy is a normal release; rollback is reverting the code (positions written by `reorderAspects` stay valid for the old code since it only sorts by `position, id`).
 
+## Gate-1 sign-off
+
+Confirmed by Rue on 2026-11-13 (gate 1 / task 2.5), as written in this design: `/menu` redirects client-side at 768 px and wider; `/welcome` skips presets that already exist; an invalid `aspect` parameter gives an empty list.
+
 ## Open Questions
 
 None. Whether the empty `/backlog` copy for an unknown filter is generic or specific is a redesign decision.

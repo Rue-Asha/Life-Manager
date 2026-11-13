@@ -1317,3 +1317,5 @@ Rue's answers to the contract's open questions. Types: contract-only (no code ch
 | 14 | Copy list "used in spec file" | Only usages where the string is asserted as UI copy; rule stated at the top of section 7 | contract-only |
 | 15 | `data-status` | Replaced by an accessible three-state status on every todo presentation; dropped from the allow-list | UI (accessible status built in the redesign) |
 | 16 | Copy that names a position | May be reworded to fit the new layout | contract-only |
+
+Agent interpretations of 12 (`/menu` redirect client-side at 768 px and wider), 2 (`/welcome` skips presets that already exist) and 4 (an invalid `aspect` parameter gives an empty list) were **confirmed by Rue on 2026-11-13 (gate 1 / task 2.5)**.
