@@ -7,7 +7,7 @@ TBD - created by archiving change build-life-manager. Update Purpose after archi
 The backlog SHALL show all todos not in a sprint, with a filter to one aspect that applies to every section. Todos with
 a planned date are listed first, in their own section "Planned" (test id `planned-section`), sorted by day, then
 all-day before timed, then by start time; the section is hidden when no backlog todo is planned. The remaining todos
-are grouped by aspect and sorted by priority (P1, P2, P3, none) then due date (earliest first, none last). (S9, S5)
+are grouped by aspect and sorted by priority (P1, P2, P3, none) then due date (earliest first, none last). The aspect filter is the `aspect` query parameter: absent or empty means all; a whole number selects that aspect; any other value, or a number that names no aspect, shows an empty list (never all, never an error), and the page data then carries no selected aspect. (S9, S5)
 
 #### Scenario: Backlog lists only todos not in a sprint, in order
 - **WHEN** the backlog is listed with todos in and out of sprints and mixed priorities and due dates
@@ -43,4 +43,24 @@ are grouped by aspect and sorted by priority (P1, P2, P3, none) then due date (e
 - **WHEN** Rue opens `/backlog` and no backlog todo has a planned date
 - **THEN** no "Planned" section is shown
 - **proof:** e2e
+
+#### Scenario: Non-numeric aspect parameter shows an empty list
+- **WHEN** the backlog is loaded with `?aspect=abc` while backlog todos exist
+- **THEN** the todo list is empty and the selected aspect is null
+- **proof:** unit
+
+#### Scenario: Unknown aspect id shows an empty list
+- **WHEN** the backlog is loaded with `?aspect=999` and no aspect 999 exists
+- **THEN** the todo list is empty and the selected aspect is null
+- **proof:** unit
+
+#### Scenario: Missing or empty aspect parameter shows everything
+- **WHEN** the backlog is loaded without the parameter and with `?aspect=`
+- **THEN** all backlog todos are listed and the selected aspect is null
+- **proof:** unit
+
+#### Scenario: Valid aspect parameter filters
+- **WHEN** the backlog is loaded with `?aspect=<id>` of an existing aspect
+- **THEN** only that aspect's backlog todos are listed and the selected aspect is that id
+- **proof:** unit
 

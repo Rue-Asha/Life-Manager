@@ -114,6 +114,10 @@ it is missing. `GET /healthz` answers `200 ok` once the database is open.
 `HOST` and the rest of adapter-node's variables work as documented for
 [`@sveltejs/adapter-node`](https://svelte.dev/docs/kit/adapter-node#Environment-variables).
 
+**Deployment requirement.** Set `PROTOCOL_HEADER` (behind a proxy) or `ORIGIN` (direct access).
+Without one of them, plain-http access gives every form post a 403, so the app is read-only. The
+app shows no warning for this. See [Behind a reverse proxy](#behind-a-reverse-proxy).
+
 ### Proton Calendar sync
 
 Planned todos, recurring rules and exams are pushed one way to Proton Calendar (one calendar per

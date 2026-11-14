@@ -14,7 +14,8 @@ test('Scenario: Cards are grouped by status', async ({ page, request }) => {
 			{ name: 'Paused one', status: 'paused' },
 			{ name: 'Implemented one', status: 'implemented' },
 			{ name: 'Backlog one', status: 'backlog' },
-			{ name: 'Active one', status: 'active' }
+			{ name: 'Active one', status: 'active' },
+			{ name: 'In progress one', status: 'in_progress' }
 		]
 	});
 	await page.goto('/projects');
@@ -23,6 +24,7 @@ test('Scenario: Cards are grouped by status', async ({ page, request }) => {
 		.locator('[data-testid^="project-group-"]')
 		.evaluateAll((els) => els.map((el) => el.getAttribute('data-testid')));
 	expect(order).toEqual([
+		'project-group-in_progress',
 		'project-group-active',
 		'project-group-backlog',
 		'project-group-paused',
@@ -32,7 +34,7 @@ test('Scenario: Cards are grouped by status', async ({ page, request }) => {
 	const implemented = page.getByTestId('project-group-implemented');
 	const toggle = implemented.getByRole('button', { name: 'Implemented (1)' });
 	await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-	await expect(page.getByTestId('project-card')).toHaveCount(3);
+	await expect(page.getByTestId('project-card')).toHaveCount(4);
 	await expect(implemented.getByTestId('project-card')).toHaveCount(0);
 	await toggle.click();
 	await expect(implemented.getByTestId('project-card')).toHaveText(/Implemented one/);
