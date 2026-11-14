@@ -6,6 +6,7 @@ import {
 	createAspect,
 	deleteAspect,
 	listAspects,
+	reorderAspects,
 	updateAspect
 } from './aspects';
 import type { AspectInput, Id } from '$lib/types';
@@ -242,6 +243,47 @@ describe('aspects', () => {
 		it('reports a missing aspect', () => {
 			const db = openDb(':memory:');
 			expect(deleteAspect(db, 1)).toEqual({ ok: false, error: 'not-found' });
+		});
+	});
+
+	describe('order', () => {
+		const job: AspectInput = { name: 'Job', color: 'sky', icon: 'briefcase' };
+
+		function three() {
+			const db = openDb(':memory:');
+			const [a, b, c] = [create(db, health), create(db, uni), create(db, job)];
+			return { db, a, b, c };
+		}
+
+		it('Scenario: Reordering persists', () => {
+			const { db, a, b, c } = three();
+			expect(reorderAspects(db, [c, a, b])).toEqual({ ok: true, value: undefined });
+			expect(listAspects(db).map((x) => x.id)).toEqual([c, a, b]);
+			expect(listAspects(db).map((x) => x.position)).toEqual([0, 1, 2]);
+		});
+
+		it('Scenario: A list that is not the full set is rejected', () => {
+			const { db, a, b, c } = three();
+			const invalid = { ok: false, error: 'invalid', field: 'order' };
+			expect(reorderAspects(db, [c, a])).toEqual(invalid);
+			expect(reorderAspects(db, [c, a, a])).toEqual(invalid);
+			expect(reorderAspects(db, [c, a, b, 999])).toEqual(invalid);
+			expect(reorderAspects(db, [c, a, 999])).toEqual(invalid);
+			expect(listAspects(db).map((x) => x.id)).toEqual([a, b, c]);
+		});
+
+		it('Scenario: New aspects go last after a reorder', () => {
+			const { db, a, b, c } = three();
+			reorderAspects(db, [c, a, b]);
+			const d = create(db, { ...health, name: 'Home' });
+			expect(listAspects(db).map((x) => x.id)).toEqual([c, a, b, d]);
+		});
+
+		it("Scenario: Deleting an aspect keeps the others' order", () => {
+			const { db, a, b, c } = three();
+			reorderAspects(db, [c, a, b]);
+			expect(deleteAspect(db, a).ok).toBe(true);
+			expect(listAspects(db).map((x) => x.id)).toEqual([c, b]);
 		});
 	});
 });

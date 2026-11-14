@@ -7,7 +7,9 @@ TBD - created by archiving change it-projects. Update Purpose after archive.
 Migration 2, appended to `src/lib/server/schema.ts`, SHALL add an `it_projects` table (id, name,
 description, repo_url, tags, notes, status ∈ backlog | active | paused | implemented, created_at,
 updated_at), a setting holding the IT aspect id, and `todos.project_id INTEGER NULL REFERENCES
-it_projects(id) ON DELETE SET NULL`. The migration only adds; no existing row is rewritten. When the IT
+it_projects(id) ON DELETE SET NULL`. Migration 3 rebuilds `it_projects` so the status CHECK also allows
+`in_progress` (five states: backlog | active | in_progress | paused | implemented), keeping every row and todo
+link. Migration 2 only adds; no existing row is rewritten. When the IT
 aspect no longer exists the setting reads as unset, exactly as on first run. Both todo read models
 (`todoColumns` in `todos.ts` and `selectTodos()` in `sprints.ts`) carry the project link. (S1)
 
@@ -32,16 +34,16 @@ aspect no longer exists the setting reads as unset, exactly as on first run. Bot
 - **proof:** unit
 
 ### Requirement: Projects overview
-`/projects` SHALL show one card per project, grouped in sections Active, Backlog and Paused, in that
-order, followed by a collapsed group "Implemented (n)". A card shows the name, the description on one
+`/projects` SHALL show one card per project, grouped in sections In progress, Active, Backlog and Paused, in
+that order, followed by a collapsed group "Implemented (n)". A card shows the name, the description on one
 line, the tags, a repo glyph if a repo is set, and the count of open linked todos (linked, not done).
 Within a group the most recently updated project comes first. An empty group is not rendered. With no
 projects at all an empty state offers "New project". At 375 px there is one card per row; at ≥1280 px
 the screen has no context rail and its grid fills the centred content column. (S2)
 
 #### Scenario: Cards are grouped by status
-- **WHEN** Rue opens `/projects` with one project in each of the four states
-- **THEN** sections appear in the order Active, Backlog, Paused, and below them a collapsed "Implemented (1)" group whose card is shown only after expanding it
+- **WHEN** Rue opens `/projects` with one project in each of the five states
+- **THEN** sections appear in the order In progress, Active, Backlog, Paused, and below them a collapsed "Implemented (1)" group whose card is shown only after expanding it
 - **proof:** e2e
 
 #### Scenario: Card shows the project summary
@@ -166,18 +168,18 @@ to write; long notes are never truncated, the page scrolls. (S6)
 - **proof:** e2e
 
 ### Requirement: Project status
-The status SHALL change through a pill dropdown with the four states; any state is reachable from any
+The status SHALL change through a pill dropdown with the five states; any state is reachable from any
 other. Moving to implemented while linked todos are open shows a confirm dialog naming the count;
 confirming changes the status and leaves the todos untouched, cancelling changes nothing. Without open
 todos, and when leaving implemented, no dialog is shown. (S7)
 
-#### Scenario: Status pill offers the four states
+#### Scenario: Status pill offers the five states
 - **WHEN** Rue opens the status pill on a backlog project and picks Active
-- **THEN** the menu listed Backlog, Active, Paused and Implemented, and the pill now shows Active
+- **THEN** the menu listed Backlog, Active, In progress, Paused and Implemented, and the pill now shows Active
 - **proof:** e2e
 
 #### Scenario: Every status transition is allowed
-- **WHEN** a project is moved through each of the twelve ordered pairs of distinct states
+- **WHEN** a project is moved through each of the twenty ordered pairs of distinct states
 - **THEN** every change succeeds and updates `updated_at`
 - **proof:** unit
 

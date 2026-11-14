@@ -1,9 +1,18 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { PRESET_ASPECTS, type AspectColor, type AspectIcon } from '$lib/aspect-style';
-import { createAspect } from '$lib/server/aspects';
+import { createAspect, listAspects } from '$lib/server/aspects';
 import { getDb } from '$lib/server/db';
 import type { AspectInput } from '$lib/types';
-import type { Actions } from './$types';
+import type { Actions, PageServerLoad } from './$types';
+
+function takenNames(): Set<string> {
+	return new Set(listAspects(getDb()).map((a) => a.name.toLowerCase()));
+}
+
+export const load: PageServerLoad = () => {
+	const taken = takenNames();
+	return { existingPresets: PRESET_ASPECTS.filter((p) => taken.has(p.name.toLowerCase())).map((p) => p.name) };
+};
 
 export const actions: Actions = {
 	create: async ({ request }) => {
@@ -17,7 +26,9 @@ export const actions: Actions = {
 					icon: String(form.get('icon')) as AspectIcon
 				}
 			: null;
-		const inputs = [...PRESET_ASPECTS.filter((p) => presets.includes(p.name)), ...(custom ? [custom] : [])];
+		const taken = takenNames();
+		const fresh = PRESET_ASPECTS.filter((p) => presets.includes(p.name) && !taken.has(p.name.toLowerCase()));
+		const inputs = [...fresh, ...(custom ? [custom] : [])];
 		const values = { preset: presets, custom };
 		if (inputs.length === 0) return fail(400, { error: 'required', field: 'preset', values });
 

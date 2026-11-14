@@ -1,0 +1,6 @@
+track: feature
+triage: 'feature (adopted) — server/data part of the gate-1 decisions from docs/functional-contract.md: aspect reorder on aspects.position (no migration), /welcome skips existing presets, strict /backlog?aspect= parsing, client-side /menu redirect at >=768 px, it-projects spec to five statuses, README deployment requirement; UI stays minimal until the redesign. Appetite: one evening.'
+base: main
+adopted: true
+gate1: '2026-11-14 (adopted; Rue approved, addition A accepted, B declined)'
+gate2: '2026-11-14 (Rue: ship with minor version bump and release tag)'

@@ -215,3 +215,21 @@ test('Scenario: Phone home list has no New todo button', async ({ page }) => {
 	await expect(page.getByRole('heading', { name: 'Life Manager' })).toBeVisible();
 	await expect(page.getByRole('button', { name: 'New todo' })).toHaveCount(0);
 });
+
+test('Scenario: Wide screen redirects /menu to Today', async ({ page }) => {
+	await page.setViewportSize({ width: 1280, height: 800 });
+	await page.goto('/backlog');
+	await expect(page.getByRole('heading', { level: 1, name: 'Backlog' })).toBeVisible();
+	await page.goto('/menu');
+	await expect(page).toHaveURL(/\/$/);
+	await page.goBack();
+	await expect(page).toHaveURL(/\/backlog$/);
+});
+
+test('Scenario: Phone keeps /menu', async ({ page }) => {
+	await page.setViewportSize({ width: 375, height: 812 });
+	await page.goto('/menu');
+	await expect(page.getByRole('navigation', { name: 'Lists' })).toBeVisible();
+	await page.waitForLoadState('networkidle');
+	await expect(page).toHaveURL(/\/menu$/);
+});

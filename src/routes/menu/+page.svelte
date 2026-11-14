@@ -1,5 +1,12 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { WIDE_QUERY } from '../../lib/layout';
 	import HomeList from '../../lib/components/shell/HomeList.svelte';
+
+	onMount(() => {
+		if (matchMedia(WIDE_QUERY).matches) goto('/', { replaceState: true });
+	});
 </script>
 
 <svelte:head>

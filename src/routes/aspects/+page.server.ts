@@ -6,6 +6,7 @@ import {
 	createAspect,
 	deleteAspect,
 	listAspects,
+	reorderAspects,
 	updateAspect
 } from '$lib/server/aspects';
 import { today } from '$lib/server/clock';
@@ -57,5 +58,11 @@ export const actions: Actions = {
 		const result = deleteAspect(db, id, targetId);
 		if (!result.ok) return fail(400, { error: result.error, field: result.field, values: { id, targetId } });
 		if (countAspects(db) === 0) redirect(303, '/welcome');
+	},
+	reorder: async ({ request }) => {
+		const ids = (await request.formData()).getAll('order').map(Number);
+		const result = reorderAspects(getDb(), ids);
+		if (!result.ok) return fail(400, { error: result.error, field: result.field });
+		return { ok: true };
 	}
 };

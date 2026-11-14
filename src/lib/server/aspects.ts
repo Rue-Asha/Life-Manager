@@ -92,3 +92,20 @@ export function deleteAspect(db: DatabaseSync, id: Id, targetId?: Id): Result<vo
 	}
 	return { ok: true, value: undefined };
 }
+
+export function reorderAspects(db: DatabaseSync, ids: Id[]): Result<void> {
+	const current = listAspects(db).map((a) => a.id);
+	const given = new Set(ids);
+	if (ids.length !== current.length || given.size !== ids.length || !current.every((id) => given.has(id)))
+		return { ok: false, error: 'invalid', field: 'order' };
+	const set = db.prepare('UPDATE aspects SET position = ? WHERE id = ?');
+	db.exec('BEGIN');
+	try {
+		ids.forEach((id, index) => set.run(index, id));
+		db.exec('COMMIT');
+	} catch (err) {
+		db.exec('ROLLBACK');
+		throw err;
+	}
+	return { ok: true, value: undefined };
+}
