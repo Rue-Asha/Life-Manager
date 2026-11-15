@@ -5,7 +5,7 @@
 	let { project }: { project: ProjectSummary } = $props();
 </script>
 
-<a class="card" href="/projects/{project.id}" data-testid="project-card">
+<a class="card" href="/projects/{project.id}">
 	<span class="name">{project.name}</span>
 	{#if project.description}<span class="desc">{project.description}</span>{/if}
 	{#if project.tags.length}
@@ -15,7 +15,7 @@
 	{/if}
 	<span class="foot">
 		{#if project.repoUrl}
-			<span class="repo" data-testid="project-repo">
+			<span class="repo">
 				<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS['git-branch']} /></svg>
 				<span class="visually-hidden">Repository linked</span>
 			</span>

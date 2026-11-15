@@ -1,4 +1,4 @@
-import { expect, test, reset, seed, setClock, protonOn, protonStatus } from './helpers';
+import { expect, test, reset, seed, setClock, protonOn, protonStatus, todoRow } from './helpers';
 
 // Wednesday 7 October 2026, midday in Berlin.
 const NOW = '2026-10-07T10:00:00Z';
@@ -32,6 +32,6 @@ test('Scenario: A form post nudges a pass', async ({ page, request }) => {
 	const form = page.getByRole('form', { name: 'New todo' });
 	await form.getByLabel('Title').fill('Stretch');
 	await form.getByRole('button', { name: 'Add todo' }).click();
-	await expect(page.getByTestId('todo-row').filter({ hasText: 'Stretch' })).toBeVisible();
+	await expect(todoRow(page, 'Stretch')).toBeVisible();
 	await expect.poll(async () => (await protonStatus(request)).passes).toBe(2);
 });

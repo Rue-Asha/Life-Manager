@@ -9,7 +9,6 @@
 	this={href ? 'a' : 'span'}
 	class="badge"
 	href={href ? `/uni/classes/${classRef.id}` : undefined}
-	data-testid="class-badge"
 >
 	<AspectIcon icon={classRef.icon} color={classRef.color} size="sm" />{classRef.name}{#if type}<span class="visually-hidden">{' · '}</span><span class="type">{type}</span>{/if}
 </svelte:element>

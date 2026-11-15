@@ -100,7 +100,7 @@
 
 {#snippet sprintLine()}
 	{#if data.sprintDays}
-		<span data-testid="sprint-week">{dayLabel(data.sprintDays[0])} – {dateLabel(data.sprintDays[6])}</span> ·
+		<span>{dayLabel(data.sprintDays[0])} – {dateLabel(data.sprintDays[6])}</span> ·
 		<b>{daysLeft} {daysLeft === 1 ? 'day' : 'days'} left</b>{doing ? ` · ${doing} doing` : ''}
 	{/if}
 {/snippet}

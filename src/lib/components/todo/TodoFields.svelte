@@ -106,7 +106,7 @@
 	</label>
 
 	{#if classShown}
-		<label class="chip" data-testid="class-field">
+		<label class="chip">
 			{#if cls}<AspectIcon icon={cls.icon} color={cls.color} size="sm" />{/if}
 			<span class="field">Class</span>
 			<span class="label value">{cls?.name ?? 'No class'}</span>
@@ -122,7 +122,7 @@
 	{/if}
 
 	{#if typeShown}
-		<span class="seg" role="group" aria-label="Type" data-testid="type-field">
+		<span class="seg" role="group" aria-label="Type">
 			{#each CLASS_TYPES as t (t)}
 				<button type="button" aria-pressed={type === t} title={TYPE_LABELS[t]} onclick={() => (type = t)}>{t}</button>
 			{/each}
@@ -186,7 +186,7 @@
 			{/if}
 		</span>
 		{#if plannedDay}
-			<div class="slot" role="group" aria-label="Time" data-testid="slot-field">
+			<div class="slot" role="group" aria-label="Time">
 				<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.clock} /></svg>
 				<span class="field">Time</span>
 				<span class="times">
@@ -195,7 +195,7 @@
 					<input type="time" name="endTime" aria-label="To" bind:value={endTime} />
 				</span>
 				{#if startTime}
-					{#if length}<span class="length num" data-testid="slot-length">{lengthLabel(length)}</span>{/if}
+					{#if length}<span class="length num">{lengthLabel(length)}</span>{/if}
 					<span class="lengths" role="group" aria-label="Length">
 						{#each LENGTHS as [minutes, label] (minutes)}
 							<button
@@ -220,7 +220,7 @@
 	{/if}
 
 	{#if projectShown}
-		<label class="chip" class:pressed={project} data-testid="project-field">
+		<label class="chip" class:pressed={project}>
 			<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.folder} /></svg>
 			<span class="field">Project</span>
 			<span class="label value" class:unset={!project}>{project?.name ?? 'Project'}</span>

@@ -14,7 +14,7 @@
 	}
 </script>
 
-<section data-testid="class-rules" aria-labelledby="{uid}-h">
+<section aria-labelledby="{uid}-h">
 	<div class="head">
 		<h2 id="{uid}-h">Recurring</h2>
 		<a href="/recurring">

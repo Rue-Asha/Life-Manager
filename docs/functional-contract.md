@@ -1261,6 +1261,22 @@ Rule of the contract: a `data-*` hook is allowed only when it carries state that
 - `data-color=<aspect colour token>` on `class-tile` (the class's colour/icon display; class-detail): the saved colour is the checked `radio` (`Berry`) in the class edit form; the display itself carries no accessible state, so a CSS check (`toHaveCSS`) is the fallback, as calendar.test.ts already does for entry colours.
 - `data-rule-id` on `rule-row` (one rule on `/recurring`; calendar spec): each rule already has `id="rule-{id}"`, the target of the `/recurring#rule-{id}` link; assert the URL hash and the rule's accessible name.
 
+### Accepted visual coupling in e2e
+
+Owner decision (Rue, 2026-11-15). A few purely visual facts have no role, accessible name or allow-listed hook, so their tests use structural locators (`xpath=`, `:has(> i)`, `[aria-hidden="true"] >`, `locator('svg')`/`locator('span')`). This coupling is known and accepted; these tests are rewritten together with the visuals at the redesign's build gate.
+
+1. Summary bar segments: `today.test.ts`, "Scenario: Header shows sprint progress during a sprint" (`[aria-hidden="true"] > span`); `sprint-rail.test.ts`, "Scenario: Group header shows done of total" (bar colour against the header icon).
+2. Calendar dots, entry colours and cell entries: `calendar.test.ts`, "Scenario: Calendar shows aspect colours and marks projections", "Scenario: Recurring rule with a slot shows in later months", "Scenario: Wide cells show up to three titles", "Scenario: Phone shows dots and the selected day's list", "Scenario: Due todos show as marker and Due section" (`dots` = `[aria-hidden="true"] > i`, `cellEntries` = `span:has(> i)`); `todo-planning.test.ts`, "Regression: saving a due-dated sprint todo plans it on its due day" (`cellEntries`).
+3. Page-header icon path: `aspect-page.test.ts`, "Scenario: Aspect page shows this sprint and its backlog" (`xpath=../preceding-sibling::span` then `path`).
+4. Class colour tile: `class-detail.test.ts`, "Scenario: Edit a class on its detail page" (`xpath=preceding-sibling::span`, tint via `toHaveCSS`, before and after reload; the checked `Berry` radio is asserted as well).
+5. ECTS value via `dt`/`dd` sibling: `class-detail.test.ts`, "Scenario: Edit a class on its detail page" (`xpath=following-sibling::dd[1]`).
+6. Icon presence, glyph and colour on headings, rows and badges (`locator('svg')`): `backlog.test.ts` "Scenario: Backlog is grouped by aspect", `sprint-views.test.ts` "Scenario: Sprint by aspect groups todos with status", `sprint-rail.test.ts` (aspect icon colour matches between sprint list and rail group), `aspects.test.ts` (icon colour and path per aspect, and in "Scenario: First run shows onboarding"), `uni.test.ts` "Scenario: Card shows the class summary", "Scenario: Sparse card keeps the row height" and "Scenario: Add a class from the semester section", `todo-classes.test.ts` "Scenario: Switching the aspect away drops class and type".
+7. Type label inside a row: `class-detail.test.ts`, "Scenario: Type defaults to OTH" (`row.locator('span')` narrows an exact text match to the label span).
+
+**Accessible-name contract the redesign must keep.** The named containers added for role-based locators are part of the contract, not styling: `group` with `Due`, `Month grid`, group labels in the calendar list, `Done`, `Project details`, `Rendered notes`, `Backlog todos`, `Sprint todos`, `Week`, `Type`, `Time`, `Pages`, `State`, `Last sync`, `Pending changes`, `Active semesters` and each failed sync item label; `region` with `Sprint prompt` and `Failed items`; `role="time"` on the planned-time label of a todo (chip, row and outline presentations); and the `aria-label` names on lists and items (`Classes`, `Semester <name>`, `<STATUS> projects`, `Summary`, `Done todos`, `In backlog: <aspect>`, `<n> due`, `<n> in backlog`, `Grade <g>`, `Needs attention`, the rail title, and the title/name of todo, class, project, rule and aspect items).
+
+**Decision 15 in the markup.** The visually hidden `Status: …` text on non-movable todo rows is how decision 15 (status exposed accessibly instead of `data-status`) is implemented there.
+
 ## 9. Route coverage check
 
 Routes found by listing `src/routes` (directories with a `+page.svelte` or `+server.ts`, excluding `__test*` and `__mockups*`): 18. Contract sections in section 5: 18. Coverage 100%.

@@ -34,12 +34,13 @@
 
 <div
 	class="list"
-	data-testid="sprint-list"
+	role="group"
+	aria-label="Sprint todos"
 	use:dropZone={{ accepts: (p) => !!onadd && p.from === 'backlog', ondrop: (p) => onadd?.(p.id) }}
 >
 	{#each groups as { aspect, todos } (aspect.id)}
 		{@const done = todos.filter((t) => t.status === 'done').length}
-		<section class="group" data-testid="aspect-group-{aspect.id}" aria-labelledby="group-{aspect.id}">
+		<section class="group" aria-labelledby="group-{aspect.id}">
 			<h2 id="group-{aspect.id}">
 				<AspectIcon icon={aspect.icon} color={aspect.color} />{aspect.name}
 				<span class="progress"><ProgressBar {done} total={todos.length} color={aspect.color} /></span>
@@ -64,7 +65,7 @@
 			</ListGroup>
 		</section>
 	{:else}
-		<p class="empty" data-testid="empty-state">
+		<p class="empty">
 			Nothing in this sprint yet. Add a todo above, or pull some in from the <a href="/backlog">backlog</a>.
 		</p>
 	{/each}

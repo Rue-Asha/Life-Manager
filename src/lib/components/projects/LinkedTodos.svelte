@@ -12,7 +12,6 @@
 		today,
 		sprintDays,
 		title = 'Linked todos',
-		testidPrefix = 'project-todos',
 		emptyText = 'No linked todos yet. Choose the IT aspect on a todo, then pick this project in the Project field.',
 		top,
 		extra,
@@ -22,7 +21,6 @@
 		today: IsoDate;
 		sprintDays?: IsoDate[];
 		title?: string;
-		testidPrefix?: string;
 		emptyText?: string;
 		top?: Snippet;
 		extra?: Snippet<[Todo]>;
@@ -42,12 +40,12 @@
 	{@render top?.()}
 
 	{#if total === 0}
-		<p class="empty" data-testid="empty-state">{emptyText}</p>
+		<p class="empty">{emptyText}</p>
 	{/if}
 
 	{#each [{ key: 'open', label: 'Open', context: 'backlog', list: todos.open }, { key: 'planned', label: 'Planned', context: 'sprint', list: todos.planned }] as const as group (group.key)}
 		{#if group.list.length}
-			<div class="group" data-testid="{testidPrefix}-{group.key}">
+			<div class="group" role="group" aria-label={group.label}>
 				<h3>{group.label}<span class="count num">{group.list.length}</span></h3>
 				<ListGroup>
 					<ul>
@@ -61,7 +59,7 @@
 	{/each}
 
 	{#if todos.done.length}
-		<div class="group" data-testid="{testidPrefix}-done">
+		<div class="group" role="group" aria-label="Done">
 			<h3>
 				<button type="button" aria-expanded={showDone} onclick={() => (showDone = !showDone)}>
 					<svg class="chev" class:open={showDone} viewBox="0 0 24 24" aria-hidden="true"><path d={GLYPHS['chevron-right']} /></svg>

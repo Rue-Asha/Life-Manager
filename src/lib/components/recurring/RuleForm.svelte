@@ -127,7 +127,7 @@
 	</fieldset>
 
 	{#if classShown}
-		<div class="field" data-testid="class-field">
+		<div class="field">
 			<label class="label" for="{id}-class">Class</label>
 			<select
 				id="{id}-class"
@@ -147,7 +147,7 @@
 			{/if}
 		</div>
 
-		<fieldset class="field" data-testid="type-field">
+		<fieldset class="field">
 			<legend class="label">Type</legend>
 			<div class="options">
 				{#each CLASS_TYPES as t (t)}

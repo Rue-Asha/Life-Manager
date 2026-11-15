@@ -30,7 +30,6 @@
 		{#if icon}
 			<span
 				class="tile"
-				data-testid="page-icon"
 				style:color={color ? ASPECT_COLORS[color].fg : 'var(--accent)'}
 				style:background={color ? ASPECT_COLORS[color].tint : 'var(--accent-soft)'}
 			>

@@ -1,5 +1,4 @@
-import type { Page } from '@playwright/test';
-import { expect, test, reset, seed, setClock } from './helpers';
+import { dayColumn, expect, test, reset, seed, setClock, todoRow as row, todoRows } from './helpers';
 
 // Sunday 11 October 2026 in Berlin, the last day of the sprint that started Monday 5 October.
 const NOW = '2026-10-11T16:00:00Z';
@@ -20,8 +19,6 @@ const ASPECTS = [
 	{ name: 'Uni', color: 'lavender', icon: 'cap' }
 ] as const;
 
-const row = (page: Page, title: string) => page.getByTestId('todo-row').filter({ hasText: title });
-
 test('Scenario: Review carries over and returns open todos', async ({ page, request }) => {
 	await seed(request, {
 		aspects: [...ASPECTS],
@@ -35,10 +32,10 @@ test('Scenario: Review carries over and returns open todos', async ({ page, requ
 	await page.goto('/sprint/review');
 
 	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Review your sprint');
-	const done = page.getByTestId('review-done');
+	const done = page.getByRole('group', { name: 'Done todos' });
 	await expect(done).toContainText('Done 1');
-	await done.getByText('Done').click();
-	await expect(row(page, 'Book a physio appointment')).toHaveAttribute('data-status', 'done');
+	await done.getByText('Done 1', { exact: true }).click();
+	await expect(row(page, 'Book a physio appointment')).toContainText('Status: Done');
 
 	const carried = page.getByRole('radiogroup', { name: 'Finish exercise sheet 3' });
 	await expect(carried.getByRole('radio', { name: 'Carry over' })).toBeChecked();
@@ -49,13 +46,13 @@ test('Scenario: Review carries over and returns open todos', async ({ page, requ
 	await page.getByRole('button', { name: 'Carry 1, return 1 and close' }).click();
 	await expect(page).toHaveURL(/\/sprint\/plan$/);
 
-	const sprint = page.getByTestId('plan-sprint');
-	await expect(sprint.getByTestId('todo-row')).toHaveCount(1);
-	await expect(row(page, 'Finish exercise sheet 3')).toHaveAttribute('data-status', 'doing');
+	const sprint = page.getByRole('region', { name: /^This sprint\b/ });
+	await expect(todoRows(sprint)).toHaveCount(1);
+	await expect(row(page, 'Finish exercise sheet 3')).toContainText('Status: Doing');
 	await expect(row(page, 'Finish exercise sheet 3')).toHaveAttribute('data-day', '');
-	const backlog = page.getByTestId('plan-backlog');
-	await expect(backlog.getByTestId('todo-row')).toHaveCount(1);
-	await expect(row(page, 'Clean the fridge')).toHaveAttribute('data-status', 'todo');
+	const backlog = page.getByRole('region', { name: /^Backlog\b/ });
+	await expect(todoRows(backlog)).toHaveCount(1);
+	await expect(row(page, 'Clean the fridge')).toContainText('Status: To do');
 	await expect(row(page, 'Book a physio appointment')).toHaveCount(0);
 });
 
@@ -74,7 +71,7 @@ test('Scenario: All-done review closes in one tap', async ({ page, request }) =>
 	await expect(page.getByRole('radio')).toHaveCount(0);
 	await page.getByRole('button', { name: 'Close sprint' }).click();
 	await expect(page).toHaveURL(/\/sprint\/plan$/);
-	await expect(page.getByTestId('todo-row')).toHaveCount(0);
+	await expect(todoRows(page)).toHaveCount(0);
 });
 
 test('Recurring instances offer carry or drop, and the label counts drops', async ({ page, request }) => {
@@ -96,7 +93,7 @@ test('Recurring instances offer carry or drop, and the label counts drops', asyn
 
 	await page.getByRole('button', { name: 'Carry 1, drop 1 and close' }).click();
 	await expect(page).toHaveURL(/\/sprint\/plan$/);
-	await expect(page.getByTestId('plan-sprint').getByTestId('todo-row')).toHaveText([/Clean the fridge/]);
+	await expect(todoRows(page.getByRole('region', { name: /^This sprint\b/ }))).toHaveText([/Clean the fridge/]);
 	await expect(row(page, 'Gym')).toHaveCount(0);
 });
 
@@ -121,7 +118,7 @@ test('Scenario: Start sprint shows a carried recurring todo once', async ({ page
 	await page.getByRole('button', { name: 'Start sprint with 1 todo' }).click();
 	await expect(page).toHaveURL(/\/sprint$/);
 	await page.goto('/sprint?view=week');
-	await expect(page.getByTestId('day-column-2026-10-13')).toBeVisible();
+	await expect(dayColumn(page, '2026-10-13')).toBeVisible();
 	await expect(row(page, 'Laundry')).toHaveCount(1);
-	await expect(page.getByTestId('day-column-2026-10-13').getByTestId('todo-row')).toHaveText([/Laundry/]);
+	await expect(todoRows(dayColumn(page, '2026-10-13'))).toHaveText([/Laundry/]);
 });

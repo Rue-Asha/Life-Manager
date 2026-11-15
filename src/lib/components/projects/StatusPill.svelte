@@ -102,7 +102,6 @@
 	<button
 		type="button"
 		class="pill"
-		data-testid="status-pill"
 		aria-haspopup="menu"
 		aria-expanded={menuOpen}
 		aria-controls="{uid}-menu"

@@ -69,7 +69,7 @@
 {/snippet}
 
 {#snippet rowExtra(todo: Todo)}
-	{#if todo.type}<span class="type" data-testid="todo-type">{todo.type}</span>{/if}
+	{#if todo.type}<span class="type">{todo.type}</span>{/if}
 	<RevisedControl {todo} today={data.today} readonly={archived} />
 {/snippet}
 
@@ -82,7 +82,7 @@
 		<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS['chevron-left']} /></svg>Uni
 	</a>
 	<div class="title">
-		<span class="tile" data-testid="class-tile" data-color={cls.color} style:background={ASPECT_COLORS[cls.color].tint}>
+		<span class="tile" style:background={ASPECT_COLORS[cls.color].tint}>
 			<AspectIcon icon={cls.icon} color={cls.color} />
 		</span>
 		<h1>{cls.name}</h1>
@@ -100,7 +100,6 @@
 	<ProjectNotes
 		html={data.notesHtml}
 		notes={cls.notes}
-		testid="class-notes"
 		placeholder="No notes yet. Collect exam topics, formulas or links here."
 		editable={!archived}
 	/>
@@ -110,7 +109,6 @@
 		today={data.today}
 		sprintDays={data.sprintDays ?? undefined}
 		title="Todos"
-		testidPrefix="class-todos"
 		emptyText="No todos for this class yet. Add one above."
 		top={quickAdd}
 		extra={rowExtra}

@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { expect, test, reset, seed, setClock } from './helpers';
+import { aspectGroup, expect, test, reset, seed, setClock, todoRow as row, todoRows } from './helpers';
 
 // Wednesday 7 October 2026 in Berlin; its sprint week starts Monday 5 October.
 const NOW = '2026-10-07T10:00:00Z';
@@ -22,7 +22,15 @@ const ASPECTS = [
 
 const ACTIVE = { state: 'active', weekStart: '2026-10-05' } as const;
 
-const row = (page: Page, title: string) => page.getByTestId('todo-row').filter({ hasText: title });
+const overdueGroup = (page: Page) => page.getByRole('region', { name: /^Overdue\b/ });
+const summary = (page: Page) => page.getByRole('region', { name: 'Summary' });
+const PROMPT_LINKS = {
+	none: 'Plan your week',
+	planning: 'Continue planning',
+	'review-available': 'Review it',
+	'review-required': 'Review the sprint'
+} as const;
+const promptLink = (page: Page, phase: keyof typeof PROMPT_LINKS) => page.getByRole('link', { name: PROMPT_LINKS[phase], exact: true });
 
 test('Scenario: Today shows today\'s sprint todos and overdue todos', async ({ page, request }) => {
 	const { aspects } = await seed(request, {
@@ -37,17 +45,17 @@ test('Scenario: Today shows today\'s sprint todos and overdue todos', async ({ p
 	await page.goto('/');
 
 	await expect(page.getByRole('heading', { level: 1, name: 'Today' })).toBeVisible();
-	await expect(page.getByTestId('todo-row')).toHaveCount(2);
-	await expect(page.getByTestId(`aspect-group-${aspects[0]}`).getByRole('heading', { name: 'Health' })).toBeVisible();
+	await expect(todoRows(page)).toHaveCount(2);
+	await expect(aspectGroup(page, 'Health').getByRole('heading', { name: 'Health' })).toBeVisible();
 	await expect(row(page, 'Morning run')).toBeVisible();
-	await expect(page.getByTestId(`aspect-group-${aspects[0]}`).getByTestId('todo-row')).toHaveText(/Morning run/);
+	await expect(todoRows(aspectGroup(page, 'Health'))).toHaveText(/Morning run/);
 
-	const overdue = page.getByTestId('overdue-group');
+	const overdue = overdueGroup(page);
 	await expect(overdue.getByRole('heading', { name: /Overdue/ })).toBeVisible();
-	await expect(overdue.getByTestId('todo-row')).toHaveCount(1);
-	await expect(overdue.getByTestId('todo-row')).toContainText('Send tax receipts');
-	await expect(overdue.getByTestId('todo-row')).toContainText('Finance');
-	await expect(overdue.getByTestId('todo-row')).toHaveAttribute('data-overdue', 'true');
+	await expect(todoRows(overdue)).toHaveCount(1);
+	await expect(todoRows(overdue)).toContainText('Send tax receipts');
+	await expect(todoRows(overdue)).toContainText('Finance');
+	await expect(todoRows(overdue)).toContainText('Overdue');
 
 	await expect(row(page, 'Book a physio appointment')).toHaveCount(0);
 });
@@ -65,13 +73,13 @@ test('Scenario: Today at 1280 shows sprint progress per aspect', async ({ page, 
 	});
 	await page.goto('/');
 
-	const rail = page.getByTestId('context-rail');
+	const rail = page.getByRole('complementary', { name: 'This sprint' });
 	await expect(rail).toBeVisible();
-	await expect(page.getByTestId('rail-toggle')).toBeHidden();
+	await expect(page.getByRole('button', { name: 'This sprint', exact: true })).toBeHidden();
 	const items = rail.getByRole('listitem');
 	await expect(items).toHaveCount(2);
-	await expect(items.filter({ hasText: 'Health' }).getByTestId('progress')).toHaveText(/1 \/ 2/);
-	await expect(items.filter({ hasText: 'Finance' }).getByTestId('progress')).toHaveText(/0 \/ 1/);
+	await expect(items.filter({ hasText: 'Health' }).getByText(/1 \/ 2/)).toBeVisible();
+	await expect(items.filter({ hasText: 'Finance' }).getByText(/0 \/ 1/)).toBeVisible();
 });
 
 test('An overdue todo planned for today is listed once, under Overdue', async ({ page, request }) => {
@@ -83,7 +91,7 @@ test('An overdue todo planned for today is listed once, under Overdue', async ({
 	await page.goto('/');
 
 	await expect(row(page, 'Pay the rent')).toHaveCount(1);
-	await expect(page.getByTestId('overdue-group').getByTestId('todo-row')).toContainText('Pay the rent');
+	await expect(todoRows(overdueGroup(page))).toContainText('Pay the rent');
 });
 
 test('Scenario: Status toggle on Today', async ({ page, request }) => {
@@ -101,15 +109,15 @@ test('Scenario: Status toggle on Today', async ({ page, request }) => {
 		const checkbox = page.getByRole('checkbox', { name: `Done: ${title}` });
 		await checkbox.click();
 		await expect(checkbox).toHaveAttribute('aria-checked', 'true');
-		await expect(row(page, title)).toHaveAttribute('data-status', 'done');
-		await expect(row(page, title).locator('.title')).toHaveCSS('text-decoration-line', 'line-through');
+		await expect(row(page, title)).toContainText('Status: Done');
+		await expect(row(page, title).getByRole('button', { name: title, exact: true })).toHaveCSS('text-decoration-line', 'line-through');
 	}
 
 	// An overdue sprint todo is no longer overdue once done; it stays on Today, struck through.
 	await page.reload();
 	for (const title of ['Morning run', 'Pay the rent']) {
-		await expect(row(page, title)).toHaveAttribute('data-status', 'done');
-		await expect(row(page, title).locator('.title')).toHaveCSS('text-decoration-line', 'line-through');
+		await expect(row(page, title)).toContainText('Status: Done');
+		await expect(row(page, title).getByRole('button', { name: title, exact: true })).toHaveCSS('text-decoration-line', 'line-through');
 	}
 });
 
@@ -121,13 +129,13 @@ test('Scenario: Overdue todos outside the sprint offer the sprint instead of a c
 	});
 	await page.goto('/');
 
-	const overdue = page.getByTestId('overdue-group');
+	const overdue = overdueGroup(page);
 	await expect(row(page, 'Send tax receipts')).toBeVisible();
 	await expect(overdue.getByRole('checkbox')).toHaveCount(0);
 
 	await page.getByRole('button', { name: 'Add to sprint: Send tax receipts' }).click();
 	await expect(page.getByRole('checkbox', { name: 'Done: Send tax receipts' })).toHaveAttribute('aria-checked', 'false');
-	await expect(row(page, 'Send tax receipts')).toHaveAttribute('data-status', 'todo');
+	await expect(row(page, 'Send tax receipts')).toContainText('Status: To do');
 
 	await page.goto('/sprint');
 	await expect(row(page, 'Send tax receipts').getByLabel('Status')).toHaveValue('todo');
@@ -135,7 +143,7 @@ test('Scenario: Overdue todos outside the sprint offer the sprint instead of a c
 
 test('Scenario: Quick add is shown in every Today state', async ({ page, request }) => {
 	const addButton = page.getByRole('button', { name: 'Add a todo' });
-	const phase = (name: string) => expect(page.getByTestId('sprint-prompt')).toHaveAttribute('data-phase', name);
+	const phase = (name: keyof typeof PROMPT_LINKS) => expect(promptLink(page, name)).toBeVisible();
 
 	await seed(request, { aspects: [...ASPECTS] });
 	await page.goto('/');
@@ -153,7 +161,7 @@ test('Scenario: Quick add is shown in every Today state', async ({ page, request
 	await setClock(request, NOW);
 	await seed(request, { aspects: [...ASPECTS], sprint: ACTIVE });
 	await page.goto('/');
-	await expect(page.getByTestId('sprint-prompt')).toHaveCount(0);
+	await expect(page.getByRole('link', { name: /^(Plan your week|Continue planning|Review it|Review the sprint)$/ })).toHaveCount(0);
 	await expect(addButton).toBeVisible();
 
 	await setClock(request, '2026-10-11T10:00:00Z');
@@ -186,8 +194,8 @@ test('Scenario: Quick add on Today adds to the sprint on today', async ({ page, 
 
 	const added = row(page, 'Stretch for ten minutes');
 	await expect(added).toHaveAttribute('data-day', TODAY);
-	await expect(added).toHaveAttribute('data-status', 'todo');
-	await expect(page.getByTestId(`aspect-group-${aspects[0]}`)).toContainText('Stretch for ten minutes');
+	await expect(added).toContainText('Status: To do');
+	await expect(aspectGroup(page, 'Health')).toContainText('Stretch for ten minutes');
 
 	// Today lists only active-sprint todos, so surviving a reload proves the membership.
 	await page.reload();
@@ -210,28 +218,28 @@ test('Scenario: Quick add on Today outside the sprint\'s days saves a backlog to
 
 	await quickAdd(page, 'Call the landlord');
 	await expect(page.getByRole('form', { name: 'New todo' }).getByLabel('Title')).toHaveValue('');
-	await expect(page.getByTestId(`aspect-group-${aspects[0]}`)).toContainText('Call the landlord');
+	await expect(aspectGroup(page, 'Health')).toContainText('Call the landlord');
 
 	await page.goto('/backlog');
 	const added = row(page, 'Call the landlord');
 	await expect(added).toBeVisible();
 	await expect(added).toHaveAttribute('data-day', '');
-	await expect(added.locator('.due')).toHaveText('Today');
+	await expect(added.getByText('Today', { exact: true })).toHaveText('Today');
 
 	await reset(request);
 	const required = await seed(request, { aspects: [...ASPECTS], sprint: ACTIVE });
 	await setClock(request, '2026-10-12T10:00:00Z');
 	await page.goto('/');
-	await expect(page.getByTestId('sprint-prompt')).toBeVisible();
+	await expect(promptLink(page, 'review-required')).toBeVisible();
 
 	await quickAdd(page, 'Renew the passport');
-	await expect(page.getByTestId(`aspect-group-${required.aspects[0]}`)).toContainText('Renew the passport');
+	await expect(aspectGroup(page, 'Health')).toContainText('Renew the passport');
 
 	await page.goto('/backlog');
 	const fallback = row(page, 'Renew the passport');
 	await expect(fallback).toBeVisible();
 	await expect(fallback).toHaveAttribute('data-day', '');
-	await expect(fallback.locator('.due')).toHaveText('Today');
+	await expect(fallback.getByText('Today', { exact: true })).toHaveText('Today');
 });
 
 test('Scenario: Quick add on Today without any sprint saves a backlog todo due today', async ({ page, request }) => {
@@ -239,13 +247,13 @@ test('Scenario: Quick add on Today without any sprint saves a backlog todo due t
 	await page.goto('/');
 
 	await quickAdd(page, 'Call the landlord');
-	await expect(page.getByTestId(`aspect-group-${aspects[0]}`)).toContainText('Call the landlord');
+	await expect(aspectGroup(page, 'Health')).toContainText('Call the landlord');
 
 	await page.reload();
-	await expect(page.getByTestId(`aspect-group-${aspects[0]}`)).toContainText('Call the landlord');
+	await expect(aspectGroup(page, 'Health')).toContainText('Call the landlord');
 
 	await page.goto('/backlog');
-	await expect(row(page, 'Call the landlord').locator('.due')).toHaveText('Today');
+	await expect(row(page, 'Call the landlord').getByText('Today', { exact: true })).toHaveText('Today');
 });
 
 test('Scenario: Quick add on a phone opens the sheet in every state', async ({ page, request }) => {
@@ -260,7 +268,7 @@ test('Scenario: Quick add on a phone opens the sheet in every state', async ({ p
 	await sheet.getByRole('button', { name: 'Add todo' }).click();
 
 	await expect(sheet).toBeHidden();
-	await expect(page.getByTestId(`aspect-group-${aspects[0]}`)).toContainText('Call the landlord');
+	await expect(aspectGroup(page, 'Health')).toContainText('Call the landlord');
 });
 
 test('Scenario: Backlog todos due today are listed only when today is not a sprint day', async ({ page, request }) => {
@@ -270,7 +278,7 @@ test('Scenario: Backlog todos due today are listed only when today is not a spri
 		todos: [{ title: 'Call the landlord', aspect: 1, dueDate: TODAY }]
 	});
 	await page.goto('/');
-	await expect(page.getByTestId('empty-state')).toBeVisible();
+	await expect(page.getByText(/Nothing planned for today\./)).toBeVisible();
 	await expect(row(page, 'Call the landlord')).toHaveCount(0);
 
 	await reset(request);
@@ -281,8 +289,8 @@ test('Scenario: Backlog todos due today are listed only when today is not a spri
 	});
 	await setClock(request, '2026-10-11T18:00:00Z');
 	await page.goto('/');
-	await expect(page.getByTestId(`aspect-group-${next.aspects[1]}`)).toContainText('Call the landlord');
-	await expect(page.getByTestId('empty-state')).toHaveCount(0);
+	await expect(aspectGroup(page, 'Finance')).toContainText('Call the landlord');
+	await expect(page.getByText(/Nothing planned for today\./)).toHaveCount(0);
 
 	await reset(request);
 	await seed(request, { aspects: [...ASPECTS], todos: [{ title: 'Call the landlord', aspect: 1, dueDate: '2026-10-11' }] });
@@ -304,7 +312,7 @@ test('Scenario: Due-today backlog todos offer the sprint instead of a checkbox',
 	await expect(page.getByRole('checkbox')).toHaveCount(0);
 	await page.getByRole('button', { name: 'Add to sprint: Call the landlord' }).click();
 	await expect(page.getByRole('checkbox', { name: 'Done: Call the landlord' })).toHaveAttribute('aria-checked', 'false');
-	await expect(row(page, 'Call the landlord')).toHaveAttribute('data-status', 'todo');
+	await expect(row(page, 'Call the landlord')).toContainText('Status: To do');
 
 	await page.goto('/sprint');
 	await expect(row(page, 'Call the landlord').getByLabel('Status')).toHaveValue('todo');
@@ -324,19 +332,18 @@ test('Quick add stays on the Sunday before next week\'s sprint starts', async ({
 	await page.goto('/');
 
 	await expect(page.getByRole('button', { name: 'Add a todo' })).toBeVisible();
-	await expect(page.getByTestId('empty-state')).toBeVisible();
+	await expect(page.getByText(/Nothing planned for today\./)).toBeVisible();
 });
 
 test('Scenario: Today without an active sprint prompts to plan', async ({ page, request }) => {
 	await seed(request, { aspects: [...ASPECTS], todos: [{ title: 'Send tax receipts', dueDate: '2026-10-06' }] });
 	await page.goto('/');
 
-	const prompt = page.getByTestId('sprint-prompt');
-	await expect(prompt).toHaveAttribute('data-phase', 'none');
-	await expect(prompt.getByRole('link', { name: 'Plan your week' })).toHaveAttribute('href', '/sprint/plan');
+	await expect(promptLink(page, 'none')).toBeVisible();
+	await expect(promptLink(page, 'none')).toHaveAttribute('href', '/sprint/plan');
 	await expect(row(page, 'Send tax receipts')).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Add a todo' })).toBeVisible();
-	await expect(page.getByTestId('empty-state')).toHaveCount(0);
+	await expect(page.getByText(/Nothing planned for today\./)).toHaveCount(0);
 });
 
 test('Scenario: Today with a pending review prompts to review', async ({ page, request }) => {
@@ -349,17 +356,15 @@ test('Scenario: Today with a pending review prompts to review', async ({ page, r
 	// Sunday of the sprint's week: the review is available and the day is still the sprint's.
 	await setClock(request, '2026-10-11T10:00:00Z');
 	await page.goto('/');
-	let prompt = page.getByTestId('sprint-prompt');
-	await expect(prompt).toHaveAttribute('data-phase', 'review-available');
-	await expect(prompt.getByRole('link', { name: 'Review it' })).toHaveAttribute('href', '/sprint/review');
+	await expect(promptLink(page, 'review-available')).toBeVisible();
+	await expect(promptLink(page, 'review-available')).toHaveAttribute('href', '/sprint/review');
 	await expect(row(page, 'Weekly reset')).toBeVisible();
 
 	// The Monday after: the review is required and blocks adding to the old sprint.
 	await setClock(request, '2026-10-12T10:00:00Z');
 	await page.goto('/');
-	prompt = page.getByTestId('sprint-prompt');
-	await expect(prompt).toHaveAttribute('data-phase', 'review-required');
-	await expect(prompt.getByRole('link', { name: 'Review the sprint' })).toHaveAttribute('href', '/sprint/review');
+	await expect(promptLink(page, 'review-required')).toBeVisible();
+	await expect(promptLink(page, 'review-required')).toHaveAttribute('href', '/sprint/review');
 	await expect(page.getByRole('button', { name: 'Add a todo' })).toBeVisible();
 });
 
@@ -374,11 +379,11 @@ test('Scenario: Nothing today shows a calm empty state', async ({ page, request 
 	});
 	await page.goto('/');
 
-	const empty = page.getByTestId('empty-state');
+	const empty = page.getByText(/Nothing planned for today\./);
 	await expect(empty).toContainText('Nothing planned for today.');
 	await expect(empty.getByRole('link', { name: 'week view' })).toHaveAttribute('href', '/sprint?view=week');
-	await expect(page.getByTestId('todo-row')).toHaveCount(0);
-	await expect(page.getByTestId('sprint-prompt')).toHaveCount(0);
+	await expect(todoRows(page)).toHaveCount(0);
+	await expect(page.getByRole('link', { name: /^(Plan your week|Continue planning|Review it|Review the sprint)$/ })).toHaveCount(0);
 });
 
 test('Scenario: Sunday after the review prompts to plan next week', async ({ page, request }) => {
@@ -393,11 +398,10 @@ test('Scenario: Sunday after the review prompts to plan next week', async ({ pag
 	await expect(page).toHaveURL(/\/sprint\/plan$/);
 
 	await page.goto('/');
-	const prompt = page.getByTestId('sprint-prompt');
-	await expect(prompt).toHaveAttribute('data-phase', 'planning');
-	await prompt.getByRole('link', { name: 'Continue planning' }).click();
+	await expect(promptLink(page, 'planning')).toBeVisible();
+	await promptLink(page, 'planning').click();
 	await expect(page).toHaveURL(/\/sprint\/plan$/);
-	await expect(page.getByTestId('plan-week')).toHaveText('Mon 12 – Sun 18 Oct');
+	await expect(page.getByText('Mon 12 – Sun 18 Oct', { exact: true })).toBeVisible();
 });
 
 test('Scenario: Planned-today backlog todo shows on Today between sprints', async ({ page, request }) => {
@@ -413,9 +417,9 @@ test('Scenario: Planned-today backlog todo shows on Today between sprints', asyn
 	await page.goto('/');
 
 	await expect(page.getByRole('heading', { level: 1, name: 'Today' })).toBeVisible();
-	await expect(page.getByTestId(`aspect-group-${aspects[1]}`).getByTestId('todo-row')).toHaveText(/Dentist/);
+	await expect(todoRows(aspectGroup(page, 'Finance'))).toHaveText(/Dentist/);
 	await expect(row(page, 'Next week')).toHaveCount(0);
-	await expect(page.getByTestId('summary-header').getByTestId('summary-figure')).toHaveText('1');
+	await expect(summary(page).getByText(/^1\s*open today$/)).toBeVisible();
 });
 
 test('Scenario: Header counts open todos on Today', async ({ page, request }) => {
@@ -431,9 +435,8 @@ test('Scenario: Header counts open todos on Today', async ({ page, request }) =>
 	});
 	await page.goto('/');
 
-	const header = page.getByTestId('summary-header');
-	await expect(header.getByTestId('summary-figure')).toHaveText('3');
-	await expect(header).toContainText('open today');
+	const header = summary(page);
+	await expect(header.getByText(/^3\s*open today$/)).toBeVisible();
 });
 
 test('Scenario: Header shows sprint progress during a sprint', async ({ page, request }) => {
@@ -459,20 +462,20 @@ test('Scenario: Header shows sprint progress during a sprint', async ({ page, re
 	});
 	await page.goto('/');
 
-	const header = page.getByTestId('summary-header');
-	await expect(header.getByTestId('summary-line')).toHaveText('Sprint 3 / 9 done · 3 days left');
-	await expect(header.getByTestId('summary-bar').locator('span')).toHaveCount(2);
+	const header = summary(page);
+	await expect(header.getByText('Sprint 3 / 9 done · 3 days left', { exact: true })).toBeVisible();
+	await expect(header.locator('[aria-hidden="true"] > span')).toHaveCount(2);
 });
 
 test('Scenario: Header without a sprint shows only the count', async ({ page, request }) => {
 	await seed(request, { aspects: [...ASPECTS], todos: [{ title: 'Pay the rent', aspect: 1, dueDate: TODAY }] });
 	await page.goto('/');
 
-	const header = page.getByTestId('summary-header');
-	await expect(header.getByTestId('summary-figure')).toHaveText('1');
-	await expect(header).toContainText('open today');
-	await expect(header.getByTestId('summary-line')).toHaveCount(0);
-	await expect(header.getByTestId('summary-bar')).toHaveCount(0);
+	const header = summary(page);
+	await expect(header.getByText(/^1\s*open today$/)).toBeVisible();
+	await expect(header).toHaveText(/^\s*1\s*open today\s*$/);
+	await expect(header.getByText(/^Sprint \d+ \/ \d+ done/)).toHaveCount(0);
+	await expect(header.locator('[aria-hidden="true"]')).toHaveCount(0);
 });
 
 test('Scenario: Overdue todo planned for today shows once on Today', async ({ page, request }) => {
@@ -483,7 +486,7 @@ test('Scenario: Overdue todo planned for today shows once on Today', async ({ pa
 	await page.goto('/');
 
 	await expect(row(page, 'Send tax receipts')).toHaveCount(1);
-	await expect(page.getByTestId('overdue-group').getByTestId('todo-row')).toHaveCount(1);
+	await expect(todoRows(overdueGroup(page))).toHaveCount(1);
 });
 
 test('Scenario: Changing or removing Planned in Today\'s quick add', async ({ page, request }) => {

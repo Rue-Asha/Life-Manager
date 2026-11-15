@@ -14,7 +14,7 @@
 	const submit: SubmitFunction = () => async ({ update }) => update({ reset: false });
 </script>
 
-<span class="rev" class:today={revisedToday} data-testid="revised">
+<span class="rev" class:today={revisedToday}>
 	{#if todo.revisedAt}
 		<svg viewBox="0 0 24 24" aria-hidden="true"><path d={revisedToday ? UI_ICONS.check : HISTORY} /></svg>
 	{/if}{revisedLabel(todo.revisedAt, today)}

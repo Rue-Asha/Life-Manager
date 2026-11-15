@@ -1,5 +1,6 @@
-import type { Page } from '@playwright/test';
-import { expect, test, reset, seed, setClock } from './helpers';
+import type { Locator, Page } from '@playwright/test';
+import { dayColumn, expect, test, reset, seed, setClock, todoRow, todoRows } from './helpers';
+import { backlogRail, boardColumn, contextRail, railToggle, sprintList, sprintPrompt } from './sprint-locators';
 
 // Monday 5 October 2026, morning in Berlin: the first sprint runs 5–11 October.
 const MONDAY = '2026-10-05T07:00:00Z';
@@ -11,8 +12,8 @@ test.afterAll(async ({ request }) => {
 	await setClock(request, null);
 });
 
-const row = (page: Page, title: string) => page.getByTestId('todo-row').filter({ hasText: title });
-const day = (page: Page, key: string) => page.getByTestId(`day-column-${key}`);
+const row = todoRow;
+const day = (page: Page, key: string) => dayColumn(page, key === 'unscheduled' ? null : key);
 const shot = (page: Page, name: string) =>
 	page.screenshot({ path: `test-results/shots/journey-${name}-1280.png`, fullPage: true });
 
@@ -55,7 +56,7 @@ test('Done-when journey', async ({ page, request }) => {
 	await rule.getByRole('checkbox', { name: 'Tuesday' }).check();
 	await rule.getByRole('checkbox', { name: 'Thursday' }).check();
 	await rule.getByRole('button', { name: 'Add rule' }).click();
-	await expect(page.getByTestId('rule-row')).toContainText('Gym');
+	await expect(page.getByRole('listitem').filter({ hasText: 'Gym' })).toHaveCount(1);
 	await shot(page, 'recurring');
 
 	// Capture
@@ -69,31 +70,31 @@ test('Done-when journey', async ({ page, request }) => {
 
 	// Plan
 	await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Sprint' }).click();
-	await page.getByTestId('sprint-prompt').getByRole('link').click();
+	await sprintPrompt(page).getByRole('link').click();
 	await expect(page).toHaveURL(/\/sprint\/plan$/);
-	const planned = page.getByTestId('plan-sprint');
-	await expect(page.getByTestId('plan-suggestions').getByTestId('todo-row')).toHaveText([/Submit lab report/]);
+	const planned = page.getByRole('region', { name: /^This sprint/ });
+	await expect(todoRows(page.getByRole('region', { name: /^Due this week/ }))).toHaveText([/Submit lab report/]);
 	await row(page, 'Read chapter 4').dragTo(planned);
 	await row(page, 'Book a physio appointment').dragTo(planned);
-	await expect(planned.getByTestId('todo-row')).toHaveCount(3);
+	await expect(todoRows(planned)).toHaveCount(3);
 	await shot(page, 'plan');
 	await page.getByRole('button', { name: 'Start sprint with 3 todos' }).click();
 	await expect(page).toHaveURL(/\/sprint$/);
 
 	// Work it in all three views
 	await page.getByRole('checkbox', { name: 'Done: Book a physio appointment' }).click();
-	await expect(row(page, 'Book a physio appointment')).toHaveAttribute('data-status', 'done');
+	await expect(row(page, 'Book a physio appointment').getByLabel('Status')).toHaveValue('done');
 	await shot(page, 'sprint-aspect');
 
 	await switchView(page, 'Board', 'board');
-	await row(page, 'Read chapter 4').dragTo(page.getByTestId('board-column-doing'), { sourcePosition: { x: 8, y: 8 } });
-	await expect(page.getByTestId('board-column-doing')).toContainText('Read chapter 4');
-	await expect(page.getByTestId('board-column-done')).toContainText('Book a physio appointment');
+	await row(page, 'Read chapter 4').dragTo(boardColumn(page, 'doing'), { sourcePosition: { x: 8, y: 8 } });
+	await expect(boardColumn(page, 'doing')).toContainText('Read chapter 4');
+	await expect(boardColumn(page, 'done')).toContainText('Book a physio appointment');
 	await shot(page, 'sprint-board');
 
 	await switchView(page, 'Week', 'week');
 	for (const gymDay of ['2026-10-06', '2026-10-08']) {
-		await expect(day(page, gymDay).getByTestId('todo-row').filter({ hasText: 'Gym' })).toBeVisible();
+		await expect(row(day(page, gymDay), 'Gym')).toBeVisible();
 	}
 	// Without a day, the dated todo sits on its due date until it is moved.
 	await expect(day(page, '2026-10-08')).toContainText('Submit lab report');
@@ -111,9 +112,9 @@ test('Done-when journey', async ({ page, request }) => {
 	// Review on Sunday
 	await setClock(request, SUNDAY);
 	await page.goto('/');
-	await page.getByTestId('sprint-prompt').getByRole('link', { name: 'Review it' }).click();
+	await sprintPrompt(page).getByRole('link', { name: 'Review it' }).click();
 	await expect(page).toHaveURL(/\/sprint\/review$/);
-	await expect(page.getByTestId('review-done')).toContainText('Done 1');
+	await expect(page.getByRole('group', { name: 'Done todos' })).toContainText('Done 1');
 	await page.getByRole('radiogroup', { name: 'Submit lab report' }).getByText('Back to backlog').click();
 	for (const gym of await page.getByRole('radiogroup', { name: 'Gym' }).all()) await gym.getByText('Drop').click();
 	await shot(page, 'review');
@@ -121,20 +122,20 @@ test('Done-when journey', async ({ page, request }) => {
 
 	// Plan the next week
 	await expect(page).toHaveURL(/\/sprint\/plan$/);
-	await expect(page.getByTestId('plan-week')).toHaveText('Mon 12 – Sun 18 Oct');
-	await expect(planned.getByTestId('todo-row')).toHaveText([/Read chapter 4/]);
-	await expect(row(page, 'Read chapter 4')).toHaveAttribute('data-status', 'doing');
-	await expect(page.getByTestId('plan-backlog')).toContainText('Submit lab report');
+	await expect(page.getByText('Mon 12 – Sun 18 Oct', { exact: true })).toBeVisible();
+	await expect(todoRows(planned)).toHaveText([/Read chapter 4/]);
+	await expect(row(page, 'Read chapter 4')).toContainText('Status: Doing');
+	await expect(backlogRail(page)).toContainText('Submit lab report');
 	await row(page, 'Clean the fridge').dragTo(planned);
 	await page.getByRole('button', { name: 'Start sprint with 2 todos' }).click();
 	await expect(page).toHaveURL(/\/sprint$/);
 
 	await switchView(page, 'Week', 'week');
 	for (const gymDay of ['2026-10-13', '2026-10-15']) {
-		await expect(day(page, gymDay).getByTestId('todo-row')).toContainText('Gym');
+		await expect(todoRows(day(page, gymDay))).toContainText('Gym');
 	}
-	await expect(page.getByTestId('backlog-rail').getByTestId('todo-row')).toHaveText([/Submit lab report/]);
-	await expect(page.getByTestId('todo-row')).toHaveCount(5);
+	await expect(hiddenRows(backlogRail(page))).toHaveText([/Submit lab report/]);
+	await expect(hiddenRows(page)).toHaveCount(5);
 	await shot(page, 'next-week');
 });
 
@@ -157,40 +158,42 @@ async function seedManaged(request: Parameters<typeof seed>[0]) {
 	});
 }
 
+const hiddenRows = (scope: Page | Locator) => scope.getByRole('listitem', { name: /\S/, includeHidden: true });
+
 async function expectAspectPage(page: Page, aspect: number) {
 	await expect(page).toHaveURL(new RegExp(`/aspects/${aspect}$`));
 	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Uni');
 	await expect(row(page, 'Read chapter 4')).toBeVisible();
-	await expect(page.getByTestId('aspect-sprint').getByTestId('todo-row')).toHaveText([/Read chapter 4/]);
+	await expect(todoRows(page.getByRole('region', { name: /^This sprint/ }))).toHaveText([/Read chapter 4/]);
 	await expect(row(page, 'Read chapter 4')).toHaveAttribute('data-day', '2026-10-08');
-	await expect(page.getByTestId('aspect-backlog').getByTestId('todo-row')).toHaveText([/Draft the cover letter/]);
+	await expect(todoRows(page.getByRole('region', { name: /^Backlog\b/ }))).toHaveText([/Draft the cover letter/]);
 }
 
 test('Sprint management journey', async ({ page, request }) => {
 	const { aspects } = await seedManaged(request);
-	const rail = page.getByTestId('backlog-rail');
+	const rail = backlogRail(page);
 	const menu = page.getByRole('menu');
 
 	// Pull from the docked rail
 	await page.goto('/sprint');
 	await page.getByRole('button', { name: 'Add to sprint: Read chapter 4' }).click();
-	await expect(page.getByTestId('sprint-list').getByTestId('todo-row').filter({ hasText: 'Read chapter 4' })).toBeVisible();
-	await expect(rail.getByTestId('todo-row').filter({ hasText: 'Read chapter 4' })).toHaveCount(0);
+	await expect(row(sprintList(page), 'Read chapter 4')).toBeVisible();
+	await expect(row(rail, 'Read chapter 4')).toHaveCount(0);
 
 	// Give it a day from the Week's overlay rail, where Unscheduled lives
 	await switchView(page, 'Week', 'week');
-	await page.getByTestId('rail-toggle').click();
+	await railToggle(page).click();
 	await expect(day(page, 'unscheduled')).toContainText('Read chapter 4');
 	await row(page, 'Read chapter 4').dragTo(day(page, '2026-10-08'), { sourcePosition: { x: 8, y: 8 } });
 	await expect(day(page, '2026-10-08')).toContainText('Read chapter 4');
 
 	// Send another back from its card
-	await day(page, '2026-10-06').getByTestId('row-actions').click();
+	await day(page, '2026-10-06').getByRole('button', { name: 'More actions' }).click();
 	await menu.getByRole('menuitem', { name: 'Move to backlog' }).click();
-	await expect(day(page, '2026-10-06').getByTestId('todo-row')).toHaveCount(0);
-	await expect(rail.getByTestId('todo-row').filter({ hasText: 'Draft the cover letter' })).toBeVisible();
-	await page.getByTestId('rail-toggle').click();
-	await expect(page.getByTestId('context-rail')).toBeHidden();
+	await expect(todoRows(day(page, '2026-10-06'))).toHaveCount(0);
+	await expect(row(rail, 'Draft the cover letter')).toBeVisible();
+	await railToggle(page).click();
+	await expect(contextRail(page)).toBeHidden();
 	await shot(page, 'manage-week');
 
 	// Its aspect page shows both sides of the pipeline
@@ -204,33 +207,33 @@ test.describe('on a touch phone', () => {
 
 	test('Sprint management journey', async ({ page, request }) => {
 		const { aspects } = await seedManaged(request);
-		const sheet = page.getByTestId('manage-sheet');
+		const sheet = backlogRail(page.getByRole('dialog', { name: 'Backlog' }));
 		const days = page.getByRole('navigation', { name: 'Days' });
 
 		// Pull through the Manage sheet
 		await page.goto('/sprint');
-		await page.getByTestId('manage-button').tap();
+		await page.getByRole('button', { name: 'Manage', exact: true }).tap();
 		await sheet.getByRole('button', { name: 'Add to sprint: Read chapter 4' }).tap();
-		await expect(sheet.getByTestId('todo-row').filter({ hasText: 'Read chapter 4' })).toHaveCount(0);
+		await expect(row(sheet, 'Read chapter 4')).toHaveCount(0);
 		await page.getByRole('button', { name: 'Close' }).tap();
-		await expect(page.getByTestId('sprint-list').getByTestId('todo-row').filter({ hasText: 'Read chapter 4' })).toBeVisible();
+		await expect(row(sprintList(page), 'Read chapter 4')).toBeVisible();
 
 		// Give it a day with the day picker
 		await page.getByRole('navigation', { name: 'Sprint view' }).getByRole('link', { name: 'Week' }).tap();
 		await expect(page).toHaveURL(/view=week$/);
 		await days.getByRole('button', { name: 'Unscheduled' }).tap();
 		await row(page, 'Read chapter 4').getByLabel('Day').selectOption({ label: 'Thu 8' });
-		await expect(day(page, 'unscheduled').getByTestId('todo-row')).toHaveCount(0);
+		await expect(todoRows(day(page, 'unscheduled'))).toHaveCount(0);
 		await days.getByRole('button', { name: 'Thu 8' }).tap();
 		await expect(day(page, '2026-10-08')).toContainText('Read chapter 4');
 
 		// Send another back from its row
 		await days.getByRole('button', { name: 'Tue 6' }).tap();
-		await day(page, '2026-10-06').getByTestId('row-actions').tap();
+		await day(page, '2026-10-06').getByRole('button', { name: 'More actions' }).tap();
 		await page.getByRole('menu').getByRole('menuitem', { name: 'Move to backlog' }).tap();
-		await expect(day(page, '2026-10-06').getByTestId('todo-row')).toHaveCount(0);
-		await page.getByTestId('manage-button').tap();
-		await expect(sheet.getByTestId('todo-row').filter({ hasText: 'Draft the cover letter' })).toBeVisible();
+		await expect(todoRows(day(page, '2026-10-06'))).toHaveCount(0);
+		await page.getByRole('button', { name: 'Manage', exact: true }).tap();
+		await expect(row(sheet, 'Draft the cover letter')).toBeVisible();
 		await page.getByRole('button', { name: 'Close' }).tap();
 
 		// Its aspect page, through Lists → Aspects

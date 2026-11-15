@@ -257,8 +257,8 @@ planning. Carried todos keep their status and lose their day and slot; todos sen
 
 ### Requirement: Planned todos join their week's sprint
 Starting a sprint SHALL pull every not-done backlog todo whose planned date falls in the new sprint's week into the
-sprint, keeping day and slot. The plan page SHALL list these todos in a section "Joins automatically" (test id
-`plan-auto`) with their planned label and without a pull or unpull control, and they are in neither the plan page's
+sprint, keeping day and slot. The plan page SHALL list these todos in a section "Joins automatically" (a region named by its
+heading) with their planned label and without a pull or unpull control, and they are in neither the plan page's
 backlog list nor its suggestions; to exclude one, Rue changes its date. Done todos are not pulled. Pulling a backlog
 todo by hand into the draft clears its day and slot as before. Todos of archived semesters are read-only: like the
 missed pull, the week pull skips them, and they are not listed under "Joins automatically"; they stay in the backlog

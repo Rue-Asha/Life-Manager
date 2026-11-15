@@ -6,7 +6,7 @@
 	const percent = $derived(total === 0 ? 0 : Math.round((done / total) * 100));
 </script>
 
-<span class="progress" data-testid="progress">
+<span class="progress">
 	<span class="count">{done} / {total}</span>
 	<span class="track" aria-hidden="true">
 		<span class="fill" style:width="{percent}%" style:background={ASPECT_COLORS[color].fg}></span>

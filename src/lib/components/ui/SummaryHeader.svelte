@@ -17,12 +17,12 @@
 	} = $props();
 </script>
 
-<section class="summary" data-testid="summary-header">
+<section class="summary" aria-label="Summary">
 	{#if context}<p class="context">{context}</p>{/if}
-	<p class="figure"><span data-testid="summary-figure">{figure}</span><small>{label}</small></p>
-	{#if line}<p class="line" data-testid="summary-line">{@render line()}</p>{/if}
+	<p class="figure"><span>{figure}</span><small>{label}</small></p>
+	{#if line}<p class="line">{@render line()}</p>{/if}
 	{#if segments.length}
-		<div class="bar" aria-hidden="true" data-testid="summary-bar">
+		<div class="bar" aria-hidden="true">
 			{#each segments as s, i (i)}
 				<span style:flex={s.total}>
 					<i style:width="{s.total ? (s.done / s.total) * 100 : 0}%" style:background={ASPECT_COLORS[s.color].bright}></i>

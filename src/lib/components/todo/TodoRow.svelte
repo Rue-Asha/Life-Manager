@@ -13,7 +13,7 @@
 	import Button from '../ui/Button.svelte';
 	import Toast from '../ui/Toast.svelte';
 	import DayPicker from './DayPicker.svelte';
-	import StatusControl from './StatusControl.svelte';
+	import StatusControl, { STATUS_LABELS } from './StatusControl.svelte';
 	import TodoEditor from './TodoEditor.svelte';
 	import { submit, type ActionError } from './form';
 	import { dueLabel } from './format';
@@ -139,7 +139,6 @@
 			<button
 				type="button"
 				class="more"
-				data-testid="row-actions"
 				aria-label="More actions"
 				aria-haspopup="menu"
 				aria-expanded={menuOpen}
@@ -187,11 +186,8 @@
 	class:chip={variant === 'chip'}
 	class:done
 	class:expanded
-	data-testid="todo-row"
-	data-todo-id={todo.id}
-	data-status={todo.status}
+	aria-label={todo.title}
 	data-day={shownDay(todo) ?? ''}
-	data-overdue={overdue}
 	style:--a={ASPECT_COLORS[aspect.color].fg}
 >
 	{#if expanded}
@@ -212,22 +208,23 @@
 		{/if}
 
 		<div class="main">
-			{#if variant === 'chip' && planned}<span class="slot num" data-testid="planned-label">{planned}</span>{/if}
+			{#if variant === 'chip' && planned}<span class="slot num" role="time">{planned}</span>{/if}
 			{#if readonly}
 				<span class="title">{todo.title}</span>
 			{:else}
 				<button type="button" class="title" onclick={() => (editing = true)}>{todo.title}</button>
 			{/if}
+			{#if !movable}<span class="visually-hidden">Status: {STATUS_LABELS[todo.status]}</span>{/if}
 			{#if variant === 'card'}
 				<div class="meta">
-					<span data-testid="aspect-tag"><i class="dot"></i>{aspect.name}</span>
+					<span><i class="dot"></i>{aspect.name}</span>
 					{#if todo.dueDate && !done}
 						<span class="num" class:late={overdue}>
 							{#if overdue}<span class="visually-hidden">Overdue,</span>{/if}
 							{dueLabel(todo.dueDate, today)}
 						</span>
 					{/if}
-					{#if planned}<span class="num" data-testid="planned-label">{planned}</span>{/if}
+					{#if planned}<span class="num" role="time">{planned}</span>{/if}
 					{#if todo.priority && !done}
 						<span class="prio" data-p={todo.priority} role="img" aria-label="Priority {todo.priority}">
 							<i></i><i></i><i></i>
@@ -239,7 +236,7 @@
 				{#if mixed}
 					<span><i class="dot"></i>{aspect.name}</span>
 				{/if}
-				{#if planned}<span class="num" data-testid="planned-label">{planned}</span>{/if}
+				{#if planned}<span class="num" role="time">{planned}</span>{/if}
 				{#if extra}{@render extra(todo)}{:else if classRef}<ClassBadge {classRef} type={todo.type} />{/if}
 				{#if todo.recurring}
 					<span><svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.repeat} /></svg>Recurring</span>
@@ -252,7 +249,7 @@
 				{/if}
 				{#if todo.notes}<span>Notes</span>{/if}
 				{#if project}
-					<span><a class="badge" href="/projects/{project.id}" data-testid="project-badge"><svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.folder} /></svg>{project.name}</a></span>
+					<span><a class="badge" href="/projects/{project.id}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.folder} /></svg>{project.name}</a></span>
 				{/if}
 			</div>
 			{/if}

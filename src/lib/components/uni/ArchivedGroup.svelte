@@ -14,10 +14,11 @@
 	} = $props();
 
 	let expanded = $state(false);
+	const uid = $props.id();
 </script>
 
-<section class="archived" data-testid="semester-archived-group">
-	<h2 class="toggle">
+<section class="archived" aria-labelledby="{uid}-h">
+	<h2 class="toggle" id="{uid}-h">
 		<button type="button" aria-expanded={expanded} onclick={() => (expanded = !expanded)}>
 			<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d={GLYPHS['chevron-right']} /></svg>
 			<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UNI_GLYPHS.archive} /></svg>Archived ({semesters.length})

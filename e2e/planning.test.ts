@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
-import { expect, test, reset, seed, setClock } from './helpers';
+import { expect, test, reset, seed, setClock, todoRow as row, todoRows } from './helpers';
+import { sprintList } from './sprint-locators';
 
 // Wednesday 7 October 2026 in Berlin; the target week runs Monday 5 to Sunday 11 October.
 const NOW = '2026-10-07T10:00:00Z';
@@ -18,15 +19,16 @@ const ASPECTS = [
 	{ name: 'Uni', color: 'lavender', icon: 'cap' }
 ] as const;
 
-const row = (page: Page, title: string) => page.getByTestId('todo-row').filter({ hasText: title });
+const planSprint = (page: Page) => page.getByRole('region', { name: /^This sprint\b/ });
+const planBacklog = (page: Page) => page.getByRole('region', { name: /^Backlog\b/ });
 
 // Starting lands on the sprint view for the target week; what wasn't pulled stays in the backlog,
 // and planning is over.
 async function expectStarted(page: Page, inSprint: string[], inBacklog: string[]) {
 	await expect(page).toHaveURL(/\/sprint$/);
-	await expect(page.getByTestId('sprint-week')).toHaveText('Mon 5 – Sun 11 Oct');
-	await expect(page.getByTestId('sprint-list').getByTestId('todo-row')).toHaveCount(inSprint.length);
-	for (const title of inSprint) await expect(row(page, title)).toHaveAttribute('data-status', 'todo');
+	await expect(page.getByText('Mon 5 – Sun 11 Oct', { exact: true })).toBeVisible();
+	await expect(todoRows(sprintList(page))).toHaveCount(inSprint.length);
+	for (const title of inSprint) await expect(row(page, title)).toContainText('Status: To do');
 	await page.goto('/backlog');
 	for (const title of inSprint) await expect(row(page, title)).toHaveCount(0);
 	for (const title of inBacklog) await expect(row(page, title)).toBeVisible();
@@ -45,10 +47,10 @@ test.describe('desktop', () => {
 		await page.goto('/sprint/plan');
 
 		await expect(page.getByRole('heading', { level: 1 })).toHaveText('Plan your week');
-		await expect(page.getByTestId('plan-week')).toHaveText('Mon 5 – Sun 11 Oct');
-		const backlog = page.getByTestId('plan-backlog');
-		await expect(backlog.getByTestId('todo-row')).toHaveCount(2);
-		await expect(page.getByTestId('plan-sprint').getByTestId('todo-row')).toHaveCount(0);
+		await expect(page.getByText('Mon 5 – Sun 11 Oct', { exact: true })).toBeVisible();
+		const backlog = planBacklog(page);
+		await expect(todoRows(backlog)).toHaveCount(2);
+		await expect(todoRows(planSprint(page))).toHaveCount(0);
 		await expect(page.getByRole('button', { name: 'Start sprint' })).toBeEnabled();
 	});
 
@@ -62,14 +64,14 @@ test.describe('desktop', () => {
 			]
 		});
 		await page.goto('/sprint/plan');
-		const sprint = page.getByTestId('plan-sprint');
-		const backlog = page.getByTestId('plan-backlog');
+		const sprint = planSprint(page);
+		const backlog = planBacklog(page);
 
 		await row(page, 'Book a physio appointment').dragTo(sprint);
-		await expect(sprint.getByTestId('todo-row')).toHaveCount(1);
+		await expect(todoRows(sprint)).toHaveCount(1);
 		await row(page, 'Read chapter 4').dragTo(sprint);
-		await expect(sprint.getByTestId('todo-row')).toHaveCount(2);
-		await expect(backlog.getByTestId('todo-row')).toHaveText([/Clean the fridge/]);
+		await expect(todoRows(sprint)).toHaveCount(2);
+		await expect(todoRows(backlog)).toHaveText([/Clean the fridge/]);
 
 		await page.getByRole('button', { name: 'Start sprint with 2 todos' }).click();
 		await expectStarted(page, ['Book a physio appointment', 'Read chapter 4'], ['Clean the fridge']);
@@ -83,9 +85,9 @@ test.describe('desktop', () => {
 		});
 		await page.goto('/sprint/plan');
 
-		await row(page, 'Book a physio appointment').dragTo(page.getByTestId('plan-backlog'));
-		await expect(page.getByTestId('plan-backlog').getByTestId('todo-row')).toHaveCount(1);
-		await expect(page.getByTestId('plan-sprint').getByTestId('todo-row')).toHaveCount(0);
+		await row(page, 'Book a physio appointment').dragTo(planBacklog(page));
+		await expect(todoRows(planBacklog(page))).toHaveCount(1);
+		await expect(todoRows(planSprint(page))).toHaveCount(0);
 	});
 
 	test('Planning waits for the review while one is pending', async ({ page, request }) => {
@@ -108,10 +110,10 @@ test.describe('suggestions', () => {
 		});
 		await page.goto('/sprint/plan');
 
-		const suggestions = page.getByTestId('plan-suggestions');
-		await expect(suggestions.getByTestId('todo-row')).toHaveText([/Submit lab report/]);
+		const suggestions = page.getByRole('region', { name: /^Due this week\b/ });
+		await expect(todoRows(suggestions)).toHaveText([/Submit lab report/]);
 		await expect(suggestions.getByRole('checkbox', { name: 'Include: Submit lab report' })).toBeChecked();
-		await expect(page.getByTestId('plan-backlog').getByTestId('todo-row')).toHaveText([/Clean the fridge/]);
+		await expect(todoRows(planBacklog(page))).toHaveText([/Clean the fridge/]);
 
 		await page.getByRole('button', { name: 'Start sprint with 1 todo' }).click();
 		await expectStarted(page, ['Submit lab report'], ['Clean the fridge']);
@@ -141,8 +143,8 @@ test.describe('suggestions', () => {
 		await page.goto('/sprint/plan');
 
 		await expect(page.getByRole('heading', { level: 1 })).toHaveText('Plan your week');
-		await expect(page.getByTestId('plan-suggestions')).toHaveCount(0);
-		await expect(page.getByTestId('plan-backlog').getByTestId('todo-row')).toHaveText([/File the tax return/]);
+		await expect(page.getByRole('region', { name: /^Due this week\b/ })).toHaveCount(0);
+		await expect(todoRows(planBacklog(page))).toHaveText([/File the tax return/]);
 	});
 
 	test('Scenario: No suggestion section when nothing is due', async ({ page, request }) => {
@@ -152,8 +154,8 @@ test.describe('suggestions', () => {
 		});
 		await page.goto('/sprint/plan');
 
-		await expect(page.getByTestId('plan-backlog').getByTestId('todo-row')).toHaveCount(2);
-		await expect(page.getByTestId('plan-suggestions')).toHaveCount(0);
+		await expect(todoRows(planBacklog(page))).toHaveCount(2);
+		await expect(page.getByRole('region', { name: /^Due this week\b/ })).toHaveCount(0);
 		await expect(page.getByText('Due this week')).toHaveCount(0);
 	});
 });
@@ -169,7 +171,7 @@ test.describe('touch phone', () => {
 		await page.goto('/sprint/plan');
 
 		await page.getByRole('button', { name: 'Add to sprint: Book a physio appointment' }).tap();
-		await expect(page.getByTestId('plan-sprint').getByTestId('todo-row')).toHaveText([/Book a physio appointment/]);
+		await expect(todoRows(planSprint(page))).toHaveText([/Book a physio appointment/]);
 
 		await page.getByRole('button', { name: 'Start sprint with 1 todo' }).tap();
 		await expectStarted(page, ['Book a physio appointment'], ['Clean the fridge']);
@@ -187,15 +189,15 @@ test('Scenario: Plan page lists planned todos as coming automatically', async ({
 	await page.setViewportSize({ width: 1280, height: 800 });
 	await page.goto('/sprint/plan');
 
-	const auto = page.getByTestId('plan-auto');
+	const auto = page.getByRole('region', { name: /^Joins automatically\b/ });
 	await expect(auto.getByRole('heading', { name: 'Joins automatically' })).toBeVisible();
-	await expect(auto.getByTestId('todo-row')).toHaveCount(1);
-	await expect(auto.getByTestId('todo-row')).toContainText('Dentist');
+	await expect(todoRows(auto)).toHaveCount(1);
+	await expect(todoRows(auto)).toContainText('Dentist');
 	await expect(auto.getByRole('button', { name: /Remove from sprint:|Add to sprint:|Include:/ })).toHaveCount(0);
 	await expect(auto.getByRole('checkbox', { name: /Include:/ })).toHaveCount(0);
 	await expect(auto.locator('[draggable="true"]')).toHaveCount(0);
 
-	const backlog = page.getByTestId('plan-backlog');
-	await expect(backlog.getByTestId('todo-row')).toHaveCount(1);
+	const backlog = planBacklog(page);
+	await expect(todoRows(backlog)).toHaveCount(1);
 	await expect(backlog.getByText('Dentist')).toHaveCount(0);
 });

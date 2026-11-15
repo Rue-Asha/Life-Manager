@@ -76,7 +76,7 @@
 <ul>
 	{#each data.aspects as aspect (aspect.id)}
 		{@const progress = data.progress?.[aspect.id]}
-		<li data-testid="aspect-card">
+		<li aria-label={aspect.name}>
 			<span class="tile" style:background={ASPECT_COLORS[aspect.color].tint}>
 				<AspectIcon icon={aspect.icon} color={aspect.color} />
 			</span>
@@ -87,7 +87,7 @@
 				{:else if data.progress}
 					<span>Not in this sprint</span>
 				{/if}
-				<span class="num" data-testid="backlog-count">{data.backlogCounts[aspect.id] ?? 0} in backlog</span>
+				<span class="num">{data.backlogCounts[aspect.id] ?? 0} in backlog</span>
 			</span>
 			<span class="count num">{todoCount(aspect.usage.todos)}</span>
 			<div class="actions">

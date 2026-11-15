@@ -35,7 +35,7 @@
 <PageHeader title="Backlog" />
 
 {#if data.phase === 'review-required'}
-	<p class="review" data-testid="review-note">
+	<p class="review">
 		This week’s sprint is over, so nothing can join it. <a href="/sprint/review">Review the sprint</a>
 	</p>
 {/if}
@@ -62,7 +62,7 @@
 
 {#if groups.length === 0 && planned.length === 0}
 	{@const filtered = data.aspects.find((a) => a.id === data.aspectId)}
-	<p class="empty" data-testid="empty-state">
+	<p class="empty">
 		{filtered ? `Nothing for ${filtered.name} in the backlog.` : 'Your backlog is empty.'}
 		<button type="button" onclick={() => (adding = true)}>Add a todo</button>
 		{filtered ? 'to it.' : 'to start planning.'}
@@ -70,7 +70,7 @@
 {/if}
 
 {#if planned.length > 0}
-	<section class="group" data-testid="planned-section" aria-labelledby="group-planned">
+	<section class="group" aria-labelledby="group-planned">
 		<h2 id="group-planned">
 			Planned
 			<span class="count num">{planned.length}</span>
@@ -87,7 +87,7 @@
 {/if}
 
 {#each groups as { aspect, todos } (aspect.id)}
-	<section class="group" data-testid="aspect-group-{aspect.id}" aria-labelledby="group-{aspect.id}">
+	<section class="group" aria-labelledby="group-{aspect.id}">
 		<h2 id="group-{aspect.id}">
 			<AspectIcon icon={aspect.icon} color={aspect.color} />{aspect.name}
 			<span class="count num">{todos.length}</span>

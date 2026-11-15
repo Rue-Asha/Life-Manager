@@ -25,10 +25,10 @@ test('Scenario: Sprint header shows progress and days left', async ({ page, requ
 
 	for (const view of ['aspect', 'board', 'week']) {
 		await page.goto(`/sprint?view=${view}`);
-		const header = page.getByTestId('summary-header');
-		await expect(header.getByTestId('summary-figure')).toHaveText('4 / 12');
+		const header = page.getByRole('region', { name: 'Summary' });
+		await expect(header.getByText('4 / 12', { exact: true })).toBeVisible();
 		await expect(header).toContainText('done');
-		await expect(header.getByTestId('summary-line')).toContainText('Mon 12 – Sun 18 Oct');
-		await expect(header.getByTestId('summary-line')).toContainText('3 days left');
+		await expect(header.getByText('Mon 12 – Sun 18 Oct')).toBeVisible();
+		await expect(header.getByText('3 days left')).toBeVisible();
 	}
 });

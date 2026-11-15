@@ -58,7 +58,7 @@ The by-aspect view SHALL list sprint todos Things-style, grouped by aspect, with
 
 ### Requirement: Board view
 The board view SHALL show columns To do / Doing / Done; todos move between columns by drag on desktop
-and by a status menu on touch. A card is compact: title (up to two lines), then one meta line with its aspect as a colour dot and name, its due date, its planned date with slot when it has a day (`planned-label`, e.g. "Thu 15 Oct · 18:00"), and its priority; badges, checklist and notes show when the card is opened. It shows no status chip (the column is the status, a status glyph at the card's top right is the touch status menu) and no tag below the card. (S15, cohesive-look, calendar-planning S4)
+and by a status menu on touch. A card is compact: title (up to two lines), then one meta line with its aspect as a colour dot and name, its due date, its planned date with slot when it has a day (the planned label, e.g. "Thu 15 Oct · 18:00"), and its priority; badges, checklist and notes show when the card is opened. It shows no status chip (the column is the status, a status glyph at the card's top right is the touch status menu) and no tag below the card. (S15, cohesive-look, calendar-planning S4)
 
 #### Scenario: Move a todo between board columns by drag
 - **WHEN** on desktop Rue drags a card from To do to Doing
@@ -378,15 +378,15 @@ tint behind its header. (cohesive-look, calendar-planning S4)
 
 #### Scenario: Week cards show only the slot
 - **WHEN** Rue opens the week view at 1440 px and at 375 px (on Thursday) with a todo on Thursday 18:00–19:30 and one on Thursday without a slot
-- **THEN** the first shows "18:00–19:30" and no date text in its `planned-label`, the second has no `planned-label`, and at 1440 px both cards are at most 40 px tall
+- **THEN** the first shows "18:00–19:30" and no date text in its planned label, the second has no planned label, and at 1440 px both cards are at most 40 px tall
 - **proof:** e2e
 
 ### Requirement: Quiet status and day controls in rows
 In By aspect, Today, an aspect page and project or class todo lists, a sprint todo row SHALL show its status
 as a compact glyph control (empty circle To do, half circle Doing in the accent, filled grey circle Done, so a done todo can go back from the menu) whose
 accessible name is "Status: <status>", and, except in Today, its day as plain text ("Thu 15") or, without a day, as a calendar
-icon button named "Pick a day"; a slot follows the day as the row's `planned-label` with the slot only ("18:00–19:30").
-Today rows show the `planned-label` alone, with no day control.
+icon button named "Pick a day"; a slot follows the day as the row's planned label with the slot only ("18:00–19:30").
+Today rows show the planned label alone, with no day control.
 The visible words "To do" and "Unscheduled" are not shown in rows; the status and day menus and their options are
 unchanged. (cohesive-look, calendar-planning S4)
 
@@ -398,6 +398,6 @@ unchanged. (cohesive-look, calendar-planning S4)
 
 #### Scenario: Sprint row shows the slot next to its day
 - **WHEN** Rue opens the By aspect view and Today with a sprint todo on today with 18:00–19:30
-- **THEN** in By aspect its row shows the day control ("Day" = 2026-10-14) and a `planned-label` reading "18:00–19:30" without the date, and in Today its row shows only the `planned-label` reading "18:00–19:30", with no day control
+- **THEN** in By aspect its row shows the day control ("Day" = 2026-10-14) and a planned label reading "18:00–19:30" without the date, and in Today its row shows only the planned label reading "18:00–19:30", with no day control
 - **proof:** e2e
 

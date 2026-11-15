@@ -1,4 +1,4 @@
-import { expect, test, reset, seed, setClock } from './helpers';
+import { expect, test, reset, seed, setClock, todoRows } from './helpers';
 
 // Wednesday 7 October 2026 in Berlin; the active sprint runs Monday 5 to Sunday 11 October.
 const NOW = '2026-10-07T10:00:00Z';
@@ -28,13 +28,14 @@ test('Scenario: No todo row draws its own border', async ({ page, request }) => 
 
 	for (const path of ['/', '/sprint?view=aspect', '/backlog', `/aspects/${aspects[0]}`]) {
 		await page.goto(path);
-		const rows = page.getByRole('main').getByTestId('todo-row');
+		const rows = todoRows(page.getByRole('main'));
 		await expect(rows.first()).toBeVisible();
 		expect(await rows.count(), path).toBeGreaterThanOrEqual(2);
 		const checks = await rows.evaluateAll((els) =>
 			els.map((el) => {
 				const style = getComputedStyle(el);
-				const group = el.closest('[data-testid="list-group"]');
+				const nearest = el.closest('[role="group"]');
+				const group = nearest && !nearest.hasAttribute('aria-label') && !nearest.hasAttribute('aria-labelledby') ? nearest : null;
 				const probe = document.createElement('div');
 				probe.style.background = 'var(--surface)';
 				document.body.append(probe);

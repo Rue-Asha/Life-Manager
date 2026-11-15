@@ -47,19 +47,19 @@
 			{#each data.rules as rule (rule.id)}
 				{@const aspect = aspectById.get(rule.aspectId)!}
 				{@const classRef = rule.classId === null ? undefined : classById.get(rule.classId)}
-				<li id="rule-{rule.id}" data-testid="rule-row" data-rule-id={rule.id}>
+				<li id="rule-{rule.id}" aria-label={rule.title}>
 					<button type="button" class="row" onclick={() => openForm(rule)}>
 						<span class="title">{rule.title}</span>
 						<span class="meta">
-							<span data-testid="rule-aspect">
+							<span>
 								<AspectTag name={aspect.name} color={aspect.color} icon={aspect.icon} />
 							</span>
 							{#if classRef}<span class="class"><ClassBadge {classRef} type={rule.type} href={false} /></span>{/if}
 							{#each WEEKDAYS.filter((d) => rule.weekdays.includes(d.value)) as day (day.value)}
-								<span class="day" data-testid="rule-weekday" title={day.long}>{day.short}</span>
+								<span class="day" title={day.long}>{day.short}</span>
 							{/each}
 							{#if rule.startTime}
-								<span class="slot num" data-testid="rule-slot">{slotLabel(rule.startTime, rule.endTime)}</span>
+								<span class="slot num">{slotLabel(rule.startTime, rule.endTime)}</span>
 							{/if}
 						</span>
 						<span class="end">

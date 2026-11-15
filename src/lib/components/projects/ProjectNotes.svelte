@@ -6,16 +6,15 @@
 	let {
 		html,
 		notes,
-		testid = 'project-notes',
 		placeholder = 'No notes yet. Write down the plan, decisions or change requests.',
 		editable = true
-	}: { html: string; notes: string; testid?: string; placeholder?: string; editable?: boolean } = $props();
+	}: { html: string; notes: string; placeholder?: string; editable?: boolean } = $props();
 
 	let editing = $state(false);
 	const uid = $props.id();
 </script>
 
-<section data-testid={testid} aria-labelledby="{uid}-h">
+<section aria-labelledby="{uid}-h">
 	<div class="head">
 		<h2 id="{uid}-h">Notes</h2>
 		{#if editable && !editing}
@@ -45,7 +44,7 @@
 			</footer>
 		</form>
 	{:else if html}
-		<div class="notes">{@html html}</div>
+		<div class="notes" role="group" aria-label="Rendered notes">{@html html}</div>
 	{:else}
 		<p class="empty">
 			<svg viewBox="0 0 24 24" aria-hidden="true"><path d={GLYPHS.pen} /></svg>

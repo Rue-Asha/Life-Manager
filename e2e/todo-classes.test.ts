@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { expect, test, reset, seed, setClock, type SeedInput } from './helpers';
+import { expect, test, reset, seed, setClock, todoRow, todoRows, type SeedInput } from './helpers';
 
 test.beforeEach(async ({ request, page }) => {
 	await reset(request);
@@ -34,46 +34,46 @@ test('Scenario: Quick add links a todo to a class', async ({ page, request }) =>
 	const form = await openQuickAdd(page);
 	await form.getByLabel('Aspect').selectOption({ label: 'Uni' });
 	await form.getByLabel('Class').selectOption({ label: 'Analysis' });
-	await form.getByTestId('type-field').getByRole('button', { name: 'EXC' }).click();
+	await form.getByRole('group', { name: 'Type' }).getByRole('button', { name: 'EXC' }).click();
 	await form.getByLabel('Title').fill('Exercise sheet 4');
 	await form.getByRole('button', { name: 'Add todo' }).click();
-	await expect(page.getByTestId('todo-row').filter({ hasText: 'Exercise sheet 4' })).toBeVisible();
+	await expect(todoRow(page, 'Exercise sheet 4')).toBeVisible();
 
 	await page.getByRole('button', { name: 'Cancel' }).click();
 	const editor = await openEditor(page, 'Exercise sheet 4');
 	await expect(editor.getByLabel('Class')).toHaveValue(String(classes[0]));
-	await expect(editor.getByTestId('type-field').getByRole('button', { name: 'EXC' })).toHaveAttribute('aria-pressed', 'true');
+	await expect(editor.getByRole('group', { name: 'Type' }).getByRole('button', { name: 'EXC' })).toHaveAttribute('aria-pressed', 'true');
 });
 
 test('Scenario: Class field appears only for the Uni aspect', async ({ page, request }) => {
 	await seed(request, { ...UNI, todos: [{ title: 'Existing', aspect: 0 }] });
 	const form = await openQuickAdd(page);
 	await form.getByLabel('Aspect').selectOption({ label: 'Health' });
-	await expect(form.getByTestId('class-field')).toHaveCount(0);
-	await expect(form.getByTestId('type-field')).toHaveCount(0);
+	await expect(form.getByLabel('Class')).toHaveCount(0);
+	await expect(form.getByRole('group', { name: 'Type' })).toHaveCount(0);
 	await form.getByLabel('Aspect').selectOption({ label: 'Uni' });
-	await expect(form.getByTestId('class-field')).toBeVisible();
-	await expect(form.getByTestId('type-field')).toHaveCount(0);
+	await expect(form.getByLabel('Class')).toBeVisible();
+	await expect(form.getByRole('group', { name: 'Type' })).toHaveCount(0);
 	await form.getByLabel('Class').selectOption({ label: 'Algorithms' });
-	await expect(form.getByTestId('type-field')).toBeVisible();
-	await expect(form.getByTestId('type-field').getByRole('button', { name: 'OTH' })).toHaveAttribute('aria-pressed', 'true');
+	await expect(form.getByRole('group', { name: 'Type' })).toBeVisible();
+	await expect(form.getByRole('group', { name: 'Type' }).getByRole('button', { name: 'OTH' })).toHaveAttribute('aria-pressed', 'true');
 	await form.getByRole('button', { name: 'Cancel' }).click();
 
 	const editor = await openEditor(page, 'Existing');
-	await expect(editor.getByTestId('class-field')).toHaveCount(0);
-	await expect(editor.getByTestId('type-field')).toHaveCount(0);
+	await expect(editor.getByLabel('Class')).toHaveCount(0);
+	await expect(editor.getByRole('group', { name: 'Type' })).toHaveCount(0);
 	await editor.getByLabel('Aspect').selectOption({ label: 'Uni' });
-	await expect(editor.getByTestId('class-field')).toBeVisible();
-	await expect(editor.getByTestId('type-field')).toHaveCount(0);
+	await expect(editor.getByLabel('Class')).toBeVisible();
+	await expect(editor.getByRole('group', { name: 'Type' })).toHaveCount(0);
 	await editor.getByLabel('Class').selectOption({ label: 'Analysis' });
-	await expect(editor.getByTestId('type-field')).toBeVisible();
+	await expect(editor.getByRole('group', { name: 'Type' })).toBeVisible();
 });
 
 test('Scenario: Class field lists classes of active semesters', async ({ page, request }) => {
 	await seed(request, UNI);
 	const form = await openQuickAdd(page);
 	await form.getByLabel('Aspect').selectOption({ label: 'Uni' });
-	await expect(form.getByLabel('Class').locator('option')).toHaveText(['No class', 'Algorithms', 'Analysis']);
+	await expect(form.getByLabel('Class').getByRole('option')).toHaveText(['No class', 'Algorithms', 'Analysis']);
 });
 
 test('Scenario: Class field is hidden without Uni aspect or classes', async ({ page, request }) => {
@@ -81,16 +81,16 @@ test('Scenario: Class field is hidden without Uni aspect or classes', async ({ p
 	let form = await openQuickAdd(page);
 	for (const name of ['Health', 'Uni']) {
 		await form.getByLabel('Aspect').selectOption({ label: name });
-		await expect(form.getByTestId('class-field')).toHaveCount(0);
-		await expect(form.getByTestId('type-field')).toHaveCount(0);
+		await expect(form.getByLabel('Class')).toHaveCount(0);
+		await expect(form.getByRole('group', { name: 'Type' })).toHaveCount(0);
 	}
 
 	await reset(request);
 	await seed(request, { ...UNI, classes: [{ semester: 1, name: 'Physics' }] });
 	form = await openQuickAdd(page);
 	await form.getByLabel('Aspect').selectOption({ label: 'Uni' });
-	await expect(form.getByTestId('class-field')).toHaveCount(0);
-	await expect(form.getByTestId('type-field')).toHaveCount(0);
+	await expect(form.getByLabel('Class')).toHaveCount(0);
+	await expect(form.getByRole('group', { name: 'Type' })).toHaveCount(0);
 });
 
 test('Scenario: Switching the aspect away drops class and type', async ({ page, request }) => {
@@ -98,21 +98,21 @@ test('Scenario: Switching the aspect away drops class and type', async ({ page, 
 	const form = await openQuickAdd(page);
 	await form.getByLabel('Aspect').selectOption({ label: 'Uni' });
 	await form.getByLabel('Class').selectOption({ label: 'Analysis' });
-	await form.getByTestId('type-field').getByRole('button', { name: 'LEC' }).click();
+	await form.getByRole('group', { name: 'Type' }).getByRole('button', { name: 'LEC' }).click();
 	await form.getByLabel('Aspect').selectOption({ label: 'Health' });
-	await expect(form.getByTestId('class-field')).toHaveCount(0);
-	await expect(form.getByTestId('type-field')).toHaveCount(0);
+	await expect(form.getByLabel('Class')).toHaveCount(0);
+	await expect(form.getByRole('group', { name: 'Type' })).toHaveCount(0);
 	await form.getByLabel('Title').fill('Run a lap');
 	await form.getByRole('button', { name: 'Add todo' }).click();
 
-	const row = page.getByTestId('todo-row').filter({ hasText: 'Run a lap' });
+	const row = todoRow(page, 'Run a lap');
 	await expect(row).toBeVisible();
-	await expect(row.getByTestId('class-badge')).toHaveCount(0);
+	await expect(row.getByRole('link')).toHaveCount(0);
 	await page.getByRole('button', { name: 'Cancel' }).click();
 	const editor = await openEditor(page, 'Run a lap');
 	await editor.getByLabel('Aspect').selectOption({ label: 'Uni' });
 	await expect(editor.getByLabel('Class')).toHaveValue('');
-	await expect(editor.getByTestId('type-field')).toHaveCount(0);
+	await expect(editor.getByRole('group', { name: 'Type' })).toHaveCount(0);
 });
 
 test.describe('class badge', () => {
@@ -135,28 +135,28 @@ test.describe('class badge', () => {
 			]
 		});
 		await page.goto('/backlog');
-		const backlogBadge = page.getByTestId('todo-row').filter({ hasText: 'Read chapter 2' }).getByTestId('class-badge');
+		const backlogBadge = todoRow(page, 'Read chapter 2').getByRole('link', { name: 'Analysis' });
 		await expect(backlogBadge).toHaveText('Analysis · LEC');
 		await expect(backlogBadge.locator('svg')).toBeVisible();
 
 		for (const path of ['/', '/sprint']) {
 			await page.goto(path);
-			const badge = page.getByTestId('todo-row').filter({ hasText: 'Exercise sheet 4' }).getByTestId('class-badge');
+			const badge = todoRow(page, 'Exercise sheet 4').getByRole('link', { name: 'Algorithms' });
 			await expect(badge).toHaveText('Algorithms · EXC');
 			await expect(badge.locator('svg')).toBeVisible();
 		}
 
 		await page.goto('/backlog');
-		await page.getByTestId('todo-row').filter({ hasText: 'Read chapter 2' }).getByTestId('class-badge').click();
+		await backlogBadge.click();
 		await expect(page).toHaveURL(new RegExp(`/uni/classes/${classes[0]}$`));
 	});
 
 	test('Scenario: Todo without class shows no class badge', async ({ page, request }) => {
 		await seed(request, { ...UNI, todos: [{ title: 'Plain uni todo', aspect: 1 }] });
 		await page.goto('/backlog');
-		const group = page.locator('main');
-		await expect(group.getByTestId('todo-row')).toHaveCount(1);
-		await expect(group.getByTestId('class-badge')).toHaveCount(0);
+		const group = page.getByRole('main');
+		await expect(todoRows(group)).toHaveCount(1);
+		await expect(todoRows(group).getByRole('link')).toHaveCount(0);
 	});
 
 	test('Scenario: Class badge wraps under the title on a phone', async ({ page, request }) => {
@@ -166,9 +166,9 @@ test.describe('class badge', () => {
 		});
 		await page.setViewportSize({ width: 375, height: 800 });
 		await page.goto('/backlog');
-		const row = page.getByTestId('todo-row');
-		const title = (await row.locator('.title').boundingBox())!;
-		const badge = (await row.getByTestId('class-badge').boundingBox())!;
+		const row = todoRows(page);
+		const title = (await row.getByRole('button', { name: /^A very long todo title/ }).boundingBox())!;
+		const badge = (await row.getByRole('link', { name: 'Analysis' }).boundingBox())!;
 		expect(badge.y).toBeGreaterThanOrEqual(title.y + title.height - 1);
 		expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 	});
@@ -185,8 +185,8 @@ test.describe('class badge', () => {
 		expect(result.data).toContain('archived');
 
 		await page.goto('/backlog');
-		await expect(page.getByTestId('todo-row').filter({ hasText: 'Old lab report' })).toBeVisible();
-		await expect(page.getByTestId('todo-row').filter({ hasText: 'Renamed report' })).toHaveCount(0);
+		await expect(todoRow(page, 'Old lab report')).toBeVisible();
+		await expect(todoRow(page, 'Renamed report')).toHaveCount(0);
 	});
 
 	test('Scenario: Deleting a single todo of an archived class is allowed', async ({ page, request, baseURL }) => {
@@ -204,7 +204,7 @@ test.describe('class badge', () => {
 		expect((await response.json()).type).toBe('success');
 
 		await page.goto('/backlog');
-		await expect(page.getByTestId('todo-row').filter({ hasText: 'Old lab report' })).toHaveCount(0);
-		await expect(page.getByTestId('todo-row').filter({ hasText: 'Old lab notes' })).toBeVisible();
+		await expect(todoRow(page, 'Old lab report')).toHaveCount(0);
+		await expect(todoRow(page, 'Old lab notes')).toBeVisible();
 	});
 });

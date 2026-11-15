@@ -11,7 +11,7 @@
 	const exam = $derived(examCountdown(cls.examAt, today));
 </script>
 
-<a class="card" href="/uni/classes/{cls.id}" data-testid="class-card">
+<a class="card" href="/uni/classes/{cls.id}">
 	<span class="top">
 		<span class="tile" style:background={ASPECT_COLORS[cls.color].tint}><AspectIcon icon={cls.icon} color={cls.color} /></span>
 		<span class="names">
@@ -19,19 +19,19 @@
 			{#if cls.lecturer}<span class="sub">{cls.lecturer}</span>{/if}
 		</span>
 		{#if cls.grade === 'passed'}
-			<span class="grade passed" data-testid="class-grade">Passed</span>
+			<span class="grade passed">Passed</span>
 		{:else if cls.grade}
-			<span class="grade num" data-testid="class-grade" aria-label="Grade {cls.grade}">{cls.grade}</span>
+			<span class="grade num" aria-label="Grade {cls.grade}">{cls.grade}</span>
 		{/if}
 	</span>
 	<span class="foot">
-		<span class="num" data-testid="class-open">{cls.openTodos} open</span>
+		<span class="num">{cls.openTodos} open</span>
 		{#if cls.nextDue}
-			<span class="due num" class:late={cls.nextDue < today} data-testid="class-next-due">
+			<span class="due num" class:late={cls.nextDue < today}>
 				<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS['calendar-days']} /></svg>{dueText(cls.nextDue, today)}
 			</span>
 		{/if}
-		{#if exam}<span class="exam num" class:today={exam === 'Exam today'} data-testid="class-exam">{exam}</span>{/if}
+		{#if exam}<span class="exam num" class:today={exam === 'Exam today'}>{exam}</span>{/if}
 	</span>
 </a>
 

@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { expect, test, reset, seed, setClock, type SeedInput } from './helpers';
+import { expect, test, reset, seed, setClock, projectCard, projectCards, todoRows, type SeedInput } from './helpers';
 
 // Wednesday 7 October 2026 in Berlin; the active sprint runs Monday 5 to Sunday 11 October.
 const NOW = '2026-10-07T10:00:00Z';
@@ -43,7 +43,10 @@ async function seedProject(
 }
 
 const heading = (page: Page) => page.getByRole('heading', { level: 1 });
-const pill = (page: Page) => page.getByTestId('status-pill');
+const pill = (page: Page) => page.getByRole('button', { name: /^(Backlog|Active|In progress|Paused|Implemented)$/ });
+const meta = (page: Page) => page.getByRole('group', { name: 'Project details' });
+const notesRegion = (page: Page) => page.getByRole('region', { name: 'Notes', exact: true });
+const detailsRail = (page: Page) => page.getByRole('complementary', { name: 'Details', exact: true, includeHidden: true });
 
 test('Scenario: Metadata sits in the rail at 1280', async ({ page, request }) => {
 	const id = await seedProject(request);
@@ -51,15 +54,15 @@ test('Scenario: Metadata sits in the rail at 1280', async ({ page, request }) =>
 		await page.setViewportSize({ width, height: 900 });
 		await page.goto(`/projects/${id}`);
 
-		const rail = page.getByTestId('context-rail');
+		const rail = detailsRail(page);
 		await expect(rail).toBeVisible();
-		const meta = rail.getByTestId('project-meta');
-		await expect(meta).toContainText('rue-asha/life-manager');
-		await expect(meta).toContainText('SvelteKit');
-		await expect(meta).toContainText('SQLite');
-		await expect(meta).toContainText('Created');
-		await expect(meta).toContainText('Updated');
-		await expect(page.getByTestId('project-meta')).toHaveCount(1);
+		const railMeta = meta(rail);
+		await expect(railMeta).toContainText('rue-asha/life-manager');
+		await expect(railMeta).toContainText('SvelteKit');
+		await expect(railMeta).toContainText('SQLite');
+		await expect(railMeta).toContainText('Created');
+		await expect(railMeta).toContainText('Updated');
+		await expect(meta(page)).toHaveCount(1);
 	}
 });
 
@@ -69,18 +72,18 @@ test('Scenario: Metadata wraps under the title below 1280', async ({ page, reque
 		await page.setViewportSize({ width, height: 900 });
 		await page.goto(`/projects/${id}`);
 
-		await expect(page.getByTestId('context-rail')).toHaveCount(0);
-		await expect(page.getByTestId('rail-toggle')).toHaveCount(0);
-		const meta = page.getByTestId('project-meta');
-		await expect(meta).toBeVisible();
-		await expect(meta).toContainText('life-manager');
-		await expect(meta).toContainText('SvelteKit');
-		await expect(meta).toContainText('SQLite');
-		await expect(meta).toContainText('Created');
-		await expect(meta).toContainText('Updated');
+		await expect(detailsRail(page)).toHaveCount(0);
+		await expect(page.getByRole('button', { name: 'Details', exact: true, includeHidden: true })).toHaveCount(0);
+		const row = meta(page);
+		await expect(row).toBeVisible();
+		await expect(row).toContainText('life-manager');
+		await expect(row).toContainText('SvelteKit');
+		await expect(row).toContainText('SQLite');
+		await expect(row).toContainText('Created');
+		await expect(row).toContainText('Updated');
 		const title = await heading(page).boundingBox();
-		const row = await meta.boundingBox();
-		expect(row!.y).toBeGreaterThan(title!.y + title!.height - 1);
+		const rowBox = await row.boundingBox();
+		expect(rowBox!.y).toBeGreaterThan(title!.y + title!.height - 1);
 		expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 	}
 });
@@ -117,19 +120,19 @@ test('Scenario: Edit metadata on the detail page', async ({ page, request }) => 
 	const check = async () => {
 		await expect(heading(page)).toHaveText('Life Manager 2');
 		await expect(page.getByText('A new description')).toBeVisible();
-		const meta = page.getByTestId('project-meta');
-		await expect(meta).toContainText('rue-asha/lm2');
-		await expect(meta).toContainText('Node');
-		await expect(meta).toContainText('Vite');
-		await expect(meta).not.toContainText('SvelteKit');
-		await expect(meta.getByText('Node')).toHaveCount(1);
+		const details = meta(page);
+		await expect(details).toContainText('rue-asha/lm2');
+		await expect(details).toContainText('Node');
+		await expect(details).toContainText('Vite');
+		await expect(details).not.toContainText('SvelteKit');
+		await expect(details.getByText('Node')).toHaveCount(1);
 	};
 	await check();
 	await page.reload();
 	await check();
 
 	await page.goto('/projects');
-	const card = page.getByTestId('project-card');
+	const card = projectCards(page);
 	await expect(card).toHaveCount(1);
 	await expect(card).toContainText('Life Manager 2');
 	await expect(card).toContainText('A new description');
@@ -143,13 +146,13 @@ test('Scenario: Notes are edited as Markdown and shown rendered', async ({ page,
 	const id = await seedProject(request);
 	await page.goto(`/projects/${id}`);
 
-	const notes = page.getByTestId('project-notes');
+	const notes = notesRegion(page);
 	await notes.getByRole('button', { name: 'Edit notes' }).click();
 	await notes.getByRole('textbox', { name: 'Notes' }).fill('## Ideas\n\n- **dark mode**');
 	await notes.getByRole('button', { name: 'Save' }).click();
 
 	await expect(notes.getByRole('heading', { level: 2, name: 'Ideas' })).toBeVisible();
-	await expect(notes.getByRole('listitem').filter({ hasText: 'dark mode' }).locator('strong')).toHaveText('dark mode');
+	await expect(notes.getByRole('listitem').filter({ hasText: 'dark mode' }).getByRole('strong')).toHaveText('dark mode');
 	await expect(notes.getByRole('textbox', { name: 'Notes' })).toHaveCount(0);
 
 	await page.reload();
@@ -161,8 +164,8 @@ test('Scenario: Empty notes show a placeholder', async ({ page, request }) => {
 	const id = await seedProject(request);
 	await page.goto(`/projects/${id}`);
 
-	await expect(page.getByTestId('project-notes')).toContainText('No notes yet');
-	await page.getByTestId('project-notes').getByRole('button', { name: 'Edit notes' }).click();
+	await expect(notesRegion(page)).toContainText('No notes yet');
+	await notesRegion(page).getByRole('button', { name: 'Edit notes' }).click();
 	await expect(page.getByRole('textbox', { name: 'Notes' })).toHaveValue('');
 });
 
@@ -174,10 +177,10 @@ test('Scenario: Long notes are not truncated', async ({ page, request }) => {
 
 	await page.getByText('Line 200', { exact: true }).scrollIntoViewIfNeeded();
 	await expect(page.getByText('Line 200', { exact: true })).toBeInViewport();
-	const own = await page.getByTestId('project-notes').evaluate((el) => {
-		const body = el.querySelector('.notes')!;
-		return { overflow: getComputedStyle(body).overflowY, grows: body.scrollHeight <= body.clientHeight + 1 };
-	});
+	const own = await notesRegion(page).getByRole('group', { name: 'Rendered notes' }).evaluate((body) => ({
+		overflow: getComputedStyle(body).overflowY,
+		grows: body.scrollHeight <= body.clientHeight + 1
+	}));
 	expect(own).toEqual({ overflow: 'visible', grows: true });
 });
 
@@ -215,10 +218,10 @@ test('Scenario: Implemented with open todos asks for confirmation', async ({ pag
 	await confirmDialog(page).getByRole('button', { name: 'Mark as implemented' }).click();
 
 	await expect(pill(page)).toContainText('Implemented');
-	await expect(page.getByTestId('project-meta')).toContainText('2 open');
+	await expect(meta(page)).toContainText('2 open');
 	await page.reload();
 	await expect(pill(page)).toContainText('Implemented');
-	await expect(page.getByTestId('project-meta')).toContainText('2 open');
+	await expect(meta(page)).toContainText('2 open');
 });
 
 test('Scenario: Cancelling the implemented warning changes nothing', async ({ page, request }) => {
@@ -290,27 +293,27 @@ test('Scenario: Done group starts collapsed', async ({ page, request }) => {
 	const id = await seedProject(request, { sprint: { state: 'active', weekStart: WEEK }, todos: LINKED });
 	await page.goto(`/projects/${id}`);
 
-	const rows = (group: string) => page.getByTestId(`project-todos-${group}`).getByTestId('todo-row');
-	await expect(rows('open')).toHaveText([/Pick a parser/]);
-	await expect(rows('planned')).toHaveText([/Build the overview/]);
+	const rows = (group: string) => todoRows(page.getByRole('group', { name: group, exact: true }));
+	await expect(rows('Open')).toHaveText([/Pick a parser/]);
+	await expect(rows('Planned')).toHaveText([/Build the overview/]);
 
-	const done = page.getByTestId('project-todos-done');
+	const done = page.getByRole('group', { name: 'Done', exact: true });
 	const toggle = done.getByRole('button', { name: /Done/ });
 	await expect(toggle).toContainText('2');
 	await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-	await expect(rows('done')).toHaveCount(0);
+	await expect(rows('Done')).toHaveCount(0);
 
 	await toggle.click();
 	await expect(toggle).toHaveAttribute('aria-expanded', 'true');
-	await expect(rows('done')).toHaveText([/Write migration/, /Design the mockup/]);
+	await expect(rows('Done')).toHaveText([/Write migration/, /Design the mockup/]);
 });
 
 test('Scenario: Project without linked todos explains linking', async ({ page, request }) => {
 	const id = await seedProject(request);
 	await page.goto(`/projects/${id}`);
 
-	await expect(page.getByTestId('empty-state')).toContainText('Project field');
-	await expect(page.getByTestId('todo-row')).toHaveCount(0);
+	await expect(page.getByText('Project field')).toBeVisible();
+	await expect(todoRows(page)).toHaveCount(0);
 });
 
 test('Scenario: Card opens the project detail', async ({ page, request }) => {
@@ -321,14 +324,14 @@ test('Scenario: Card opens the project detail', async ({ page, request }) => {
 	);
 	await page.setViewportSize({ width: 1280, height: 800 });
 	await page.goto('/projects');
-	await page.getByTestId('project-card').filter({ hasText: PROJECT.name }).click();
+	await projectCard(page, PROJECT.name).getByRole('link').click();
 
 	await expect(page).toHaveURL(new RegExp(`/projects/${id}$`));
 	await expect(heading(page)).toHaveText(PROJECT.name);
 	await expect(pill(page)).toContainText('Active');
 	await expect(page.getByText(PROJECT.description)).toBeVisible();
-	await expect(page.getByTestId('project-meta')).toContainText('SvelteKit');
-	await expect(page.locator('strong', { hasText: 'notes' })).toBeVisible();
-	await expect(page.getByTestId('project-todos-open').getByTestId('todo-row')).toHaveCount(1);
+	await expect(meta(page)).toContainText('SvelteKit');
+	await expect(page.getByRole('strong').filter({ hasText: 'notes' })).toBeVisible();
+	await expect(todoRows(page.getByRole('group', { name: 'Open', exact: true }))).toHaveCount(1);
 	await expect(page.getByRole('link', { name: /rue-asha\/life-manager/ }).first()).toHaveAttribute('target', '_blank');
 });

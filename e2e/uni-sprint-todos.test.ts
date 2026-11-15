@@ -1,5 +1,16 @@
-import type { APIRequestContext } from '@playwright/test';
-import { expect, test, reset, seed, setClock } from './helpers';
+import type { APIRequestContext, Page } from '@playwright/test';
+import { expect, test, reset, seed, setClock, todoRow, todoRows } from './helpers';
+import {
+	archivedGroup,
+	classCards,
+	notesRegion,
+	semesterSections,
+	sprintTodos,
+	uniAspect,
+	uniAspectLine,
+	uniRail,
+	uniRailToggle
+} from './uni-locators';
 
 const NOW = '2026-10-05T10:00:00Z'; // Monday, today = 2026-10-05
 
@@ -42,10 +53,10 @@ test('Scenario: Hub shows This week with count and row details', async ({ page, 
 	});
 	await page.goto('/uni');
 
-	const section = page.getByTestId('sprint-todos');
+	const section = sprintTodos(page);
 	await expect(section.getByRole('heading', { name: 'This week' })).toBeVisible();
-	await expect(section.getByTestId('sprint-todos-count')).toHaveText('3');
-	const rows = section.getByTestId('sprint-todo-row');
+	await expect(section.getByRole('heading', { name: 'This week' })).toHaveText(/^This week\s*3$/);
+	const rows = todoRows(section);
 	await expect(rows).toHaveCount(3);
 	await expect(rows.nth(0)).toContainText('Reading');
 	await expect(rows.nth(0)).toContainText('Tomorrow');
@@ -53,9 +64,9 @@ test('Scenario: Hub shows This week with count and row details', async ({ page, 
 	await expect(rows.nth(1)).toContainText('Thu 8 Oct');
 	await expect(rows.nth(2)).toContainText('Sheet 4');
 	await expect(rows.nth(2)).not.toContainText(/\d{1,2} Oct|Today|Tomorrow|Yesterday/);
-	await expect(rows.nth(0).getByTestId('class-badge')).toContainText('Analysis II · OTH');
-	await expect(rows.nth(1).getByTestId('class-badge')).toContainText('Analysis II · LEC');
-	await expect(rows.nth(2).getByTestId('class-badge')).toContainText('Analysis II · EXC');
+	await expect(rows.nth(0).getByRole('link', { name: 'Analysis II' })).toContainText('Analysis II · OTH');
+	await expect(rows.nth(1).getByRole('link', { name: 'Analysis II' })).toContainText('Analysis II · LEC');
+	await expect(rows.nth(2).getByRole('link', { name: 'Analysis II' })).toContainText('Analysis II · EXC');
 });
 
 test('Scenario: Hub shows an empty line without sprint todos', async ({ page, request }) => {
@@ -68,10 +79,10 @@ test('Scenario: Hub shows an empty line without sprint todos', async ({ page, re
 	});
 	await page.goto('/uni');
 
-	const section = page.getByTestId('sprint-todos');
-	await expect(section.getByTestId('sprint-todos-empty')).toHaveText("Nothing in this week's sprint");
-	await expect(section.getByTestId('sprint-todo-row')).toHaveCount(0);
-	await expect(page.getByTestId('sprint-pager')).toHaveCount(0);
+	const section = sprintTodos(page);
+	await expect(section.getByText("Nothing in this week's sprint", { exact: true })).toBeVisible();
+	await expect(todoRows(section)).toHaveCount(0);
+	await expect(pager(page)).toHaveCount(0);
 
 	await reset(request);
 	await setClock(request, NOW);
@@ -88,9 +99,9 @@ test('Scenario: Hub shows an empty line without sprint todos', async ({ page, re
 	});
 	await page.goto('/uni');
 
-	await expect(section.getByTestId('sprint-todos-empty')).toHaveText("Nothing in this week's sprint");
-	await expect(section.getByTestId('sprint-todo-row')).toHaveCount(0);
-	await expect(page.getByTestId('sprint-pager')).toHaveCount(0);
+	await expect(section.getByText("Nothing in this week's sprint", { exact: true })).toBeVisible();
+	await expect(todoRows(section)).toHaveCount(0);
+	await expect(pager(page)).toHaveCount(0);
 });
 
 test('Scenario: Class cards come before This week, notes come last', async ({ page, request }) => {
@@ -108,15 +119,15 @@ test('Scenario: Class cards come before This week, notes come last', async ({ pa
 	await page.setViewportSize({ width: 1600, height: 900 });
 	await page.goto('/uni');
 
-	await expect(page.getByTestId('context-rail')).toBeVisible();
+	await expect(uniRail(page)).toBeVisible();
 	const boxes = [];
 	for (const locator of [
 		page.getByRole('heading', { name: 'Uni', level: 1 }),
-		page.getByTestId('grade-overall'),
-		page.getByTestId('semester-section').first(),
-		page.getByTestId('sprint-todos'),
-		page.getByTestId('semester-archived-group'),
-		page.getByTestId('uni-notes')
+		page.getByText(/^Overall average/),
+		semesterSections(page).first(),
+		sprintTodos(page),
+		archivedGroup(page),
+		notesRegion(page)
 	]) {
 		boxes.push((await locator.boundingBox())!);
 	}
@@ -136,10 +147,13 @@ test('Scenario: Due next and exams are gone from the hub', async ({ page, reques
 		await page.setViewportSize({ width, height: 900 });
 		await page.goto('/uni');
 
-		await expect(page.getByTestId('sprint-todos')).toBeVisible();
+		await expect(sprintTodos(page)).toBeVisible();
 		await expect(page.getByText('Due next')).toHaveCount(0);
-		await expect(page.locator('[data-testid^="deadline"]')).toHaveCount(0);
-		await expect(page.getByTestId('class-exam')).toHaveText('Exam in 4 d');
+		await expect(page.getByText(/deadline/i)).toHaveCount(0);
+		await expect(page.getByRole('heading', { name: /deadline/i })).toHaveCount(0);
+		await expect(page.getByRole('region', { name: /deadline/i })).toHaveCount(0);
+		await expect(page.getByRole('list', { name: /deadline/i })).toHaveCount(0);
+		await expect(classCards(page).getByText(/^Exam /)).toHaveText('Exam in 4 d');
 	}
 });
 
@@ -148,26 +162,26 @@ test('Scenario: Rail holds only the aspect line at 1600', async ({ page, request
 	await page.setViewportSize({ width: 1600, height: 900 });
 	await page.goto('/uni');
 
-	const rail = page.getByTestId('context-rail');
+	const rail = uniRail(page);
 	await expect(rail).toBeVisible();
-	await expect(rail.getByTestId('uni-aspect')).toHaveText('Uni');
+	await expect(uniAspect(rail)).toHaveText('Uni');
 	await expect(rail.getByRole('button', { name: 'Change Uni aspect' })).toBeVisible();
-	await expect(rail.getByTestId('sprint-todos')).toHaveCount(0);
-	await expect(rail.getByTestId('sprint-todo-row')).toHaveCount(0);
-	await expect(page.getByTestId('sprint-todos').getByTestId('sprint-todo-row')).toHaveCount(1);
+	await expect(sprintTodos(rail)).toHaveCount(0);
+	await expect(todoRows(rail)).toHaveCount(0);
+	await expect(todoRows(sprintTodos(page))).toHaveCount(1);
 });
 
 test('Scenario: Uni aspect line sits in the rail at 1600 and below the notes at 1100', async ({ page, request }) => {
 	await seedClassTodos(request, [{ title: 'Sheet 4', type: 'EXC' }]);
 	await page.setViewportSize({ width: 1600, height: 900 });
 	await page.goto('/uni');
-	await expect(page.getByTestId('context-rail').getByTestId('uni-aspect')).toBeVisible();
+	await expect(uniAspect(uniRail(page))).toBeVisible();
 
 	await page.setViewportSize({ width: 1100, height: 900 });
-	await expect(page.getByTestId('context-rail')).toHaveCount(0);
-	await expect(page.getByTestId('rail-toggle')).toHaveCount(0);
-	const aspect = (await page.getByTestId('uni-aspect').locator('..').boundingBox())!;
-	const notes = (await page.getByTestId('uni-notes').boundingBox())!;
+	await expect(uniRail(page)).toHaveCount(0);
+	await expect(uniRailToggle(page)).toHaveCount(0);
+	const aspect = (await uniAspectLine(page).boundingBox())!;
+	const notes = (await notesRegion(page).boundingBox())!;
 	expect(aspect.y).toBeGreaterThanOrEqual(notes.y + notes.height - 1);
 });
 
@@ -177,36 +191,41 @@ test('Scenario: Seven todos make two pages', async ({ page, request }) => {
 	await seedClassTodos(request, numbered(7));
 	await page.goto('/uni');
 
-	const section = page.getByTestId('sprint-todos');
-	const rows = section.getByTestId('sprint-todo-row');
+	const section = sprintTodos(page);
+	const rows = todoRows(section);
+	const count = section.getByRole('heading', { name: /^This week/ });
+	const prev = section.getByRole('button', { name: 'Previous' });
+	const next = section.getByRole('button', { name: 'Next' });
 	await expect(rows).toHaveCount(6);
-	await expect(section.getByTestId('sprint-todos-count')).toHaveText('7');
-	await expect(section.getByTestId('sprint-page')).toHaveText('Page 1 of 2');
-	await expect(section.getByTestId('sprint-prev')).toBeDisabled();
-	await expect(section.getByTestId('sprint-next')).toBeEnabled();
+	await expect(count).toHaveText(/^This week\s*7$/);
+	await expect(section.getByText('Page 1 of 2', { exact: true })).toBeVisible();
+	await expect(prev).toBeDisabled();
+	await expect(next).toBeEnabled();
 
-	await section.getByTestId('sprint-next').click();
+	await next.click();
 	await expect(rows).toHaveCount(1);
 	await expect(rows.first()).toContainText('Todo 7');
-	await expect(section.getByTestId('sprint-page')).toHaveText('Page 2 of 2');
-	await expect(section.getByTestId('sprint-next')).toBeDisabled();
-	await expect(section.getByTestId('sprint-prev')).toBeEnabled();
-	await expect(section.getByTestId('sprint-todos-count')).toHaveText('7');
+	await expect(section.getByText('Page 2 of 2', { exact: true })).toBeVisible();
+	await expect(next).toBeDisabled();
+	await expect(prev).toBeEnabled();
+	await expect(count).toHaveText(/^This week\s*7$/);
 
-	await section.getByTestId('sprint-prev').click();
+	await prev.click();
 	await expect(rows).toHaveCount(6);
 	await expect(rows.first()).toContainText('Todo 1');
-	await expect(section.getByTestId('sprint-page')).toHaveText('Page 1 of 2');
-	await expect(section.getByTestId('sprint-todos-count')).toHaveText('7');
+	await expect(section.getByText('Page 1 of 2', { exact: true })).toBeVisible();
+	await expect(count).toHaveText(/^This week\s*7$/);
 });
 
 test('Scenario: Exactly six todos show no pager', async ({ page, request }) => {
 	await seedClassTodos(request, numbered(6));
 	await page.goto('/uni');
 
-	await expect(page.getByTestId('sprint-todos').getByTestId('sprint-todo-row')).toHaveCount(6);
-	await expect(page.getByTestId('sprint-pager')).toHaveCount(0);
+	await expect(todoRows(sprintTodos(page))).toHaveCount(6);
+	await expect(pager(page)).toHaveCount(0);
 });
+
+const pager = (page: Page) => page.getByRole('group', { name: 'Pages', exact: true });
 
 type Rgb = [number, number, number];
 
@@ -252,8 +271,8 @@ test('Scenario: Cards are tinted by type', async ({ page, request }) => {
 	});
 	await page.goto('/uni');
 
-	const row = (title: string) => page.getByTestId('sprint-todo-row').filter({ hasText: title });
-	await expect(page.getByTestId('sprint-todo-row')).toHaveCount(4);
+	const row = (title: string) => todoRow(sprintTodos(page), title);
+	await expect(todoRows(sprintTodos(page))).toHaveCount(4);
 	const [lec, exc, oth, untyped] = await Promise.all(['Lecture', 'Exercise', 'Other', 'Untyped'].map((t) => colours(row(t))));
 
 	expect(new Set([lec.background, exc.background, oth.background]).size).toBe(3);
@@ -284,7 +303,7 @@ test('Scenario: Ink keeps AA contrast on every tint', async ({ page, request }) 
 	await page.goto('/uni');
 
 	for (const title of ['Lecture', 'Exercise', 'Other']) {
-		const row = page.getByTestId('sprint-todo-row').filter({ hasText: title });
+		const row = todoRow(sprintTodos(page), title);
 		const { background } = await colours(row);
 		const ink = await row.getByText(title, { exact: true }).evaluate((el) => getComputedStyle(el).color);
 		expect(contrast(rgb(ink), rgb(background)), title).toBeGreaterThanOrEqual(4.5);
@@ -295,9 +314,9 @@ test('Scenario: Overdue rows keep their marking on the tint', async ({ page, req
 	await seedClassTodos(request, [{ title: 'Late sheet', type: 'LEC', dueDate: '2026-10-03' }, { title: 'On time', type: 'LEC' }]);
 	await page.goto('/uni');
 
-	const late = page.getByTestId('sprint-todo-row').filter({ hasText: 'Late sheet' });
+	const late = todoRow(sprintTodos(page), 'Late sheet');
 	await expect(late.getByText('Overdue')).toHaveCSS('color', 'rgb(196, 47, 37)');
-	const onTime = page.getByTestId('sprint-todo-row').filter({ hasText: 'On time' });
+	const onTime = todoRow(sprintTodos(page), 'On time');
 	expect((await colours(late)).background).toBe((await colours(onTime)).background);
 	expect((await colours(late)).background).not.toBe('rgb(255, 255, 255)');
 });
@@ -317,12 +336,12 @@ test('Scenario: Class page rows are not tinted', async ({ page, request }) => {
 		]
 	});
 	await page.goto('/uni');
-	const hub = page.getByTestId('sprint-todo-row');
-	const [hubLec, hubExc] = [await colours(hub.filter({ hasText: 'Lecture' })), await colours(hub.filter({ hasText: 'Exercise' }))];
+	const hub = sprintTodos(page);
+	const [hubLec, hubExc] = [await colours(todoRow(hub, 'Lecture')), await colours(todoRow(hub, 'Exercise'))];
 
-	await page.getByTestId('class-card').click();
+	await classCards(page).click();
 	await expect(page.getByRole('heading', { name: 'Analysis II', level: 1 })).toBeVisible();
-	const rows = page.getByTestId('class-todos-open').getByTestId('todo-row');
+	const rows = todoRows(page.getByRole('group', { name: 'Open', exact: true }));
 	await expect(rows).toHaveCount(2);
 	const [a, b] = [await colours(rows.nth(0)), await colours(rows.nth(1))];
 	expect(a).toEqual(b);

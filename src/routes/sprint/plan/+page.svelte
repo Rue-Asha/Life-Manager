@@ -48,7 +48,7 @@
 </svelte:head>
 
 <PageHeader title="Plan your week">
-	<span class="week num" data-testid="plan-week">{weekLabel(data.weekStart)}</span>
+	<span class="week num">{weekLabel(data.weekStart)}</span>
 </PageHeader>
 
 <form bind:this={dropForm} method="POST" action={drop.action} use:enhance hidden>
@@ -89,13 +89,12 @@
 <div class="panes">
 	<section
 		class="pane sprint"
-		data-testid="plan-sprint"
 		aria-labelledby="sprint-heading"
 		use:dropZone={{ accepts: (p) => p.from === 'backlog', ondrop: (p) => move(p.id, '?/pull') }}
 	>
 		<h2 id="sprint-heading">This sprint <span class="count num">{count}</span></h2>
 		{#if data.suggested.length > 0}
-			<section class="suggestions" data-testid="plan-suggestions" aria-labelledby="suggestions-heading">
+			<section class="suggestions" aria-labelledby="suggestions-heading">
 				<h3 id="suggestions-heading">
 					<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.flag} /></svg>Due this week
 					<span class="count num">{marked.length} of {data.suggested.length}</span>
@@ -124,7 +123,7 @@
 			</section>
 		{/if}
 		{#if data.auto.length > 0}
-			<section class="suggestions" data-testid="plan-auto" aria-labelledby="auto-heading">
+			<section class="suggestions" aria-labelledby="auto-heading">
 				<h3 id="auto-heading">
 					<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.calendar} /></svg>Joins automatically
 					<span class="count num">{data.auto.length}</span>
@@ -153,7 +152,6 @@
 			canAdd
 			addAction="?/pull"
 			onreturn={(id) => move(id, '?/unpull')}
-			testid="plan-backlog"
 		/>
 	</section>
 </div>

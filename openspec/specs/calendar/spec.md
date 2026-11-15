@@ -8,7 +8,7 @@ The app SHALL have a read-only calendar at `/calendar` with the heading "Calenda
 Sunday on the Europe/Berlin calendar, showing the current month by default. Controls "‹" (previous month), "›" (next
 month) and "Today" (current month with today selected) change the month, and the shown month is in the URL as
 `?month=YYYY-MM`, so a link opens that month directly; a missing or invalid `month` parameter shows the current month.
-Days outside the shown month are muted (`data-outside="true"`) and carry no entries. (calendar-planning S11)
+Days outside the shown month are muted (their cell buttons are disabled) and carry no entries. (calendar-planning S11)
 
 #### Scenario: Month grid runs Monday to Sunday
 - **WHEN** `monthGrid` is built for 2026-02 and for 2026-03
@@ -40,7 +40,7 @@ Each day of the shown month SHALL list its entries: todos with an explicit plann
 sprint or a closed sprint), with their aspect colour, their slot or "all day", done ones struck through; for every day
 after the active sprint's week, or from today on when no sprint is active, one projected occurrence per recurring rule
 weekday (rules whose class belongs to an archived semester are not projected, since they never become instances),
-with the rule's title, aspect colour and slot, marked as a projection (`data-kind="projection"`, the repeat
+with the rule's title, aspect colour and slot, marked as a projection (the repeat
 glyph and the accessible text "Projected"); and uni exams of active and archived semesters at their `exam_at` time
 (an `exam_at` without a time is all-day), shown as "Exam" with the class name and room. Due dates are not entries: open todos with a `due_date` appear in a separate "Due" list per day (see "Calendar layouts"), never among these entries, and
 sprint todos without an explicit day are not shown as entries. Days before the active sprint's week (or before today without a
@@ -98,14 +98,14 @@ Within a day all-day entries come first, then timed ones by start time, ties by 
 - **proof:** e2e
 
 ### Requirement: Calendar layouts
-Below 768 px the calendar SHALL show a compact grid with aspect-coloured dots per day (`calendar-dot`; at most 3, then a
-"+") and the selected day's entry list (`calendar-day-list`) below the grid. From 768 px each cell shows up to 3 entry
+Below 768 px the calendar SHALL show a compact grid with aspect-coloured dots per day (at most 3, then a
+"+") and the selected day's entry list (a region named by its date) below the grid. From 768 px each cell shows up to 3 entry
 titles (ellipsized) plus "+n more" for the rest, and the selected day's list sits in the context rail: docked at
 ≥1280 px, where the grid fills the content width, and as the rail overlay with its toggle between 768 and 1279 px.
 Selecting a day (its cell is a button, `aria-pressed="true"` when selected) shows that day's list, each entry with its
 slot or "all day"; the selected day defaults to today when it is in the shown month, else the 1st. A save from the day list keeps the selection; only changing the month resets it. A day without
 entries and without due todos lists "Nothing planned". No horizontal scroll at 375 px. Exam entries use their class colour. (calendar-planning S13)
-Each day with open due todos (`due_date` on that day, status not done, backlog or sprint, any day incl. past) SHALL show a due marker (`calendar-due`: flag glyph + count) in its cell, on the phone grid and the wide grid, that does not count against the 3 visible titles or the 3 dots. The day list SHALL start with a "Due" section (`calendar-due-list`, one `calendar-due-row` per todo with its title and aspect) above the planned entries; a day without due todos has no marker and no section, and a day with only due todos shows marker and section and no empty-state text. Done todos are not shown. (deadline-calendar S4)
+Each day with open due todos (`due_date` on that day, status not done, backlog or sprint, any day incl. past) SHALL show a due marker (flag glyph + count, an image named "<n> due") in its cell, on the phone grid and the wide grid, that does not count against the 3 visible titles or the 3 dots. The day list SHALL start with a "Due" section (a group named "Due", one list item per todo with its title and aspect) above the planned entries; a day without due todos has no marker and no section, and a day with only due todos shows marker and section and no empty-state text. Done todos are not shown. (deadline-calendar S4)
 
 #### Scenario: Phone shows dots and the selected day's list
 - **WHEN** on 2026-10-14 at 375 px Rue opens `/calendar` with five entries on 2026-10-14 and one on 2026-10-16, then taps the 2026-10-16 cell
@@ -139,7 +139,7 @@ Each day with open due todos (`due_date` on that day, status not done, backlog o
 
 #### Scenario: Cell shows a due marker beside the titles
 - **WHEN** at 1280 px Rue opens `/calendar` with five planned entries on 2026-10-21 and two open todos plus one done todo due 2026-10-21
-- **THEN** the 2026-10-21 cell shows three titles and "+2 more" and a `calendar-due` marker reading 2, and no marker appears on days without due todos
+- **THEN** the 2026-10-21 cell shows three titles and "+2 more" and a due marker reading 2, and no marker appears on days without due todos
 - **proof:** e2e ("Scenario: Due todos show as marker and Due section")
 
 #### Scenario: Phone cell shows the marker and the Due section
@@ -164,7 +164,7 @@ Each day with open due todos (`due_date` on that day, status not done, backlog o
 
 #### Scenario: No deadlines means no marker and no section
 - **WHEN** a month has no open todo with a due date and Rue selects a day with a planned entry
-- **THEN** no `calendar-due` marker and no `calendar-due-list` exists
+- **THEN** no due marker and no "Due" group exists
 - **proof:** e2e ("Scenario: Due todos show as marker and Due section")
 
 ### Requirement: Opening calendar entries

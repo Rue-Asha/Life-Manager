@@ -1,3 +1,4 @@
+import type { Page } from '@playwright/test';
 import { expect, test, fake, protonOn, protonPass, protonStatus, reset, seed, setClock } from './helpers';
 
 const NOW = '2026-10-12T08:00:00Z';
@@ -12,6 +13,9 @@ test.afterAll(async ({ request }) => {
 	await setClock(request, null);
 });
 
+const syncRow = (page: Page, label: string) => page.getByRole('group', { name: label, exact: true });
+const failedItems = (page: Page) => page.getByRole('region', { name: 'Failed items' }).getByRole('group', { name: /\S/ });
+
 test('Scenario: Sync off page names PROTON_CLI and shows no buttons', async ({ page, request, baseURL }) => {
 	const { todos } = await seed(request, { aspects: [{ name: 'Health' }], todos: [{ title: 'Stretch' }] });
 	const response = await request.post('/todos?/setDay', {
@@ -22,7 +26,7 @@ test('Scenario: Sync off page names PROTON_CLI and shows no buttons', async ({ p
 
 	await page.goto('/sync');
 	await expect(page.getByRole('heading', { name: 'Proton sync' })).toBeVisible();
-	await expect(page.getByTestId('sync-off')).toContainText('PROTON_CLI');
+	await expect(page.getByText('Sync is off.')).toContainText('PROTON_CLI');
 	await expect(page.getByRole('button', { name: 'Sync now' })).toHaveCount(0);
 	await expect(page.getByRole('button', { name: 'Resync all' })).toHaveCount(0);
 	expect(fake().calls()).toEqual([]);
@@ -35,16 +39,16 @@ test('Scenario: Sync page shows state, last sync and pending count', async ({ pa
 	await protonOn(request);
 
 	await page.goto('/sync');
-	await expect(page.getByTestId('sync-state')).toHaveText('Up to date');
-	await expect(page.getByTestId('sync-last')).toHaveText('Never');
-	await expect(page.getByTestId('sync-pending')).toHaveText('2');
+	await expect(syncRow(page, 'State')).toHaveText(/^State\s*Up to date$/);
+	await expect(syncRow(page, 'Last sync')).toHaveText(/^Last sync\s*Never$/);
+	await expect(syncRow(page, 'Pending changes')).toHaveText(/^Pending changes\s*2$/);
 
 	await protonPass(request);
 	await page.reload();
-	await expect(page.getByTestId('sync-state')).toHaveText('Up to date');
-	await expect(page.getByTestId('sync-last')).not.toHaveText('Never');
-	await expect(page.getByTestId('sync-pending')).toHaveText('0');
-	await expect(page.getByTestId('sync-note')).toContainText(/renaming or recolouring/i);
+	await expect(syncRow(page, 'State')).toHaveText(/^State\s*Up to date$/);
+	await expect(syncRow(page, 'Last sync')).not.toHaveText(/^Last sync\s*Never$/);
+	await expect(syncRow(page, 'Pending changes')).toHaveText(/^Pending changes\s*0$/);
+	await expect(page.getByText(/renaming or recolouring/i)).toBeVisible();
 });
 
 test('Scenario: Sync page lists failed items with their error', async ({ page, request }) => {
@@ -54,8 +58,8 @@ test('Scenario: Sync page lists failed items with their error', async ({ page, r
 	await protonPass(request);
 
 	await page.goto('/sync');
-	await expect(page.getByTestId('sync-state')).toHaveText('Up to date');
-	const failed = page.getByTestId('sync-failed').getByTestId('sync-failed-item');
+	await expect(syncRow(page, 'State')).toHaveText(/^State\s*Up to date$/);
+	const failed = failedItems(page);
 	await expect(failed).toHaveCount(1);
 	await expect(failed).toContainText('Stretch');
 	await expect(failed).toContainText('Error: ambiguous local time');
@@ -68,13 +72,13 @@ test('Scenario: Re-login needed shows the login command and recovers after Sync 
 	await protonPass(request);
 
 	await page.goto('/sync');
-	await expect(page.getByTestId('sync-state')).toHaveText('Re-login needed');
-	await expect(page.getByTestId('sync-login-command')).toHaveText('proton account login --profile default');
-	await expect(page.getByTestId('sync-last-error')).toContainText('not logged in');
+	await expect(syncRow(page, 'State')).toHaveText(/^State\s*Re-login needed$/);
+	await expect(page.getByText('proton account login --profile default', { exact: true })).toBeVisible();
+	await expect(page.getByText('Error: not logged in', { exact: true })).toBeVisible();
 
 	fake().clearFailures();
 	await page.getByRole('button', { name: 'Sync now' }).click();
-	await expect(page.getByTestId('sync-state')).toHaveText('Up to date');
+	await expect(syncRow(page, 'State')).toHaveText(/^State\s*Up to date$/);
 	expect(Object.keys(fake().state().events)).toHaveLength(1);
 });
 
@@ -125,20 +129,20 @@ test('Scenario: Sync page fits a phone', async ({ page, request }) => {
 		todos: [{ title: 'Draft the cover letter for the summer internship application and send it to everyone', day: TODAY }]
 	});
 	await page.goto('/sync');
-	await expect(page.getByTestId('sync-off')).toBeVisible();
+	await expect(page.getByText('Sync is off.')).toBeVisible();
 	await fits('off');
 
 	await protonOn(request, { profile: 'a-rather-long-profile-name-for-the-server-login' });
 	fake().fail({ kind: '*', code: 2, error: 'Error: session expired, run the login command again to get a new token' });
 	await protonPass(request);
 	await page.goto('/sync');
-	await expect(page.getByTestId('sync-login-command')).toBeVisible();
+	await expect(page.getByText(/^proton account login --profile /)).toBeVisible();
 	await fits('relogin');
 
 	fake().clearFailures();
 	fake().fail({ kind: 'event.create', code: 1, error: 'Error: ambiguous local time between two offsets in Europe/Berlin' });
 	await protonPass(request);
 	await page.goto('/sync');
-	await expect(page.getByTestId('sync-failed-item')).toBeVisible();
+	await expect(failedItems(page)).toBeVisible();
 	await fits('failed');
 });

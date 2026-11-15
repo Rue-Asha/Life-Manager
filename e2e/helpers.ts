@@ -1,4 +1,4 @@
-import { test as base, type APIRequestContext, type Page, type Response } from '@playwright/test';
+import { test as base, type APIRequestContext, type Locator, type Page, type Response } from '@playwright/test';
 import { resolve } from 'node:path';
 import { createFake } from '../scripts/fake-proton.mjs';
 import type { PassOutcome, SyncStatus } from '../src/lib/server/proton/types';
@@ -83,3 +83,40 @@ export async function setClock(request: APIRequestContext, now: string | null): 
 	if (!response.ok()) throw new Error(`setClock failed: ${response.status()}`);
 }
 
+
+export const todoRow = (scope: Page | Locator, title: string) => scope.getByRole('listitem', { name: title });
+
+export const todoRows = (scope: Page | Locator) => scope.getByRole('listitem', { name: /\S/ });
+
+export const todoTitles = (scope: Page | Locator) =>
+	todoRows(scope).evaluateAll((els) => els.map((el) => el.getAttribute('aria-label')));
+
+const weekdayShort = new Intl.DateTimeFormat('en-GB', { weekday: 'short', timeZone: 'UTC' });
+const dayMonth = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+const utc = (day: string) => new Date(`${day}T00:00:00Z`);
+
+// A sprint week column, named by its heading: "Tue 3" for 2026-11-03, or "Unscheduled".
+export const dayColumn = (scope: Page | Locator, day: string | null) =>
+	scope.getByRole('region', {
+		name: day === null ? /^Unscheduled\b/ : new RegExp(`^${weekdayShort.format(utc(day))} ${utc(day).getUTCDate()}\\b`)
+	});
+
+// A calendar month cell, named by its visually hidden date: "Wed 21 Oct".
+export const calendarCell = (scope: Page | Locator, day: string) =>
+	scope.getByRole('group', { name: 'Month grid' }).getByRole('button', { name: dayMonth.format(utc(day)) });
+
+// An aspect group on Today, Backlog and the sprint list: a region named by its heading.
+export const aspectGroup = (scope: Page | Locator, name: string) => scope.getByRole('region', { name: new RegExp(`^${name}\\b`) });
+
+// A calendar entry inside a month cell (the span holding its colour mark and title), or an entry of the day list, a listitem named by its title.
+export const cellEntries = (cell: Locator) => cell.locator('span:has(> i)');
+
+export const dayListEntries = (scope: Page | Locator) => scope.getByRole('listitem', { name: /\S/ });
+
+export const projectCard = (scope: Page | Locator, name: string) => scope.getByRole('listitem', { name });
+
+export const projectCards = (scope: Page | Locator) => scope.getByRole('listitem', { name: /\S/ });
+
+export const ruleRow = (scope: Page | Locator, title: string) => scope.getByRole('listitem', { name: title });
+
+export const ruleRows = (scope: Page | Locator) => scope.getByRole('listitem', { name: /\S/ });

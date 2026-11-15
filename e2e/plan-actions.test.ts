@@ -1,4 +1,4 @@
-import { expect, test, reset, seed, setClock } from './helpers';
+import { expect, test, reset, seed, setClock, todoRow } from './helpers';
 
 // Wednesday 7 October 2026, midday in Berlin.
 const NOW = '2026-10-07T10:00:00Z';
@@ -45,7 +45,7 @@ test('Scenario: Archived class todo cannot be planned', async ({ page, request, 
 	expect(update.data).toContain('archived');
 
 	await page.goto('/backlog');
-	const row = page.getByTestId('todo-row').filter({ hasText: 'Old lab report' });
+	const row = todoRow(page, 'Old lab report');
 	await expect(row).toHaveAttribute('data-day', '2026-10-20');
-	await expect(row.getByTestId('planned-label')).toHaveText('Tue 20 Oct · 18:00');
+	await expect(row.getByText('Tue 20 Oct · 18:00', { exact: true })).toBeVisible();
 });

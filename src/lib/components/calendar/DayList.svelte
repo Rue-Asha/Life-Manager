@@ -42,14 +42,14 @@
 	</span>
 {/snippet}
 
-<section class="day" data-testid="calendar-day-list" aria-labelledby="day-title">
+<section class="day" aria-labelledby="day-title">
 	<h2 id="day-title">{dateLabel(day)}</h2>
 	{#if due.length > 0}
-		<div class="due" data-testid="calendar-due-list">
+		<div class="due" role="group" aria-label="Due">
 			<h3>Due</h3>
 			<ul>
 				{#each due as t (t.id)}
-					<li data-testid="calendar-due-row" style:--a={aspectColor(t.aspectId, aspects)}>
+					<li style:--a={aspectColor(t.aspectId, aspects)}>
 						<svg class="flag" viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.flag} /></svg>
 						<span class="body">
 							<span class="title">{t.title}</span>
@@ -65,7 +65,7 @@
 	{:else if entries.length > 0}
 		<ul>
 			{#each entries as entry, i (i)}
-				<li data-testid="calendar-entry" data-kind={entry.kind} style:--a={entryColor(entry, aspects)}>
+				<li aria-label={entry.title} style:--a={entryColor(entry, aspects)}>
 					<i class="mark" class:ring={entry.kind === 'projection'}></i>
 					{#if entry.kind === 'todo'}
 						<button type="button" class="body" onclick={() => (editing = entry.todo.id)}>{@render content(entry)}</button>

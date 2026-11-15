@@ -85,7 +85,7 @@ test('Scenario: Screens with a rail centre their column', async ({ page, request
 	for (const [path, name] of screens) {
 		await page.goto(path);
 		await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-		const rail = page.getByTestId('context-rail');
+		const rail = page.getByRole('complementary');
 		await expect(rail).toBeVisible();
 		const { column, free } = await rail.evaluate((el) => {
 			const content = el.previousElementSibling!.getBoundingClientRect();

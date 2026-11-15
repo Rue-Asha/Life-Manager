@@ -24,7 +24,6 @@
 		<div class="content">
 			<div class="bar">
 				<Button
-					data-testid="rail-toggle"
 					aria-expanded={open}
 					aria-controls="{id}-rail"
 					onclick={() => (open = !open)}
@@ -34,7 +33,7 @@
 			</div>
 			{@render children()}
 		</div>
-		<aside id="{id}-rail" class="rail" class:open data-testid="context-rail" aria-label={railTitle}>
+		<aside id="{id}-rail" class="rail" class:open aria-label={railTitle}>
 			{@render rail()}
 		</aside>
 	</div>

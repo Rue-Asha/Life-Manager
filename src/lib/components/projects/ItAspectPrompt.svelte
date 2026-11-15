@@ -25,8 +25,8 @@
 	const dropsLinks = $derived(current !== null && selected !== current && linkCount > 0);
 </script>
 
-<section class="prompt" data-testid="it-aspect-prompt">
-	<h2>{current === null ? 'Which aspect holds your IT todos?' : 'Change the IT aspect'}</h2>
+<section class="prompt" aria-labelledby="it-aspect-prompt-h">
+	<h2 id="it-aspect-prompt-h">{current === null ? 'Which aspect holds your IT todos?' : 'Change the IT aspect'}</h2>
 	<p>Todos of this aspect can be linked to a project. You can change it later.</p>
 	<form
 		method="POST"
