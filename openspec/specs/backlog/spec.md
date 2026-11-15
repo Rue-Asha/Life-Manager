@@ -5,7 +5,7 @@ TBD - created by archiving change build-life-manager. Update Purpose after archi
 ## Requirements
 ### Requirement: Backlog view
 The backlog SHALL show all todos not in a sprint, with a filter to one aspect that applies to every section. Todos with
-a planned date are listed first, in their own section "Planned" (test id `planned-section`), sorted by day, then
+a planned date are listed first, in their own section "Planned" (a region named by its heading), sorted by day, then
 all-day before timed, then by start time; the section is hidden when no backlog todo is planned. The remaining todos
 are grouped by aspect and sorted by priority (P1, P2, P3, none) then due date (earliest first, none last). The aspect filter is the `aspect` query parameter: absent or empty means all; a whole number selects that aspect; any other value, or a number that names no aspect, shows an empty list (never all, never an error), and the page data then carries no selected aspect. (S9, S5)
 

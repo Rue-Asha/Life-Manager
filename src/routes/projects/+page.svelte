@@ -73,28 +73,28 @@
 	{/if}
 
 	{#if data.projects.length === 0}
-		<p class="empty" data-testid="empty-state">
+		<p class="empty">
 			Capture your first idea. A project starts in the backlog.
 			<button type="button" onclick={() => (adding = true)}>New project</button>
 		</p>
 	{/if}
 
 	{#each groups as { status, projects } (status)}
-		<section class="group" data-testid="project-group-{status}" aria-labelledby="group-{status}">
+		<section class="group" aria-labelledby="group-{status}">
 			<h2 class="head" id="group-{status}">
 				{@render glyph(status)}{STATUS_LABELS[status]}<span class="count num">{projects.length}</span>
 			</h2>
-			<ul class="cards" data-testid="project-grid">
+			<ul class="cards" aria-label="{STATUS_LABELS[status]} projects">
 				{#each projects as project (project.id)}
-					<li><ProjectCard {project} /></li>
+					<li aria-label={project.name}><ProjectCard {project} /></li>
 				{/each}
 			</ul>
 		</section>
 	{/each}
 
 	{#if implemented.length > 0}
-		<section class="group" data-testid="project-group-implemented">
-			<h2 class="head toggle">
+		<section class="group" aria-labelledby="group-implemented">
+			<h2 class="head toggle" id="group-implemented">
 				<button type="button" aria-expanded={showImplemented} onclick={() => (showImplemented = !showImplemented)}>
 					<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
 					{@render glyph('implemented')}Implemented ({implemented.length})
@@ -103,7 +103,7 @@
 			{#if showImplemented}
 				<ul class="cards">
 					{#each implemented as project (project.id)}
-						<li><ProjectCard {project} /></li>
+						<li aria-label={project.name}><ProjectCard {project} /></li>
 					{/each}
 				</ul>
 			{/if}
@@ -111,7 +111,7 @@
 	{/if}
 
 	<p class="aspect">
-		IT aspect: <strong data-testid="it-aspect">{itAspect!.name}</strong>
+		IT aspect: <strong>{itAspect!.name}</strong>
 		<button type="button" onclick={() => (changing = true)}>Change IT aspect</button>
 	</p>
 {/if}

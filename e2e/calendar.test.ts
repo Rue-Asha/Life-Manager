@@ -1,5 +1,5 @@
-import type { Page } from '@playwright/test';
-import { expect, test, reset, seed, setClock } from './helpers';
+import type { Locator, Page } from '@playwright/test';
+import { calendarCell, cellEntries, dayListEntries, expect, ruleRow, test, reset, seed, setClock } from './helpers';
 
 // Wednesday 14 October 2026 in Berlin.
 const WEDNESDAY = '2026-10-14T10:00:00Z';
@@ -16,13 +16,21 @@ test.afterAll(async ({ request }) => {
 	await setClock(request, null);
 });
 
-const cell = (page: Page, day: string) => page.getByTestId(`calendar-cell-${day}`);
-const head = (page: Page) => page.getByTestId('calendar-head');
+const cell = calendarCell;
+const head = (page: Page) => page.getByRole('navigation', { name: 'Month', exact: true });
+const monthHeading = (page: Page, name: string) => page.getByRole('heading', { level: 2, name, exact: true });
+const due = (scope: Page | Locator) => scope.getByRole('img', { name: / due$/ });
+const dueGroup = (scope: Locator) => scope.getByRole('group', { name: 'Due', exact: true });
+const dots = (cell: Locator) => cell.locator('[aria-hidden="true"] > i');
+const grid = (page: Page) => page.getByRole('group', { name: 'Month grid' });
+const dayList = (scope: Page | Locator) => scope.getByRole('region', { name: /^\w{3} \d+ \w{3}$/ });
+const rail = (page: Page) => page.getByRole('complementary', { name: 'Day list', exact: true, includeHidden: true });
+const railToggle = (page: Page) => page.getByRole('button', { name: 'Day list', exact: true, includeHidden: true });
 
 async function openCalendar(page: Page, path = '/calendar') {
 	await page.goto(path);
 	await expect(page.getByRole('heading', { level: 1, name: 'Calendar' })).toBeVisible();
-	if ((page.viewportSize()?.width ?? 0) >= 768) await expect(page.getByTestId('context-rail')).toBeAttached();
+	if ((page.viewportSize()?.width ?? 0) >= 768) await expect(rail(page)).toBeAttached();
 }
 
 test('Scenario: Calendar opens on the current month', async ({ page, request }) => {
@@ -30,15 +38,15 @@ test('Scenario: Calendar opens on the current month', async ({ page, request }) 
 	await page.setViewportSize({ width: 1280, height: 900 });
 	await openCalendar(page);
 
-	const cells = page.getByTestId('calendar-grid').locator('[data-testid^="calendar-cell-"]');
+	const cells = grid(page).getByRole('button');
 	await expect(cells).toHaveCount(35);
-	await expect(cells.first()).toHaveAttribute('data-testid', 'calendar-cell-2026-09-28');
-	await expect(cells.last()).toHaveAttribute('data-testid', 'calendar-cell-2026-11-01');
+	await expect(cells.first()).toHaveAccessibleName(/^Mon 28 Sept?\b/);
+	await expect(cells.last()).toHaveAccessibleName(/^Sun 1 Nov\b/);
 	for (const day of ['2026-09-28', '2026-09-29', '2026-09-30', '2026-11-01']) {
-		await expect(cell(page, day)).toHaveAttribute('data-outside', 'true');
+		await expect(cell(page, day)).toBeDisabled();
 	}
-	await expect(cell(page, '2026-10-01')).toHaveAttribute('data-outside', 'false');
-	await expect(page.getByTestId('calendar-month')).toHaveText('October 2026');
+	await expect(cell(page, '2026-10-01')).toBeEnabled();
+	await expect(monthHeading(page, 'October 2026')).toBeVisible();
 });
 
 test('Scenario: Month navigation and deep link', async ({ page, request }) => {
@@ -48,21 +56,21 @@ test('Scenario: Month navigation and deep link', async ({ page, request }) => {
 
 	await head(page).getByRole('link', { name: 'Next month' }).click();
 	await expect(page).toHaveURL(/\/calendar\?month=2026-11$/);
-	await expect(page.getByTestId('calendar-month')).toHaveText('November 2026');
+	await expect(monthHeading(page, 'November 2026')).toBeVisible();
 
 	await head(page).getByRole('link', { name: 'Previous month' }).click();
 	await expect(page).toHaveURL(/\?month=2026-10$/);
 	await head(page).getByRole('link', { name: 'Previous month' }).click();
 	await expect(page).toHaveURL(/\?month=2026-09$/);
-	await expect(page.getByTestId('calendar-month')).toHaveText('September 2026');
+	await expect(monthHeading(page, 'September 2026')).toBeVisible();
 
 	await head(page).getByRole('link', { name: 'Today' }).click();
 	await expect(page).toHaveURL(/\?month=2026-10$/);
-	await expect(page.getByTestId('calendar-month')).toHaveText('October 2026');
+	await expect(monthHeading(page, 'October 2026')).toBeVisible();
 	await expect(cell(page, '2026-10-14')).toHaveAttribute('aria-pressed', 'true');
 
 	await openCalendar(page, '/calendar?month=2027-02');
-	await expect(page.getByTestId('calendar-month')).toHaveText('February 2027');
+	await expect(monthHeading(page, 'February 2027')).toBeVisible();
 	await expect(cell(page, '2027-02-01')).toBeVisible();
 });
 
@@ -71,7 +79,7 @@ test('Scenario: Invalid month parameter shows the current month', async ({ page,
 	await page.setViewportSize({ width: 1280, height: 900 });
 	for (const param of ['2026-13', 'foo']) {
 		await openCalendar(page, `/calendar?month=${param}`);
-		await expect(page.getByTestId('calendar-month')).toHaveText('October 2026');
+		await expect(monthHeading(page, 'October 2026')).toBeVisible();
 		await expect(cell(page, '2026-10-14')).toBeVisible();
 	}
 });
@@ -89,7 +97,7 @@ test('Scenario: Calendar shows aspect colours and marks projections', async ({ p
 	await page.setViewportSize({ width: 1280, height: 900 });
 	await openCalendar(page);
 
-	const yoga = cell(page, '2026-10-21').getByTestId('calendar-entry');
+	const yoga = cellEntries(cell(page, '2026-10-21'));
 	await expect(yoga).toHaveText(/Yoga/);
 	const sage = await page.evaluate(() => {
 		const probe = document.createElement('i');
@@ -99,18 +107,17 @@ test('Scenario: Calendar shows aspect colours and marks projections', async ({ p
 		probe.remove();
 		return color;
 	});
-	await expect(yoga.getByTestId('calendar-entry-mark')).toHaveCSS('background-color', sage);
+	await expect(yoga.locator('i')).toHaveCSS('background-color', sage);
 
-	const done = cell(page, '2026-10-13').getByTestId('calendar-entry');
+	const done = cellEntries(cell(page, '2026-10-13'));
 	await expect(done.getByText('Filed taxes')).toHaveCSS('text-decoration-line', 'line-through');
 
-	const gym = cell(page, '2026-10-15').getByTestId('calendar-entry');
-	await expect(gym).toHaveAttribute('data-kind', 'projection');
+	const gym = cellEntries(cell(page, '2026-10-15'));
 	await expect(gym).toContainText('Gym');
 	await expect(gym).toContainText('Projected');
 
-	await expect(page.getByTestId('calendar-grid').getByText('Pay invoice')).toHaveCount(0);
-	await expect(cell(page, '2026-10-22').getByTestId('calendar-due')).toHaveText('1');
+	await expect(grid(page).getByText('Pay invoice')).toHaveCount(0);
+	await expect(due(cell(page, '2026-10-22'))).toHaveText('1');
 });
 
 test('Scenario: Recurring rule with a slot shows in later months', async ({ page, request }) => {
@@ -119,14 +126,14 @@ test('Scenario: Recurring rule with a slot shows in later months', async ({ page
 	await openCalendar(page, '/calendar?month=2027-01');
 
 	for (const day of ['2027-01-05', '2027-01-12', '2027-01-19', '2027-01-26']) {
-		await expect(cell(page, day).getByTestId('calendar-entry')).toContainText('Gym');
+		await expect(cellEntries(cell(page, day))).toContainText('Gym');
 	}
 	await cell(page, '2027-01-12').click();
-	const entry = page.getByTestId('calendar-day-list').getByTestId('calendar-entry');
+	const entry = dayListEntries(dayList(page));
 	await expect(entry).toHaveCount(1);
 	await expect(entry).toContainText('Gym');
 	await expect(entry).toContainText('18:00–19:30');
-	await expect(entry).toHaveAttribute('data-kind', 'projection');
+	await expect(entry.getByRole('link', { name: /Gym/ })).toBeVisible();
 	await expect(entry).toContainText('Projected');
 });
 
@@ -145,22 +152,19 @@ test('Scenario: Wide cells show up to three titles', async ({ page, request }) =
 	await cell(page, '2026-10-21').click();
 	await expect(cell(page, '2026-10-21')).toHaveAttribute('aria-pressed', 'true');
 
-	await expect(cell(page, '2026-10-21').getByTestId('calendar-entry')).toHaveCount(3);
+	await expect(cellEntries(cell(page, '2026-10-21'))).toHaveCount(3);
 	await expect(cell(page, '2026-10-21')).toContainText('+2 more');
-	await expect(page.getByTestId('calendar-day-list').getByTestId('calendar-entry')).toHaveCount(5);
+	await expect(dayListEntries(dayList(page))).toHaveCount(5);
 
-	const { grid, rail, sidebar } = await page.evaluate(() => {
-		const box = (el: Element | null) => el!.getBoundingClientRect();
-		return {
-			grid: box(document.querySelector('[data-testid="calendar-grid"]')),
-			rail: box(document.querySelector('[data-testid="context-rail"]')),
-			sidebar: box(document.querySelector('main')!.previousElementSibling)
-		};
-	});
-	expect(grid.width).toBeGreaterThanOrEqual(rail.left - sidebar.right - 80);
-	expect(grid.left - sidebar.right).toBeLessThanOrEqual(40);
-	expect(rail.left - grid.right).toBeLessThanOrEqual(40);
-	expect(rail.left - grid.right).toBeGreaterThanOrEqual(0);
+	const gridBox = (await grid(page).boundingBox())!;
+	const railBox = (await rail(page).boundingBox())!;
+	const sidebarBox = (await page.getByRole('navigation', { name: 'Main' }).boundingBox())!;
+	const sidebarRight = sidebarBox.x + sidebarBox.width;
+	const gridRight = gridBox.x + gridBox.width;
+	expect(gridBox.width).toBeGreaterThanOrEqual(railBox.x - sidebarRight - 80);
+	expect(gridBox.x - sidebarRight).toBeLessThanOrEqual(40);
+	expect(railBox.x - gridRight).toBeLessThanOrEqual(40);
+	expect(railBox.x - gridRight).toBeGreaterThanOrEqual(0);
 });
 
 test('Scenario: Day list in the rail overlay below 1280', async ({ page, request }) => {
@@ -169,12 +173,11 @@ test('Scenario: Day list in the rail overlay below 1280', async ({ page, request
 	await openCalendar(page);
 	await cell(page, '2026-10-21').click();
 
-	const rail = page.getByTestId('context-rail');
-	await expect(rail).toBeHidden();
-	expect(await rail.evaluate((el) => getComputedStyle(el).position)).toBe('fixed');
-	await page.getByTestId('rail-toggle').click();
-	await expect(rail).toBeVisible();
-	await expect(rail.getByTestId('calendar-day-list').getByTestId('calendar-entry')).toContainText('Dentist');
+	await expect(rail(page)).toBeHidden();
+	expect(await rail(page).evaluate((el) => getComputedStyle(el).position)).toBe('fixed');
+	await railToggle(page).click();
+	await expect(rail(page)).toBeVisible();
+	await expect(dayListEntries(dayList(rail(page)))).toContainText('Dentist');
 });
 
 test('Scenario: Empty month shows Nothing planned', async ({ page, request }) => {
@@ -182,8 +185,8 @@ test('Scenario: Empty month shows Nothing planned', async ({ page, request }) =>
 	for (const width of [375, 1280]) {
 		await page.setViewportSize({ width, height: 900 });
 		await openCalendar(page);
-		await expect(page.getByTestId('calendar-grid')).toBeVisible();
-		await expect(page.getByTestId('calendar-day-list')).toContainText('Nothing planned');
+		await expect(grid(page)).toBeVisible();
+		await expect(dayList(page)).toContainText('Nothing planned');
 	}
 });
 
@@ -204,13 +207,13 @@ test("Scenario: Phone shows dots and the selected day's list", async ({ page, re
 
 	const today = cell(page, '2026-10-14');
 	await expect(today).toHaveAttribute('aria-pressed', 'true');
-	await expect(today.getByTestId('calendar-dot')).toHaveCount(3);
+	await expect(dots(today)).toHaveCount(3);
 	await expect(today).toContainText('+');
-	await expect(today.getByTestId('calendar-entry')).toHaveCount(0);
-	await expect(cell(page, '2026-10-16').getByTestId('calendar-dot')).toHaveCount(1);
+	await expect(today.getByText(/Standup|Lunch|Groceries/)).toHaveCount(0);
+	await expect(dots(cell(page, '2026-10-16'))).toHaveCount(1);
 
-	const list = page.getByTestId('calendar-day-list');
-	await expect(list.getByTestId('calendar-entry')).toHaveCount(5);
+	const list = dayList(page);
+	await expect(dayListEntries(list)).toHaveCount(5);
 	await expect(list).toContainText('09:00–09:15');
 	await expect(list).toContainText('12:30');
 	await expect(list).toContainText('all day');
@@ -218,7 +221,7 @@ test("Scenario: Phone shows dots and the selected day's list", async ({ page, re
 
 	await cell(page, '2026-10-16').click();
 	await expect(cell(page, '2026-10-16')).toHaveAttribute('aria-pressed', 'true');
-	await expect(list.getByTestId('calendar-entry')).toHaveCount(1);
+	await expect(dayListEntries(list)).toHaveCount(1);
 	await expect(list).toContainText('Pay rent');
 
 	const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
@@ -231,7 +234,7 @@ test('Scenario: Selected day defaults to the 1st in another month', async ({ pag
 	await openCalendar(page, '/calendar?month=2026-12');
 
 	await expect(cell(page, '2026-12-01')).toHaveAttribute('aria-pressed', 'true');
-	await expect(page.getByTestId('calendar-day-list')).toContainText('Advent brunch');
+	await expect(dayList(page)).toContainText('Advent brunch');
 });
 
 test('Scenario: Todo entry opens the editor', async ({ page, request }) => {
@@ -240,7 +243,7 @@ test('Scenario: Todo entry opens the editor', async ({ page, request }) => {
 	await openCalendar(page);
 	await cell(page, '2026-10-21').click();
 
-	await page.getByTestId('calendar-day-list').getByTestId('calendar-entry').getByRole('button', { name: 'Dentist' }).click();
+	await dayListEntries(dayList(page)).getByRole('button', { name: 'Dentist' }).click();
 	await expect(page.getByRole('form', { name: 'Edit todo' }).getByRole('textbox', { name: 'Title' })).toHaveValue('Dentist');
 });
 
@@ -250,9 +253,10 @@ test('Scenario: Projected occurrence links to its rule', async ({ page, request 
 	await openCalendar(page);
 	await cell(page, '2026-10-15').click();
 
-	await page.getByTestId('calendar-day-list').getByRole('link', { name: /Gym/ }).click();
+	await dayList(page).getByRole('link', { name: /Gym/ }).click();
 	await expect(page).toHaveURL(new RegExp(`/recurring#rule-${rules[0]}$`));
-	await expect(page.locator(`[data-testid="rule-row"][data-rule-id="${rules[0]}"]`)).toBeVisible();
+	await expect(ruleRow(page, 'Gym')).toHaveAttribute('id', `rule-${rules[0]}`);
+	await expect(ruleRow(page, 'Gym')).toBeVisible();
 });
 
 test('Scenario: Exam links to its class', async ({ page, request }) => {
@@ -266,7 +270,7 @@ test('Scenario: Exam links to its class', async ({ page, request }) => {
 	await openCalendar(page);
 	await cell(page, '2026-10-20').click();
 
-	await page.getByTestId('calendar-day-list').getByRole('link', { name: /Analysis/ }).click();
+	await dayList(page).getByRole('link', { name: /Analysis/ }).click();
 	await expect(page).toHaveURL(new RegExp(`/uni/classes/${classes[0]}$`));
 	await expect(page.getByRole('heading', { level: 1, name: 'Analysis' })).toBeVisible();
 });
@@ -287,36 +291,36 @@ test('Scenario: Due todos show as marker and Due section', async ({ page, reques
 	await cell(page, '2026-10-21').click();
 	await expect(cell(page, '2026-10-21')).toHaveAttribute('aria-pressed', 'true');
 
-	await expect(cell(page, '2026-10-21').getByTestId('calendar-entry')).toHaveCount(3);
+	await expect(cellEntries(cell(page, '2026-10-21'))).toHaveCount(3);
 	await expect(cell(page, '2026-10-21')).toContainText('+2 more');
-	await expect(cell(page, '2026-10-21').getByTestId('calendar-due')).toHaveText('2');
-	await expect(cell(page, '2026-10-05').getByTestId('calendar-due')).toHaveText('1');
-	await expect(cell(page, '2026-10-22').getByTestId('calendar-due')).toHaveCount(0);
+	await expect(due(cell(page, '2026-10-21'))).toHaveText('2');
+	await expect(due(cell(page, '2026-10-05'))).toHaveText('1');
+	await expect(due(cell(page, '2026-10-22'))).toHaveCount(0);
 
-	const list = page.getByTestId('calendar-day-list');
-	const due = list.getByTestId('calendar-due-list');
-	await expect(due.getByTestId('calendar-due-row')).toHaveCount(2);
-	await expect(due).toContainText('File taxes');
-	await expect(due).toContainText('Health');
-	await expect(due).toContainText('Send report');
-	await expect(due).toContainText('Job');
-	await expect(due).not.toContainText('Paid rent');
-	const dueBox = (await due.boundingBox())!;
-	const firstEntry = (await list.getByTestId('calendar-entry').first().boundingBox())!;
+	const list = dayList(page);
+	const dueList = dueGroup(list);
+	await expect(dueList.getByRole('listitem')).toHaveCount(2);
+	await expect(dueList).toContainText('File taxes');
+	await expect(dueList).toContainText('Health');
+	await expect(dueList).toContainText('Send report');
+	await expect(dueList).toContainText('Job');
+	await expect(dueList).not.toContainText('Paid rent');
+	const dueBox = (await dueList.boundingBox())!;
+	const firstEntry = (await dayListEntries(list).first().boundingBox())!;
 	expect(dueBox.y + dueBox.height).toBeLessThanOrEqual(firstEntry.y);
 
 	await cell(page, '2026-10-22').click();
-	await expect(list.getByTestId('calendar-due-list')).toHaveCount(0);
+	await expect(dueGroup(list)).toHaveCount(0);
 
 	await page.setViewportSize({ width: 375, height: 800 });
 	await openCalendar(page);
 	await cell(page, '2026-10-21').click();
-	await expect(cell(page, '2026-10-21').getByTestId('calendar-due')).toHaveText('2');
-	await expect(cell(page, '2026-10-22').getByTestId('calendar-due')).toHaveCount(0);
-	await expect(list.getByTestId('calendar-due-list')).toContainText('Send report');
-	await expect(list.getByTestId('calendar-due-list')).toContainText('Job');
-	const phoneDue = (await list.getByTestId('calendar-due-list').boundingBox())!;
-	const phoneEntry = (await list.getByTestId('calendar-entry').first().boundingBox())!;
+	await expect(due(cell(page, '2026-10-21'))).toHaveText('2');
+	await expect(due(cell(page, '2026-10-22'))).toHaveCount(0);
+	await expect(dueGroup(list)).toContainText('Send report');
+	await expect(dueGroup(list)).toContainText('Job');
+	const phoneDue = (await dueGroup(list).boundingBox())!;
+	const phoneEntry = (await dayListEntries(list).first().boundingBox())!;
 	expect(phoneDue.y + phoneDue.height).toBeLessThanOrEqual(phoneEntry.y);
 	const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 	expect(overflow).toBeLessThanOrEqual(0);
@@ -327,8 +331,8 @@ test('Scenario: Due todos show as marker and Due section', async ({ page, reques
 	await openCalendar(page);
 	await cell(page, '2026-10-21').click();
 	await expect(cell(page, '2026-10-21')).toHaveAttribute('aria-pressed', 'true');
-	await expect(page.getByTestId('calendar-grid').getByTestId('calendar-due')).toHaveCount(0);
-	await expect(list.getByTestId('calendar-due-list')).toHaveCount(0);
+	await expect(due(grid(page))).toHaveCount(0);
+	await expect(dueGroup(list)).toHaveCount(0);
 });
 
 test('Scenario: Deadline-only day shows Due without empty text', async ({ page, request }) => {
@@ -338,10 +342,10 @@ test('Scenario: Deadline-only day shows Due without empty text', async ({ page, 
 		await openCalendar(page);
 		await cell(page, '2026-10-21').click();
 		await expect(cell(page, '2026-10-21')).toHaveAttribute('aria-pressed', 'true');
-		await expect(cell(page, '2026-10-21').getByTestId('calendar-due')).toHaveText('1');
-		const list = page.getByTestId('calendar-day-list');
-		await expect(list.getByTestId('calendar-due-list')).toContainText('File taxes');
+		await expect(due(cell(page, '2026-10-21'))).toHaveText('1');
+		const list = dayList(page);
+		await expect(dueGroup(list)).toContainText('File taxes');
 		await expect(list).not.toContainText('Nothing planned');
-		await expect(list.getByTestId('calendar-entry')).toHaveCount(0);
+		await expect(dayListEntries(list)).toHaveCount(0);
 	}
 });

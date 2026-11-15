@@ -4,7 +4,7 @@
 	let { children }: { children: Snippet } = $props();
 </script>
 
-<div class="field-card" data-testid="field-card">
+<div class="field-card">
 	{@render children()}
 </div>
 

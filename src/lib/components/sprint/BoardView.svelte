@@ -11,11 +11,6 @@
 	function ghost(node: Element, leaving: boolean) {
 		if (leaving) node.setAttribute('aria-hidden', 'true');
 		else node.removeAttribute('aria-hidden');
-		const [from, to] = leaving ? ['data-testid', 'data-left-testid'] : ['data-left-testid', 'data-testid'];
-		for (const el of node.querySelectorAll(`[${from}]`)) {
-			el.setAttribute(to, el.getAttribute(from)!);
-			el.removeAttribute(from);
-		}
 	}
 
 	export const arrive: typeof receive = (node, params) => {
@@ -107,7 +102,6 @@
 				accepts: (p) => p.from === 'sprint' || !!onadd,
 				ondrop: (p) => (p.from === 'sprint' ? drop(p.id, status) : onadd?.(p.id, { status }))
 			}}
-			data-testid="board-column-{status}"
 			aria-labelledby="column-{status}"
 		>
 			<h2 id="column-{status}">{STATUS_LABELS[status]}<span class="num">{cards.length}</span></h2>
@@ -116,7 +110,7 @@
 					<SprintCard {todo} aspect={aspectOf(todo)} {today} {sprintDays} variant="card" />
 				</div>
 			{:else}
-				<p class="placeholder" data-testid="column-placeholder">{PLACEHOLDERS[status]}</p>
+				<p class="placeholder">{PLACEHOLDERS[status]}</p>
 			{/each}
 		</section>
 	{/each}

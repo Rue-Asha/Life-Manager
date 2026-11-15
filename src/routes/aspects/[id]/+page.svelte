@@ -70,7 +70,7 @@
 		<FieldRow label="Colour" icon={aspect.icon} color={aspect.color}>
 			<span class="colour">
 				<i class="swatch" style:background={ASPECT_COLORS[aspect.color].fg}></i>
-				<span data-testid="aspect-color">{ASPECT_COLORS[aspect.color].label}</span>
+				<span>{ASPECT_COLORS[aspect.color].label}</span>
 			</span>
 		</FieldRow>
 		<FieldRow label="This sprint" icon="calendar-days">
@@ -83,7 +83,7 @@
 			{/if}
 		</FieldRow>
 		<FieldRow label="Backlog" icon="inbox">
-			<span class="num" data-testid="backlog-count">{backlogList.length} in backlog</span>
+			<span class="num">{backlogList.length} in backlog</span>
 		</FieldRow>
 	</FieldCard>
 {/snippet}
@@ -100,7 +100,6 @@
 
 	<section
 		class="section"
-		data-testid="aspect-sprint"
 		aria-labelledby="sprint-heading"
 		use:dropZone={{ accepts: (p) => !!sprintDays && p.from === 'backlog', ondrop: (p) => move(p.id, 'sprint') }}
 	>
@@ -111,7 +110,7 @@
 		{#if noSprint}
 			<p class="note">No sprint running. <a href="/sprint/plan">Plan the next sprint</a></p>
 		{:else if data.phase === 'review-required'}
-			<p class="note" data-testid="review-note">
+			<p class="note">
 				This week’s sprint is over, so nothing can join it. <a href="/sprint/review">Review the sprint</a>
 			</p>
 		{/if}
@@ -144,7 +143,6 @@
 
 	<section
 		class="section"
-		data-testid="aspect-backlog"
 		aria-labelledby="backlog-heading"
 		use:dropZone={{ accepts: (p) => p.from === 'sprint' && !p.recurring, ondrop: (p) => move(p.id, 'backlog') }}
 	>
@@ -156,7 +154,7 @@
 			<QuickAdd aspects={data.aspects} target={{ kind: 'backlog' }} defaultAspectId={aspect.id} bind:open={adding} />
 		</div>
 		{#if backlogList.length === 0 && sprintList.length === 0}
-			<p class="empty" data-testid="empty-state">
+			<p class="empty">
 				Nothing in {aspect.name} yet.
 				<button type="button" onclick={() => (adding = true)}>Add a todo</button>
 				to start.
@@ -226,7 +224,7 @@
 		line-height: var(--leading-snug);
 	}
 
-	h2 :global([data-testid='progress']) {
+	h2 :global(.progress) {
 		margin-left: auto;
 	}
 

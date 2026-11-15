@@ -1,5 +1,6 @@
-import type { Page } from '@playwright/test';
-import { expect, test, reset, seed, setClock, type SeedInput } from './helpers';
+import type { Locator, Page } from '@playwright/test';
+import { aspectGroup, expect, test, reset, seed, setClock, todoRow, todoRows, type SeedInput } from './helpers';
+import { notesRegion } from './uni-locators';
 
 // Wednesday 7 October 2026 in Berlin; the active sprint runs Monday 5 to Sunday 11 October.
 const NOW = '2026-10-07T10:00:00Z';
@@ -52,6 +53,20 @@ async function seedClass(
 
 const heading = (page: Page) => page.getByRole('heading', { level: 1 });
 
+const tint = (page: Page, token: string) =>
+	page.evaluate((name) => {
+		const probe = document.createElement('i');
+		probe.style.background = `var(--aspect-${name}-tint)`;
+		document.body.append(probe);
+		const color = getComputedStyle(probe).backgroundColor;
+		probe.remove();
+		return color;
+	}, token);
+
+const rail = (page: Page) => page.getByRole('complementary', { name: 'Details', exact: true, includeHidden: true });
+
+const todoGroup = (page: Page, name: 'Open' | 'Planned' | 'Done') => page.getByRole('group', { name, exact: true });
+
 test('Scenario: Class metadata sits in the rail at 1280', async ({ page, request }) => {
 	const id = await seedClass(request);
 	for (const width of [1280, 1600]) {
@@ -59,9 +74,9 @@ test('Scenario: Class metadata sits in the rail at 1280', async ({ page, request
 		await page.goto(`/uni/classes/${id}`);
 
 		await expect(heading(page)).toHaveText('Analysis II');
-		const rail = page.getByTestId('context-rail');
-		await expect(rail).toBeVisible();
-		const meta = rail.getByTestId('class-meta');
+		const aside = rail(page);
+		await expect(aside).toBeVisible();
+		const meta = aside;
 		await expect(meta).toContainText('Prof. Kühn');
 		await expect(meta).toContainText('H 2.013');
 		await expect(meta).toContainText('7.5');
@@ -69,7 +84,7 @@ test('Scenario: Class metadata sits in the rail at 1280', async ({ page, request
 		await expect(meta).toContainText('Audimax');
 		await expect(meta).toContainText('1.7');
 		await expect(meta.getByRole('link', { name: 'Moodle' })).toHaveAttribute('target', '_blank');
-		await expect(page.getByTestId('class-meta')).toHaveCount(1);
+		await expect(page.getByText('Prof. Kühn')).toHaveCount(1);
 	}
 });
 
@@ -79,18 +94,18 @@ test('Scenario: Class metadata wraps under the title below 1280', async ({ page,
 		await page.setViewportSize({ width, height: 900 });
 		await page.goto(`/uni/classes/${id}`);
 
-		await expect(page.getByTestId('context-rail')).toHaveCount(0);
-		await expect(page.getByTestId('rail-toggle')).toHaveCount(0);
-		const meta = page.getByTestId('class-meta');
-		await expect(meta).toBeVisible();
-		await expect(meta).toContainText('Prof. Kühn');
-		await expect(meta).toContainText('H 2.013');
-		await expect(meta).toContainText('7.5 ECTS');
-		await expect(meta).toContainText('Audimax');
-		await expect(meta).toContainText('1.7');
-		await expect(meta.getByRole('link', { name: 'Moodle' })).toHaveAttribute('target', '_blank');
+		await expect(rail(page)).toHaveCount(0);
+		await expect(page.getByRole('button', { name: 'Details', exact: true, includeHidden: true })).toHaveCount(0);
+		const main = page.getByRole('main');
+		const lecturer = main.getByText('Prof. Kühn');
+		await expect(lecturer).toBeVisible();
+		await expect(main.getByText('H 2.013')).toBeVisible();
+		await expect(main.getByText('7.5 ECTS')).toBeVisible();
+		await expect(main.getByText('Audimax')).toBeVisible();
+		await expect(main.getByText('Grade 1.7')).toBeVisible();
+		await expect(main.getByRole('link', { name: 'Moodle' })).toHaveAttribute('target', '_blank');
 		const title = await heading(page).boundingBox();
-		const row = await meta.boundingBox();
+		const row = await lecturer.boundingBox();
 		expect(row!.y).toBeGreaterThan(title!.y + title!.height - 1);
 		expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 	}
@@ -126,13 +141,17 @@ test('Scenario: Edit a class on its detail page', async ({ page, request }) => {
 
 	const check = async () => {
 		await expect(heading(page)).toHaveText('Analysis III');
-		await expect(page.getByTestId('class-tile')).toHaveAttribute('data-color', 'berry');
-		const meta = page.getByTestId('class-meta');
+		await expect(heading(page).locator('xpath=preceding-sibling::span')).toHaveCSS('background-color', await tint(page, 'berry'));
+		const meta = rail(page);
 		await expect(meta).toContainText('Dr. Weber');
-		await expect(meta.locator('dt:text-is("ECTS") + dd')).toHaveText('10');
+		await expect(meta.getByText('ECTS', { exact: true }).locator('xpath=following-sibling::dd[1]')).toHaveText('10');
 		await expect(meta).toContainText('Mon 1 Mar 2027, 10:00');
 		await expect(meta).toContainText('2.3');
 		await expect(meta).not.toContainText('Prof. Kühn');
+		await page.getByRole('button', { name: 'Edit details' }).click();
+		await expect(page.getByRole('dialog').getByRole('radio', { name: 'Berry' })).toBeChecked();
+		await page.getByRole('dialog').getByRole('button', { name: 'Cancel' }).click();
+		await expect(page.getByRole('dialog')).toBeHidden();
 	};
 	await check();
 	await page.reload();
@@ -143,13 +162,13 @@ test('Scenario: Class notes are edited as Markdown and shown rendered', async ({
 	const id = await seedClass(request);
 	await page.goto(`/uni/classes/${id}`);
 
-	const notes = page.getByTestId('class-notes');
+	const notes = notesRegion(page);
 	await notes.getByRole('button', { name: 'Edit notes' }).click();
 	await notes.getByRole('textbox', { name: 'Notes' }).fill('## Exam topics\n\n- **Fourier**');
 	await notes.getByRole('button', { name: 'Save' }).click();
 
 	await expect(notes.getByRole('heading', { level: 2, name: 'Exam topics' })).toBeVisible();
-	await expect(notes.getByRole('listitem').filter({ hasText: 'Fourier' }).locator('strong')).toHaveText('Fourier');
+	await expect(notes.getByRole('listitem').filter({ hasText: 'Fourier' }).getByRole('strong')).toHaveText('Fourier');
 	await expect(notes.getByRole('textbox', { name: 'Notes' })).toHaveCount(0);
 
 	await page.reload();
@@ -161,9 +180,9 @@ test('Scenario: Class without notes or todos shows placeholders', async ({ page,
 	const id = await seedClass(request);
 	await page.goto(`/uni/classes/${id}`);
 
-	await expect(page.getByTestId('class-notes')).toContainText('No notes yet');
-	await expect(page.getByTestId('empty-state')).toContainText('No todos for this class yet');
-	await expect(page.getByTestId('todo-row')).toHaveCount(0);
+	await expect(notesRegion(page)).toContainText('No notes yet');
+	await expect(page.getByText('No todos for this class yet')).toBeVisible();
+	await expect(todoRows(page)).toHaveCount(0);
 });
 
 const CLASS_TODOS: NonNullable<SeedInput['todos']> = [
@@ -177,29 +196,29 @@ test('Scenario: Class Done group starts collapsed', async ({ page, request }) =>
 	const id = await seedClass(request, { sprint: { state: 'active', weekStart: WEEK }, todos: CLASS_TODOS });
 	await page.goto(`/uni/classes/${id}`);
 
-	const rows = (group: string) => page.getByTestId(`class-todos-${group}`).getByTestId('todo-row');
-	await expect(rows('open')).toHaveText([/Exercise sheet 4/]);
-	await expect(rows('planned')).toHaveText([/Lecture 6 notes/]);
+	const rows = (group: 'Open' | 'Planned' | 'Done') => todoRows(todoGroup(page, group));
+	await expect(rows('Open')).toHaveText([/Exercise sheet 4/]);
+	await expect(rows('Planned')).toHaveText([/Lecture 6 notes/]);
 
-	const done = page.getByTestId('class-todos-done');
+	const done = todoGroup(page, 'Done');
 	const toggle = done.getByRole('button', { name: /Done/ });
 	await expect(toggle).toContainText('2');
 	await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-	await expect(rows('done')).toHaveCount(0);
+	await expect(rows('Done')).toHaveCount(0);
 
 	await toggle.click();
-	await expect(rows('done')).toHaveText([/Sheet 3/, /Sheet 2/]);
+	await expect(rows('Done')).toHaveText([/Sheet 3/, /Sheet 2/]);
 });
 
 test('Scenario: Class detail rows show the type instead of the badge', async ({ page, request }) => {
 	const id = await seedClass(request, { sprint: { state: 'active', weekStart: WEEK }, todos: CLASS_TODOS });
 	await page.goto(`/uni/classes/${id}`);
 
-	const row = page.getByTestId('class-todos-open').getByTestId('todo-row').filter({ hasText: 'Exercise sheet 4' });
-	await expect(row.getByTestId('todo-type')).toHaveText('EXC');
-	await expect(row.getByTestId('revised')).toBeVisible();
-	await expect(page.getByTestId('class-todos-open').getByTestId('class-badge')).toHaveCount(0);
-	await expect(page.getByTestId('class-todos-planned').getByTestId('class-badge')).toHaveCount(0);
+	const row = todoRow(todoGroup(page, 'Open'), 'Exercise sheet 4');
+	await expect(row.getByText('EXC', { exact: true })).toHaveText('EXC');
+	await expect(row.getByText('Not revised', { exact: true })).toBeVisible();
+	await expect(todoGroup(page, 'Open').getByRole('link', { name: 'Analysis II' })).toHaveCount(0);
+	await expect(todoGroup(page, 'Planned').getByRole('link', { name: 'Analysis II' })).toHaveCount(0);
 });
 
 test('Scenario: Class rules are listed with a link to Recurring', async ({ page, request }) => {
@@ -211,7 +230,7 @@ test('Scenario: Class rules are listed with a link to Recurring', async ({ page,
 	});
 	await page.goto(`/uni/classes/${id}`);
 
-	const rules = page.getByTestId('class-rules');
+	const rules = page.getByRole('region', { name: 'Recurring', exact: true });
 	await expect(rules.getByRole('listitem')).toHaveText([/Lecture review/]);
 	await expect(rules.getByRole('listitem')).toContainText(['LEC']);
 	await rules.getByRole('link', { name: 'Edit in Recurring' }).click();
@@ -226,22 +245,22 @@ test('Scenario: Quick add on class detail creates a linked todo', async ({ page,
 
 	await page.getByRole('button', { name: 'Add a todo' }).click();
 	const form = page.getByRole('form', { name: 'New todo' });
-	await expect(form.getByLabel('Aspect').locator('option:checked')).toHaveText('Uni');
+	await expect(form.getByLabel('Aspect').getByRole('option', { selected: true })).toHaveText('Uni');
 	await expect(form.getByLabel('Class')).toHaveValue(String(id));
-	await form.getByTestId('type-field').getByRole('button', { name: 'LEC' }).click();
+	await form.getByRole('group', { name: 'Type' }).getByRole('button', { name: 'LEC' }).click();
 	await form.getByLabel('Title').fill('Rework lecture 5');
 	await form.getByLabel('Due date', { exact: true }).fill('2026-10-09');
 	await form.getByRole('button', { name: 'Add todo' }).click();
 
-	const open = page.getByTestId('class-todos-open').getByTestId('todo-row');
+	const open = todoRows(todoGroup(page, 'Open'));
 	await expect(open).toHaveText([/Rework lecture 5/]);
 	await expect(open).toContainText('LEC');
 
 	await page.goto('/backlog');
 	await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-	const row = page.getByTestId(`aspect-group-${ids.aspects[1]}`).getByTestId('todo-row').filter({ hasText: 'Rework lecture 5' });
-	await expect(row.getByTestId('class-badge')).toContainText('Analysis II');
-	await expect(row.getByTestId('class-badge')).toContainText('LEC');
+	const row = todoRow(aspectGroup(page, 'Uni'), 'Rework lecture 5');
+	await expect(row.getByRole('link', { name: 'Analysis II' })).toContainText('Analysis II');
+	await expect(row.getByRole('link', { name: 'Analysis II' })).toContainText('LEC');
 });
 
 test('Scenario: Type defaults to OTH', async ({ page, request }) => {
@@ -251,27 +270,35 @@ test('Scenario: Type defaults to OTH', async ({ page, request }) => {
 
 	await page.getByRole('button', { name: 'Add a todo' }).click();
 	const form = page.getByRole('form', { name: 'New todo' });
-	await expect(form.getByTestId('type-field').getByRole('button', { name: 'OTH' })).toHaveAttribute('aria-pressed', 'true');
+	await expect(form.getByRole('group', { name: 'Type' }).getByRole('button', { name: 'OTH' })).toHaveAttribute('aria-pressed', 'true');
 	await form.getByLabel('Title').fill('Summarise chapter 3');
 	await form.getByRole('button', { name: 'Add todo' }).click();
-	await expect(page.getByTestId('class-todos-open').getByTestId('todo-row')).toHaveText([/Summarise chapter 3/]);
+	await expect(todoRows(todoGroup(page, 'Open'))).toHaveText([/Summarise chapter 3/]);
 
 	await page.goto('/backlog');
-	await expect(page.getByTestId('todo-row').filter({ hasText: 'Summarise chapter 3' }).getByTestId('class-badge')).toContainText('OTH');
+	await expect(todoRow(page, 'Summarise chapter 3').getByRole('link', { name: 'Analysis II' })).toContainText('OTH');
 });
 
-const revised = (page: Page, title: string) =>
-	page.getByTestId('class-todos-open').getByTestId('todo-row').filter({ hasText: title }).getByTestId('revised');
+const revisedRow = (page: Page, title: string) => todoRow(todoGroup(page, 'Open'), title);
+const revised = (page: Page, title: string, label: string) => {
+	const row = revisedRow(page, title);
+	return row.getByText(label, { exact: true }).and(row.locator('span'));
+};
+const markRevised = (page: Page, title: string) =>
+	revisedRow(page, title).getByRole('button', { name: `Revised today: ${title}`, exact: true });
 
 test('Scenario: Revised today sets the date', async ({ page, request }) => {
 	const id = await seedClass(request, { todos: [{ title: 'Exercise sheet 4', aspect: 1, class: 0, type: 'EXC' }] });
 	await page.goto(`/uni/classes/${id}`);
 
-	await expect(revised(page, 'Exercise sheet 4')).toHaveText('Not revised');
-	await page.getByRole('button', { name: 'Revised today: Exercise sheet 4' }).click();
-	await expect(revised(page, 'Exercise sheet 4')).toHaveText('Revised today');
+	await expect(revised(page, 'Exercise sheet 4', 'Not revised')).toBeVisible();
+	await markRevised(page, 'Exercise sheet 4').click();
+	await expect(revised(page, 'Exercise sheet 4', 'Revised today')).toBeVisible();
+	await expect(markRevised(page, 'Exercise sheet 4')).toHaveCount(0);
+	await expect(revised(page, 'Exercise sheet 4', 'Not revised')).toHaveCount(0);
 	await page.reload();
-	await expect(revised(page, 'Exercise sheet 4')).toHaveText('Revised today');
+	await expect(revised(page, 'Exercise sheet 4', 'Revised today')).toBeVisible();
+	await expect(markRevised(page, 'Exercise sheet 4')).toHaveCount(0);
 });
 
 test('Scenario: Revised date can be cleared', async ({ page, request }) => {
@@ -280,11 +307,11 @@ test('Scenario: Revised date can be cleared', async ({ page, request }) => {
 	});
 	await page.goto(`/uni/classes/${id}`);
 
-	await expect(revised(page, 'Rework lecture 5')).toHaveText('Revised 3 days ago');
+	await expect(revised(page, 'Rework lecture 5', 'Revised 3 days ago')).toBeVisible();
 	await page.getByRole('button', { name: 'Clear revised date: Rework lecture 5' }).click();
-	await expect(revised(page, 'Rework lecture 5')).toHaveText('Not revised');
+	await expect(revised(page, 'Rework lecture 5', 'Not revised')).toBeVisible();
 	await page.reload();
-	await expect(revised(page, 'Rework lecture 5')).toHaveText('Not revised');
+	await expect(revised(page, 'Rework lecture 5', 'Not revised')).toBeVisible();
 });
 
 test('Scenario: Deleting a class asks for confirmation naming the todo count', async ({ page, request }) => {
@@ -322,27 +349,27 @@ test('Scenario: Archived class has no edit controls', async ({ page, request }) 
 		{ notes: 'Formula sheet allowed.' },
 		{ name: 'WS 25/26', archivedAt: '2026-09-30T10:00:00Z' }
 	);
-	const todos = page.getByTestId('class-todos-open').or(page.getByTestId('class-todos-planned')).or(page.getByTestId('class-todos-done'));
+	const todos = todoGroup(page, 'Open').or(todoGroup(page, 'Planned')).or(todoGroup(page, 'Done'));
 	for (const width of [1600, 375]) {
 		await page.setViewportSize({ width, height: 900 });
 		await page.goto(`/uni/classes/${id}`);
 
 		await expect(heading(page)).toHaveText('Analysis II');
 		await expect(page.getByText('WS 25/26 is archived. This class is read-only.')).toBeVisible();
-		await expect(page.getByTestId('class-notes')).toContainText('Formula sheet allowed.');
-		await page.getByTestId('class-todos-done').getByRole('button', { name: /Done/ }).click();
-		await expect(todos.getByTestId('todo-row')).toHaveCount(3);
-		await expect(todos.getByTestId('revised')).toHaveText(['Not revised', 'Not revised', 'Not revised']);
+		await expect(notesRegion(page)).toContainText('Formula sheet allowed.');
+		await todoGroup(page, 'Done').getByRole('button', { name: /Done/ }).click();
+		await expect(todoRows(todos)).toHaveCount(3);
+		await expect(todos.getByText('Not revised', { exact: true })).toHaveCount(3);
 		await expect(page.getByRole('button', { name: 'Edit details' })).toHaveCount(0);
 		await expect(page.getByRole('button', { name: 'Edit notes' })).toHaveCount(0);
 		await expect(page.getByRole('button', { name: 'Add a todo' })).toHaveCount(0);
 		await expect(page.getByRole('button', { name: /Revised today/ })).toHaveCount(0);
-		const rows = todos.getByTestId('todo-row');
+		const rows = todoRows(todos);
 		await expect(rows.getByRole('button')).toHaveCount(0);
 		await expect(rows.getByRole('checkbox')).toHaveCount(0);
 		await expect(rows.getByRole('combobox')).toHaveCount(0);
 		await expect(rows.getByRole('link')).toHaveCount(0);
-		await rows.filter({ hasText: 'Old sheet' }).getByText('Old sheet').click();
+		await todoRow(todos, 'Old sheet').getByText('Old sheet').click();
 		await expect(page.getByLabel('Edit todo')).toHaveCount(0);
 		await expect(page.getByRole('button', { name: 'Delete class' })).toBeVisible();
 	}

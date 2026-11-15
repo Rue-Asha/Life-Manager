@@ -40,7 +40,7 @@
 	<h2>Details</h2>
 	<!-- Proton Pass-style field card: icon, small label over the value, hairlines between. -->
 	<div class="card">
-		<dl class="props" data-testid="class-meta">
+		<dl class="props">
 			{#if cls.lecturer}
 				<div class="field">{@render icon(ICONS.user)}<dt>Lecturer</dt><dd>{cls.lecturer}</dd></div>
 			{/if}
@@ -84,7 +84,7 @@
 		{/if}
 	</div>
 {:else}
-	<div class="row" data-testid="class-meta">
+	<div class="row">
 		{#if cls.lecturer}<span class="pchip">{@render icon(ICONS.user)}{cls.lecturer}</span>{/if}
 		{#if cls.room}<span class="pchip">{@render icon(ICONS.pin)}{cls.room}</span>{/if}
 		{#if cls.ects !== null}<span class="pchip num">{cls.ects} ECTS</span>{/if}

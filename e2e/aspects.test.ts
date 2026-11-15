@@ -3,7 +3,7 @@ import { ASPECT_ICONS, PRESET_ASPECTS } from '../src/lib/aspect-style';
 import { expect, test, reset, seed, setClock } from './helpers';
 
 function aspectRow(page: Page, name: string) {
-	return page.getByTestId('aspect-card').filter({ has: page.getByText(name, { exact: true }) });
+	return page.getByRole('main').getByRole('listitem', { name, exact: true });
 }
 
 async function expectStyle(page: Page, name: string, color: string, icon: keyof typeof ASPECT_ICONS) {
@@ -12,8 +12,10 @@ async function expectStyle(page: Page, name: string, color: string, icon: keyof 
 	await expect(svg.locator('path')).toHaveAttribute('d', ASPECT_ICONS[icon]);
 }
 
+const aspectCards = (page: Page) => page.getByRole('main').getByRole('listitem', { name: /\S/ });
+
 function sidebarAspects(page: Page) {
-	return page.getByRole('navigation', { name: 'Main' }).locator('a[href^="/aspects/"]');
+	return page.getByRole('navigation', { name: 'Main' }).getByRole('list', { name: 'Aspects' }).getByRole('link');
 }
 
 async function openEdit(page: Page, name: string) {
@@ -34,7 +36,7 @@ test('Scenario: First run shows onboarding', async ({ page }) => {
 		const toggle = page.getByRole('checkbox', { name: preset.name, exact: true });
 		await expect(toggle).toBeVisible();
 		await expect(toggle).not.toBeChecked();
-		const icon = page.locator('label', { has: toggle }).locator('svg').first();
+		const icon = page.getByRole('listitem').filter({ has: toggle }).locator('svg').first();
 		await expect(icon).toHaveAttribute('style', new RegExp(`--aspect-${preset.color}\\)`));
 		await expect(icon.locator('path')).toHaveAttribute('d', ASPECT_ICONS[preset.icon]);
 	}
@@ -102,7 +104,7 @@ test('Scenario: Edit an aspect', async ({ page, request }) => {
 	await expect(sheet).toBeHidden();
 	await expectStyle(page, 'Fitness', 'lagoon', 'leaf');
 	await expect(aspectRow(page, 'Sport')).toHaveCount(0);
-	await expect(page.getByTestId('aspect-card')).toHaveCount(2);
+	await expect(aspectCards(page)).toHaveCount(2);
 });
 
 test('Scenario: Empty aspect name is rejected inline', async ({ page, request }) => {
@@ -119,7 +121,7 @@ test('Scenario: Empty aspect name is rejected inline', async ({ page, request })
 	await expect(name).toHaveAttribute('aria-invalid', 'true');
 	await expect(name).toHaveAccessibleDescription('Give the aspect a name.');
 	await page.reload();
-	await expect(page.getByTestId('aspect-card')).toHaveCount(1);
+	await expect(aspectCards(page)).toHaveCount(1);
 });
 
 test('renaming to an existing name is rejected inline', async ({ page, request }) => {
@@ -177,7 +179,7 @@ test('Scenario: Aspect without todos is deleted with a simple confirm', async ({
 
 	await expect(dialog).toBeHidden();
 	await expect(aspectRow(page, 'Uni')).toHaveCount(0);
-	await expect(page.getByTestId('aspect-card')).toHaveCount(1);
+	await expect(aspectCards(page)).toHaveCount(1);
 });
 
 test('Scenario: Only aspect with todos cannot be deleted', async ({ page, request, baseURL }) => {
@@ -266,8 +268,8 @@ test.describe('aspect cards', () => {
 			const el = aspectRow(page, card.name);
 			await expect(el).toBeVisible();
 			await expect(el.locator('svg path').first()).toHaveAttribute('d', ASPECT_ICONS[card.icon]);
-			await expect(el.getByTestId('progress')).toContainText(card.progress);
-			await expect(el.getByTestId('backlog-count')).toHaveText(card.backlog);
+			await expect(el.getByText(card.progress)).toBeVisible();
+			await expect(el.getByText(card.backlog, { exact: true })).toBeVisible();
 		}
 		const [first, second] = await Promise.all(
 			['Health', 'Uni'].map((name) => aspectRow(page, name).boundingBox())
@@ -300,7 +302,7 @@ test.describe('aspect cards', () => {
 		await seed(request, { aspects: [{ name: 'Health' }] });
 		await page.goto('/aspects');
 
-		const cards = page.getByTestId('aspect-card');
+		const cards = aspectCards(page);
 		await expect(cards).toHaveCount(1);
 		const card = (await cards.boundingBox())!;
 		const title = (await page.getByRole('heading', { level: 1 }).boundingBox())!;

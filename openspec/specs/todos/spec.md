@@ -290,7 +290,7 @@ quick add starts with its day filled in, and a day column whose date was removed
 
 #### Scenario: Editor clears the times with the date
 - **WHEN** Rue opens a todo planned with 18:00–19:30, clears "Planned" and saves
-- **THEN** "From" and "To" disappear at once, after reload the editor shows an empty "Planned" and the row has no `planned-label`, and setting a date again shows empty "From" and "To"
+- **THEN** "From" and "To" disappear at once, after reload the editor shows an empty "Planned" and the row shows no planned label, and setting a date again shows empty "From" and "To"
 - **proof:** e2e
 
 #### Scenario: Past date outside the active sprint week is refused
@@ -413,7 +413,7 @@ and when "Planned" is cleared, so it never carries over to another todo. (S3)
 - **proof:** unit — `createTodo drops a slot without a day`
 
 ### Requirement: Planned label on todo rows
-A todo row SHALL show the todo's planned date with its slot in a label with test id `planned-label` wherever the row
+A todo row SHALL show the todo's planned date with its slot in a planned label (its own time text) wherever the row
 appears (Today, Sprint By aspect and Board, Backlog, Plan, Review, an aspect page, project and class todo lists, the
 backlog rail), e.g. "Tue 27 Oct · 18:00–19:30"; without a slot only the date ("Tue 27 Oct"); without a date no label,
 and the due label is unchanged. Where the row already shows the day (a sprint row's day control) and in the Week view,
@@ -431,6 +431,6 @@ the label shows only the slot, and nothing when there is no slot. (S4)
 
 #### Scenario: Unplanned row shows only its due label
 - **WHEN** a backlog todo with a due date and no planned date is shown on Backlog
-- **THEN** its row has no `planned-label` and shows the due label as before
+- **THEN** its row shows no planned label and shows the due label as before
 - **proof:** e2e
 

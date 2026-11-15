@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 import { ASPECT_ICONS } from '../src/lib/aspect-style';
-import { expect, test, reset, seed, setClock, type SeedInput } from './helpers';
+import { expect, test, reset, seed, setClock, todoRow as row, todoRows, type SeedInput } from './helpers';
 
 // Wednesday 7 October 2026 in Berlin; the active sprint runs Monday 5 to Sunday 11 October.
 const NOW = '2026-10-07T10:00:00Z';
@@ -32,10 +32,8 @@ const RUNNING: SeedInput = {
 	]
 };
 
-const sprintSection = (page: Page) => page.getByTestId('aspect-sprint');
-const backlogSection = (page: Page) => page.getByTestId('aspect-backlog');
-const row = (scope: ReturnType<Page['getByTestId']>, title: string) =>
-	scope.getByTestId('todo-row').filter({ hasText: title });
+const sprintSection = (page: Page) => page.getByRole('region', { name: /^This sprint\b/ });
+const backlogSection = (page: Page) => page.getByRole('region', { name: /^Backlog\b/ });
 
 test('Scenario: Aspect page shows this sprint and its backlog', async ({ page, request }) => {
 	const ids = await seed(request, RUNNING);
@@ -43,15 +41,15 @@ test('Scenario: Aspect page shows this sprint and its backlog', async ({ page, r
 
 	const heading = page.getByRole('heading', { level: 1 });
 	await expect(heading).toHaveText('Health');
-	await expect(page.getByTestId('page-icon').locator('path')).toHaveAttribute('d', ASPECT_ICONS.heart);
+	await expect(heading.locator('xpath=../preceding-sibling::span').locator('path')).toHaveAttribute('d', ASPECT_ICONS.heart);
 	await expect(page).toHaveTitle(/Health/);
 
-	await expect(sprintSection(page).getByTestId('todo-row')).toHaveText([
+	await expect(todoRows(sprintSection(page))).toHaveText([
 		/Book a physio appointment/,
 		/Stretch for ten minutes/
 	]);
-	await expect(sprintSection(page).getByTestId('progress')).toContainText('1 / 2');
-	await expect(backlogSection(page).getByTestId('todo-row')).toHaveText([/Buy running shoes/]);
+	await expect(sprintSection(page).getByRole('heading', { level: 2 })).toContainText('1 / 2');
+	await expect(todoRows(backlogSection(page))).toHaveText([/Buy running shoes/]);
 	await expect(page.getByText('Submit lab report')).toHaveCount(0);
 	await expect(page.getByText('Read chapter 4')).toHaveCount(0);
 });
@@ -85,7 +83,7 @@ test('Scenario: Aspect without todos shows an empty state with quick add', async
 	const ids = await seed(request, { ...RUNNING, aspects: [...ASPECTS, { name: 'Music', icon: 'music' }] });
 	await page.goto(`/aspects/${ids.aspects[2]}`);
 
-	const empty = page.getByTestId('empty-state');
+	const empty = page.getByText(/^Nothing in Music yet\./);
 	await expect(empty).toBeVisible();
 	await empty.getByRole('button', { name: 'Add a todo' }).click();
 	await expect(page.getByRole('form', { name: 'New todo' })).toBeVisible();
@@ -96,11 +94,11 @@ test('Scenario: Aspect page rail shows the aspect\'s details', async ({ page, re
 	const ids = await seed(request, RUNNING);
 	await page.goto(`/aspects/${ids.aspects[0]}`);
 
-	const rail = page.getByTestId('context-rail');
+	const rail = page.getByRole('complementary');
 	await expect(rail).toBeVisible();
-	await expect(rail.getByTestId('aspect-color')).toHaveText('Sage');
-	await expect(rail.getByTestId('progress')).toContainText('1 / 2');
-	await expect(rail.getByTestId('backlog-count')).toHaveText('1 in backlog');
+	await expect(rail.getByText('Sage', { exact: true })).toBeVisible();
+	await expect(rail.getByText('1 / 2')).toBeVisible();
+	await expect(rail.getByText('1 in backlog', { exact: true })).toBeVisible();
 });
 
 test('Scenario: Move todos between sprint and backlog on the aspect page', async ({ page, request }) => {
@@ -110,13 +108,13 @@ test('Scenario: Move todos between sprint and backlog on the aspect page', async
 	await row(backlogSection(page), 'Buy running shoes').hover();
 	await page.getByRole('button', { name: 'Add to sprint: Buy running shoes' }).click();
 	await expect(row(sprintSection(page), 'Buy running shoes')).toBeVisible();
-	await expect(sprintSection(page).getByTestId('progress')).toContainText('1 / 3');
+	await expect(sprintSection(page).getByRole('heading', { level: 2 })).toContainText('1 / 3');
 
-	await row(sprintSection(page), 'Stretch for ten minutes').getByTestId('row-actions').click();
+	await row(sprintSection(page), 'Stretch for ten minutes').getByRole('button', { name: 'More actions' }).click();
 	await page.getByRole('menuitem', { name: 'Move to backlog' }).click();
 	await expect(row(backlogSection(page), 'Stretch for ten minutes')).toBeVisible();
 	await expect(row(sprintSection(page), 'Stretch for ten minutes')).toHaveCount(0);
-	await expect(sprintSection(page).getByTestId('progress')).toContainText('1 / 2');
+	await expect(sprintSection(page).getByRole('heading', { level: 2 })).toContainText('1 / 2');
 });
 
 test('Scenario: Drag between sections on the aspect page', async ({ page, request }) => {
@@ -146,7 +144,7 @@ test('Scenario: Quick add on the aspect page defaults to the aspect', async ({ p
 	await expect(row(backlogSection(page), 'Email the tutor')).toBeVisible();
 
 	await page.goto('/backlog');
-	await expect(row(page.getByTestId(`aspect-group-${ids.aspects[1]}`), 'Email the tutor')).toBeVisible();
+	await expect(row(page.getByRole('region', { name: /^Uni\b/ }), 'Email the tutor')).toBeVisible();
 });
 
 test('Scenario: Aspect page during a required review points to Review', async ({ page, request }) => {
@@ -157,6 +155,6 @@ test('Scenario: Aspect page during a required review points to Review', async ({
 
 	await expect(row(backlogSection(page), 'Buy running shoes')).toBeVisible();
 	await expect(page.getByRole('button', { name: /Add to sprint/ })).toHaveCount(0);
-	await page.getByTestId('review-note').getByRole('link', { name: /review/i }).click();
+	await page.getByText('This week’s sprint is over, so nothing can join it.').getByRole('link', { name: /review/i }).click();
 	await expect(page).toHaveURL(/\/sprint\/review$/);
 });

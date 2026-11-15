@@ -1,4 +1,5 @@
-import { expect, test, reset, seed, setClock } from './helpers';
+import { aspectGroup, expect, test, reset, seed, setClock, todoRows } from './helpers';
+import { sprintList } from './sprint-locators';
 
 const LISTS = ['Today', 'Sprint', 'Calendar', 'Backlog', 'Recurring', 'Projects', 'Uni', 'Aspects'];
 
@@ -26,9 +27,10 @@ test('Scenario: Desktop shows a sidebar', async ({ page }) => {
 		await page.goto(path);
 		const sidebar = page.getByRole('navigation', { name: 'Main' });
 		await expect(sidebar).toBeVisible();
-		const names = await sidebar.locator('a.item').evaluateAll((els) =>
-			els.slice(0, 8).map((el) => el.textContent!.replace(/\d+$/, '').trim())
-		);
+		const names = await sidebar
+			.getByRole('link')
+			.filter({ hasNotText: 'Life Manager' })
+			.evaluateAll((els) => els.slice(0, 8).map((el) => el.textContent!.replace(/\d+$/, '').trim()));
 		expect(names).toEqual(LISTS);
 		await expect(sidebar.getByRole('link', { name: current, exact: true })).toHaveAttribute(
 			'aria-current',
@@ -72,7 +74,7 @@ test('Scenario: Phone home list shows the eight lists', async ({ page }) => {
 		.getByRole('link')
 		.evaluateAll((els) => els.map((el) => el.textContent!.replace(/\d+$/, '').trim()));
 	expect(names).toEqual(LISTS);
-	await expect(list.getByRole('link', { name: 'Calendar', exact: true }).locator('.count')).toHaveCount(0);
+	await expect(list.getByRole('link', { name: 'Calendar', exact: true })).toHaveText('Calendar');
 	await expect(page.getByRole('navigation', { name: 'Main' })).toBeHidden();
 });
 
@@ -91,15 +93,15 @@ test('Scenario: Projects entry counts active projects', async ({ page, request }
 
 	await page.setViewportSize({ width: 1280, height: 800 });
 	await page.goto('/');
-	await expect(
-		page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Projects', exact: true }).locator('.count')
-	).toHaveText('2');
+	await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Projects', exact: true })).toHaveText(
+		'Projects 2'
+	);
 
 	await page.setViewportSize({ width: 375, height: 812 });
 	await page.goto('/menu');
-	await expect(
-		page.getByRole('navigation', { name: 'Lists' }).getByRole('link', { name: 'Projects', exact: true }).locator('.count')
-	).toHaveText('2');
+	await expect(page.getByRole('navigation', { name: 'Lists' }).getByRole('link', { name: 'Projects', exact: true })).toHaveText(
+		'Projects 2'
+	);
 });
 
 test('Scenario: Zero active projects is shown like other zero counts', async ({ page, request }) => {
@@ -111,8 +113,7 @@ test('Scenario: Zero active projects is shown like other zero counts', async ({ 
 	const sidebar = page.getByRole('navigation', { name: 'Main' });
 	const recurring = sidebar.getByRole('link', { name: 'Recurring', exact: true });
 	const projects = sidebar.getByRole('link', { name: 'Projects', exact: true });
-	await expect(recurring.locator('.count')).toHaveCount(0);
-	await expect(projects.locator('.count')).toHaveCount(0);
+	await expect(recurring).toHaveText('Recurring');
 	await expect(projects).toHaveText('Projects');
 });
 
@@ -138,15 +139,15 @@ test('Scenario: Uni entry counts open class todos in active semesters', async ({
 
 	await page.setViewportSize({ width: 1280, height: 800 });
 	await page.goto('/');
-	await expect(
-		page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Uni', exact: true }).locator('.count')
-	).toHaveText('2');
+	await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Uni', exact: true })).toHaveText(
+		'Uni 2'
+	);
 
 	await page.setViewportSize({ width: 375, height: 812 });
 	await page.goto('/menu');
-	await expect(
-		page.getByRole('navigation', { name: 'Lists' }).getByRole('link', { name: 'Uni', exact: true }).locator('.count')
-	).toHaveText('2');
+	await expect(page.getByRole('navigation', { name: 'Lists' }).getByRole('link', { name: 'Uni', exact: true })).toHaveText(
+		'Uni 2'
+	);
 });
 
 test('Scenario: Zero open class todos is shown like other zero counts', async ({ page, request }) => {
@@ -163,16 +164,15 @@ test('Scenario: Zero open class todos is shown like other zero counts', async ({
 	const sidebar = page.getByRole('navigation', { name: 'Main' });
 	const recurring = sidebar.getByRole('link', { name: 'Recurring', exact: true });
 	const uni = sidebar.getByRole('link', { name: 'Uni', exact: true });
-	await expect(recurring.locator('.count')).toHaveCount(0);
+	await expect(recurring).toHaveText('Recurring');
 	await expect(uni).toBeVisible();
-	await expect(uni.locator('.count')).toHaveCount(0);
 	await expect(uni).toHaveText('Uni');
 });
 
 test('Scenario: Sidebar button adds a backlog todo', async ({ page, request }) => {
 	await reset(request);
 	await setClock(request, '2026-10-15T08:00:00Z');
-	const { aspects } = await seed(request, {
+	await seed(request, {
 		aspects: [{ name: 'Health' }, { name: 'Home' }],
 		sprint: { state: 'active', weekStart: '2026-10-12' }
 	});
@@ -188,10 +188,10 @@ test('Scenario: Sidebar button adds a backlog todo', async ({ page, request }) =
 	await expect(dialog).toBeHidden();
 
 	await page.goto('/backlog');
-	await expect(page.getByTestId(`aspect-group-${aspects[1]}`).getByTestId('todo-row')).toHaveText([/Buy stamps/]);
+	await expect(todoRows(aspectGroup(page, 'Home'))).toHaveText([/Buy stamps/]);
 	await page.goto('/sprint');
-	await expect(page.getByTestId('sprint-list')).toBeVisible();
-	await expect(page.getByTestId('sprint-list').getByTestId('todo-row')).toHaveCount(0);
+	await expect(sprintList(page)).toBeVisible();
+	await expect(todoRows(sprintList(page))).toHaveCount(0);
 	await setClock(request, null);
 });
 
@@ -206,7 +206,7 @@ test('Scenario: Cancelling the sidebar dialog adds nothing', async ({ page }) =>
 	await expect(dialog).toBeHidden();
 
 	await page.goto('/backlog');
-	await expect(page.getByRole('main').getByTestId('todo-row')).toHaveCount(0);
+	await expect(todoRows(page.getByRole('main'))).toHaveCount(0);
 });
 
 test('Scenario: Phone home list has no New todo button', async ({ page }) => {

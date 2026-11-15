@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { expect, test, reset, seed, setClock } from './helpers';
+import { expect, test, reset, seed, setClock, aspectGroup, todoRow, todoRows } from './helpers';
 
 // Wednesday 7 October 2026, midday in Berlin.
 const NOW = '2026-10-07T10:00:00Z';
@@ -23,8 +23,6 @@ async function quickAdd(page: Page, fields: { title: string; aspect?: string; du
 	await form.getByRole('button', { name: 'Add todo' }).click();
 }
 
-const row = (page: Page, title: string) => page.getByTestId('todo-row').filter({ hasText: title });
-
 test('GET /todos redirects to the backlog', async ({ page, request }) => {
 	await seed(request, { aspects: [{ name: 'Health' }] });
 	await page.goto('/todos');
@@ -32,7 +30,7 @@ test('GET /todos redirects to the backlog', async ({ page, request }) => {
 });
 
 test('Scenario: Quick add creates a todo in the backlog', async ({ page, request }) => {
-	const { aspects } = await seed(request, {
+	await seed(request, {
 		aspects: [
 			{ name: 'Health', color: 'sage', icon: 'heart' },
 			{ name: 'Uni', color: 'lavender', icon: 'cap' }
@@ -42,12 +40,12 @@ test('Scenario: Quick add creates a todo in the backlog', async ({ page, request
 
 	await quickAdd(page, { title: 'Read chapter 4', aspect: 'Uni' });
 
-	const group = page.getByTestId(`aspect-group-${aspects[1]}`);
-	await expect(group.getByTestId('todo-row').filter({ hasText: 'Read chapter 4' })).toBeVisible();
-	await expect(page.getByTestId(`aspect-group-${aspects[0]}`)).toHaveCount(0);
+	const uni = aspectGroup(page, 'Uni');
+	await expect(todoRow(uni, 'Read chapter 4')).toBeVisible();
+	await expect(aspectGroup(page, 'Health')).toHaveCount(0);
 
 	await page.reload();
-	await expect(group.getByTestId('todo-row').filter({ hasText: 'Read chapter 4' })).toBeVisible();
+	await expect(todoRow(uni, 'Read chapter 4')).toBeVisible();
 });
 
 test('Quick add rejects an empty title inline', async ({ page, request }) => {
@@ -57,7 +55,7 @@ test('Quick add rejects an empty title inline', async ({ page, request }) => {
 	await quickAdd(page, { title: '   ' });
 
 	await expect(page.getByRole('form', { name: 'New todo' }).getByText('Give the todo a title.')).toBeVisible();
-	await expect(page.getByTestId('todo-row')).toHaveCount(0);
+	await expect(todoRows(page)).toHaveCount(0);
 });
 
 test('Scenario: Past due date is allowed and shown overdue', async ({ page, request }) => {
@@ -66,8 +64,8 @@ test('Scenario: Past due date is allowed and shown overdue', async ({ page, requ
 
 	await quickAdd(page, { title: 'Send tax receipts', due: '2026-10-05' });
 
-	const created = row(page, 'Send tax receipts');
-	await expect(created).toHaveAttribute('data-overdue', 'true');
+	const created = todoRow(page, 'Send tax receipts');
+	await expect(created).toContainText('Overdue');
 	await expect(created.getByText('2d late')).toBeVisible();
 });
 
@@ -78,14 +76,14 @@ test('Quick add on phone opens a sheet', async ({ page, request }) => {
 
 	await quickAdd(page, { title: 'Book a physio appointment' });
 
-	await expect(row(page, 'Book a physio appointment')).toBeVisible();
+	await expect(todoRow(page, 'Book a physio appointment')).toBeVisible();
 	await expect(page.getByRole('form', { name: 'New todo' })).toBeHidden();
 });
 
 const editor = (page: Page) => page.getByRole('form', { name: 'Edit todo' });
 
 async function openTodo(page: Page, title: string) {
-	await row(page, title).getByRole('button', { name: title, exact: true }).click();
+	await todoRow(page, title).getByRole('button', { name: title, exact: true }).click();
 	await expect(editor(page)).toBeVisible();
 }
 
@@ -109,11 +107,11 @@ test('Scenario: Edit every field of a todo', async ({ page, request }) => {
 	await page.getByRole('button', { name: 'Save' }).click();
 	await expect(editor(page)).toBeHidden();
 
-	const edited = page.getByTestId(`aspect-group-${aspects[1]}`).getByTestId('todo-row');
+	const edited = todoRows(aspectGroup(page, 'Uni'));
 	await expect(edited).toContainText('Book a physio appointment');
 	await expect(edited.getByRole('img', { name: 'Priority 1' })).toBeVisible();
 	await expect(edited).toContainText('2d left');
-	await expect(page.getByTestId(`aspect-group-${aspects[0]}`)).toHaveCount(0);
+	await expect(aspectGroup(page, 'Health')).toHaveCount(0);
 
 	await page.reload();
 	await openTodo(page, 'Book a physio appointment');
@@ -153,7 +151,7 @@ test('Scenario: Checklist items are added, renamed, toggled and deleted', async 
 	await expect(checklist.getByRole('listitem')).toHaveCount(1);
 
 	await page.reload();
-	await expect(row(page, 'Read chapter 4')).toContainText('0/1');
+	await expect(todoRow(page, 'Read chapter 4')).toContainText('0/1');
 	await openTodo(page, 'Read chapter 4');
 	await expect(checklist.getByRole('listitem')).toHaveCount(1);
 	await expect(checklist.getByLabel('Checklist item 1')).toHaveValue('Section 4.2');
@@ -171,14 +169,14 @@ test('Scenario: Deleting a todo asks for confirmation', async ({ page, request }
 	await confirm.getByRole('button', { name: 'Cancel' }).click();
 	await expect(confirm).toBeHidden();
 	await page.reload();
-	await expect(row(page, 'Clean the fridge')).toBeVisible();
+	await expect(todoRow(page, 'Clean the fridge')).toBeVisible();
 
 	await openTodo(page, 'Clean the fridge');
 	await page.getByRole('button', { name: 'Delete', exact: true }).click();
 	await confirm.getByRole('button', { name: 'Delete todo' }).click();
-	await expect(row(page, 'Clean the fridge')).toHaveCount(0);
+	await expect(todoRow(page, 'Clean the fridge')).toHaveCount(0);
 	await page.reload();
-	await expect(row(page, 'Clean the fridge')).toHaveCount(0);
+	await expect(todoRow(page, 'Clean the fridge')).toHaveCount(0);
 });
 
 test('Editing on phone uses a sheet', async ({ page, request }) => {
@@ -190,5 +188,5 @@ test('Editing on phone uses a sheet', async ({ page, request }) => {
 	await expect(page.getByRole('dialog', { name: 'Edit todo' })).toBeVisible();
 	await editor(page).getByLabel('Title').fill('Clean the fridge and freezer');
 	await page.getByRole('button', { name: 'Save' }).click();
-	await expect(row(page, 'Clean the fridge and freezer')).toBeVisible();
+	await expect(todoRow(page, 'Clean the fridge and freezer')).toBeVisible();
 });

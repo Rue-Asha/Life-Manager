@@ -1,4 +1,4 @@
-import { expect, test, reset, seed } from './helpers';
+import { expect, test, reset, seed, projectCards } from './helpers';
 
 test.beforeEach(async ({ request }) => {
 	await reset(request);
@@ -20,24 +20,21 @@ test('Scenario: Cards are grouped by status', async ({ page, request }) => {
 	});
 	await page.goto('/projects');
 
-	const order = await page
-		.locator('[data-testid^="project-group-"]')
-		.evaluateAll((els) => els.map((el) => el.getAttribute('data-testid')));
-	expect(order).toEqual([
-		'project-group-in_progress',
-		'project-group-active',
-		'project-group-backlog',
-		'project-group-paused',
-		'project-group-implemented'
+	await expect(page.getByRole('heading', { level: 2 })).toHaveText([
+		/^In progress/,
+		/^Active/,
+		/^Backlog/,
+		/^Paused/,
+		/^\s*Implemented/
 	]);
 
-	const implemented = page.getByTestId('project-group-implemented');
+	const implemented = page.getByRole('region', { name: /^Implemented/ });
 	const toggle = implemented.getByRole('button', { name: 'Implemented (1)' });
 	await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-	await expect(page.getByTestId('project-card')).toHaveCount(4);
-	await expect(implemented.getByTestId('project-card')).toHaveCount(0);
+	await expect(projectCards(page)).toHaveCount(4);
+	await expect(projectCards(implemented)).toHaveCount(0);
 	await toggle.click();
-	await expect(implemented.getByTestId('project-card')).toHaveText(/Implemented one/);
+	await expect(projectCards(implemented)).toHaveText(/Implemented one/);
 });
 
 test('Scenario: Card shows the project summary', async ({ page, request }) => {
@@ -62,11 +59,11 @@ test('Scenario: Card shows the project summary', async ({ page, request }) => {
 	await page.setViewportSize({ width: 1280, height: 800 });
 	await page.goto('/projects');
 
-	const card = page.getByTestId('project-card');
+	const card = projectCards(page);
 	await expect(card).toContainText('Life Manager');
 	await expect(card.getByText('svelte', { exact: true })).toBeVisible();
 	await expect(card.getByText('sqlite', { exact: true })).toBeVisible();
-	await expect(card.getByTestId('project-repo')).toBeVisible();
+	await expect(card.getByText('Repository linked')).toBeVisible();
 	await expect(card).toContainText('2 open');
 	const lineHeight = await card.getByText('Weekly-sprint planner').evaluate((el) => el.getBoundingClientRect().height);
 	expect(lineHeight, 'description wraps').toBeLessThan(30);
@@ -76,7 +73,7 @@ test('Scenario: No projects shows an empty state', async ({ page, request }) => 
 	await seed(request, { aspects: [IT], itAspect: 0 });
 	await page.goto('/projects');
 
-	const empty = page.getByTestId('empty-state');
+	const empty = page.getByText(/Capture your first idea/);
 	await expect(empty.getByRole('button', { name: 'New project' })).toBeVisible();
 	await expect(page.getByRole('heading', { level: 2 })).toHaveCount(0);
 });
@@ -104,7 +101,7 @@ test('Scenario: Phone shows one card per row', async ({ page, request }) => {
 	await page.setViewportSize({ width: 375, height: 812 });
 	await page.goto('/projects');
 
-	const boxes = await page.getByTestId('project-card').evaluateAll((els) =>
+	const boxes = await projectCards(page).getByRole('link').evaluateAll((els) =>
 		els.map((el) => {
 			const r = el.getBoundingClientRect();
 			return { left: r.left, top: r.top, bottom: r.bottom };
@@ -125,15 +122,14 @@ test('Scenario: Wide desktop grid fills the content column', async ({ page, requ
 	await page.setViewportSize({ width: 1600, height: 900 });
 	await page.goto('/projects');
 
-	await expect(page.getByTestId('project-card')).toHaveCount(4);
-	const { grid, column, firstRow } = await page.evaluate(() => {
-		const main = document.querySelector('main')!;
+	await expect(projectCards(page)).toHaveCount(4);
+	const column = await page.getByRole('main').evaluate((main) => {
 		const style = getComputedStyle(main);
-		const column = main.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-		const grid = document.querySelector('[data-testid="project-grid"]')!.getBoundingClientRect().width;
-		const cards = [...document.querySelectorAll('[data-testid="project-card"]')].map((c) => c.getBoundingClientRect().top);
-		return { grid, column, firstRow: cards.filter((top) => top === cards[0]).length };
+		return main.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
 	});
+	const grid = await page.getByRole('list', { name: 'Active projects' }).evaluate((el) => el.getBoundingClientRect().width);
+	const cards = await projectCards(page).getByRole('link').evaluateAll((els) => els.map((c) => c.getBoundingClientRect().top));
+	const firstRow = cards.filter((top) => top === cards[0]).length;
 	expect(Math.abs(grid - column)).toBeLessThanOrEqual(2);
 	expect(column, 'the column cap does not bind at 1600').toBeLessThan(1000);
 	expect(firstRow).toBeGreaterThan(1);
@@ -147,15 +143,15 @@ test('Scenario: New project lands in Backlog', async ({ page, request }) => {
 	await page.getByLabel('Name').fill('Photo indexer');
 	await page.getByRole('button', { name: 'Add project' }).click();
 
-	const backlog = page.getByTestId('project-group-backlog');
-	await expect(backlog.getByTestId('project-card')).toContainText('Photo indexer');
+	const backlog = page.getByRole('region', { name: /^Backlog/ });
+	await expect(projectCards(backlog)).toContainText('Photo indexer');
 });
 
 test('Scenario: New project form shows field errors', async ({ page, request }) => {
 	await seed(request, { aspects: [IT], itAspect: 0 });
 	await page.goto('/projects');
 
-	await page.getByTestId('empty-state').getByRole('button', { name: 'New project' }).click();
+	await page.getByText(/Capture your first idea/).getByRole('button', { name: 'New project' }).click();
 	await page.getByLabel('Name').fill('   ');
 	await page.getByRole('button', { name: 'Add project' }).click();
 	await expect(page.getByRole('alert')).toHaveText('Give the project a name.');
@@ -164,21 +160,21 @@ test('Scenario: New project form shows field errors', async ({ page, request }) 
 	await page.getByLabel('Repository URL').fill('github.com/x');
 	await page.getByRole('button', { name: 'Add project' }).click();
 	await expect(page.getByRole('alert')).toHaveText('Enter a link starting with http:// or https://.');
-	await expect(page.getByTestId('project-card')).toHaveCount(0);
+	await expect(projectCards(page)).toHaveCount(0);
 });
 
 test('Scenario: First run prompts for the IT aspect', async ({ page, request }) => {
 	await seed(request, { aspects: [{ name: 'Health' }, IT] });
 	await page.goto('/projects');
 
-	const prompt = page.getByTestId('it-aspect-prompt');
+	const prompt = page.getByRole('region', { name: /aspect/i });
 	await expect(prompt).toBeVisible();
 	await expect(page.getByRole('button', { name: 'New project' })).toHaveCount(0);
 	await prompt.getByRole('radio', { name: 'IT' }).check();
 	await prompt.getByRole('button', { name: 'Use IT for projects' }).click();
 
 	await expect(prompt).toHaveCount(0);
-	await expect(page.getByTestId('it-aspect')).toHaveText('IT');
+	await expect(page.getByRole('strong')).toHaveText('IT');
 	await expect(page.getByRole('button', { name: 'New project' }).first()).toBeVisible();
 });
 
@@ -193,10 +189,10 @@ test('Scenario: Changing the IT aspect removes links after confirmation', async 
 		]
 	});
 	await page.goto('/projects');
-	await expect(page.getByTestId('project-card')).toContainText('2 open');
+	await expect(projectCards(page)).toContainText('2 open');
 
 	await page.getByRole('button', { name: 'Change IT aspect' }).click();
-	const prompt = page.getByTestId('it-aspect-prompt');
+	const prompt = page.getByRole('region', { name: /aspect/i });
 	await prompt.getByRole('radio', { name: 'Health' }).check();
 	await prompt.getByRole('button', { name: 'Use Health for projects' }).click();
 
@@ -204,8 +200,8 @@ test('Scenario: Changing the IT aspect removes links after confirmation', async 
 	await expect(dialog).toContainText('2 todos');
 	await dialog.getByRole('button', { name: 'Change aspect' }).click();
 
-	await expect(page.getByTestId('it-aspect')).toHaveText('Health');
-	await expect(page.getByTestId('project-card')).toContainText('No open todos');
+	await expect(page.getByRole('strong')).toHaveText('Health');
+	await expect(projectCards(page)).toContainText('No open todos');
 });
 
 test('Scenario: Changing the IT aspect without links needs no confirmation', async ({ page, request }) => {
@@ -217,11 +213,11 @@ test('Scenario: Changing the IT aspect without links needs no confirmation', asy
 	await page.goto('/projects');
 
 	await page.getByRole('button', { name: 'Change IT aspect' }).click();
-	const prompt = page.getByTestId('it-aspect-prompt');
+	const prompt = page.getByRole('region', { name: /aspect/i });
 	await prompt.getByRole('radio', { name: 'Health' }).check();
 	await prompt.getByRole('button', { name: 'Use Health for projects' }).click();
 
-	await expect(page.getByTestId('it-aspect')).toHaveText('Health');
+	await expect(page.getByRole('strong')).toHaveText('Health');
 	await expect(page.getByRole('dialog')).toHaveCount(0);
 });
 

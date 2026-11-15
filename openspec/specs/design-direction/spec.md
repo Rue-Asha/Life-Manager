@@ -137,6 +137,6 @@ name, count or progress) sits above the card. (cohesive-look)
 
 #### Scenario: No todo row draws its own border
 - **WHEN** Today, Sprint By aspect, Backlog and an aspect page are opened at 1280 px with at least two todos each
-- **THEN** every todo row's computed border widths are 0, each row sits inside an element with the test id `list-group`, and that group's background is the `--surface` colour
+- **THEN** every todo row's computed border widths are 0, each row sits inside the list group (the nearest `role="group"` ancestor, which has no accessible name), and that group's background is the `--surface` colour
 - **proof:** e2e
 

@@ -1,5 +1,14 @@
-import type { Page } from '@playwright/test';
-import { expect, test, reset, seed, setClock, type SeedInput } from './helpers';
+import type { Locator, Page } from '@playwright/test';
+import { aspectGroup, expect, test, reset, seed, setClock, todoRow, todoRows, type SeedInput } from './helpers';
+import {
+	backlogRail as rail,
+	boardColumn,
+	contextRail,
+	railGroup,
+	railToggle,
+	sprintList,
+	sprintPrompt
+} from './sprint-locators';
 
 // Wednesday 7 October 2026 in Berlin; the active sprint runs Monday 5 to Sunday 11 October.
 const NOW = '2026-10-07T10:00:00Z';
@@ -22,20 +31,16 @@ const ASPECTS: SeedInput['aspects'] = [
 	{ name: 'Uni', color: 'lavender', icon: 'cap' }
 ];
 
-const rail = (page: Page) => page.getByTestId('backlog-rail');
-const sprintList = (page: Page) => page.getByTestId('sprint-list');
-const row = (scope: ReturnType<Page['getByTestId']>, title: string) =>
-	scope.getByTestId('todo-row').filter({ hasText: title });
+const row = todoRow;
 
-const iconColor = (scope: ReturnType<Page['getByTestId']>) =>
-	scope.locator('svg').nth(1).evaluate((svg) => getComputedStyle(svg).color);
+const iconColor = (scope: Locator) => scope.getByRole('heading').locator('svg').nth(1).evaluate((svg) => getComputedStyle(svg).color);
 
 async function seedRunning(request: Parameters<typeof seed>[0], todos: SeedInput['todos']) {
 	return seed(request, { aspects: ASPECTS, sprint: { state: 'active', weekStart: WEEK }, todos });
 }
 
 test('Scenario: Sprint tab shows the backlog rail grouped by aspect', async ({ page, request }) => {
-	const { aspects } = await seedRunning(request, [
+	await seedRunning(request, [
 		{ title: 'Morning run', inSprint: true },
 		{ title: 'Read chapter 4', aspect: 1, inSprint: true },
 		{ title: 'Book a physio appointment' },
@@ -45,22 +50,22 @@ test('Scenario: Sprint tab shows the backlog rail grouped by aspect', async ({ p
 	await page.goto('/sprint');
 
 	await expect(rail(page)).toBeVisible();
-	const groups = rail(page).locator('[data-testid^="rail-group-"]');
+	const groups = rail(page).getByRole('region');
 	await expect(groups).toHaveCount(2);
-	await expect(groups.nth(0)).toHaveAttribute('data-testid', `rail-group-${aspects[0]}`);
-	await expect(groups.nth(1)).toHaveAttribute('data-testid', `rail-group-${aspects[1]}`);
+	await expect(groups.nth(0)).toHaveAccessibleName('In backlog: Health');
+	await expect(groups.nth(1)).toHaveAccessibleName('In backlog: Uni');
 
-	const health = page.getByTestId(`rail-group-${aspects[0]}`);
-	await expect(health.getByTestId('todo-row')).toHaveText([/Book a physio appointment/, /Stretch for ten minutes/]);
-	await expect(page.getByTestId(`rail-group-${aspects[1]}`).getByTestId('todo-row')).toHaveText([/Email the tutor/]);
+	const health = railGroup(page, 'Health');
+	await expect(todoRows(health)).toHaveText([/Book a physio appointment/, /Stretch for ten minutes/]);
+	await expect(todoRows(railGroup(page, 'Uni'))).toHaveText([/Email the tutor/]);
 
-	const sprintGroups = sprintList(page).locator('[data-testid^="aspect-group-"]');
+	const sprintGroups = sprintList(page).getByRole('region');
 	await expect(sprintGroups).toHaveCount(2);
-	for (const [i, id] of aspects.entries()) {
-		await expect(sprintGroups.nth(i)).toHaveAttribute('data-testid', `aspect-group-${id}`);
-		const sprintColor = await page.getByTestId(`aspect-group-${id}`).locator('h2 svg').first()
+	for (const [i, { name }] of ASPECTS!.entries()) {
+		await expect(sprintGroups.nth(i)).toHaveAccessibleName(new RegExp(`^${name}\\b`));
+		const sprintColor = await aspectGroup(sprintList(page), name).getByRole('heading').locator('svg').first()
 			.evaluate((svg) => getComputedStyle(svg).color);
-		expect(await iconColor(page.getByTestId(`rail-group-${id}`))).toBe(sprintColor);
+		expect(await iconColor(railGroup(page, name))).toBe(sprintColor);
 	}
 });
 
@@ -72,8 +77,8 @@ test('Scenario: Rail is shown on the sprint\'s Sunday', async ({ page, request }
 	await setClock(request, SUNDAY);
 	await page.goto('/sprint');
 
-	const prompt = page.getByTestId('sprint-prompt');
-	await expect(prompt).toHaveAttribute('data-phase', 'review-available');
+	const prompt = sprintPrompt(page);
+	await expect(prompt.getByRole('link', { name: 'Review it', exact: true })).toBeVisible();
 	const promptBox = (await prompt.boundingBox())!;
 	const listBox = (await sprintList(page).boundingBox())!;
 	expect(promptBox.y + promptBox.height).toBeLessThanOrEqual(listBox.y);
@@ -83,10 +88,11 @@ test('Scenario: Rail is shown on the sprint\'s Sunday', async ({ page, request }
 test('Scenario: No rail without a running sprint', async ({ page, request }) => {
 	await seed(request, { aspects: ASPECTS, todos: [{ title: 'Book a physio appointment' }] });
 	await page.goto('/sprint');
-	await expect(page.getByTestId('sprint-prompt')).toHaveAttribute('data-phase', 'none');
-	await expect(page.getByTestId('sprint-prompt').getByRole('link')).toHaveAttribute('href', '/sprint/plan');
+	const plan = sprintPrompt(page).getByRole('link', { name: 'Plan your week', exact: true });
+	await expect(plan).toBeVisible();
+	await expect(plan).toHaveAttribute('href', '/sprint/plan');
 	await expect(rail(page)).toHaveCount(0);
-	await expect(page.getByTestId('context-rail')).toHaveCount(0);
+	await expect(contextRail(page)).toHaveCount(0);
 
 	await reset(request);
 	await seed(request, {
@@ -95,9 +101,9 @@ test('Scenario: No rail without a running sprint', async ({ page, request }) => 
 		todos: [{ title: 'Book a physio appointment' }]
 	});
 	await page.goto('/sprint');
-	await expect(page.getByTestId('sprint-prompt')).toHaveAttribute('data-phase', 'planning');
+	await expect(sprintPrompt(page).getByRole('link', { name: 'Continue planning', exact: true })).toBeVisible();
 	await expect(rail(page)).toHaveCount(0);
-	await expect(page.getByTestId('context-rail')).toHaveCount(0);
+	await expect(contextRail(page)).toHaveCount(0);
 });
 
 test('Scenario: No rail while the review is required', async ({ page, request }) => {
@@ -107,21 +113,21 @@ test('Scenario: No rail while the review is required', async ({ page, request })
 		todos: [{ title: 'Clean the fridge', inSprint: true }, { title: 'Book a physio appointment' }]
 	});
 	await page.goto('/sprint');
-	await expect(page.getByTestId('sprint-prompt')).toHaveAttribute('data-phase', 'review-required');
+	await expect(sprintPrompt(page).getByRole('link', { name: 'Review the sprint', exact: true })).toBeVisible();
 	await expect(rail(page)).toHaveCount(0);
-	await expect(page.getByTestId('context-rail')).toHaveCount(0);
-	await expect(page.getByTestId('todo-row')).toHaveCount(0);
+	await expect(contextRail(page)).toHaveCount(0);
+	await expect(todoRows(page)).toHaveCount(0);
 });
 
 test('Scenario: Sprint at 1280 shows a context rail', async ({ page, request }) => {
 	await seedRunning(request, [{ title: 'Morning run', inSprint: true }, { title: 'Book a physio appointment' }]);
-	const context = page.getByTestId('context-rail');
+	const context = contextRail(page);
 	const sidebarRight = () =>
 		page.evaluate(() => document.querySelector('main')!.previousElementSibling!.getBoundingClientRect().right);
 
 	async function expectDockedRail() {
 		await expect(context).toBeVisible();
-		await expect(page.getByTestId('rail-toggle')).toBeHidden();
+		await expect(railToggle(page)).toBeHidden();
 		const box = (await context.boundingBox())!;
 		const width = await page.evaluate(() => document.documentElement.clientWidth);
 		expect(Math.abs(box.x + box.width - width)).toBeLessThanOrEqual(1);
@@ -153,8 +159,8 @@ test('Scenario: Sprint at 1280 shows a context rail', async ({ page, request }) 
 		await page.goto('/sprint?view=board');
 		await page.waitForFunction(() => !document.documentElement.matches(':active-view-transition'));
 		const boardRail = await expectDockedRail();
-		const todo = (await page.getByTestId('board-column-todo').boundingBox())!;
-		const done = (await page.getByTestId('board-column-done').boundingBox())!;
+		const todo = (await boardColumn(page, 'todo').boundingBox())!;
+		const done = (await boardColumn(page, 'done').boundingBox())!;
 		expect(todo.x - (await sidebarRight()), `board starts late at ${width}`).toBeLessThanOrEqual(64);
 		expect(done.x + done.width).toBeLessThanOrEqual(boardRail.x);
 		expect(boardRail.x - (done.x + done.width), `board stops short of the rail at ${width}`).toBeLessThanOrEqual(64);
@@ -166,8 +172,8 @@ test('Scenario: Rail becomes an overlay toggle below 1280', async ({ page, reque
 	await seedRunning(request, [{ title: 'Morning run', inSprint: true }, { title: 'Book a physio appointment' }]);
 	await page.goto('/sprint');
 
-	const context = page.getByTestId('context-rail');
-	const toggle = page.getByTestId('rail-toggle');
+	const context = contextRail(page);
+	const toggle = railToggle(page);
 	await expect(context).toBeHidden();
 	await expect(toggle).toBeVisible();
 
@@ -178,8 +184,7 @@ test('Scenario: Rail becomes an overlay toggle below 1280', async ({ page, reque
 	expect(await page.evaluate(() => document.querySelector('dialog[open]'))).toBeNull();
 	// Content stays usable while the overlay is open: no scrim covers it.
 	await expect(row(sprintList(page), 'Morning run')).toBeVisible();
-	const hit = await page.evaluate(() => {
-		const el = document.querySelector('[data-testid="sprint-list"]')!;
+	const hit = await sprintList(page).evaluate((el) => {
 		const r = el.getBoundingClientRect();
 		return el.contains(document.elementFromPoint(r.left + 10, r.top + 10));
 	});
@@ -198,20 +203,20 @@ test('Scenario: Rail title filter narrows the list', async ({ page, request }) =
 	]);
 	await page.goto('/sprint');
 
-	const filter = page.getByTestId('rail-filter');
+	const filter = page.getByRole('searchbox', { name: 'Filter backlog' });
 	await filter.fill('PHYSIO');
-	await expect(rail(page).getByTestId('todo-row')).toHaveText([/Book a physio appointment/]);
+	await expect(todoRows(rail(page))).toHaveText([/Book a physio appointment/]);
 
 	await filter.fill('');
-	await expect(rail(page).getByTestId('todo-row')).toHaveCount(3);
+	await expect(todoRows(rail(page))).toHaveCount(3);
 });
 
 test('Scenario: Rail filter without a match', async ({ page, request }) => {
 	await seedRunning(request, [{ title: 'Morning run', inSprint: true }, { title: 'Book a physio appointment' }]);
 	await page.goto('/sprint');
 
-	await page.getByTestId('rail-filter').fill('dentist');
-	await expect(rail(page).getByTestId('todo-row')).toHaveCount(0);
+	await page.getByRole('searchbox', { name: 'Filter backlog' }).fill('dentist');
+	await expect(todoRows(rail(page))).toHaveCount(0);
 	await expect(rail(page)).toContainText('No backlog todo matches');
 });
 
@@ -221,26 +226,26 @@ test('Scenario: Empty backlog shows the rail\'s empty state', async ({ page, req
 
 	await expect(rail(page)).toContainText('The backlog is empty.');
 	await expect(rail(page).getByRole('link')).toHaveAttribute('href', '/backlog');
-	await expect(page.getByTestId('rail-filter')).toHaveCount(0);
+	await expect(page.getByRole('searchbox', { name: 'Filter backlog' })).toHaveCount(0);
 });
 
 test('Scenario: Collapsed rail groups are remembered', async ({ page, request }) => {
-	const { aspects } = await seedRunning(request, [
+	await seedRunning(request, [
 		{ title: 'Book a physio appointment' },
 		{ title: 'Email the tutor', aspect: 1 }
 	]);
 	await page.goto('/sprint');
 
-	const health = page.getByTestId(`rail-group-${aspects[0]}`);
-	const uni = page.getByTestId(`rail-group-${aspects[1]}`);
+	const health = railGroup(page, 'Health');
+	const uni = railGroup(page, 'Uni');
 	await health.getByRole('button', { name: 'Health' }).click();
-	await expect(health).toHaveAttribute('data-collapsed', 'true');
-	await expect(health.getByTestId('todo-row')).toHaveCount(0);
+	await expect(health.getByRole('button', { name: 'Health' })).toHaveAttribute('aria-expanded', 'false');
+	await expect(todoRows(health)).toHaveCount(0);
 
 	await page.reload();
-	await expect(health).toHaveAttribute('data-collapsed', 'true');
-	await expect(health.getByTestId('todo-row')).toHaveCount(0);
-	await expect(uni).toHaveAttribute('data-collapsed', 'false');
+	await expect(health.getByRole('button', { name: 'Health' })).toHaveAttribute('aria-expanded', 'false');
+	await expect(todoRows(health)).toHaveCount(0);
+	await expect(uni.getByRole('button', { name: 'Uni' })).toHaveAttribute('aria-expanded', 'true');
 	await expect(row(uni, 'Email the tutor')).toBeVisible();
 });
 
@@ -252,13 +257,13 @@ test('Scenario: Add to sprint from the rail', async ({ page, request }) => {
 	await page.getByRole('button', { name: 'Add to sprint: Book a physio appointment' }).click();
 	await expect(row(rail(page), 'Book a physio appointment')).toHaveCount(0);
 	const added = row(sprintList(page), 'Book a physio appointment');
-	await expect(added).toHaveAttribute('data-status', 'todo');
+	await expect(added.getByLabel('Status')).toHaveValue('todo');
 	await expect(added).toHaveAttribute('data-day', '');
 	await expect(page).toHaveURL(/\/sprint$/);
 	expect(await page.evaluate(() => (window as unknown as { __stay?: boolean }).__stay)).toBe(true);
 
 	await page.reload();
-	await expect(row(sprintList(page), 'Book a physio appointment')).toHaveAttribute('data-status', 'todo');
+	await expect(row(sprintList(page), 'Book a physio appointment').getByLabel('Status')).toHaveValue('todo');
 	await expect(row(rail(page), 'Book a physio appointment')).toHaveCount(0);
 });
 
@@ -270,7 +275,7 @@ test('Scenario: Drag a rail todo onto the sprint list', async ({ page, request }
 	await expect(row(sprintList(page), 'Book a physio appointment')).toBeVisible();
 
 	await page.reload();
-	await expect(row(sprintList(page), 'Book a physio appointment')).toHaveAttribute('data-status', 'todo');
+	await expect(row(sprintList(page), 'Book a physio appointment').getByLabel('Status')).toHaveValue('todo');
 	await expect(row(rail(page), 'Book a physio appointment')).toHaveCount(0);
 });
 
@@ -307,18 +312,18 @@ test('Scenario: Drag a sprint todo onto the rail', async ({ page, request }) => 
 });
 
 test('Scenario: Group header shows done of total', async ({ page, request }) => {
-	const { aspects } = await seedRunning(request, [
+	await seedRunning(request, [
 		{ title: 'Morning run', inSprint: true, status: 'done' },
 		{ title: 'Stretch for ten minutes', inSprint: true },
 		{ title: 'Book a physio appointment', inSprint: true, status: 'doing' }
 	]);
 	await page.goto('/sprint');
 
-	const header = page.getByTestId(`aspect-group-${aspects[0]}`).locator('h2');
-	const progress = header.getByTestId('progress');
-	await expect(progress).toHaveText('1 / 3');
-	const bar = await progress.evaluate((el) => {
-		const [track, fill] = [el.lastElementChild!, el.lastElementChild!.firstElementChild!];
+	const header = aspectGroup(sprintList(page), 'Health').getByRole('heading');
+	const progress = header.getByText('1 / 3', { exact: true });
+	await expect(progress).toBeVisible();
+	const bar = await progress.evaluate((count) => {
+		const [track, fill] = [count.nextElementSibling!, count.nextElementSibling!.firstElementChild!];
 		return {
 			ratio: fill.getBoundingClientRect().width / track.getBoundingClientRect().width,
 			color: getComputedStyle(fill).backgroundColor
@@ -329,7 +334,7 @@ test('Scenario: Group header shows done of total', async ({ page, request }) => 
 });
 
 test('Scenario: Rail header shows backlog count and progress', async ({ page, request }) => {
-	const { aspects } = await seedRunning(request, [
+	await seedRunning(request, [
 		{ title: 'Morning run', inSprint: true, status: 'done' },
 		{ title: 'Stretch for ten minutes', inSprint: true },
 		{ title: 'Book a physio appointment' },
@@ -337,34 +342,34 @@ test('Scenario: Rail header shows backlog count and progress', async ({ page, re
 	]);
 	await page.goto('/sprint');
 
-	const header = page.getByTestId(`rail-group-${aspects[0]}`).locator('h3');
-	await expect(header.getByTestId('rail-count')).toHaveText('2');
-	await expect(header.getByTestId('progress')).toHaveText('1 / 2');
+	const header = railGroup(page, 'Health').getByRole('heading');
+	await expect(header.getByLabel('2 in backlog')).toHaveText('2');
+	await expect(header.getByText('1 / 2', { exact: true })).toBeVisible();
 });
 
 test('Scenario: Aspect without sprint todos shows only in the rail', async ({ page, request }) => {
-	const { aspects } = await seedRunning(request, [
+	await seedRunning(request, [
 		{ title: 'Morning run', inSprint: true },
 		{ title: 'Email the tutor', aspect: 1 }
 	]);
 	await page.goto('/sprint');
 
-	await expect(page.getByTestId(`aspect-group-${aspects[1]}`)).toHaveCount(0);
-	const uni = page.getByTestId(`rail-group-${aspects[1]}`);
+	await expect(aspectGroup(sprintList(page), 'Uni')).toHaveCount(0);
+	const uni = railGroup(page, 'Uni');
 	await expect(uni).toBeVisible();
-	await expect(uni.getByTestId('rail-count')).toHaveText('1');
-	await expect(uni.getByTestId('progress')).toHaveCount(0);
+	await expect(uni.getByLabel('1 in backlog')).toHaveText('1');
+	await expect(uni.getByText(/^\d+ \/ \d+$/)).toHaveCount(0);
 });
 
 test('Scenario: Aspect without backlog todos is omitted from the rail', async ({ page, request }) => {
-	const { aspects } = await seedRunning(request, [
+	await seedRunning(request, [
 		{ title: 'Morning run', inSprint: true },
 		{ title: 'Email the tutor', aspect: 1 }
 	]);
 	await page.goto('/sprint');
 
-	await expect(page.getByTestId(`aspect-group-${aspects[0]}`)).toBeVisible();
-	await expect(page.getByTestId(`rail-group-${aspects[0]}`)).toHaveCount(0);
+	await expect(aspectGroup(sprintList(page), 'Health')).toBeVisible();
+	await expect(railGroup(page, 'Health')).toHaveCount(0);
 });
 
 test('Scenario: Phone Sprint tab shows Manage instead of a rail', async ({ page, request }) => {
@@ -372,44 +377,42 @@ test('Scenario: Phone Sprint tab shows Manage instead of a rail', async ({ page,
 	await seedRunning(request, [{ title: 'Morning run', inSprint: true }, { title: 'Book a physio appointment' }]);
 	await page.goto('/sprint');
 
-	await expect(page.getByTestId('manage-button')).toBeVisible();
-	await expect(page.getByTestId('manage-button')).toHaveText('Manage');
-	await expect(page.getByTestId('context-rail')).toBeHidden();
-	await expect(page.getByTestId('rail-toggle')).toBeHidden();
-	await expect(row(page.getByTestId('backlog-rail'), 'Book a physio appointment')).toBeHidden();
+	await expect(page.getByRole('button', { name: 'Manage', exact: true })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Manage', exact: true })).toHaveText('Manage');
+	await expect(contextRail(page)).toBeHidden();
+	await expect(railToggle(page)).toBeHidden();
+	await expect(rail(page).getByRole('listitem', { name: 'Book a physio appointment', includeHidden: true })).toBeHidden();
 });
 
 test('Manage is not offered beside a docked rail', async ({ page, request }) => {
 	await seedRunning(request, [{ title: 'Morning run', inSprint: true }, { title: 'Book a physio appointment' }]);
 	await page.goto('/sprint');
-	await expect(page.getByTestId('context-rail')).toBeVisible();
-	await expect(page.getByTestId('manage-button')).toBeHidden();
+	await expect(contextRail(page)).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Manage', exact: true, includeHidden: true })).toBeHidden();
 });
 
 test.describe('touch phone', () => {
 	test.use({ viewport: { width: 375, height: 812 }, hasTouch: true, isMobile: true });
 
 	test('Scenario: Manage sheet adds a todo to the sprint', async ({ page, request }) => {
-		const { aspects } = await seedRunning(request, [
+		await seedRunning(request, [
 			{ title: 'Morning run', inSprint: true },
 			{ title: 'Book a physio appointment' },
 			{ title: 'Email the tutor', aspect: 1 }
 		]);
 		await page.goto('/sprint');
 
-		await page.getByTestId('manage-button').tap();
-		const sheet = page.getByTestId('manage-sheet');
+		await page.getByRole('button', { name: 'Manage', exact: true }).tap();
+		const sheet = page.getByRole('dialog', { name: 'Backlog' });
 		await expect(sheet).toBeVisible();
-		await expect(sheet.getByTestId(`rail-group-${aspects[0]}`).getByTestId('todo-row')).toHaveText([
-			/Book a physio appointment/
-		]);
-		await expect(sheet.getByTestId(`rail-group-${aspects[1]}`).getByTestId('todo-row')).toHaveText([/Email the tutor/]);
+		await expect(todoRows(railGroup(sheet, 'Health'))).toHaveText([/Book a physio appointment/]);
+		await expect(todoRows(railGroup(sheet, 'Uni'))).toHaveText([/Email the tutor/]);
 
 		await sheet.getByRole('button', { name: 'Add to sprint: Book a physio appointment' }).tap();
 		await expect(row(sheet, 'Book a physio appointment')).toHaveCount(0);
 		await expect(row(sheet, 'Email the tutor')).toBeVisible();
 		await page.getByRole('button', { name: 'Close' }).tap();
-		await expect(row(sprintList(page), 'Book a physio appointment')).toHaveAttribute('data-status', 'todo');
+		await expect(row(sprintList(page), 'Book a physio appointment').getByLabel('Status')).toHaveValue('todo');
 
 		await page.reload();
 		await expect(row(sprintList(page), 'Book a physio appointment')).toBeVisible();
@@ -422,9 +425,9 @@ test.describe('touch phone', () => {
 			{ title: 'Email the tutor', aspect: 1 }
 		]);
 		await page.goto('/sprint');
-		await page.getByTestId('manage-button').tap();
+		await page.getByRole('button', { name: 'Manage', exact: true }).tap();
 
-		const items = page.getByTestId('manage-sheet').locator('.item');
+		const items = page.getByRole('dialog', { name: 'Backlog' }).getByRole('presentation');
 		await expect(items).toHaveCount(2);
 		for (const item of await items.all()) {
 			await expect(item).not.toHaveAttribute('draggable', 'true');
@@ -455,13 +458,13 @@ const motion = (page: Page) =>
 	page.evaluate(() => (window as unknown as { __motion: { first: number | null; max: number } }).__motion);
 
 test('Scenario: Moving a todo from the rail starts a move animation', async ({ page, request }) => {
-	const { aspects } = await seedRunning(request, [
+	await seedRunning(request, [
 		{ title: 'Morning run', inSprint: true },
 		{ title: 'Book a physio appointment' },
 		{ title: 'Stretch for ten minutes' }
 	]);
 	await page.goto('/sprint');
-	const count = page.getByTestId(`rail-group-${aspects[0]}`).getByTestId('rail-count');
+	const count = railGroup(page, 'Health').getByLabel(/ in backlog$/);
 	await expect(count).toHaveText('2');
 	await watchAnimations(page);
 
@@ -490,14 +493,13 @@ test('Scenario: Reduced motion moves instantly', async ({ page, request }) => {
 
 	await page.getByRole('navigation', { name: 'Sprint view' }).getByRole('link', { name: 'Board' }).click();
 	await expect(page).toHaveURL(/view=board$/);
-	const doing = page.getByTestId('board-column-doing');
-	await page.getByTestId('board-column-todo').getByTestId('todo-row').filter({ hasText: 'Morning run' })
-		.dragTo(doing, { sourcePosition: { x: 8, y: 8 } });
+	const doing = boardColumn(page, 'doing');
+	await row(boardColumn(page, 'todo'), 'Morning run').dragTo(doing, { sourcePosition: { x: 8, y: 8 } });
 	await expect(row(doing, 'Morning run')).toBeVisible();
-	await expect(row(page.getByTestId('board-column-todo'), 'Book a physio appointment')).toBeVisible();
+	await expect(row(boardColumn(page, 'todo'), 'Book a physio appointment')).toBeVisible();
 
 	await page.waitForTimeout(300);
 	expect((await motion(page)).max).toBe(0);
 	await page.reload();
-	await expect(row(page.getByTestId('board-column-doing'), 'Morning run')).toHaveAttribute('data-status', 'doing');
+	await expect(row(boardColumn(page, 'doing'), 'Morning run').getByLabel('Status')).toHaveValue('doing');
 });

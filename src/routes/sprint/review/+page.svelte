@@ -54,7 +54,7 @@
 {/if}
 
 {#if data.done.length > 0}
-	<details class="done" data-testid="review-done">
+	<details class="done" aria-label="Done todos">
 		<summary>
 			<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS['chevron-left']} /></svg>
 			Done <span class="count num">{data.done.length}</span>

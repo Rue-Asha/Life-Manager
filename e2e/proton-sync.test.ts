@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test';
 import type { ProtonOp } from '../src/lib/server/proton/types';
-import { expect, test, reset, seed, setClock, fake, protonOn, protonPass } from './helpers';
+import { expect, test, reset, seed, setClock, fake, protonOn, protonPass, todoRow, todoRows } from './helpers';
+import { sprintList } from './sprint-locators';
 
 // Wednesday 14 October 2026, midday in Berlin.
 const WEDNESDAY = '2026-10-14T10:00:00Z';
@@ -19,7 +20,7 @@ test.afterAll(async ({ request }) => {
 });
 
 const editor = (page: Page) => page.getByRole('form', { name: 'Edit todo' });
-const row = (page: Page, title: string) => page.getByTestId('todo-row').filter({ hasText: title });
+const row = todoRow;
 const mark = () => fake().calls().length;
 const delta = (from: number) => fake().calls().slice(from);
 const ops = (from: number): ProtonOp[] => delta(from).map((c) => c.op!);
@@ -71,7 +72,7 @@ test('Scenario: Editing, ticking done and unplanning a todo follow in Proton', a
 	const m = mark();
 
 	await page.goto('/sprint');
-	await expect(page.getByTestId('sprint-list').getByTestId('todo-row')).toHaveCount(1);
+	await expect(todoRows(sprintList(page))).toHaveCount(1);
 	await openTodo(page, 'Dentist');
 	await editor(page).getByLabel('Title').fill('Dentist check-up');
 	await page.getByRole('button', { name: 'Save' }).click();
@@ -80,7 +81,7 @@ test('Scenario: Editing, ticking done and unplanning a todo follow in Proton', a
 	await protonPass(request);
 
 	await page.getByRole('checkbox', { name: 'Done: Dentist check-up' }).click();
-	await expect(row(page, 'Dentist check-up')).toHaveAttribute('data-status', 'done');
+	await expect(row(page, 'Dentist check-up').getByLabel('Status')).toHaveValue('done');
 	await protonPass(request);
 
 	await openTodo(page, 'Dentist check-up');
@@ -133,7 +134,12 @@ test('Scenario: Editing a rule in the app updates its series', async ({ page, re
 	await form.getByLabel('To').fill('08:00');
 	await form.getByRole('button', { name: 'Save rule' }).click();
 	await expect(form).toBeHidden();
-	await expect(page.getByTestId('rule-row').getByTestId('rule-slot')).toHaveText('07:00–08:00');
+	await expect(
+		page
+			.getByRole('listitem')
+			.filter({ has: page.getByRole('button', { name: /Gym/ }) })
+			.getByText('07:00–08:00', { exact: true })
+	).toBeVisible();
 	await protonPass(request);
 
 	expect(ops(m).map((o) => o.kind)).toEqual(['event.update']);
@@ -157,7 +163,7 @@ test('Scenario: Starting a sprint in the app moves the series', async ({ page, r
 	await page.goto('/sprint/plan');
 	await page.getByRole('button', { name: /^Start sprint/ }).click();
 	await expect(page).toHaveURL(/\/sprint$/);
-	const planned = page.getByTestId('sprint-list').locator('[data-testid="todo-row"]:not([data-day=""])');
+	const planned = todoRows(sprintList(page)).and(page.locator('[data-day]:not([data-day=""])'));
 	await expect(planned.first()).toBeVisible();
 	const instances = await planned.count();
 	await protonPass(request);
@@ -209,7 +215,7 @@ test('Scenario: Due date syncs as a bundled event and done removes it', async ({
 	const m = mark();
 
 	await page.goto('/sprint');
-	await expect(page.getByTestId('sprint-list').getByTestId('todo-row')).toHaveCount(1);
+	await expect(todoRows(sprintList(page))).toHaveCount(1);
 	await openTodo(page, 'File taxes');
 	await editor(page).getByLabel('Due date').fill('2026-10-20');
 	await page.getByRole('button', { name: 'Save' }).click();
@@ -224,7 +230,7 @@ test('Scenario: Due date syncs as a bundled event and done removes it', async ({
 	const eventRef = onlyRef();
 	const m2 = mark();
 	await page.getByRole('checkbox', { name: 'Done: File taxes' }).click();
-	await expect(row(page, 'File taxes')).toHaveAttribute('data-status', 'done');
+	await expect(row(page, 'File taxes').getByLabel('Status')).toHaveValue('done');
 	await protonPass(request);
 	expect(ops(m2)).toEqual([{ kind: 'event.delete', ref: eventRef }]);
 	expect(Object.keys(fake().state().events)).toEqual([]);

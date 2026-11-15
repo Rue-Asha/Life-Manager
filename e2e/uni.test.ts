@@ -1,5 +1,19 @@
 import type { Page } from '@playwright/test';
 import { expect, test, reset, seed, setClock } from './helpers';
+import {
+	activeSemesters,
+	archivedGroup,
+	classCards,
+	classGrid,
+	emptyState,
+	notesRegion,
+	semesterSection,
+	semesterSections,
+	sprintTodos,
+	uniAspect,
+	uniPrompt,
+	uniRail
+} from './uni-locators';
 
 test.beforeEach(async ({ request }) => {
 	await reset(request);
@@ -10,9 +24,7 @@ const UNI = { name: 'Uni', color: 'lavender', icon: 'book' } as const;
 const HEALTH = { name: 'Health', color: 'sage', icon: 'heart' } as const;
 
 async function semesterAction(page: Page, semester: string, action: string) {
-	const section = page.getByTestId('semester-section').filter({
-		has: page.getByRole('heading', { name: semester, exact: true })
-	});
+	const section = semesterSection(page, semester);
 	await section.getByRole('button', { name: 'Semester actions' }).click();
 	await page.getByRole('menuitem', { name: action }).click();
 }
@@ -21,16 +33,16 @@ test('Scenario: First run prompts for the Uni aspect', async ({ page, request })
 	await seed(request, { aspects: [HEALTH, UNI] });
 	await page.goto('/uni');
 
-	const prompt = page.getByTestId('uni-aspect-prompt');
+	const prompt = uniPrompt(page);
 	await expect(prompt).toBeVisible();
-	await expect(page.getByTestId('semester-section')).toHaveCount(0);
-	await expect(page.getByTestId('sprint-todos')).toHaveCount(0);
+	await expect(semesterSections(page)).toHaveCount(0);
+	await expect(sprintTodos(page)).toHaveCount(0);
 	await expect(page.getByRole('button', { name: 'New semester' })).toHaveCount(0);
 	await expect(prompt.getByRole('radio', { name: 'Uni' })).toBeChecked();
 	await prompt.getByRole('button', { name: 'Use Uni for classes' }).click();
 
 	await expect(prompt).toHaveCount(0);
-	await expect(page.getByTestId('uni-aspect')).toHaveText('Uni');
+	await expect(uniAspect(page)).toHaveText('Uni');
 	await expect(page.getByRole('button', { name: 'New semester' }).first()).toBeVisible();
 });
 
@@ -61,10 +73,10 @@ test('Scenario: Changing the Uni aspect removes links after confirmation', async
 		]
 	});
 	await page.goto('/uni');
-	await expect(page.getByTestId('class-card')).toContainText('2 open');
+	await expect(classCards(page)).toContainText('2 open');
 
 	await page.getByRole('button', { name: 'Change Uni aspect' }).click();
-	const prompt = page.getByTestId('uni-aspect-prompt');
+	const prompt = uniPrompt(page);
 	await prompt.getByRole('radio', { name: 'Health' }).check();
 	await prompt.getByRole('button', { name: 'Use Health for classes' }).click();
 
@@ -72,14 +84,14 @@ test('Scenario: Changing the Uni aspect removes links after confirmation', async
 	await expect(dialog).toContainText('3 todos and rules');
 	await dialog.getByRole('button', { name: 'Remove 3 links and change' }).click();
 
-	await expect(page.getByTestId('uni-aspect')).toHaveText('Health');
-	await expect(page.getByTestId('class-card')).toContainText('0 open');
+	await expect(uniAspect(page)).toHaveText('Health');
+	await expect(classCards(page)).toContainText('0 open');
 
 	// No link is left anywhere: switching back needs no confirmation.
 	await page.getByRole('button', { name: 'Change Uni aspect' }).click();
 	await prompt.getByRole('radio', { name: 'Uni' }).check();
 	await prompt.getByRole('button', { name: 'Use Uni for classes' }).click();
-	await expect(page.getByTestId('uni-aspect')).toHaveText('Uni');
+	await expect(uniAspect(page)).toHaveText('Uni');
 	await expect(page.getByRole('dialog')).toHaveCount(0);
 });
 
@@ -93,11 +105,11 @@ test('Scenario: Changing the Uni aspect without links needs no confirmation', as
 	await page.goto('/uni');
 
 	await page.getByRole('button', { name: 'Change Uni aspect' }).click();
-	const prompt = page.getByTestId('uni-aspect-prompt');
+	const prompt = uniPrompt(page);
 	await prompt.getByRole('radio', { name: 'Health' }).check();
 	await prompt.getByRole('button', { name: 'Use Health for classes' }).click();
 
-	await expect(page.getByTestId('uni-aspect')).toHaveText('Health');
+	await expect(uniAspect(page)).toHaveText('Health');
 	await expect(page.getByRole('dialog')).toHaveCount(0);
 });
 
@@ -105,7 +117,7 @@ test('Scenario: Uni notes are edited as Markdown below the classes', async ({ pa
 	await seed(request, { aspects: [UNI], uniAspect: 0, semesters: [{ name: 'WS 26/27' }] });
 	await page.goto('/uni');
 
-	const notes = page.getByTestId('uni-notes');
+	const notes = notesRegion(page);
 	await expect(notes).toContainText('No notes yet');
 	await notes.getByRole('button', { name: 'Edit notes' }).click();
 	await notes.getByRole('textbox', { name: 'Notes' }).fill('# Studienplan\n\n| Modul | CP |\n|---|---|\n| Netzsicherheit | 6 |');
@@ -113,7 +125,7 @@ test('Scenario: Uni notes are edited as Markdown below the classes', async ({ pa
 
 	await expect(notes.getByRole('heading', { level: 1, name: 'Studienplan' })).toBeVisible();
 	await expect(notes.getByRole('cell', { name: 'Netzsicherheit' })).toBeVisible();
-	const semester = await page.getByTestId('semester-section').first().boundingBox();
+	const semester = await semesterSections(page).first().boundingBox();
 	const block = await notes.boundingBox();
 	expect(block!.y).toBeGreaterThan(semester!.y + semester!.height);
 
@@ -149,20 +161,20 @@ test('Scenario: Semesters are listed newest first with archived ones collapsed',
 	});
 	await page.goto('/uni');
 
-	const active = page.locator('.semesters').getByTestId('semester-section');
+	const active = semesterSections(activeSemesters(page));
 	await expect(active.getByRole('heading', { level: 2 })).toHaveText(['WS 26/27', 'SS 26']);
 
-	const group = page.getByTestId('semester-archived-group');
+	const group = archivedGroup(page);
 	const toggle = group.getByRole('button', { name: 'Archived (1)' });
 	await expect(toggle).toHaveAttribute('aria-expanded', 'false');
 	await expect(group.getByText('WS 25/26')).toHaveCount(0);
 	await toggle.click();
 
-	const archived = group.getByTestId('semester-section');
+	const archived = semesterSections(group);
 	await expect(archived.getByRole('heading', { name: 'WS 25/26' })).toBeVisible();
-	await expect(archived.getByTestId('class-card')).toHaveCount(0);
+	await expect(classCards(archived)).toHaveCount(0);
 	await archived.getByRole('button', { name: 'WS 25/26' }).click();
-	await expect(archived.getByTestId('class-card')).toHaveText(/Analysis I/);
+	await expect(classCards(archived)).toHaveText(/Analysis I/);
 	await expect(archived.getByRole('button', { name: 'New class' })).toHaveCount(0);
 });
 
@@ -170,9 +182,9 @@ test('Scenario: No semesters shows an empty state', async ({ page, request }) =>
 	await seed(request, { aspects: [UNI], uniAspect: 0 });
 	await page.goto('/uni');
 
-	await expect(page.getByTestId('empty-state').getByRole('button', { name: 'New semester' })).toBeVisible();
-	await expect(page.getByTestId('semester-section')).toHaveCount(0);
-	await expect(page.getByTestId('sprint-todos')).toHaveCount(0);
+	await expect(emptyState(page).getByRole('button', { name: 'New semester' })).toBeVisible();
+	await expect(semesterSections(page)).toHaveCount(0);
+	await expect(sprintTodos(page)).toHaveCount(0);
 });
 
 test('Scenario: Semester without classes offers New class', async ({ page, request }) => {
@@ -183,10 +195,10 @@ test('Scenario: Semester without classes offers New class', async ({ page, reque
 	});
 	await page.goto('/uni');
 
-	const section = page.getByTestId('semester-section');
-	await expect(section.getByTestId('class-empty')).toContainText('No classes yet.');
-	await expect(section.getByTestId('class-empty').getByRole('button', { name: 'New class' })).toBeVisible();
-	await expect(section.getByTestId('class-card')).toHaveCount(0);
+	const section = semesterSections(page);
+	await expect(section.getByText('No classes yet.')).toBeVisible();
+	await expect(section.getByText('No classes yet.').getByRole('button', { name: 'New class' })).toBeVisible();
+	await expect(classCards(section)).toHaveCount(0);
 });
 
 test('Scenario: Phone shows one class card per row', async ({ page, request }) => {
@@ -199,10 +211,7 @@ test('Scenario: Phone shows one class card per row', async ({ page, request }) =
 	await page.setViewportSize({ width: 375, height: 812 });
 	await page.goto('/uni');
 
-	const boxes = await page
-		.getByTestId('class-grid')
-		.getByTestId('class-card')
-		.evaluateAll((els) =>
+	const boxes = await classCards(page).evaluateAll((els) =>
 			els.map((el) => {
 				const r = el.getBoundingClientRect();
 				return { left: r.left, top: r.top, bottom: r.bottom };
@@ -228,19 +237,14 @@ test('Scenario: Wide desktop class grid fills the content column', async ({ page
 	await page.goto('/uni');
 
 	// The docked rail only appears after hydration, which re-mounts the column; measure after it.
-	await expect(page.getByTestId('context-rail')).toBeVisible();
-	const grid = page.getByTestId('class-grid');
-	await expect(grid.getByTestId('class-card')).toHaveCount(4);
-	const { gridWidth, column, firstRow } = await grid.evaluate((el) => {
-		// The page header spans the content column.
-		const column = document.querySelector('h1')!.closest('header')!.getBoundingClientRect().width;
-		const cards = [...el.querySelectorAll('[data-testid="class-card"]')].map((c) => c.getBoundingClientRect().top);
-		return {
-			gridWidth: el.getBoundingClientRect().width,
-			column,
-			firstRow: cards.filter((top) => top === cards[0]).length
-		};
-	});
+	await expect(uniRail(page)).toBeVisible();
+	const cards = classCards(page);
+	await expect(cards).toHaveCount(4);
+	// The page header spans the content column.
+	const column = await page.getByRole('heading', { level: 1 }).evaluate((h1) => h1.closest('header')!.getBoundingClientRect().width);
+	const gridWidth = await classGrid(page).evaluate((el) => el.getBoundingClientRect().width);
+	const tops = await cards.evaluateAll((els) => els.map((c) => c.getBoundingClientRect().top));
+	const firstRow = tops.filter((top) => top === tops[0]).length;
 	expect(Math.abs(gridWidth - column)).toBeLessThanOrEqual(2);
 	expect(Math.abs(column - 720), 'the 720 px column cap binds at 1600').toBeLessThanOrEqual(2);
 	expect(firstRow).toBeGreaterThan(1);
@@ -278,14 +282,14 @@ test('Scenario: Card shows the class summary', async ({ page, request }) => {
 	await page.setViewportSize({ width: 1600, height: 900 });
 	await page.goto('/uni');
 
-	const card = page.getByTestId('class-grid').getByTestId('class-card');
+	const card = classCards(page);
 	await expect(card.locator('svg').first()).toBeVisible();
 	await expect(card).toContainText('Analysis II');
 	await expect(card).toContainText('Prof. Kühn');
-	await expect(card.getByTestId('class-open')).toHaveText('2 open');
-	await expect(card.getByTestId('class-next-due')).toHaveText('Thu 8 Oct');
-	await expect(card.getByTestId('class-exam')).toHaveText('Exam in 12 d');
-	await expect(card.getByTestId('class-grade')).toHaveText('1.3');
+	await expect(card.getByText(/ open$/)).toHaveText('2 open');
+	await expect(card.getByText('Thu 8 Oct', { exact: true })).toBeVisible();
+	await expect(card.getByText(/^Exam /)).toHaveText('Exam in 12 d');
+	await expect(card.getByLabel('Grade 1.3', { exact: true })).toHaveText('1.3');
 	await expect(card).toHaveAttribute('href', /\/uni\/classes\/\d+$/);
 });
 
@@ -302,9 +306,9 @@ test('Scenario: Exam today and past exams', async ({ page, request }) => {
 	});
 	await page.goto('/uni');
 
-	const cards = page.getByTestId('class-grid').getByTestId('class-card');
-	await expect(cards.filter({ hasText: 'Theoretical CS' }).getByTestId('class-exam')).toHaveText('Exam today');
-	await expect(cards.filter({ hasText: 'Algorithms' }).getByTestId('class-exam')).toHaveCount(0);
+	const cards = classCards(page);
+	await expect(cards.filter({ hasText: 'Theoretical CS' }).getByText(/^Exam /)).toHaveText('Exam today');
+	await expect(cards.filter({ hasText: 'Algorithms' }).getByText(/^Exam /)).toHaveCount(0);
 });
 
 test('Scenario: Sparse card keeps the row height', async ({ page, request }) => {
@@ -328,8 +332,8 @@ test('Scenario: Sparse card keeps the row height', async ({ page, request }) => 
 	await page.setViewportSize({ width: 1600, height: 900 });
 	await page.goto('/uni');
 
-	await expect(page.getByTestId('context-rail')).toBeVisible();
-	const cards = page.getByTestId('class-grid').getByTestId('class-card');
+	await expect(uniRail(page)).toBeVisible();
+	const cards = classCards(page);
 	const sparse = cards.filter({ hasText: 'Operating Systems' });
 	await expect(sparse).toHaveText(/^\s*Operating Systems\s*0 open\s*$/);
 	await expect(sparse.locator('svg')).toHaveCount(1);
@@ -350,10 +354,10 @@ test('Scenario: New semester appears among the active ones', async ({ page, requ
 	await page.getByLabel('Semester name').fill('WS 26/27');
 	await page.getByRole('button', { name: 'Add semester' }).click();
 
-	const sections = page.locator('.semesters').getByTestId('semester-section');
+	const sections = semesterSections(activeSemesters(page));
 	await expect(sections.getByRole('heading', { level: 2 })).toHaveText(['WS 26/27', 'SS 26']);
-	await expect(sections.first().getByTestId('class-card')).toHaveCount(0);
-	await expect(sections.first().getByTestId('class-empty')).toBeVisible();
+	await expect(classCards(sections.first())).toHaveCount(0);
+	await expect(sections.first().getByText('No classes yet.')).toBeVisible();
 });
 
 test('Scenario: Rename a semester', async ({ page, request }) => {
@@ -368,7 +372,7 @@ test('Scenario: Rename a semester', async ({ page, request }) => {
 	await page.getByLabel('Semester name').fill('Winter 26/27');
 	await page.getByRole('button', { name: 'Save' }).click();
 
-	const section = page.getByTestId('semester-section');
+	const section = semesterSections(page);
 	await expect(section.getByRole('heading', { level: 2 })).toHaveText('Winter 26/27');
 	await page.reload();
 	await expect(section.getByRole('heading', { level: 2 })).toHaveText('Winter 26/27');
@@ -382,14 +386,14 @@ test('Scenario: Add a class from the semester section', async ({ page, request }
 	});
 	await page.goto('/uni');
 
-	const section = page.getByTestId('semester-section');
+	const section = semesterSections(page);
 	await section.getByRole('button', { name: 'New class' }).click();
 	await section.getByLabel('Name').fill('Databases');
 	await section.getByRole('radio', { name: 'Berry' }).check();
 	await section.getByRole('radio', { name: 'Code' }).check();
 	await section.getByRole('button', { name: 'Add class' }).click();
 
-	const card = section.getByTestId('class-grid').getByTestId('class-card');
+	const card = classCards(section);
 	await expect(card).toHaveCount(1);
 	await expect(card).toContainText('Databases');
 	const { tile, icon } = await card
@@ -420,7 +424,7 @@ test('Scenario: Field errors show on the class form', async ({ page, request }) 
 	});
 	await page.goto('/uni');
 
-	const section = page.getByTestId('semester-section');
+	const section = semesterSections(page);
 	await section.getByRole('button', { name: 'New class' }).click();
 	await section.getByLabel('ECTS').fill('-1');
 	await section.getByRole('button', { name: 'Add class' }).click();
@@ -428,7 +432,7 @@ test('Scenario: Field errors show on the class form', async ({ page, request }) 
 	await expect(section.getByLabel('ECTS')).toHaveAttribute('aria-invalid', 'true');
 	await expect(section.getByRole('alert')).toHaveText(['Give it a name.', /ECTS/]);
 	await expect(section.getByLabel('ECTS')).toHaveValue('-1');
-	await expect(section.getByTestId('class-card')).toHaveCount(0);
+	await expect(classCards(section)).toHaveCount(0);
 });
 
 test('Scenario: Archiving with open todos asks for confirmation', async ({ page, request }) => {
@@ -451,18 +455,18 @@ test('Scenario: Archiving with open todos asks for confirmation', async ({ page,
 	await expect(dialog).toContainText('2 class todos are still open');
 	await dialog.getByRole('button', { name: 'Mark 2 done and archive' }).click();
 
-	await expect(page.locator('.semesters').getByTestId('semester-section')).toHaveCount(0);
-	const group = page.getByTestId('semester-archived-group');
+	await expect(semesterSections(activeSemesters(page))).toHaveCount(0);
+	const group = archivedGroup(page);
 	await group.getByRole('button', { name: 'Archived (1)' }).click();
-	const archived = group.getByTestId('semester-section');
-	await expect(archived.getByTestId('class-card')).toHaveCount(0);
+	const archived = semesterSections(group);
+	await expect(classCards(archived)).toHaveCount(0);
 	await archived.getByRole('button', { name: 'WS 26/27' }).click();
-	await expect(archived.getByTestId('class-card')).toContainText('0 open');
+	await expect(classCards(archived)).toContainText('0 open');
 
 	// Unarchiving shows the class among the active ones again, with every todo done.
 	await archived.getByRole('button', { name: 'Unarchive' }).click();
-	await expect(page.getByTestId('semester-archived-group')).toHaveCount(0);
-	await expect(page.locator('.semesters').getByTestId('class-card')).toContainText('0 open');
+	await expect(archivedGroup(page)).toHaveCount(0);
+	await expect(classCards(activeSemesters(page))).toContainText('0 open');
 });
 
 test('Scenario: Cancelling the archive warning changes nothing', async ({ page, request }) => {
@@ -480,9 +484,9 @@ test('Scenario: Cancelling the archive warning changes nothing', async ({ page, 
 	await expect(page.getByRole('dialog')).toHaveCount(0);
 
 	await page.reload();
-	await expect(page.locator('.semesters').getByTestId('semester-section')).toHaveCount(1);
-	await expect(page.getByTestId('semester-archived-group')).toHaveCount(0);
-	await expect(page.getByTestId('class-card')).toContainText('1 open');
+	await expect(semesterSections(activeSemesters(page))).toHaveCount(1);
+	await expect(archivedGroup(page)).toHaveCount(0);
+	await expect(classCards(page)).toContainText('1 open');
 });
 
 test('Scenario: Archiving without open todos needs no confirmation', async ({ page, request }) => {
@@ -496,9 +500,9 @@ test('Scenario: Archiving without open todos needs no confirmation', async ({ pa
 	await page.goto('/uni');
 
 	await semesterAction(page, 'WS 26/27', 'Archive');
-	await expect(page.getByTestId('semester-archived-group').getByRole('button', { name: 'Archived (1)' })).toBeVisible();
+	await expect(archivedGroup(page).getByRole('button', { name: 'Archived (1)' })).toBeVisible();
 	await expect(page.getByRole('dialog')).toHaveCount(0);
-	await expect(page.locator('.semesters').getByTestId('semester-section')).toHaveCount(0);
+	await expect(semesterSections(activeSemesters(page))).toHaveCount(0);
 });
 
 test('Scenario: Deleting a semester asks for confirmation naming counts', async ({ page, request }) => {
@@ -525,12 +529,12 @@ test('Scenario: Deleting a semester asks for confirmation naming counts', async 
 	await expect(dialog).toContainText('2 classes and 5 todos');
 	await dialog.getByRole('button', { name: 'Cancel' }).click();
 	await page.reload();
-	await expect(page.getByTestId('class-grid').getByTestId('class-card')).toHaveCount(2);
+	await expect(classCards(page)).toHaveCount(2);
 
 	await semesterAction(page, 'SS 26', 'Delete');
 	await page.getByRole('dialog').getByRole('button', { name: 'Delete semester' }).click();
-	await expect(page.getByTestId('semester-section')).toHaveCount(0);
-	await expect(page.getByTestId('empty-state')).toBeVisible();
+	await expect(semesterSections(page)).toHaveCount(0);
+	await expect(emptyState(page)).toBeVisible();
 });
 
 test('Scenario: Deleting an empty semester uses a plain confirm', async ({ page, request }) => {
@@ -546,7 +550,7 @@ test('Scenario: Deleting an empty semester uses a plain confirm', async ({ page,
 	await expect(dialog).toContainText('Delete SS 27?');
 	await expect(dialog).not.toContainText(/\d+ (class|todo)/);
 	await dialog.getByRole('button', { name: 'Delete semester' }).click();
-	await expect(page.getByTestId('semester-section')).toHaveCount(0);
+	await expect(semesterSections(page)).toHaveCount(0);
 });
 
 test('Scenario: Grades are shown on the overview', async ({ page, request }) => {
@@ -564,11 +568,11 @@ test('Scenario: Grades are shown on the overview', async ({ page, request }) => 
 	});
 	await page.goto('/uni');
 
-	const header = page.getByTestId('semester-section').getByTestId('grade-summary');
+	const header = semesterSections(page).getByText(/^Average/);
 	await expect(header).toContainText('2.23');
 	await expect(header).toContainText('20 ECTS');
-	await expect(page.getByTestId('grade-overall')).toContainText('2.23');
-	await expect(page.getByTestId('grade-overall')).toContainText('20 ECTS');
+	await expect(page.getByText(/^Overall average/)).toContainText('2.23');
+	await expect(page.getByText(/^Overall average/)).toContainText('20 ECTS');
 });
 
 test('Scenario: No grades shows a dash', async ({ page, request }) => {
@@ -580,6 +584,6 @@ test('Scenario: No grades shows a dash', async ({ page, request }) => {
 	});
 	await page.goto('/uni');
 
-	await expect(page.getByTestId('semester-section').getByTestId('grade-summary')).toContainText('Average — ·');
-	await expect(page.getByTestId('grade-overall')).toContainText('Overall average — ·');
+	await expect(semesterSections(page).getByText(/^Average/)).toContainText('Average — ·');
+	await expect(page.getByText(/^Overall average/)).toContainText('Overall average — ·');
 });

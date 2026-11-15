@@ -6,7 +6,7 @@
 </script>
 
 {#if overall}
-	<p class="line overall" data-testid="grade-overall">
+	<p class="line overall">
 		Overall average <strong class="num">{formatAverage(grades.average)}</strong> ·
 		<strong class="num">{grades.earnedEcts} ECTS</strong> earned
 	</p>

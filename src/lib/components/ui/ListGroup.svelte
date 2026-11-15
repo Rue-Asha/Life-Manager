@@ -6,7 +6,7 @@
 	let { children, variant = 'card' }: { children: Snippet; variant?: 'card' | 'outline' } = $props();
 </script>
 
-<div class="list-group" class:outline={variant === 'outline'} data-testid="list-group">
+<div class="list-group" class:outline={variant === 'outline'} role="group">
 	{@render children()}
 </div>
 

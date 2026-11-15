@@ -1,4 +1,5 @@
-import { expect, test, reset, seed, setClock } from './helpers';
+import { expect, test, reset, seed, setClock, todoRow, todoRows } from './helpers';
+import { sprintList } from './sprint-locators';
 
 // Wednesday 7 October 2026 in Berlin; the active sprint runs Monday 5 to Sunday 11 October.
 const NOW = '2026-10-07T10:00:00Z';
@@ -42,41 +43,41 @@ test('Scenario: Class card opens the class detail', async ({ page, request }) =>
 	await page.goto('/uni');
 	await expect(page.getByRole('heading', { level: 1, name: 'Uni' })).toBeVisible();
 
-	await page.getByTestId('class-card').filter({ hasText: 'Analysis II' }).click();
+	await page.getByRole('link', { name: /Analysis II/ }).click();
 	await expect(page).toHaveURL(new RegExp(`/uni/classes/${classes[0]}$`));
 	await expect(page.getByRole('heading', { level: 1, name: 'Analysis II' })).toBeVisible();
-	await expect(page.getByTestId('context-rail')).toBeVisible();
-	const meta = page.getByTestId('class-meta');
+	const meta = page.getByRole('complementary', { name: 'Details' });
+	await expect(meta).toBeVisible();
 	await expect(meta).toContainText('Prof. Kühn');
 	await expect(meta).toContainText('H 2.013');
 	await expect(meta).toContainText('7.5');
-	await expect(page.getByTestId('class-notes')).toContainText('Mean value theorem');
-	await expect(page.getByTestId('class-todos-open').getByTestId('todo-row')).toHaveText([/Exercise sheet 4/]);
+	await expect(page.getByRole('region', { name: 'Notes' })).toContainText('Mean value theorem');
+	await expect(todoRows(page.getByRole('group', { name: 'Open', exact: true }))).toHaveText([/Exercise sheet 4/]);
 });
 
 test("Scenario: Class todo moves through the class's groups", async ({ page, request }) => {
 	await page.setViewportSize({ width: 1280, height: 900 });
 	const { classes } = await seedClass(request, { sprint: { state: 'active', weekStart: '2026-10-05' } });
-	const row = page.getByTestId('todo-row').filter({ hasText: 'Exercise sheet 5' });
-	const group = (name: string) => page.getByTestId(`class-todos-${name}`).getByTestId('todo-row');
+	const row = todoRow(page, 'Exercise sheet 5');
+	const group = (name: string) => todoRows(page.getByRole('group', { name, exact: true }));
 	const detail = async () => {
 		await page.goto(`/uni/classes/${classes[0]}`);
 		await expect(page.getByRole('heading', { level: 1, name: 'Analysis II' })).toBeVisible();
 	};
 	const expectBadge = async () => {
-		await expect(row.getByTestId('class-badge')).toContainText('Analysis II');
-		await expect(row.getByTestId('class-badge')).toContainText('EXC');
+		await expect(row.getByRole('link', { name: /Analysis II/ })).toContainText('Analysis II');
+		await expect(row.getByRole('link', { name: /Analysis II/ })).toContainText('EXC');
 	};
 
 	await detail();
 	await page.getByRole('button', { name: 'Add a todo' }).click();
 	const form = page.getByRole('form', { name: 'New todo' });
 	await expect(form.getByLabel('Class')).toHaveValue(String(classes[0]));
-	await form.getByTestId('type-field').getByRole('button', { name: 'EXC' }).click();
+	await form.getByRole('group', { name: 'Type' }).getByRole('button', { name: 'EXC' }).click();
 	await form.getByLabel('Title').fill('Exercise sheet 5');
 	await form.getByRole('button', { name: 'Add todo' }).click();
-	await expect(group('open')).toHaveText([/Exercise sheet 5/]);
-	await expect(group('planned')).toHaveCount(0);
+	await expect(group('Open')).toHaveText([/Exercise sheet 5/]);
+	await expect(group('Planned')).toHaveCount(0);
 
 	await page.goto('/backlog');
 	await expect(page.getByRole('heading', { level: 1, name: 'Backlog' })).toBeVisible();
@@ -86,13 +87,13 @@ test("Scenario: Class todo moves through the class's groups", async ({ page, req
 
 	await page.goto('/sprint');
 	await expect(page.getByRole('heading', { level: 1, name: 'Sprint' })).toBeVisible();
-	const sprintRow = page.getByTestId('sprint-list').getByTestId('todo-row').filter({ hasText: 'Exercise sheet 5' });
-	await expect(sprintRow.getByTestId('class-badge')).toContainText('Analysis II');
+	const sprintRow = todoRow(sprintList(page), 'Exercise sheet 5');
+	await expect(sprintRow.getByRole('link', { name: /Analysis II/ })).toContainText('Analysis II');
 	await sprintRow.getByLabel('Day').selectOption({ label: 'Wed 7' });
 
 	await detail();
-	await expect(group('planned')).toHaveText([/Exercise sheet 5/]);
-	await expect(group('open')).toHaveCount(0);
+	await expect(group('Planned')).toHaveText([/Exercise sheet 5/]);
+	await expect(group('Open')).toHaveCount(0);
 
 	await page.goto('/');
 	await expect(page.getByRole('heading', { level: 1, name: 'Today' })).toBeVisible();
@@ -102,9 +103,9 @@ test("Scenario: Class todo moves through the class's groups", async ({ page, req
 	await expect(checkbox).toHaveAttribute('aria-checked', 'true');
 
 	await detail();
-	await expect(group('planned')).toHaveCount(0);
-	const toggle = page.getByTestId('class-todos-done').getByRole('button', { name: /Done/ });
+	await expect(group('Planned')).toHaveCount(0);
+	const toggle = page.getByRole('group', { name: 'Done', exact: true }).getByRole('button', { name: /Done/ });
 	await expect(toggle).toContainText('1');
 	await toggle.click();
-	await expect(group('done')).toHaveText([/Exercise sheet 5/]);
+	await expect(group('Done')).toHaveText([/Exercise sheet 5/]);
 });

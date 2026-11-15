@@ -23,7 +23,6 @@
 			accepts: (p) => p.from === 'sprint',
 			ondrop: (p) => moveToDay(todos.find((t) => t.id === p.id), null)
 		}}
-		data-testid="day-column-unscheduled"
 		aria-labelledby="day-unscheduled"
 	>
 		<h2 id="day-unscheduled">Unscheduled<span class="count num">{cards.length || ''}</span></h2>

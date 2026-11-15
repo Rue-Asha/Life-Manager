@@ -19,7 +19,6 @@
 <div
 	class="card"
 	class:chip={variant === 'chip'}
-	data-testid="sprint-card"
 	role="group"
 	aria-label={todo.title}
 	use:draggableTodo={{ id: todo.id, from: 'sprint', recurring: todo.recurring }}

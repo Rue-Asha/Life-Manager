@@ -19,10 +19,11 @@ test('Scenario: Sync link in the sidebar and the home list', async ({ page, requ
 	await page.goto('/');
 	const sidebar = page.getByRole('navigation', { name: 'Main' });
 	const names = await sidebar
-		.locator('a.item')
+		.getByRole('link')
+		.filter({ hasNotText: 'Life Manager' })
 		.evaluateAll((els) => els.map((el) => el.textContent!.replace(/\d+$/, '').trim()));
 	expect(names).toEqual([...LISTS, 'Health', 'Home', 'Proton sync']);
-	const link = sidebar.getByTestId('sync-link');
+	const link = sidebar.getByRole('link', { name: /^Proton sync/ });
 	const lastAspect = sidebar.getByRole('link', { name: 'Home', exact: true });
 	const after = await lastAspect.evaluate(
 		(a, b) => !!(a.compareDocumentPosition(b!) & Node.DOCUMENT_POSITION_FOLLOWING),
@@ -34,34 +35,34 @@ test('Scenario: Sync link in the sidebar and the home list', async ({ page, requ
 	await page.goto('/menu');
 	const lists = page.getByRole('navigation', { name: 'Lists' });
 	await expect(lists.getByRole('link')).toHaveCount(8);
-	await expect(lists.getByTestId('sync-link')).toHaveCount(0);
-	const home = page.getByRole('main').getByTestId('sync-link');
+	await expect(lists.getByRole('link', { name: /^Proton sync/ })).toHaveCount(0);
+	const home = page.getByRole('main').getByRole('link', { name: /^Proton sync/ });
 	await expect(home).toHaveText('Proton sync');
 	const [listsBox, homeBox] = [await lists.boundingBox(), await home.boundingBox()];
 	expect(homeBox!.y).toBeGreaterThanOrEqual(listsBox!.y + listsBox!.height);
 
 	await page.setViewportSize({ width: 1280, height: 800 });
 	await page.goto('/');
-	await sidebar.getByTestId('sync-link').click();
+	await link.click();
 	await expect(page).toHaveURL(/\/sync$/);
 	await expect(page.getByRole('heading', { name: 'Proton sync' })).toBeVisible();
 	await expect(sidebar.locator('[aria-current="page"]')).toHaveCount(1);
-	await expect(sidebar.getByTestId('sync-link')).toHaveAttribute('aria-current', 'page');
+	await expect(link).toHaveAttribute('aria-current', 'page');
 });
 
 test('Scenario: Sync link warns on re-login needed or error', async ({ page, request }) => {
 	await seed(request, { aspects: [{ name: 'Health' }], todos: [{ title: 'Stretch', day: '2026-10-12' }] });
-	const sidebarLink = page.getByRole('navigation', { name: 'Main' }).getByTestId('sync-link');
-	const homeLink = page.getByRole('main').getByTestId('sync-link');
+	const sidebarLink = page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: /^Proton sync/ });
+	const homeLink = page.getByRole('main').getByRole('link', { name: /^Proton sync/ });
 	const visit = async (marked: boolean) => {
 		await page.setViewportSize({ width: 1280, height: 800 });
 		await page.goto('/');
 		await expect(sidebarLink).toBeVisible();
-		await expect(sidebarLink.getByTestId('sync-marker')).toHaveCount(marked ? 1 : 0);
+		await expect(sidebarLink.getByRole('img', { name: 'Needs attention' })).toHaveCount(marked ? 1 : 0);
 		await page.setViewportSize({ width: 375, height: 812 });
 		await page.goto('/menu');
 		await expect(homeLink).toBeVisible();
-		await expect(homeLink.getByTestId('sync-marker')).toHaveCount(marked ? 1 : 0);
+		await expect(homeLink.getByRole('img', { name: 'Needs attention' })).toHaveCount(marked ? 1 : 0);
 		if (marked) await expect(homeLink.getByLabel('Needs attention')).toHaveCount(1);
 	};
 

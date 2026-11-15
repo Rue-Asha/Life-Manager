@@ -96,7 +96,7 @@
 
 	{#if inSprint}
 		{#if groups.length === 0 && data.overdue.length === 0}
-			<p class="empty" data-testid="empty-state">
+			<p class="empty">
 				<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.sun} /></svg>
 				<span>Nothing planned for today. The <a href="/sprint?view=week">week view</a> has the rest of your sprint.</span>
 			</p>
@@ -104,7 +104,7 @@
 	{/if}
 
 	{#if data.overdue.length}
-		<section class="group" data-testid="overdue-group" aria-labelledby="group-overdue">
+		<section class="group" aria-labelledby="group-overdue">
 			<h2 id="group-overdue" class="late">Overdue<span class="count num">{data.overdue.length}</span></h2>
 			<ListGroup>
 				<ul>
@@ -129,7 +129,7 @@
 	{/if}
 
 	{#each groups as { aspect, todos } (aspect.id)}
-		<section class="group" data-testid="aspect-group-{aspect.id}" aria-labelledby="group-{aspect.id}">
+		<section class="group" aria-labelledby="group-{aspect.id}">
 			<h2 id="group-{aspect.id}">
 				<AspectIcon icon={aspect.icon} color={aspect.color} />{aspect.name}
 				<span class="count num">{todos.length}</span>

@@ -14,7 +14,7 @@
 	});
 </script>
 
-<div class="toast" role="status" data-testid="toast">
+<div class="toast" role="status">
 	<span class="message">{message}</span>
 	{#if actionLabel && onaction}<button type="button" onclick={onaction}>{actionLabel}</button>{/if}
 </div>

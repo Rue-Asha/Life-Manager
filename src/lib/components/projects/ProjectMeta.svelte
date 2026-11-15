@@ -37,8 +37,8 @@
 {#if mode === 'rail'}
 	<h2>Details</h2>
 	<!-- Proton Pass-style field card: icon, small label over the value, hairlines between. -->
-	<div class="card">
-		<dl class="props" data-testid="project-meta">
+	<div class="card" role="group" aria-label="Project details">
+		<dl class="props">
 			{#if project.repoUrl}
 				{#snippet repoValue()}{@render repo(repoLabel.replace(/^github\.com\//, ''), false)}{/snippet}
 				{@render field(UI_ICONS['git-branch'], 'Repo', repoValue)}
@@ -65,7 +65,7 @@
 		</button>
 	</div>
 {:else}
-	<div class="row" data-testid="project-meta">
+	<div class="row" role="group" aria-label="Project details">
 		{#if project.repoUrl}<span class="pchip link">{@render repo(repoLabel)}</span>{/if}
 		{#each project.tags as tag (tag)}<span class="pchip tag">{tag}</span>{/each}
 		<span class="pchip">Created {dateShort.format(new Date(project.createdAt))}</span>

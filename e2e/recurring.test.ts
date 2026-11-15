@@ -1,4 +1,6 @@
-import { expect, test, reset, seed } from './helpers';
+import { expect, test, reset, seed, ruleRows } from './helpers';
+
+const WEEKDAY = /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)$/;
 
 test.beforeEach(async ({ request }) => {
 	await reset(request);
@@ -22,14 +24,14 @@ test('Scenario: Create and list a recurring rule', async ({ page, request }) => 
 	await form.getByRole('button', { name: 'Add rule' }).click();
 	await expect(form).toBeHidden();
 
-	const row = page.getByTestId('rule-row');
+	const row = ruleRows(page);
 	await expect(row).toHaveCount(1);
 	await expect(row).toContainText('Gym');
-	await expect(row.getByTestId('rule-aspect')).toHaveText('Health');
-	await expect(row.getByTestId('rule-weekday')).toHaveText(['Mon', 'Thu']);
+	await expect(row.getByText('Health', { exact: true })).toBeVisible();
+	await expect(row.getByText(WEEKDAY)).toHaveText(['Mon', 'Thu']);
 
 	await page.reload();
-	await expect(page.getByTestId('rule-row')).toContainText('Gym');
+	await expect(ruleRows(page)).toContainText('Gym');
 });
 
 test('rule form shows weekdays-required inline and stores nothing', async ({ page, request }) => {
@@ -44,7 +46,7 @@ test('rule form shows weekdays-required inline and stores nothing', async ({ pag
 	await expect(form.getByRole('alert')).toHaveText('Pick at least one day.');
 	await expect(form.getByRole('checkbox', { name: 'Monday' })).toHaveAttribute('aria-invalid', 'true');
 	await page.reload();
-	await expect(page.getByTestId('rule-row')).toHaveCount(0);
+	await expect(ruleRows(page)).toHaveCount(0);
 });
 
 test('rule can be edited and deleted after confirming', async ({ page, request }) => {
@@ -68,10 +70,10 @@ test('rule can be edited and deleted after confirming', async ({ page, request }
 	await form.getByRole('button', { name: 'Save rule' }).click();
 	await expect(form).toBeHidden();
 
-	const row = page.getByTestId('rule-row');
+	const row = ruleRows(page);
 	await expect(row).toContainText('Run');
-	await expect(row.getByTestId('rule-aspect')).toHaveText('Uni');
-	await expect(row.getByTestId('rule-weekday')).toHaveText(['Mon', 'Sat']);
+	await expect(row.getByText('Uni', { exact: true })).toBeVisible();
+	await expect(row.getByText(WEEKDAY)).toHaveText(['Mon', 'Sat']);
 
 	await row.getByRole('button', { name: /Run/ }).click();
 	await page.getByRole('dialog', { name: 'Edit rule' }).getByRole('button', { name: 'Delete rule' }).click();
@@ -82,7 +84,7 @@ test('rule can be edited and deleted after confirming', async ({ page, request }
 	await row.getByRole('button', { name: /Run/ }).click();
 	await page.getByRole('dialog', { name: 'Edit rule' }).getByRole('button', { name: 'Delete rule' }).click();
 	await page.getByRole('dialog', { name: 'Delete “Run”?' }).getByRole('button', { name: 'Delete rule' }).click();
-	await expect(page.getByTestId('rule-row')).toHaveCount(0);
+	await expect(ruleRows(page)).toHaveCount(0);
 	await expect(page.getByText('No recurring rules yet.')).toBeVisible();
 });
 
@@ -100,9 +102,9 @@ test('Scenario: Rule with a time slot', async ({ page, request }) => {
 	await form.getByRole('button', { name: 'Add rule' }).click();
 	await expect(form).toBeHidden();
 
-	const row = page.getByTestId('rule-row');
+	const row = ruleRows(page);
 	await expect(row).toHaveCount(1);
-	await expect(row.getByTestId('rule-slot')).toHaveText('18:00–19:30');
+	await expect(row.getByText(/\d{2}:\d{2}/)).toHaveText('18:00–19:30');
 	await expect(row).toHaveAttribute('id', /^rule-\d+$/);
 
 	await row.getByRole('button', { name: /Gym/ }).click();
@@ -114,7 +116,7 @@ test('Scenario: Rule with a time slot', async ({ page, request }) => {
 	await edit.getByRole('button', { name: 'Save rule' }).click();
 	await expect(edit).toBeHidden();
 
-	await expect(row.getByTestId('rule-slot')).toHaveCount(0);
+	await expect(row.getByText(/\d{2}:\d{2}/)).toHaveCount(0);
 	await row.getByRole('button', { name: /Gym/ }).click();
 	const again = page.getByRole('dialog', { name: 'Edit rule' });
 	await expect(again.getByLabel('From')).toHaveValue('');

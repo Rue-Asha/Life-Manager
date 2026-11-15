@@ -34,43 +34,43 @@
 <PageHeader title="Proton sync" subtitle="Planned todos, recurring rules and exams, pushed to Proton Calendar." />
 
 {#if status.state === 'off'}
-	<p class="card" data-testid="sync-off">
+	<p class="card">
 		Sync is off. Set <code>PROTON_CLI</code> to the path of the proton binary and restart the app to turn it on.
 		<code>PROTON_PROFILE</code> picks the login profile and defaults to <code>default</code>.
 	</p>
 {:else}
 	<ListGroup>
-		<div class="row">
+		<div class="row" role="group" aria-label="State">
 			<span>State</span>
-			<b class:attention data-testid="sync-state">{LABELS[status.state]}</b>
+			<b class:attention>{LABELS[status.state]}</b>
 		</div>
-		<div class="row">
+		<div class="row" role="group" aria-label="Last sync">
 			<span>Last sync</span>
-			<span class="num" data-testid="sync-last">{data.lastSync ?? 'Never'}</span>
+			<span class="num">{data.lastSync ?? 'Never'}</span>
 		</div>
-		<div class="row">
+		<div class="row" role="group" aria-label="Pending changes">
 			<span>Pending changes</span>
-			<span class="num" data-testid="sync-pending">{data.pending}</span>
+			<span class="num">{data.pending}</span>
 		</div>
 	</ListGroup>
 
 	{#if status.lastError}
-		<p class="card error" data-testid="sync-last-error">{status.lastError}</p>
+		<p class="card error">{status.lastError}</p>
 	{/if}
 
 	{#if status.state === 'relogin'}
 		<div class="card">
 			<p>Run this on the server, then press Sync now:</p>
-			<code class="command" data-testid="sync-login-command">proton account login --profile {status.profile}</code>
+			<code class="command">proton account login --profile {status.profile}</code>
 		</div>
 	{/if}
 
 	{#if data.failed.length > 0}
 		<h2>Failed items</h2>
-		<div data-testid="sync-failed">
+		<div role="region" aria-label="Failed items">
 			<ListGroup>
 				{#each data.failed as item (item.key)}
-					<div class="row failed" data-testid="sync-failed-item">
+					<div class="row failed" role="group" aria-label={item.label}>
 						<span class="label">{item.label}</span>
 						<span class="detail">{item.error}</span>
 					</div>
@@ -84,7 +84,7 @@
 		<Button formaction="?/resyncAll" disabled={status.state === 'syncing'}>Resync all</Button>
 	</form>
 
-	<p class="note" data-testid="sync-note">
+	<p class="note">
 		Sync only writes to Proton. Renaming or recolouring an aspect doesn't change its Proton calendar, and edits made in
 		Proton aren't read back; Resync all restores this app's state.
 	</p>

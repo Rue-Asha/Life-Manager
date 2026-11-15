@@ -43,8 +43,8 @@
 <RailLayout wide railTitle="Day list" rail={tablet.current ? list : undefined}>
 	<PageHeader title="Calendar" />
 
-	<div class="head" data-testid="calendar-head">
-		<h2 data-testid="calendar-month">{monthLabel.format(new Date(`${data.month}-01T00:00:00Z`))}</h2>
+	<div class="head">
+		<h2>{monthLabel.format(new Date(`${data.month}-01T00:00:00Z`))}</h2>
 		<nav aria-label="Month">
 			<a class="ctl icon" href="?month={shift(data.month, -1)}" aria-label="Previous month">
 				<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS['chevron-left']} /></svg>

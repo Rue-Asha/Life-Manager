@@ -25,8 +25,8 @@
 	const dropsLinks = $derived(current !== null && selected !== current && linkCount > 0);
 </script>
 
-<section class="prompt" data-testid="uni-aspect-prompt">
-	<h2>{current === null ? 'Which aspect holds your uni todos?' : 'Change the Uni aspect'}</h2>
+<section class="prompt" aria-labelledby="uni-aspect-prompt-h">
+	<h2 id="uni-aspect-prompt-h">{current === null ? 'Which aspect holds your uni todos?' : 'Change the Uni aspect'}</h2>
 	<p>Todos of this aspect can be linked to a class. You can change it later.</p>
 	<form
 		method="POST"

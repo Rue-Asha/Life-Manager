@@ -31,7 +31,7 @@
 	const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 </script>
 
-<div class="grid" data-testid="calendar-grid" role="group" aria-label="Month grid">
+<div class="grid" role="group" aria-label="Month grid">
 	{#each WEEKDAYS as name (name)}
 		<span class="weekday" aria-hidden="true">{name}</span>
 	{/each}
@@ -43,8 +43,6 @@
 			type="button"
 			class="cell"
 			class:today={day === today}
-			data-testid="calendar-cell-{day}"
-			data-outside={outside}
 			aria-pressed={day === selected}
 			disabled={outside}
 			onclick={() => onselect(day)}
@@ -53,15 +51,15 @@
 			<span class="top">
 				<span class="num day-num" aria-hidden="true">{Number(day.slice(8))}</span>
 				{#if dueCount > 0}
-					<span class="due num" data-testid="calendar-due" role="img" aria-label="{dueCount} due">
+					<span class="due num" role="img" aria-label="{dueCount} due">
 						<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.flag} /></svg>{dueCount}
 					</span>
 				{/if}
 			</span>
 			{#if tablet.current}
 				{#each list.slice(0, 3) as entry, i (i)}
-					<span class="entry" data-testid="calendar-entry" data-kind={entry.kind} style:--a={entryColor(entry, aspects)}>
-						<i class="mark" class:ring={entry.kind === 'projection'} data-testid="calendar-entry-mark"></i>
+					<span class="entry" style:--a={entryColor(entry, aspects)}>
+						<i class="mark" class:ring={entry.kind === 'projection'}></i>
 						<span class="title" class:done={entry.kind === 'todo' && entry.done}>{entry.title}</span>
 						{#if entry.kind === 'projection'}
 							<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.repeat} /></svg>
@@ -73,7 +71,7 @@
 			{:else if list.length > 0}
 				<span class="dots" aria-hidden="true">
 					{#each list.slice(0, 3) as entry, i (i)}
-						<i class="dot" class:ring={entry.kind === 'projection'} data-testid="calendar-dot" style:--a={entryColor(entry, aspects)}></i>
+						<i class="dot" class:ring={entry.kind === 'projection'} style:--a={entryColor(entry, aspects)}></i>
 					{/each}
 					{#if list.length > 3}<span class="plus">+</span>{/if}
 				</span>

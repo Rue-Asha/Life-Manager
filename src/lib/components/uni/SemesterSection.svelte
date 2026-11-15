@@ -79,8 +79,8 @@
 
 <svelte:window onpointerdown={closeMenu} onkeydown={closeMenu} />
 
-<section class="sem" class:archived data-testid="semester-section">
-	<div class="head" data-testid="grade-summary">
+<section class="sem" class:archived aria-label="Semester {semester.name}">
+	<div class="head">
 		{#if renaming}
 			<form
 				class="rename"
@@ -206,13 +206,13 @@
 		{/if}
 		{#if semester.classes.length === 0 && !archived}
 			{#if !adding}
-				<p class="inline-empty" data-testid="class-empty">
+				<p class="inline-empty">
 					<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS['graduation-cap']} /></svg>No classes yet.
 					<button type="button" onclick={newClass}>New class</button>
 				</p>
 			{/if}
 		{:else if semester.classes.length > 0}
-			<ul class="cards" data-testid="class-grid">
+			<ul class="cards" aria-label="Classes">
 				{#each semester.classes as cls (cls.id)}
 					<li><ClassCard {cls} {today} /></li>
 				{/each}

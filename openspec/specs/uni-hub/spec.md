@@ -83,7 +83,7 @@ column, aligned per the navigation spec. (S3, uni-hub-sprint-todos S1)
 
 #### Scenario: Due next and exams are gone from the hub
 - **WHEN** Rue opens `/uni` at 1600 px and at 375 px with a dated open class todo, an exam in 4 days and a class in an active sprint
-- **THEN** there is no "Due next" heading, no `deadline-list` and no `deadline-row` on the page at either width, and the exam appears only as the countdown on its class card
+- **THEN** there is no "Due next" heading, and no text, heading, region or list mentioning a deadline on the page at either width, and the exam appears only as the countdown on its class card
 - **proof:** e2e
 
 #### Scenario: Rail holds only the aspect line at 1600
@@ -459,12 +459,12 @@ reflected on its class. (Done criteria)
 
 #### Scenario: Hub shows This week with count and row details
 - **WHEN** with the clock at Monday 2026-10-05 Rue opens `/uni` with an active sprint holding three open class todos of "Analysis II" (a LEC due 2026-10-08, an EXC undated, an OTH due 2026-10-06), and a done todo, a backlog todo and a todo of an archived class that must not show
-- **THEN** the `sprint-todos` section's heading reads "This week" with count 3, it holds exactly three `sprint-todo-row`s in the order OTH (Tomorrow), LEC (Thu 8 Oct), EXC (no date), and each row shows its title, a class badge naming "Analysis II" with its type chip, and its due date where it has one
+- **THEN** the "This week" region's heading reads "This week" with count 3, it holds exactly three todo rows (list items) in the order OTH (Tomorrow), LEC (Thu 8 Oct), EXC (no date), and each row shows its title, a class badge naming "Analysis II" with its type chip, and its due date where it has one
 - **proof:** e2e
 
 #### Scenario: Hub shows an empty line without sprint todos
 - **WHEN** Rue opens `/uni` with a class but no active sprint, and again with an active sprint that holds only a done class todo and an unlinked todo
-- **THEN** the `sprint-todos` section shows "Nothing in this week's sprint", has no rows and no pager
+- **THEN** the "This week" region shows "Nothing in this week's sprint", has no rows and no pager
 - **proof:** e2e
 
 ### Requirement: Sprint list paging

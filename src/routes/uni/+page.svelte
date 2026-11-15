@@ -29,7 +29,7 @@
 
 {#snippet aspectLine()}
 	<p class="aspect">
-		Todos of the aspect <strong data-testid="uni-aspect">{uniAspect!.name}</strong> can be linked to a class.
+		Todos of the aspect <strong>{uniAspect!.name}</strong> can be linked to a class.
 		<button type="button" aria-label="Change Uni aspect" onclick={() => (changing = true)}>Change</button>
 	</p>
 {/snippet}
@@ -59,13 +59,13 @@
 		{/if}
 
 		{#if data.active.length === 0 && data.archived.length === 0}
-			<p class="empty" data-testid="empty-state">
+			<p class="empty">
 				Start with the semester you are in now.
 				<button type="button" onclick={() => (adding = true)}>New semester</button>
 			</p>
 		{/if}
 
-		<div class="semesters">
+		<div class="semesters" role="group" aria-label="Active semesters">
 			{#each data.active as semester (semester.id)}
 				<SemesterSection {semester} counts={data.counts[semester.id]} today={data.today} />
 			{/each}
@@ -85,7 +85,6 @@
 			<ProjectNotes
 				html={data.notesHtml}
 				notes={data.notes}
-				testid="uni-notes"
 				placeholder="No notes yet. Keep your study plan, module list or anything else for Uni here."
 			/>
 		</div>

@@ -92,7 +92,7 @@
 	{/each}
 </nav>
 
-<div class="week" use:viewportTop>
+<div class="week" role="group" aria-label="Week" use:viewportTop>
 	{#each columns as { key, day, target } (key)}
 		{@const cards = todos.filter((t) => dayOf(t) === day)}
 		<section
@@ -104,7 +104,6 @@
 				ondrop: (p) =>
 					p.from === 'sprint' ? moveToDay(todos.find((t) => t.id === p.id), day) : onadd?.(p.id, { day })
 			}}
-			data-testid="day-column-{key}"
 			aria-labelledby="day-{key}"
 		>
 			<h2 id="day-{key}">

@@ -129,7 +129,7 @@ home list has no such button. (cohesive-look)
 ### Requirement: Proton sync link
 The sidebar and the phone home list SHALL link the "Proton sync" page (`/sync`) outside the eight lists: in the
 sidebar below the aspects, on the home list as its own grouped card below the lists card (not part of the "Lists"
-navigation). The link SHALL show a warning marker (`data-testid="sync-marker"`, accessible name "Needs attention") while
+navigation). The link SHALL show a warning marker (an image with the accessible name "Needs attention") while
 the sync state is "re-login needed" or "error", and none otherwise. (proton-calendar-sync S12)
 
 #### Scenario: Sync link in the sidebar and the home list
@@ -139,6 +139,6 @@ the sync state is "re-login needed" or "error", and none otherwise. (proton-cale
 
 #### Scenario: Sync link warns on re-login needed or error
 - **WHEN** the sync state is "up to date", then "re-login needed" (fake exits 2), then "error" (missing binary)
-- **THEN** neither the sidebar nor the home list link shows `sync-marker` in the first state, and both show it in the other two
+- **THEN** neither the sidebar nor the home list link shows the "Needs attention" marker in the first state, and both show it in the other two
 - **proof:** e2e
 

@@ -1,4 +1,4 @@
-import { expect, test, reset, seed } from './helpers';
+import { expect, test, reset, seed, todoRow } from './helpers';
 
 test.beforeEach(async ({ request, page }) => {
 	await reset(request);
@@ -30,17 +30,18 @@ test('Scenario: Pickers, backlog groups and the rule form follow the manual orde
 	const order = ['Job', 'Health', 'Uni'];
 
 	await page.goto('/backlog');
-	await expect(page.locator('[data-testid^="aspect-group-"] h2')).toHaveText(order.map((name) => new RegExp(`^${name}\\b`)));
+	await expect(page.getByRole('main').getByRole('region').getByRole('heading', { level: 2 })).toHaveText(order.map((name) => new RegExp(`^${name}\\b`)));
 
-	await page.getByTestId('todo-row').filter({ hasText: 'Book physio' }).getByRole('button', { name: 'Book physio', exact: true }).click();
+	await todoRow(page, 'Book physio').getByRole('button', { name: 'Book physio', exact: true }).click();
 	const editor = page.getByRole('form', { name: 'Edit todo' });
 	await expect(editor).toBeVisible();
-	await expect(editor.getByLabel('Aspect').locator('option')).toHaveText(order);
+	await expect(editor.getByLabel('Aspect').getByRole('option')).toHaveText(order);
 	await page.keyboard.press('Escape');
 
 	await page.goto('/recurring');
 	await page.getByRole('button', { name: 'New rule' }).click();
 	const form = page.getByRole('dialog', { name: 'New rule' });
-	await expect(form.getByRole('group', { name: 'Aspect' }).getByRole('radio')).toHaveCount(3);
-	await expect(form.getByRole('group', { name: 'Aspect' }).locator('label.aspect')).toHaveText(order);
+	const radios = form.getByRole('group', { name: 'Aspect' }).getByRole('radio');
+	await expect(radios).toHaveCount(3);
+	expect(await radios.evaluateAll((els) => els.map((el) => (el as HTMLInputElement).labels?.[0]?.textContent?.trim()))).toEqual(order);
 });

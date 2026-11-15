@@ -24,10 +24,10 @@
 </nav>
 
 <div class="sync">
-	<a href="/sync" data-testid="sync-link">
+	<a href="/sync">
 		<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS['refresh-cw']} /></svg>
 		Proton sync
-		{#if syncNeedsAttention(nav)}<span class="marker" data-testid="sync-marker" role="img" aria-label="Needs attention"></span>{/if}
+		{#if syncNeedsAttention(nav)}<span class="marker" role="img" aria-label="Needs attention"></span>{/if}
 	</a>
 </div>
 

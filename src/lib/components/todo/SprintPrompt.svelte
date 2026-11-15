@@ -31,7 +31,7 @@
 </script>
 
 {#if prompt}
-	<div class="prompt" data-testid="sprint-prompt" data-phase={phase}>
+	<div class="prompt" role="region" aria-label="Sprint prompt">
 		<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS[prompt.icon]} /></svg>
 		<p>{prompt.message} <a href={prompt.href}>{prompt.action}</a></p>
 	</div>

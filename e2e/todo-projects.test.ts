@@ -1,4 +1,4 @@
-import { expect, test, reset, seed, setClock } from './helpers';
+import { expect, test, reset, seed, setClock, todoRow, todoRows } from './helpers';
 
 // Wednesday 7 October 2026 in Berlin; its sprint week starts Monday 5 October.
 const NOW = '2026-10-07T10:00:00Z';
@@ -35,8 +35,8 @@ test('Scenario: Quick add links a todo to a project', async ({ page, request }) 
 	await form.getByLabel('Title').fill('Wire the thing');
 	await form.getByRole('button', { name: 'Add todo' }).click();
 
-	const row = page.getByTestId('todo-row').filter({ hasText: 'Wire the thing' });
-	await expect(row.getByTestId('project-badge')).toHaveAttribute('href', `/projects/${projects[1]}`);
+	const row = todoRow(page, 'Wire the thing');
+	await expect(row.getByRole('link', { name: 'Active thing' })).toHaveAttribute('href', `/projects/${projects[1]}`);
 });
 
 test('Scenario: Project field appears only for the IT aspect', async ({ page, request }) => {
@@ -48,16 +48,16 @@ test('Scenario: Project field appears only for the IT aspect', async ({ page, re
 	});
 	const form = await openQuickAdd(page);
 	await form.getByLabel('Aspect').selectOption({ label: 'Health' });
-	await expect(form.getByTestId('project-field')).toHaveCount(0);
+	await expect(form.getByLabel('Project')).toHaveCount(0);
 	await form.getByLabel('Aspect').selectOption({ label: 'IT' });
-	await expect(form.getByTestId('project-field')).toBeVisible();
+	await expect(form.getByLabel('Project')).toBeVisible();
 	await form.getByRole('button', { name: 'Cancel' }).click();
 
 	await page.getByRole('button', { name: 'Existing' }).click();
 	const editor = page.getByRole('form', { name: 'Edit todo' });
-	await expect(editor.getByTestId('project-field')).toHaveCount(0);
+	await expect(editor.getByLabel('Project')).toHaveCount(0);
 	await editor.getByLabel('Aspect').selectOption({ label: 'IT' });
-	await expect(editor.getByTestId('project-field')).toBeVisible();
+	await expect(editor.getByLabel('Project')).toBeVisible();
 });
 
 test('Scenario: Project field lists projects that are not implemented', async ({ page, request }) => {
@@ -69,7 +69,7 @@ test('Scenario: Project field lists projects that are not implemented', async ({
 	});
 	const form = await openQuickAdd(page);
 	await form.getByLabel('Aspect').selectOption({ label: 'IT' });
-	await expect(form.getByLabel('Project').locator('option')).toHaveText([
+	await expect(form.getByLabel('Project').getByRole('option')).toHaveText([
 		'No project',
 		'Active thing',
 		'Backlog thing',
@@ -79,7 +79,7 @@ test('Scenario: Project field lists projects that are not implemented', async ({
 
 	await page.getByRole('button', { name: 'Linked to done' }).click();
 	const editor = page.getByRole('form', { name: 'Edit todo' });
-	await expect(editor.getByLabel('Project').locator('option')).toHaveText([
+	await expect(editor.getByLabel('Project').getByRole('option')).toHaveText([
 		'No project',
 		'Active thing',
 		'Backlog thing',
@@ -94,14 +94,14 @@ test('Scenario: Project field is hidden without IT aspect or projects', async ({
 	let form = await openQuickAdd(page);
 	for (const name of ['Health', 'IT']) {
 		await form.getByLabel('Aspect').selectOption({ label: name });
-		await expect(form.getByTestId('project-field')).toHaveCount(0);
+		await expect(form.getByLabel('Project')).toHaveCount(0);
 	}
 
 	await reset(request);
 	await seed(request, { aspects: [...ASPECTS], itAspect: 1 });
 	form = await openQuickAdd(page);
 	await form.getByLabel('Aspect').selectOption({ label: 'IT' });
-	await expect(form.getByTestId('project-field')).toHaveCount(0);
+	await expect(form.getByLabel('Project')).toHaveCount(0);
 });
 
 test('Scenario: Switching the aspect away drops the project', async ({ page, request }) => {
@@ -110,13 +110,13 @@ test('Scenario: Switching the aspect away drops the project', async ({ page, req
 	await form.getByLabel('Aspect').selectOption({ label: 'IT' });
 	await form.getByLabel('Project').selectOption({ label: 'Active thing' });
 	await form.getByLabel('Aspect').selectOption({ label: 'Health' });
-	await expect(form.getByTestId('project-field')).toHaveCount(0);
+	await expect(form.getByLabel('Project')).toHaveCount(0);
 	await form.getByLabel('Title').fill('Run a lap');
 	await form.getByRole('button', { name: 'Add todo' }).click();
 
-	const row = page.getByTestId('todo-row').filter({ hasText: 'Run a lap' });
+	const row = todoRow(page, 'Run a lap');
 	await expect(row).toBeVisible();
-	await expect(row.getByTestId('project-badge')).toHaveCount(0);
+	await expect(row.getByRole('link')).toHaveCount(0);
 });
 
 test('Scenario: Linked todo shows the project badge', async ({ page, request }) => {
@@ -131,16 +131,16 @@ test('Scenario: Linked todo shows the project badge', async ({ page, request }) 
 		]
 	});
 	await page.goto('/backlog');
-	const backlogRow = page.getByTestId('todo-row').filter({ hasText: 'On backlog' });
-	await expect(backlogRow.getByTestId('project-badge')).toHaveText('Life Manager');
+	const backlogRow = todoRow(page, 'On backlog');
+	await expect(backlogRow.getByRole('link', { name: 'Life Manager' })).toHaveText('Life Manager');
 
 	await page.goto('/');
-	await expect(page.getByTestId('todo-row').filter({ hasText: 'In sprint' }).getByTestId('project-badge')).toHaveText('Life Manager');
+	await expect(todoRow(page, 'In sprint').getByRole('link', { name: 'Life Manager' })).toHaveText('Life Manager');
 	await page.goto('/sprint');
-	await expect(page.getByTestId('todo-row').filter({ hasText: 'In sprint' }).getByTestId('project-badge')).toHaveText('Life Manager');
+	await expect(todoRow(page, 'In sprint').getByRole('link', { name: 'Life Manager' })).toHaveText('Life Manager');
 
 	await page.goto('/backlog');
-	await page.getByTestId('todo-row').filter({ hasText: 'On backlog' }).getByTestId('project-badge').click();
+	await todoRow(page, 'On backlog').getByRole('link', { name: 'Life Manager' }).click();
 	await expect(page).toHaveURL(new RegExp(`/projects/${projects[0]}$`));
 });
 
@@ -152,8 +152,8 @@ test('Scenario: Unlinked todo shows no badge', async ({ page, request }) => {
 		todos: [{ title: 'Plain', aspect: 1 }]
 	});
 	await page.goto('/backlog');
-	await expect(page.getByTestId('todo-row')).toHaveCount(1);
-	await expect(page.getByTestId('project-badge')).toHaveCount(0);
+	await expect(todoRows(page)).toHaveCount(1);
+	await expect(todoRows(page).getByRole('link')).toHaveCount(0);
 });
 
 test('Scenario: Badge wraps under the title on a phone', async ({ page, request }) => {
@@ -165,9 +165,9 @@ test('Scenario: Badge wraps under the title on a phone', async ({ page, request 
 	});
 	await page.setViewportSize({ width: 375, height: 800 });
 	await page.goto('/backlog');
-	const row = page.getByTestId('todo-row');
-	const title = (await row.locator('.title').boundingBox())!;
-	const badge = (await row.getByTestId('project-badge').boundingBox())!;
+	const row = todoRows(page);
+	const title = (await row.getByRole('button', { name: /^A very long todo title/ }).boundingBox())!;
+	const badge = (await row.getByRole('link', { name: 'Life Manager' }).boundingBox())!;
 	expect(badge.y).toBeGreaterThanOrEqual(title.y + title.height - 1);
 	expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });

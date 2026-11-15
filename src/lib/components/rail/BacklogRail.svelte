@@ -22,8 +22,7 @@
 		addAction,
 		addLabel = 'Add to sprint',
 		onadd,
-		onreturn,
-		testid = 'backlog-rail'
+		onreturn
 	}: {
 		backlog: Todo[];
 		aspects: Aspect[];
@@ -33,7 +32,6 @@
 		addLabel?: string;
 		onadd?: (id: Id) => void;
 		onreturn?: (id: Id) => void;
-		testid?: string;
 	} = $props();
 
 	const STORAGE_KEY = 'lm:rail-collapsed';
@@ -83,7 +81,8 @@
 
 <div
 	class="rail"
-	data-testid={testid}
+	role="group"
+	aria-label="Backlog todos"
 	use:dropZone={{
 		accepts: (p) => !!onreturn && p.from === 'sprint' && !p.recurring,
 		ondrop: (p) => onreturn?.(p.id)
@@ -97,7 +96,6 @@
 			type="search"
 			placeholder="Filter backlog"
 			aria-label="Filter backlog"
-			data-testid="rail-filter"
 			bind:value={query}
 		/>
 		{#if groups.length === 0}
@@ -106,7 +104,7 @@
 		{#each groups as { aspect, count, todos } (aspect.id)}
 			{@const shut = collapsed.includes(aspect.id)}
 			{@const sprint = progress[aspect.id]}
-			<section class="group" data-testid="rail-group-{aspect.id}" data-collapsed={String(shut)}>
+			<section class="group" data-collapsed={String(shut)} aria-label="In backlog: {aspect.name}">
 				<h3>
 					<button type="button" class="toggle" aria-expanded={!shut} onclick={() => toggle(aspect.id)}>
 						<svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
@@ -114,7 +112,7 @@
 						<span class="name">{aspect.name}</span>
 					</button>
 					{#if sprint}<ProgressBar done={sprint.done} total={sprint.total} color={aspect.color} />{/if}
-					<span class="count num" data-testid="rail-count" aria-label="{count} in backlog">{count}</span>
+					<span class="count num" aria-label="{count} in backlog">{count}</span>
 				</h3>
 				{#if !shut}
 					<ListGroup variant="outline">

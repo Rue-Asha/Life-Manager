@@ -29,18 +29,18 @@
 	const shown = $derived(todos.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE));
 </script>
 
-<section class="sprint-todos" data-testid="sprint-todos" aria-labelledby="sprint-todos-title">
+<section class="sprint-todos" aria-labelledby="sprint-todos-title">
 	<h2 id="sprint-todos-title">
-		This week{#if todos.length}<span class="count num" data-testid="sprint-todos-count">{todos.length}</span>{/if}
+		This week{#if todos.length}<span class="count num">{todos.length}</span>{/if}
 	</h2>
 	{#if todos.length === 0}
-		<p class="empty" data-testid="sprint-todos-empty">Nothing in this week's sprint</p>
+		<p class="empty">Nothing in this week's sprint</p>
 	{:else}
 		<ul>
 			{#each shown as t (t.id)}
 				{@const ref = refs.get(t.classId)}
 				{@const late = t.dueDate !== null && t.dueDate < today}
-				<li data-testid="sprint-todo-row" data-type={t.type ?? 'OTH'}>
+				<li data-type={t.type ?? 'OTH'} aria-label={t.title}>
 					<div class="main">
 						<span class="title">{t.title}</span>
 						{#if ref}<span class="meta"><ClassBadge classRef={ref} type={t.type} /></span>{/if}
@@ -55,10 +55,10 @@
 			{/each}
 		</ul>
 		{#if pages > 1}
-			<div class="pager" data-testid="sprint-pager">
-				<Button type="button" data-testid="sprint-prev" disabled={page === 1} onclick={() => (requested = page - 1)}>Previous</Button>
-				<span class="num" data-testid="sprint-page">Page {page} of {pages}</span>
-				<Button type="button" data-testid="sprint-next" disabled={page === pages} onclick={() => (requested = page + 1)}>Next</Button>
+			<div class="pager" role="group" aria-label="Pages">
+				<Button type="button" disabled={page === 1} onclick={() => (requested = page - 1)}>Previous</Button>
+				<span class="num">Page {page} of {pages}</span>
+				<Button type="button" disabled={page === pages} onclick={() => (requested = page + 1)}>Next</Button>
 			</div>
 		{/if}
 	{/if}

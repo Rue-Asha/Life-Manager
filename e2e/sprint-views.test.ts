@@ -1,5 +1,14 @@
-import type { Page } from '@playwright/test';
-import { expect, test, reset, seed, setClock } from './helpers';
+import type { Locator, Page } from '@playwright/test';
+import { aspectGroup, dayColumn, expect, test, reset, seed, setClock, todoRow, todoRows } from './helpers';
+import {
+	backlogRail,
+	boardColumn,
+	contextRail,
+	railToggle,
+	sprintList,
+	sprintPrompt,
+	weekGrid
+} from './sprint-locators';
 
 // Wednesday 7 October 2026 in Berlin; its sprint week runs Monday 5 to Sunday 11 October.
 const NOW = '2026-10-07T10:00:00Z';
@@ -21,7 +30,7 @@ const ASPECTS = [
 	{ name: 'Home', color: 'ochre', icon: 'house' }
 ] as const;
 
-const row = (page: Page, title: string) => page.getByTestId('todo-row').filter({ hasText: title });
+const row = todoRow;
 
 test('Scenario: Sprint screens prompt to review when pending', async ({ page, request }) => {
 	await seed(request, {
@@ -32,12 +41,12 @@ test('Scenario: Sprint screens prompt to review when pending', async ({ page, re
 
 	for (const view of ['aspect', 'board', 'week']) {
 		await page.goto(`/sprint?view=${view}`);
-		const prompt = page.getByTestId('sprint-prompt');
-		await expect(prompt).toHaveAttribute('data-phase', 'review-required');
+		const prompt = sprintPrompt(page);
+		await expect(prompt.getByRole('link', { name: 'Review the sprint', exact: true })).toHaveAttribute('href', '/sprint/review');
 		await expect(prompt.getByRole('link')).toHaveAttribute('href', '/sprint/review');
 		await expect(page.locator('a[href="/sprint/plan"]')).toHaveCount(0);
 		await expect(page.getByRole('button', { name: /start/i })).toHaveCount(0);
-		await expect(page.getByTestId('todo-row')).toHaveCount(0);
+		await expect(todoRows(page)).toHaveCount(0);
 	}
 });
 
@@ -51,21 +60,21 @@ test('Scenario: Sunday shows the review prompt above the sprint', async ({ page,
 
 	for (const view of ['aspect', 'board', 'week']) {
 		await page.goto(`/sprint?view=${view}`);
-		const prompt = page.getByTestId('sprint-prompt');
-		await expect(prompt).toHaveAttribute('data-phase', 'review-available');
+		const prompt = sprintPrompt(page);
+		await expect(prompt.getByRole('link', { name: 'Review it', exact: true })).toHaveAttribute('href', '/sprint/review');
 		await expect(prompt.getByRole('link')).toHaveAttribute('href', '/sprint/review');
 		await expect(row(page, 'Weekly reset')).toBeVisible();
 	}
 
 	await page.goto('/sprint');
 	await page.getByRole('checkbox', { name: 'Done: Weekly reset' }).click();
-	await expect(row(page, 'Weekly reset')).toHaveAttribute('data-status', 'done');
+	await expect(row(page, 'Weekly reset').getByLabel('Status')).toHaveValue('done');
 	await page.reload();
-	await expect(row(page, 'Weekly reset')).toHaveAttribute('data-status', 'done');
+	await expect(row(page, 'Weekly reset').getByLabel('Status')).toHaveValue('done');
 });
 
 test('Scenario: Sprint by aspect groups todos with status', async ({ page, request }) => {
-	const { aspects } = await seed(request, {
+	await seed(request, {
 		aspects: [...ASPECTS],
 		sprint: { state: 'active', weekStart: WEEK },
 		todos: [
@@ -76,21 +85,21 @@ test('Scenario: Sprint by aspect groups todos with status', async ({ page, reque
 	});
 	await page.goto('/sprint');
 
-	const health = page.getByTestId(`aspect-group-${aspects[0]}`);
+	const health = aspectGroup(sprintList(page), 'Health');
 	await expect(health.getByRole('heading', { name: 'Health' })).toBeVisible();
 	await expect(health.getByRole('heading').locator('svg')).toBeVisible();
-	await expect(health.getByTestId('todo-row')).toHaveCount(2);
+	await expect(todoRows(health)).toHaveCount(2);
 	await expect(row(page, 'Morning run').getByLabel('Status')).toHaveValue('done');
 	await expect(row(page, 'Book a physio appointment').getByLabel('Status')).toHaveValue('doing');
 
-	const uni = page.getByTestId(`aspect-group-${aspects[1]}`);
+	const uni = aspectGroup(sprintList(page), 'Uni');
 	await expect(uni.getByRole('heading', { name: 'Uni' })).toBeVisible();
-	await expect(uni.getByTestId('todo-row')).toHaveCount(1);
+	await expect(todoRows(uni)).toHaveCount(1);
 	await expect(row(page, 'Read chapter 4').getByLabel('Status')).toHaveValue('todo');
 });
 
 test('Scenario: Aspects without sprint todos are hidden', async ({ page, request }) => {
-	const { aspects } = await seed(request, {
+	await seed(request, {
 		aspects: [...ASPECTS],
 		sprint: { state: 'active', weekStart: WEEK },
 		todos: [
@@ -100,9 +109,9 @@ test('Scenario: Aspects without sprint todos are hidden', async ({ page, request
 	});
 	await page.goto('/sprint?view=aspect');
 
-	await expect(page.getByTestId(`aspect-group-${aspects[0]}`)).toBeVisible();
-	await expect(page.getByTestId(`aspect-group-${aspects[1]}`)).toHaveCount(0);
-	await expect(page.getByTestId(`aspect-group-${aspects[2]}`)).toHaveCount(0);
+	await expect(aspectGroup(sprintList(page), 'Health')).toBeVisible();
+	await expect(aspectGroup(sprintList(page), 'Uni')).toHaveCount(0);
+	await expect(aspectGroup(sprintList(page), 'Home')).toHaveCount(0);
 });
 
 test('Scenario: Empty sprint points to the backlog', async ({ page, request }) => {
@@ -113,14 +122,14 @@ test('Scenario: Empty sprint points to the backlog', async ({ page, request }) =
 	});
 	await page.goto('/sprint');
 
-	const empty = page.getByTestId('empty-state');
+	const empty = sprintList(page).getByText('Nothing in this sprint yet.');
 	await expect(empty).toBeVisible();
 	await empty.getByRole('link', { name: /backlog/i }).click();
 	await expect(page).toHaveURL(/\/backlog$/);
 });
 
 test('Scenario: Todo created from a sprint view joins the active sprint', async ({ page, request }) => {
-	const { aspects } = await seed(request, {
+	await seed(request, {
 		aspects: [...ASPECTS],
 		sprint: { state: 'active', weekStart: WEEK }
 	});
@@ -132,13 +141,13 @@ test('Scenario: Todo created from a sprint view joins the active sprint', async 
 	await form.getByLabel('Aspect').selectOption({ label: 'Uni' });
 	await form.getByRole('button', { name: 'Add todo' }).click();
 
-	const created = page.getByTestId(`aspect-group-${aspects[1]}`).getByTestId('todo-row');
+	const created = todoRows(aspectGroup(sprintList(page), 'Uni'));
 	await expect(created).toContainText('Read chapter 4');
 	await page.reload();
-	await expect(created).toHaveAttribute('data-status', 'todo');
+	await expect(created.getByLabel('Status')).toHaveValue('todo');
 	await expect(created).toHaveAttribute('data-day', '');
 	await page.goto('/backlog');
-	await expect(page.getByTestId('empty-state')).toBeVisible();
+	await expect(page.getByText('Your backlog is empty.')).toBeVisible();
 });
 
 test('Switching views keeps the sprint and marks the current view', async ({ page, request }) => {
@@ -164,9 +173,8 @@ async function expectStatusInEveryView(page: Page, title: string, status: string
 	for (const view of ['aspect', 'board', 'week']) {
 		await page.goto(`/sprint?view=${view}`);
 		await page.reload();
-		await expect(row(page, title)).toHaveAttribute('data-status', status);
 		await expect(row(page, title).getByLabel('Status')).toHaveValue(status);
-		if (view === 'board') await expect(page.getByTestId(`board-column-${status}`)).toContainText(title);
+		if (view === 'board') await expect(boardColumn(page, status as 'todo' | 'doing' | 'done')).toContainText(title);
 	}
 }
 
@@ -180,17 +188,17 @@ test('Scenario: Change status from every sprint view', async ({ page, request })
 
 	await page.goto('/sprint?view=aspect');
 	await row(page, title).getByLabel('Status').selectOption('doing');
-	await expect(row(page, title)).toHaveAttribute('data-status', 'doing');
+	await expect(row(page, title).getByLabel('Status')).toHaveValue('doing');
 	await expectStatusInEveryView(page, title, 'doing');
 
 	await page.goto('/sprint?view=board');
 	await row(page, title).getByLabel('Status').selectOption('done');
-	await expect(page.getByTestId('board-column-done')).toContainText(title);
+	await expect(boardColumn(page, 'done')).toContainText(title);
 	await expectStatusInEveryView(page, title, 'done');
 
 	await page.goto('/sprint?view=week');
 	await row(page, title).getByLabel('Status').selectOption('todo');
-	await expect(row(page, title)).toHaveAttribute('data-status', 'todo');
+	await expect(row(page, title).getByLabel('Status')).toHaveValue('todo');
 	await expectStatusInEveryView(page, title, 'todo');
 });
 
@@ -210,7 +218,7 @@ test('Scenario: Checkbox toggles done', async ({ page, request }) => {
 	]) {
 		await page.goto(`/sprint?view=${view}`);
 		await page.getByRole('checkbox', { name: `Done: ${title}` }).click();
-		await expect(row(page, title)).toHaveAttribute('data-status', 'done');
+		await expect(row(page, title).getByLabel('Status')).toHaveValue('done');
 		await page.reload();
 		await expect(row(page, title)).toBeVisible();
 		await expect(page.getByRole('checkbox', { name: `Done: ${title}` })).toHaveAttribute('aria-checked', 'true');
@@ -229,12 +237,12 @@ test('Scenario: Move a todo between board columns by drag', async ({ page, reque
 	});
 	await page.goto('/sprint?view=board');
 
-	await row(page, 'Draft the cover letter').dragTo(page.getByTestId('board-column-doing'), { sourcePosition: { x: 8, y: 8 } });
-	await expect(page.getByTestId('board-column-doing')).toContainText('Draft the cover letter');
+	await row(page, 'Draft the cover letter').dragTo(boardColumn(page, 'doing'), { sourcePosition: { x: 8, y: 8 } });
+	await expect(boardColumn(page, 'doing')).toContainText('Draft the cover letter');
 
 	await page.reload();
-	await expect(page.getByTestId('board-column-doing')).toContainText('Draft the cover letter');
-	await expect(row(page, 'Draft the cover letter')).toHaveAttribute('data-status', 'doing');
+	await expect(boardColumn(page, 'doing')).toContainText('Draft the cover letter');
+	await expect(row(page, 'Draft the cover letter').getByLabel('Status')).toHaveValue('doing');
 });
 
 test('Scenario: Board and week cards offer the send-back action', async ({ page, request }) => {
@@ -247,33 +255,31 @@ test('Scenario: Board and week cards offer the send-back action', async ({ page,
 			{ title: 'Gym', aspect: 0, inSprint: true, day: '2026-10-06', recurring: true }
 		]
 	});
-	const cardIn = (scope: ReturnType<Page['getByTestId']>, title: string) =>
-		scope.getByTestId('sprint-card').filter({ hasText: title });
+	const cardIn = (scope: Locator, title: string) => scope.getByRole('group', { name: title });
 	const menu = page.getByRole('menu');
 
 	await page.goto('/sprint?view=week');
-	await cardIn(day(page, '2026-10-06'), 'Clean the fridge').getByTestId('row-actions').click();
+	await cardIn(day(page, '2026-10-06'), 'Clean the fridge').getByRole('button', { name: 'More actions' }).click();
 	await expect(menu.getByRole('menuitem')).toHaveText(['Move to backlog']);
 	await page.keyboard.press('Escape');
-	await cardIn(day(page, '2026-10-06'), 'Gym').getByTestId('row-actions').click();
+	await cardIn(day(page, '2026-10-06'), 'Gym').getByRole('button', { name: 'More actions' }).click();
 	await expect(menu.getByRole('menuitem')).toHaveText(['Remove from sprint']);
 	await page.keyboard.press('Escape');
 
 	await page.goto('/sprint?view=board');
-	const doing = page.getByTestId('board-column-doing');
-	await cardIn(doing, 'Draft the cover letter').getByTestId('row-actions').click();
+	const doing = boardColumn(page, 'doing');
+	await cardIn(doing, 'Draft the cover letter').getByRole('button', { name: 'More actions' }).click();
 	await menu.getByRole('menuitem', { name: 'Move to backlog' }).click();
-	const inRail = page.getByTestId('backlog-rail').getByTestId('todo-row').filter({ hasText: 'Draft the cover letter' });
-	await expect(doing.getByTestId('todo-row')).toHaveCount(0);
+	const inRail = row(backlogRail(page), 'Draft the cover letter');
+	await expect(todoRows(doing)).toHaveCount(0);
 	await expect(inRail).toBeVisible();
 
 	await page.reload();
 	await expect(inRail).toBeVisible();
-	await expect(doing.getByTestId('todo-row')).toHaveCount(0);
+	await expect(todoRows(doing)).toHaveCount(0);
 });
 
-const railRow = (page: Page, title: string) =>
-	page.getByTestId('backlog-rail').getByTestId('todo-row').filter({ hasText: title });
+const railRow = (page: Page, title: string) => row(backlogRail(page), title);
 
 // The view switch cross-fades; a drag that starts during the snapshot would hit the old page.
 async function settled(page: Page) {
@@ -289,14 +295,14 @@ test('Scenario: Drop a rail todo on a board column sets its status', async ({ pa
 	await page.goto('/sprint?view=board');
 	await settled(page);
 
-	await railRow(page, 'Book a physio appointment').dragTo(page.getByTestId('board-column-doing'), {
+	await railRow(page, 'Book a physio appointment').dragTo(boardColumn(page, 'doing'), {
 		sourcePosition: { x: 8, y: 8 }
 	});
-	await expect(page.getByTestId('board-column-doing')).toContainText('Book a physio appointment');
+	await expect(boardColumn(page, 'doing')).toContainText('Book a physio appointment');
 
 	await page.reload();
-	await expect(row(page, 'Book a physio appointment')).toHaveAttribute('data-status', 'doing');
-	await expect(page.getByTestId('board-column-doing')).toContainText('Book a physio appointment');
+	await expect(row(page, 'Book a physio appointment').getByLabel('Status')).toHaveValue('doing');
+	await expect(boardColumn(page, 'doing')).toContainText('Book a physio appointment');
 	await expect(railRow(page, 'Book a physio appointment')).toHaveCount(0);
 });
 
@@ -309,13 +315,13 @@ test('Scenario: Drop a rail todo on the Done column', async ({ page, request }) 
 	await page.goto('/sprint?view=board');
 	await settled(page);
 
-	await railRow(page, 'Book a physio appointment').dragTo(page.getByTestId('board-column-done'), {
+	await railRow(page, 'Book a physio appointment').dragTo(boardColumn(page, 'done'), {
 		sourcePosition: { x: 8, y: 8 }
 	});
-	await expect(page.getByTestId('board-column-done')).toContainText('Book a physio appointment');
+	await expect(boardColumn(page, 'done')).toContainText('Book a physio appointment');
 
 	await page.reload();
-	await expect(row(page, 'Book a physio appointment')).toHaveAttribute('data-status', 'done');
+	await expect(row(page, 'Book a physio appointment').getByLabel('Status')).toHaveValue('done');
 	await expect(page.getByRole('checkbox', { name: 'Done: Book a physio appointment' })).toHaveAttribute('aria-checked', 'true');
 });
 
@@ -327,17 +333,17 @@ test('Scenario: Drop a rail todo on a day column sets its day', async ({ page, r
 	});
 	await page.goto('/sprint?view=week');
 	await settled(page);
-	await page.getByTestId('rail-toggle').click();
+	await railToggle(page).click();
 	await expect(railRow(page, 'Book a physio appointment')).toBeVisible();
 
-	await railRow(page, 'Book a physio appointment').dragTo(page.getByTestId('day-column-2026-10-08'), {
+	await railRow(page, 'Book a physio appointment').dragTo(day(page, '2026-10-08'), {
 		sourcePosition: { x: 8, y: 8 }
 	});
-	await expect(page.getByTestId('day-column-2026-10-08')).toContainText('Book a physio appointment');
+	await expect(day(page, '2026-10-08')).toContainText('Book a physio appointment');
 
 	await page.reload();
 	await expect(row(page, 'Book a physio appointment')).toHaveAttribute('data-day', '2026-10-08');
-	await expect(row(page, 'Book a physio appointment')).toHaveAttribute('data-status', 'todo');
+	await expect(row(page, 'Book a physio appointment').getByLabel('Status')).toHaveValue('todo');
 	await expect(railRow(page, 'Book a physio appointment')).toHaveCount(0);
 });
 
@@ -363,16 +369,16 @@ test('Scenario: Refused move returns the item to where it was', async ({ page, r
 	await page.goto('/sprint?view=board');
 	await settled(page);
 
-	const todo = page.getByTestId('board-column-todo');
-	const doing = page.getByTestId('board-column-doing');
+	const todo = boardColumn(page, 'todo');
+	const doing = boardColumn(page, 'doing');
 	await row(page, 'Draft the cover letter').dragTo(doing, { sourcePosition: { x: 8, y: 8 } });
 	await expect(doing).toContainText('Draft the cover letter');
 
 	refuse();
-	await expect(todo.getByTestId('todo-row').filter({ hasText: 'Draft the cover letter' })).toBeVisible();
-	await expect(doing.getByTestId('todo-row')).toHaveCount(0);
+	await expect(row(todo, 'Draft the cover letter')).toBeVisible();
+	await expect(todoRows(doing)).toHaveCount(0);
 	await page.reload();
-	await expect(row(page, 'Draft the cover letter')).toHaveAttribute('data-status', 'todo');
+	await expect(row(page, 'Draft the cover letter').getByLabel('Status')).toHaveValue('todo');
 });
 
 test('Scenario: Empty board column shows a placeholder', async ({ page, request }) => {
@@ -386,9 +392,9 @@ test('Scenario: Empty board column shows a placeholder', async ({ page, request 
 	});
 	await page.goto('/sprint?view=board');
 
-	await expect(page.getByTestId('board-column-doing').getByTestId('column-placeholder')).toBeVisible();
-	await expect(page.getByTestId('board-column-doing').getByTestId('todo-row')).toHaveCount(0);
-	await expect(page.getByTestId('board-column-todo').getByTestId('column-placeholder')).toHaveCount(0);
+	await expect(boardColumn(page, 'doing').getByText('Nothing in progress')).toBeVisible();
+	await expect(todoRows(boardColumn(page, 'doing'))).toHaveCount(0);
+	await expect(boardColumn(page, 'todo').getByText('Nothing left to start')).toHaveCount(0);
 });
 
 test('Scenario: Board card shows the aspect in its meta line', async ({ page, request }) => {
@@ -399,24 +405,24 @@ test('Scenario: Board card shows the aspect in its meta line', async ({ page, re
 	});
 	await page.goto('/sprint?view=board');
 
-	const card = page.getByTestId('board-column-doing').getByTestId('sprint-card').filter({ hasText: 'Read chapter 4' });
-	const tag = card.getByTestId('aspect-tag');
+	const card = boardColumn(page, 'doing').getByRole('group', { name: 'Read chapter 4' });
+	const tag = card.getByText('Uni', { exact: true });
 	await expect(tag).toHaveText('Uni');
-	const [dot, uni] = await tag.locator('.dot').evaluate((el) => {
+	const [dot, uni] = await tag.evaluate((el) => {
 		const probe = document.createElement('i');
 		probe.style.background = 'var(--aspect-lavender)';
 		document.body.append(probe);
 		const colour = getComputedStyle(probe).backgroundColor;
 		probe.remove();
-		return [getComputedStyle(el).backgroundColor, colour];
+		return [getComputedStyle(el.querySelector('i')!).backgroundColor, colour];
 	});
 	expect(dot).toBe(uni);
 	await expect(card.getByText('Doing', { exact: true })).toBeHidden();
 });
 
-const day = (page: Page, key: string) => page.getByTestId(`day-column-${key}`);
+const day = (page: Page | Locator, key: string) => dayColumn(page, key === 'unscheduled' ? null : key);
 
-const box = async (locator: ReturnType<Page['getByTestId']>) => (await locator.boundingBox())!;
+const box = async (locator: Locator) => (await locator.boundingBox())!;
 const weekdays = (page: Page) =>
 	['05', '06', '07', '08', '09', '10', '11'].map((d) => day(page, `2026-10-${d}`));
 
@@ -429,11 +435,11 @@ test('Scenario: Board columns share the width at 1280', async ({ page, request }
 	await page.goto('/sprint?view=board');
 	await settled(page);
 
-	const columns = await Promise.all(['todo', 'doing', 'done'].map((s) => box(page.getByTestId(`board-column-${s}`))));
+	const columns = await Promise.all(['todo', 'doing', 'done'].map((s) => box(boardColumn(page, s as 'todo' | 'doing' | 'done'))));
 	for (const c of columns) expect(Math.abs(c.width - columns[0].width)).toBeLessThanOrEqual(1);
 
 	const views = await box(page.getByRole('navigation', { name: 'Sprint view' }));
-	const rail = await box(page.getByTestId('context-rail'));
+	const rail = await box(contextRail(page));
 	const last = columns[2];
 	expect(Math.abs(columns[0].x - views.x)).toBeLessThanOrEqual(1);
 	// The content area ends one gutter (32 px) before the rail.
@@ -441,7 +447,7 @@ test('Scenario: Board columns share the width at 1280', async ({ page, request }
 
 	// Down to the bottom of the page content area: the viewport bottom less the page's bottom padding.
 	// Summed over the ancestors, so whichever container pads the page at this width is the one measured.
-	const padding = await page.getByTestId('board-column-todo').evaluate((el) => {
+	const padding = await boardColumn(page, 'todo').evaluate((el) => {
 		let sum = 0;
 		for (let a = el.parentElement; a; a = a.parentElement) sum += parseFloat(getComputedStyle(a).paddingBottom);
 		return sum;
@@ -459,8 +465,8 @@ test('Scenario: Week shows the whole week in one row at 1280', async ({ page, re
 	await page.goto('/sprint?view=week');
 	await settled(page);
 
-	const rail = page.getByTestId('context-rail');
-	const toggle = page.getByTestId('rail-toggle');
+	const rail = contextRail(page);
+	const toggle = railToggle(page);
 	await expect(rail).toBeHidden();
 	await expect(toggle).toBeVisible();
 
@@ -470,16 +476,16 @@ test('Scenario: Week shows the whole week in one row at 1280', async ({ page, re
 		expect(d.width).toBeGreaterThanOrEqual(120);
 	}
 	for (let i = 1; i < days.length; i++) expect(days[i].x).toBeGreaterThan(days[i - 1].x);
-	const week = day(page, '2026-10-05').locator('..');
+	const week = weekGrid(page);
 	expect(await week.evaluate((el) => el.scrollWidth === el.clientWidth)).toBe(true);
-	await expect(week.getByTestId('day-column-unscheduled')).toHaveCount(0);
+	await expect(day(week, 'unscheduled')).toHaveCount(0);
 
 	await toggle.click();
 	await expect(rail).toBeVisible();
-	await expect(page.getByTestId('day-column-unscheduled')).toHaveCount(1);
-	const unscheduled = rail.getByTestId('day-column-unscheduled');
+	await expect(day(page, 'unscheduled')).toHaveCount(1);
+	const unscheduled = day(rail, 'unscheduled');
 	await expect(unscheduled).toContainText('Clean the fridge');
-	const backlog = rail.getByTestId('backlog-rail');
+	const backlog = backlogRail(rail);
 	await expect(backlog).toContainText('Book a physio appointment');
 	expect((await box(unscheduled)).y).toBeLessThan((await box(backlog)).y);
 });
@@ -487,15 +493,15 @@ test('Scenario: Week shows the whole week in one row at 1280', async ({ page, re
 // Docked, the rail is a sticky grid column; as an overlay it is a fixed panel behind a toggle.
 async function expectDocked(page: Page, docked: boolean) {
 	await settled(page);
-	const rail = page.getByTestId('context-rail');
+	const rail = contextRail(page);
 	if (docked) {
 		await expect(rail).toBeVisible();
 		await expect(rail).toHaveCSS('position', 'sticky');
-		await expect(page.getByTestId('rail-toggle')).toBeHidden();
+		await expect(railToggle(page)).toBeHidden();
 	} else {
 		await expect(rail).toBeHidden();
 		await expect(rail).toHaveCSS('position', 'fixed');
-		await expect(page.getByTestId('rail-toggle')).toBeVisible();
+		await expect(railToggle(page)).toBeVisible();
 	}
 }
 
@@ -527,10 +533,10 @@ test('Scenario: Open week overlay closes when leaving Week', async ({ page, requ
 	await page.goto('/sprint?view=week');
 	await settled(page);
 	const views = page.getByRole('navigation', { name: 'Sprint view' });
-	const toggle = page.getByTestId('rail-toggle');
+	const toggle = railToggle(page);
 	await toggle.click();
 	await expect(toggle).toHaveAttribute('aria-expanded', 'true');
-	await expect(page.getByTestId('context-rail')).toBeVisible();
+	await expect(contextRail(page)).toBeVisible();
 
 	await views.getByRole('link', { name: 'Board' }).click();
 	await expect(page).toHaveURL(/view=board$/);
@@ -540,7 +546,7 @@ test('Scenario: Open week overlay closes when leaving Week', async ({ page, requ
 	await settled(page);
 
 	await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-	await expect(page.getByTestId('context-rail')).toBeHidden();
+	await expect(contextRail(page)).toBeHidden();
 });
 
 test('Scenario: Busy day scrolls inside its column', async ({ page, request }) => {
@@ -558,7 +564,7 @@ test('Scenario: Busy day scrolls inside its column', async ({ page, request }) =
 	await settled(page);
 
 	const busy = day(page, '2026-10-07');
-	await expect(busy.getByTestId('todo-row')).toHaveCount(15);
+	await expect(todoRows(busy)).toHaveCount(15);
 	const scroll = await busy.evaluate((el) => {
 		const before = el.scrollTop;
 		el.scrollTop = 200;
@@ -582,10 +588,10 @@ test('Scenario: Week wraps between 1024 and 1279', async ({ page, request }) => 
 	const days = await Promise.all(weekdays(page).map(box));
 	expect(days[6].y).toBeGreaterThan(days[0].y);
 
-	await expect(page.getByTestId('day-column-unscheduled')).toHaveCount(1);
-	await expect(page.getByTestId('context-rail').getByTestId('day-column-unscheduled')).toHaveCount(0);
-	await expect(page.getByTestId('day-column-unscheduled')).toBeVisible();
-	await expect(page.getByTestId('day-column-unscheduled')).toContainText('Clean the fridge');
+	await expect(day(page, 'unscheduled')).toHaveCount(1);
+	await expect(contextRail(page).getByRole('region', { name: /^Unscheduled/, includeHidden: true })).toHaveCount(0);
+	await expect(day(page, 'unscheduled')).toBeVisible();
+	await expect(day(page, 'unscheduled')).toContainText('Clean the fridge');
 });
 
 test('Scenario: Assign a todo to a day by drag', async ({ page, request }) => {
@@ -596,7 +602,7 @@ test('Scenario: Assign a todo to a day by drag', async ({ page, request }) => {
 	});
 	await page.goto('/sprint?view=week');
 	await settled(page);
-	await page.getByTestId('rail-toggle').click();
+	await railToggle(page).click();
 	await expect(day(page, 'unscheduled')).toContainText('Clean the fridge');
 
 	await row(page, 'Clean the fridge').dragTo(day(page, '2026-10-06'));
@@ -604,7 +610,7 @@ test('Scenario: Assign a todo to a day by drag', async ({ page, request }) => {
 
 	await page.reload();
 	await expect(day(page, '2026-10-06')).toContainText('Clean the fridge');
-	await expect(day(page, 'unscheduled').getByTestId('todo-row')).toHaveCount(0);
+	await expect(todoRows(day(page, 'unscheduled'))).toHaveCount(0);
 	await expect(row(page, 'Clean the fridge')).toHaveAttribute('data-day', '2026-10-06');
 });
 
@@ -620,7 +626,7 @@ test('Scenario: Day picker offers only days of the active sprint', async ({ page
 	// Week chips move by drag on desktop; the row's picker is the same one the phone's week uses.
 	await page.goto('/sprint?view=aspect');
 
-	await expect(row(page, 'Clean the fridge').getByLabel('Day').locator('option')).toHaveText([
+	await expect(row(page, 'Clean the fridge').getByLabel('Day').getByRole('option')).toHaveText([
 		'Unscheduled',
 		'Mon 5',
 		'Tue 6',
@@ -644,10 +650,10 @@ test('Scenario: Day picker offers only days of the active sprint', async ({ page
 	expect(refused.data).toContain('day-in-past');
 
 	await page.reload();
-	const sprintList = page.getByTestId('sprint-list');
-	await expect(sprintList.getByTestId('todo-row')).toHaveCount(1);
-	await expect(sprintList.getByTestId('todo-row')).toContainText('Water the plants');
-	await expect(sprintList.getByTestId('todo-row')).toHaveAttribute('data-day', '');
+	const remaining = todoRows(sprintList(page));
+	await expect(remaining).toHaveCount(1);
+	await expect(remaining).toContainText('Water the plants');
+	await expect(remaining).toHaveAttribute('data-day', '');
 	await page.goto('/backlog');
 	await expect(row(page, 'Clean the fridge')).toHaveAttribute('data-day', '2026-10-12');
 });
@@ -671,9 +677,9 @@ test('Scenario: Done todos stay on their day', async ({ page, request }) => {
 	await page.goto('/sprint?view=week');
 
 	await page.getByRole('checkbox', { name: 'Done: Morning run' }).click();
-	await expect(row(page, 'Morning run')).toHaveAttribute('data-status', 'done');
+	await expect(row(page, 'Morning run').getByLabel('Status')).toHaveValue('done');
 	await page.reload();
-	await expect(day(page, '2026-10-05').getByTestId('todo-row')).toHaveAttribute('data-status', 'done');
+	await expect(todoRows(day(page, '2026-10-05')).getByLabel('Status')).toHaveValue('done');
 	await expect(day(page, '2026-10-05').getByRole('checkbox', { name: 'Done: Morning run' })).toHaveAttribute(
 		'aria-checked',
 		'true'
@@ -706,7 +712,7 @@ test('Scenario: Recurring instances appear in the week view', async ({ page, req
 	await expect(page).toHaveURL(/\/sprint$/);
 	await page.goto('/sprint?view=week');
 
-	await expect(day(page, '2026-10-06').getByTestId('todo-row')).toContainText('Gym');
+	await expect(todoRows(day(page, '2026-10-06'))).toContainText('Gym');
 });
 
 test.describe('on a touch phone', () => {
@@ -723,11 +729,11 @@ test.describe('on a touch phone', () => {
 			todos: [{ title: 'Clean the fridge', aspect: 2, inSprint: true }]
 		});
 		await page.goto('/sprint?view=board');
-		await expect(page.getByTestId('sprint-card').first()).not.toHaveAttribute('draggable', 'true');
+		await expect(page.getByRole('group', { name: 'Clean the fridge' })).not.toHaveAttribute('draggable', 'true');
 
 		await row(page, 'Clean the fridge').getByLabel('Status').selectOption('done');
-		await expect(page.getByTestId('board-column-done')).toContainText('Clean the fridge');
-		await expect(page.getByTestId('board-column-todo').getByTestId('todo-row')).toHaveCount(0);
+		await expect(boardColumn(page, 'done')).toContainText('Clean the fridge');
+		await expect(todoRows(boardColumn(page, 'todo'))).toHaveCount(0);
 	});
 
 	test('Scenario: Assign a todo to a day with the day picker on touch', async ({ page, request }) => {
@@ -737,12 +743,12 @@ test.describe('on a touch phone', () => {
 			todos: [{ title: 'Clean the fridge', aspect: 2, inSprint: true }]
 		});
 		await page.goto('/sprint?view=week');
-		await expect(row(page, 'Clean the fridge')).toBeHidden();
+		await expect(page.getByRole('listitem', { name: 'Clean the fridge', includeHidden: true })).toBeHidden();
 
 		await page.getByRole('button', { name: 'Unscheduled' }).click();
-		await expect(page.getByTestId('sprint-card').first()).not.toHaveAttribute('draggable', 'true');
+		await expect(page.getByRole('group', { name: 'Clean the fridge' })).not.toHaveAttribute('draggable', 'true');
 		await row(page, 'Clean the fridge').getByLabel('Day').selectOption({ label: 'Fri 9' });
-		await expect(day(page, 'unscheduled').getByTestId('todo-row')).toHaveCount(0);
+		await expect(todoRows(day(page, 'unscheduled'))).toHaveCount(0);
 
 		await page.getByRole('button', { name: 'Fri 9' }).click();
 		await expect(row(page, 'Clean the fridge')).toBeVisible();
@@ -753,7 +759,7 @@ test.describe('on a touch phone', () => {
 		await seed(request, { aspects: [...ASPECTS], sprint: { state: 'active', weekStart: WEEK } });
 		await page.goto('/sprint?view=week');
 
-		const columns = page.locator('[data-testid^="day-column-"]');
+		const columns = page.getByRole('region', { name: /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) \d|^Unscheduled/, includeHidden: true });
 		await expect(columns.filter({ visible: true })).toHaveCount(1);
 		await expect(day(page, '2026-10-07')).toBeVisible();
 
@@ -790,7 +796,7 @@ test('Scenario: Week cards stay one line at 1440', async ({ page, request }) => 
 	await page.setViewportSize({ width: 1440, height: 900 });
 	await page.goto('/sprint?view=week');
 
-	const cards = page.locator('[data-testid^="day-column-2026"]').getByTestId('sprint-card');
+	const cards = page.getByRole('region', { name: /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) \d/ }).getByRole('group', { name: /\S/ });
 	await expect(cards).toHaveCount(3);
 	for (const box of await cards.evaluateAll((els) => els.map((el) => el.getBoundingClientRect().height))) {
 		expect(box).toBeLessThanOrEqual(40);
