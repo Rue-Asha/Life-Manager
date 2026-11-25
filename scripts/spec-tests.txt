@@ -1,0 +1,415 @@
+Scenario: Built app serves a page in e2e
+Scenario: Port and database path come from the environment
+Scenario: Missing database directory is created
+Scenario: Migration failure exits non-zero
+Scenario: Health check returns 200
+Scenario: Data survives a restart
+Scenario: First run shows onboarding
+Scenario: Onboarding creates the chosen aspects
+Scenario: Deleting the last aspect returns to first run
+Scenario: Create an aspect with colour and icon
+Scenario: Edit an aspect
+Scenario: Empty aspect name is rejected inline
+Scenario: Delete confirmation asks for a target aspect
+Scenario: Aspect without todos is deleted with a simple confirm
+Scenario: Only aspect with todos cannot be deleted
+Scenario: Aspect page shows this sprint and its backlog
+Scenario: Move todos between sprint and backlog on the aspect page
+Scenario: Drag between sections on the aspect page
+Scenario: Quick add on the aspect page defaults to the aspect
+Scenario: Menu and Aspects rows open the aspect page
+Scenario: Unknown aspect shows a 404 page
+Scenario: Aspect page without a running sprint
+Scenario: Aspect page during a required review points to Review
+Scenario: Aspect without todos shows an empty state with quick add
+Scenario: Aspects page is one list with counts from 768
+Scenario: Aspects page stays a list on phone
+Scenario: Single aspect is one row
+Scenario: Row menu holds the moves, edit and delete
+Scenario: Move up and Move down reorder the aspects
+Scenario: Ends of the list disable the moves
+Scenario: Reorder by drag on desktop
+Scenario: Delete with a move target
+Scenario: Delete an empty aspect needs no target
+Scenario: Deleting the last empty aspect goes to welcome
+Scenario: Stored aspect colours render without a data change
+Scenario: Aspect page lists its todos and pre-fills the quick add
+Scenario: Empty aspect page
+Scenario: Pickers, backlog groups and the rule form follow the manual order
+Scenario: Backlog is grouped by aspect
+Scenario: Filter the backlog to one aspect
+Scenario: Empty backlog shows an empty state
+Scenario: Overdue todos are marked in the backlog
+Scenario: Planned todos are listed in the Planned section
+Scenario: No Planned section without planned todos
+Scenario: Aspect filter narrows the backlog
+Scenario: Aspect groups collapse
+Scenario: Planning a day inside the week pulls into the sprint
+Scenario: Backlog empty and filtered-empty copy
+Scenario: Many aspects and long titles stay in the backlog layout
+Scenario: Add to sprint stays on the row, Plan a day is in its menu
+Scenario: Calendar opens on the current month
+Scenario: Month navigation and deep link
+Scenario: Invalid month parameter shows the current month
+Scenario: Calendar names the aspect and marks projections
+Scenario: Recurring rule with a slot shows in later months
+Scenario: Phone shows marks and the selected day's list
+Scenario: Selected day defaults to the 1st in another month
+Scenario: Wide cells show up to two titles
+Scenario: Day list follows the month below 1024
+Scenario: Empty month shows Nothing planned
+Scenario: Due todos show as marker and Due section
+Scenario: Deadline-only day shows Due without empty text
+Scenario: Todo entry opens the editor
+Scenario: Projected occurrence links to its rule
+Scenario: Exam links to its class
+Scenario: Todo edited from the calendar leaves its day
+Scenario: Phone shows marks and the day list below the month
+Scenario: Desktop shows titles in cells and a side day list
+Scenario: Calendar entries open the editor or their link
+Scenario: Busy day and empty day
+Scenario: Month starting on Sunday and today marked
+Scenario: Cards are grouped by status
+Scenario: Row shows the project summary
+Scenario: No projects shows an empty state
+Scenario: Empty groups are not rendered
+Scenario: Projects are one row each
+Scenario: IT aspect panel sits beside the groups from 1280
+Scenario: New project lands in Backlog
+Scenario: Card opens the project detail
+Scenario: Details sit beside the main column at 1280
+Scenario: Details are a closed disclosure below 1280
+Scenario: Unknown project id shows 404
+Scenario: Edit metadata on the detail page
+Scenario: Notes are edited as Markdown and shown rendered
+Scenario: Empty notes show a placeholder
+Scenario: Long notes are not truncated
+Scenario: Status pill offers the five states
+Scenario: Implemented with open todos asks for confirmation
+Scenario: Cancelling the implemented warning changes nothing
+Scenario: Implemented without open todos needs no confirmation
+Scenario: Reopening an implemented project needs no confirmation
+Scenario: Deleting a project asks for confirmation
+Scenario: First run prompts for the IT aspect
+Scenario: Changing the IT aspect removes links after confirmation
+Scenario: Changing the IT aspect without links needs no confirmation
+Scenario: Without aspects Projects leads to creating one
+Scenario: Done group starts collapsed
+Scenario: Project without linked todos explains linking
+Scenario: Linked todo moves through the project's groups
+Scenario: Opening a project cross-fades and groups expand softly
+Scenario: Projects are grouped by status
+Scenario: No projects shows the capture prompt
+Scenario: IT aspect prompt before the first use
+Scenario: Changing the IT aspect asks first
+Scenario: Project page shows details and linked todos
+Scenario: Project without linked todos
+Scenario: Long notes stay whole on the project page
+Scenario: Sync page renders every state
+Scenario: Re-login command can be copied
+Scenario: Never synced and no failed items
+Scenario: Many failed items wrap
+Scenario: Moving a todo from the rail starts a move animation
+Scenario: Reduced motion moves instantly
+Scenario: Refused move returns the item to where it was
+Scenario: Route changes and view switches use a view transition
+Scenario: Navigation without View Transitions is instant
+Scenario: Reduced motion navigates without a transition
+Scenario: Navigation keeps the bars still
+Scenario: A todo added on Today settles in and ticking stays instant
+Scenario: Current route is marked in the top bar
+Scenario: More hub lists the secondary destinations
+Scenario: Every screen fits 320 and 390 px without horizontal scroll
+Scenario: Wide screen keeps /menu
+Scenario: Phone keeps /menu
+Scenario: Touch-only device completes the sprint ritual
+Scenario: Projects entry counts active projects
+Scenario: Zero active projects shows no count
+Scenario: Uni entry counts open class todos in active semesters
+Scenario: Zero open class todos shows no count
+Scenario: Plus on the phone adds a backlog todo
+Scenario: Escape and backdrop close the quick add without a todo
+Scenario: Sync link in the top bar menu and the More hub
+Scenario: Sync link warns on re-login needed or error
+Scenario: A form post nudges a pass
+Scenario: Sync page shows state, last sync and pending count
+Scenario: Sync page lists failed items with their error
+Scenario: Re-login needed shows the login command and recovers after Sync now
+Scenario: Resync all re-pushes every item and recreates missing events
+Scenario: Sync off page names PROTON_CLI and shows no buttons
+Scenario: Sync page fits a phone
+Scenario: Planning a todo in the app creates its event
+Scenario: Editing, ticking done and unplanning a todo follow in Proton
+Scenario: Deleting a todo in the app deletes its event
+Scenario: Editing a rule in the app updates its series
+Scenario: Starting a sprint in the app moves the series
+Scenario: Setting an exam in the app creates its event
+Scenario: Due date syncs as a bundled event and done removes it
+Scenario: Create and list a recurring rule
+Scenario: Rule with a time slot
+Scenario: Recurring instances appear in the week view
+Scenario: Start sprint shows a carried recurring todo once
+Scenario: Rule with a class generates linked instances
+Scenario: Rule class fields appear only for the Uni aspect
+Scenario: No rules shows the empty copy
+Scenario: Class field only for the Uni aspect
+Scenario: Long checklist template stays usable
+Scenario: Rules sit in two columns from 1280
+Scenario: Editing a rule of an archived class keeps its class
+Scenario: First run can plan immediately
+Scenario: Pull todos by drag and start the sprint
+Scenario: Pull todos with the picker on touch
+Scenario: Due-this-week todos are suggested pre-marked
+Scenario: Unmarked suggestion stays in the backlog
+Scenario: No suggestion section when nothing is due
+Scenario: Plan page does not suggest a todo planned for a later week
+Scenario: Add a backlog todo to the active sprint
+Scenario: Backlog page points to Review instead of adding
+Scenario: Review becoming required after page load refuses the add
+Scenario: Editor shows the recurring-outside-week message
+Scenario: Review carries over and returns open todos
+Scenario: All-done review closes in one tap
+Scenario: Plan page lists planned todos as coming automatically
+Scenario: Planned todo travels to its day in the Week view
+Scenario: Change status from every sprint view
+Scenario: Checkbox toggles done
+Scenario: Sprint screens prompt to review when pending
+Scenario: Sunday shows the review prompt above the sprint
+Scenario: Sprint by aspect groups todos with status
+Scenario: By aspect is the default view at every width
+Scenario: All three views are available on the phone
+Scenario: Phase prompts replace the sprint
+Scenario: Empty days and many todos per day stay in the layout
+Scenario: Aspects without sprint todos are hidden
+Scenario: Empty sprint points to the backlog
+Scenario: Move a todo between board columns by drag
+Scenario: Status and day change by menu with the keyboard
+Scenario: Board status changes by menu on touch
+Scenario: Refused menu move reverts and shows the error
+Scenario: Move a todo between board columns with the status menu on touch
+Scenario: Empty board column shows a placeholder
+Scenario: Board card shows the aspect in its meta line
+Scenario: Board card shows the planned date and slot
+Scenario: Board card shows the whole planned label at 1440 with the rail
+Scenario: Phone Board shows one column at a time
+Scenario: Assign a todo to a day by drag
+Scenario: Assign a todo to a day with the day picker on touch
+Scenario: Day picker offers only days of the active sprint
+Scenario: Today is highlighted in the week view
+Scenario: Phone shows one day at a time
+Scenario: Done todos stay on their day
+Scenario: Sprint tab shows the backlog rail grouped by aspect
+Scenario: Rail is shown on the sprint's Sunday
+Scenario: Rail title filter narrows the list
+Scenario: Rail filter without a match
+Scenario: Empty backlog shows the rail's empty state
+Scenario: Collapsed rail groups are remembered
+Scenario: No rail without a running sprint
+Scenario: No rail while the review is required
+Scenario: Add to sprint from the rail
+Scenario: Drag a rail todo onto the sprint list
+Scenario: Drop a rail todo on a board column sets its status
+Scenario: Drop a rail todo on the Done column
+Scenario: Drop a rail todo on a day column sets its day
+Scenario: Touch offers no drag in the rail
+Scenario: Todo already moved elsewhere is refused quietly
+Scenario: Move a sprint todo back to the backlog from its row
+Scenario: Board and week cards offer the send-back action
+Scenario: Drag a sprint todo onto the rail
+Scenario: Done todo goes back without a question
+Scenario: Removing a recurring instance deletes it with undo
+Scenario: Undo keeps a removed recurring instance
+Scenario: Group header shows done of total
+Scenario: Rail header shows backlog count and progress
+Scenario: Aspect without sprint todos shows only in the rail
+Scenario: Aspect without backlog todos is omitted from the rail
+Scenario: Phone Sprint tab shows Manage instead of a rail
+Scenario: Manage sheet adds a todo to the sprint
+Scenario: Board columns share the width at 1280
+Scenario: Week shows the whole week in one row at 1280
+Scenario: Switching Week and Board folds and docks the rail
+Scenario: Unfolded backlog wraps the week days
+Scenario: Busy day grows inside the week without sideways scroll
+Scenario: Week wraps between 1024 and 1279
+Scenario: Sprint header shows progress and days left
+Scenario: Week chips stay compact at 1440
+Scenario: Today's column is marked
+Scenario: Week cards show only the slot
+Scenario: Row shows status as a glyph with its name
+Scenario: Sprint row shows the slot next to its day
+Scenario: Today rows write status and priority as text
+Scenario: Today shows today's sprint todos and overdue todos
+Scenario: Status toggle on Today
+Scenario: Overdue todos outside the sprint offer the sprint instead of a checkbox
+Scenario: Quick add is shown in every Today state
+Scenario: Quick add on Today adds to the sprint on today
+Scenario: Quick add on Today outside the sprint's days saves a backlog todo due today
+Scenario: Quick add on Today without any sprint saves a backlog todo due today
+Scenario: Quick add on a phone stays inline in every state
+Scenario: Today's quick add states its destination
+Scenario: Planned-today backlog todo shows on Today between sprints
+Scenario: Backlog todos due today are listed only when today is not a sprint day
+Scenario: Due-today backlog todos offer the sprint instead of a checkbox
+Scenario: Today without an active sprint prompts to plan
+Scenario: Today with a pending review prompts to review
+Scenario: Nothing today shows a calm empty state
+Scenario: Sunday after the review prompts to plan next week
+Scenario: Header counts open todos on Today
+Scenario: Header shows sprint progress during a sprint
+Scenario: Header without a sprint shows only the count
+Scenario: Today renders every phase on the fingerprint
+Scenario: Today empty copy per phase
+Scenario: Many aspects and many overdue todos stay readable
+Scenario: Long titles stay inside their rows on Today
+Scenario: Review required blocks with the review prompt
+Scenario: Ticking done offers undo
+Scenario: Undo returns the todo to To do
+Scenario: Toast does not cover the pill bar
+Scenario: Banner shows on attention states
+Scenario: No banner when sync is fine or off
+Scenario: Quick add creates a todo in the backlog
+Scenario: Todo created from a sprint view joins the active sprint
+Scenario: Todo created in a day column is assigned to that day
+Scenario: Past due date is allowed and shown overdue
+Scenario: Edit every field of a todo
+Scenario: Checklist items are added, renamed, toggled and deleted
+Scenario: Deleting a todo asks for confirmation
+Scenario: Quick add links a todo to a project
+Scenario: Project field appears only for the IT aspect
+Scenario: Project field lists projects that are not implemented
+Scenario: Project field is hidden without IT aspect or projects
+Scenario: Switching the aspect away drops the project
+Scenario: Linked todo shows the project badge
+Scenario: Unlinked todo shows no badge
+Scenario: Badge wraps under the title on a phone
+Scenario: Quick add links a todo to a class
+Scenario: Class field appears only for the Uni aspect
+Scenario: Class field lists classes of active semesters
+Scenario: Class field is hidden without Uni aspect or classes
+Scenario: Switching the aspect away drops class and type
+Scenario: Linked todo shows the class badge
+Scenario: Todo without class shows no class badge
+Scenario: Class badge wraps under the title on a phone
+Scenario: Class detail rows show the type instead of the badge
+Scenario: Plan a backlog todo three weeks out with a slot
+Scenario: Editor clears the times with the date
+Scenario: Editor shows the past-date message
+Scenario: Archived class todo cannot be planned
+Regression: quick add on the backlog stores the planned day and slot
+Regression: quick add in a week day column stores the slot on that day
+Regression: the New todo dialog says where a planned day sends the todo
+Scenario: Retyping From after clearing it restores the slot length
+Regression: a cleared slot does not leak into the next quick add
+Scenario: Clearing the start clears the end in the editor
+Regression: the time row appears only once a day is planned
+Regression: Add time and the length chips set To
+Regression: moving From keeps the length of the slot
+Regression: From and To are typed in a browser without a time picker
+Scenario: Backlog and aspect rows show the planned date and slot
+Scenario: Unplanned row shows only its due label
+Scenario: First run prompts for the Uni aspect
+Scenario: Changing the Uni aspect removes links after confirmation
+Scenario: Changing the Uni aspect without links needs no confirmation
+Scenario: Without aspects Uni leads to creating one
+Scenario: Uni overview shows semesters, This week and the grade line
+Scenario: No semesters and no classes copy
+Scenario: Uni aspect prompt before the first use
+Scenario: Archiving a semester asks and makes it read-only
+Scenario: Semesters are listed newest first with archived ones collapsed
+Scenario: Classes come before This week, notes sit in the side panel
+Scenario: Due next and exams are gone from the hub
+Scenario: Side panel holds the notes and the aspect line
+Scenario: No semesters shows an empty state
+Scenario: Semester without classes offers New class
+Scenario: Classes are one row each
+Scenario: Semester card fills the main column at 1600
+Scenario: New semester appears among the active ones
+Scenario: Rename a semester
+Scenario: Archiving with open todos asks for confirmation
+Scenario: Cancelling the archive warning changes nothing
+Scenario: Archiving without open todos needs no confirmation
+Scenario: Archived class todo edited via todos is rejected
+Scenario: Deleting a single todo of an archived class is allowed
+Scenario: Deleting a semester asks for confirmation naming counts
+Scenario: Deleting an empty semester uses a plain confirm
+Scenario: Add a class from the semester section
+Scenario: Edit a class on its detail page
+Scenario: Field errors show on the class form
+Scenario: Row shows the class summary
+Scenario: Exam today and past exams
+Scenario: Sparse class row leaves the missing bits out
+Scenario: Class page shows details, todos by type and revised dates
+Scenario: Archived class is read-only
+Scenario: Class without exam and grade
+Scenario: Class details sit in the Details card at every width
+Scenario: Class rules sit beside the main column from 1280
+Scenario: Class notes are edited as Markdown and shown rendered
+Scenario: Class without notes or todos shows placeholders
+Scenario: Class Done group starts collapsed
+Scenario: Class rules are listed with a link to Recurring
+Scenario: Unknown class id shows 404
+Scenario: Archived class has no edit controls
+Scenario: Archived class todo deletes from the row
+Scenario: Open class todos have a More actions menu
+Scenario: Uni kicker names the section, not the chosen aspect
+Scenario: Linked todo rows name no project and keep their actions
+Scenario: Projects kicker names the section, not the chosen aspect
+Scenario: Project title hyphenation does not leak to other screens
+Scenario: Deleting a class asks for confirmation naming the todo count
+Scenario: Quick add on class detail creates a linked todo
+Scenario: Type defaults to OTH
+Scenario: Revised today sets the date
+Scenario: Revised date can be cleared
+Scenario: Grades are shown on the overview
+Scenario: No grades shows a dash
+Scenario: Opening a class cross-fades and groups expand softly
+Scenario: Class card opens the class detail
+Scenario: Class todo moves through the class's groups
+Scenario: Hub shows This week with count and row details
+Scenario: Hub shows an empty line without sprint todos
+Scenario: Seven todos make two pages
+Scenario: Exactly six todos show no pager
+Scenario: Rows show the type by letters, glyph and fill
+Scenario: Type tags keep AA contrast
+Scenario: Overdue rows keep their marking
+Scenario: Class page rows use the same type tags
+Scenario: Top bar shows the lists, the menu and New todo
+Scenario: Zero counts are hidden in the top bar
+Scenario: Counts of 100 or more read 99+
+Scenario: Long aspect names truncate with the full name available
+Scenario: Top bar fits at 768 px
+Scenario: Pill bar shows five tabs and the round add button
+Scenario: Active tab is marked on the phone
+Scenario: Pill bar fits at 320 px
+Scenario: Pill bar hides while a text field has focus
+Scenario: Content never sits under the pill bar
+Scenario: Many aspects scroll in the More hub
+Scenario: Sync Off shows no marker in the hub
+Scenario: New todo on desktop states the destination live
+Scenario: Quick add on an aspect page pre-fills the aspect
+Scenario: Quick add on the sprint pre-sets the sprint destination
+Scenario: No running sprint offers only the backlog
+Scenario: Review required disables the sprint destination
+Scenario: Missing title shows an inline alert
+Scenario: Marker shows in both bars on attention states
+Scenario: Submit waits for a choice
+Scenario: Duplicate custom name shows its error
+Scenario: Revisiting welcome marks existing presets
+Scenario: Zero aspects redirect to welcome from every route
+Scenario: First-run Welcome shows no bars
+Scenario: No horizontal page scroll from 320 to 1920
+Scenario: Controls meet the target sizes
+Scenario: Focus is visible and not obscured
+Scenario: Reduced motion removes movement
+Scenario: Contract strings stay
+Scenario: Aspect page rail shows the aspect's details
+Scenario: Open class todos have a More actions menu
+Scenario: Uni kicker names the section, not the chosen aspect
+Scenario: Linked todo rows name no project and keep their actions
+Scenario: Projects kicker names the section, not the chosen aspect
+Scenario: Project title hyphenation does not leak to other screens
+Scenario: Opening and closing an overlay keeps the scroll position
+Scenario: Focusing a bar control keeps the scroll position
+Scenario: A row title only takes clicks inside its own row
+Scenario: Group labels are chrome, semester names stay the user's text
+Scenario: A refused close shows its alert next to the close action

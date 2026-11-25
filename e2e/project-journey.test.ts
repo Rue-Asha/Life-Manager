@@ -1,4 +1,5 @@
 import { expect, test, reset, seed, setClock, todoRow, todoRows } from './helpers';
+import { chooseDay } from './row-locators';
 
 // Wednesday 7 October 2026 in Berlin; the active sprint runs Monday 5 to Sunday 11 October.
 const NOW = '2026-10-07T10:00:00Z';
@@ -44,7 +45,7 @@ test('Scenario: Linked todo moves through the project\'s groups', async ({ page,
 	await page.getByRole('button', { name: 'Add to sprint: Wire the badge' }).click();
 	await page.goto('/sprint');
 	await expect(row.getByRole('link', { name: 'Life Manager' })).toHaveText(/Life Manager/);
-	await row.getByLabel('Day').selectOption({ label: 'Wed 7' });
+	await chooseDay(page, row, 'Wed 7');
 
 	await detail();
 	await expect(group('Planned')).toHaveText([/Wire the badge/]);

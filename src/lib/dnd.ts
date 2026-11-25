@@ -18,6 +18,19 @@ export const canDrag = new MediaQuery('(hover: hover) and (pointer: fine)');
 // dragover can only see MIME types, not data, so zones read the payload from here.
 let current: DragPayload | null = null;
 
+// While a drag runs, every zone that would take it outlines itself (`data-droppable`) and the page says what is being dragged
+// (`html[data-drag]`); the zone under the pointer is `data-over`.
+const zones = new Set<{ node: HTMLElement; opts: () => DropZoneOptions }>();
+function mark(payload: DragPayload | null) {
+	const root = document.documentElement;
+	if (payload) root.dataset.drag = payload.from;
+	else delete root.dataset.drag;
+	for (const zone of zones) {
+		if (payload && zone.opts().accepts(payload)) zone.node.dataset.droppable = '';
+		else delete zone.node.dataset.droppable;
+	}
+}
+
 export function draggableTodo(node: HTMLElement, payload: DragPayload): ActionReturn<DragPayload> {
 	node.draggable = canDrag.current;
 	function start(e: DragEvent) {
@@ -25,11 +38,19 @@ export function draggableTodo(node: HTMLElement, payload: DragPayload): ActionRe
 		e.dataTransfer.setData(TODO_MIME, JSON.stringify(payload));
 		e.dataTransfer.effectAllowed = 'move';
 		current = payload;
-		node.dataset.dragging = '';
+		// The browser snapshots the card now, lifted; a frame later it leaves a dashed slot behind.
+		node.dataset.lifted = '';
+		requestAnimationFrame(() => {
+			delete node.dataset.lifted;
+			if (current) node.dataset.dragging = '';
+		});
+		mark(payload);
 	}
 	function end() {
 		current = null;
+		delete node.dataset.lifted;
 		delete node.dataset.dragging;
+		mark(null);
 	}
 	node.addEventListener('dragstart', start);
 	node.addEventListener('dragend', end);
@@ -65,14 +86,18 @@ export function dropZone(node: HTMLElement, opts: DropZoneOptions): ActionReturn
 		e.preventDefault();
 		const payload = JSON.parse(e.dataTransfer!.getData(TODO_MIME)) as DragPayload;
 		current = null;
+		mark(null);
 		opts.ondrop(payload);
 	}
+	const zone = { node, opts: () => opts };
+	zones.add(zone);
 	node.addEventListener('dragover', over);
 	node.addEventListener('dragleave', leave);
 	node.addEventListener('drop', drop);
 	return {
 		update: (next) => (opts = next),
 		destroy() {
+			zones.delete(zone);
 			node.removeEventListener('dragover', over);
 			node.removeEventListener('dragleave', leave);
 			node.removeEventListener('drop', drop);

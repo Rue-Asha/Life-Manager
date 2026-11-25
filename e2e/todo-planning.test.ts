@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { calendarCell, cellEntries, dayColumn, expect, test, reset, seed, setClock, todoRow } from './helpers';
+import { calendarCell, cellEntries, dayColumn, expect, openNewTodo, test, reset, seed, setClock, todoRow } from './helpers';
 import { boardColumn, contextRail, plannedLabel, sprintCard } from './sprint-locators';
 
 // Wednesday 14 October 2026 in Berlin.
@@ -175,11 +175,12 @@ test('Scenario: Board card shows the planned date and slot', async ({ page, requ
 
 	await page.goto('/sprint?view=board');
 	const card = sprintCard(boardColumn(page, 'todo'), 'Dentist');
-	await expect(plannedLabel(card)).toHaveText('Thu 15 Oct · 18:00–19:30');
-	await expect(card).toContainText('2d left');
+	await expect(plannedLabel(card)).toHaveText('18:00–19:30');
+	await expect(card).toContainText('Thu 15 · 18:00–19:30');
+	await expect(card).toContainText('Due Fri 16');
 });
 
-test('Scenario: Board card shows the whole planned label at 1440 with sidebar and rail', async ({ page, request }) => {
+test('Scenario: Board card shows the whole planned label at 1440 with the rail', async ({ page, request }) => {
 	await seed(request, {
 		aspects: [HEALTH],
 		sprint: { state: 'active', weekStart: WEEK },
@@ -201,11 +202,11 @@ test('Scenario: Board card shows the whole planned label at 1440 with sidebar an
 	await page.goto('/sprint?view=board');
 	await expect(contextRail(page)).toBeVisible();
 	const card = sprintCard(boardColumn(page, 'todo'), 'Dentist');
-	const label = plannedLabel(card);
-	await expect(label).toHaveText('Thu 15 Oct · 18:00–19:00');
+	await expect(plannedLabel(card)).toHaveText('18:00–19:00');
+	await expect(card).toContainText('Thu 15 · 18:00–19:00');
 	const clipped = await card.evaluate((el) => {
 		const box = el.getBoundingClientRect();
-		return [...el.querySelectorAll<HTMLElement>('.meta > span')].filter((n) => {
+		return [...el.querySelectorAll<HTMLElement>('.facts > li')].filter((n) => {
 			const r = n.getBoundingClientRect();
 			return n.scrollWidth > n.clientWidth || r.right > box.right + 0.5 || r.left < box.left - 0.5;
 		}).length;
@@ -225,7 +226,7 @@ test('Regression: saving a due-dated sprint todo plans it on its due day', async
 
 	await page.goto('/sprint?view=board');
 	const card = sprintCard(boardColumn(page, 'todo'), 'Dentist');
-	await expect(card).toContainText('2d left');
+	await expect(card).toContainText('Due Fri 16');
 	await expect(plannedLabel(card)).toHaveCount(0);
 	await card.getByRole('button', { name: 'Dentist', exact: true }).click();
 	await expect(editor(page).getByLabel('Planned', { exact: true })).toHaveValue('');
@@ -268,14 +269,11 @@ test('Scenario: Week cards show only the slot', async ({ page, request }) => {
 		const column = dayColumn(page, '2026-10-15');
 		const slotted = sprintCard(column, 'Dentist');
 		const plain = sprintCard(column, 'Laundry');
-		await expect(plannedLabel(slotted)).toHaveText('18:00–19:30');
+		// A week chip shows the start only ("18:00"); the phone's row keeps the whole slot.
+		await expect(plannedLabel(slotted)).toHaveText(width === 1440 ? '18:00' : '18:00–19:30');
+		await expect(plannedLabel(slotted)).not.toContainText('Oct');
 		await expect(plain).toBeVisible();
 		await expect(plannedLabel(plain)).toHaveCount(0);
-		if (width === 1440) {
-			for (const card of [slotted, plain]) {
-				expect((await card.boundingBox())!.height).toBeLessThanOrEqual(40);
-			}
-		}
 	}
 });
 
@@ -288,8 +286,11 @@ test('Scenario: Sprint row shows the slot next to its day', async ({ page, reque
 
 	await page.goto('/sprint?view=aspect');
 	const sprintRow = rowOf(page, 'Dentist');
-	await expect(sprintRow.getByRole('combobox', { name: 'Day' })).toHaveValue('2026-10-14');
+	// The day is plain text in the meta line; it changes through "More actions", so the row has no day control.
+	await expect(sprintRow).toContainText('Wed 14');
 	await expect(plannedLabel(sprintRow)).toHaveText('18:00–19:30');
+	await expect(sprintRow.getByRole('button', { name: 'Pick a day' })).toHaveCount(0);
+	await expect(sprintRow.getByRole('combobox', { name: 'Day' })).toHaveCount(0);
 
 	await page.goto('/');
 	await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
@@ -325,8 +326,7 @@ test('Regression: quick add on the backlog stores the planned day and slot', asy
 	await page.goto('/backlog');
 	await expect(page.getByRole('heading', { level: 1, name: 'Backlog' })).toBeVisible();
 
-	await page.getByRole('button', { name: 'Add a todo' }).first().click();
-	const form = quickAddForm(page);
+	const form = await openNewTodo(page);
 	await form.getByLabel('Title').fill('Dentist');
 	await form.getByLabel('Planned', { exact: true }).fill('2026-11-03');
 	await form.getByLabel('From', { exact: true }).fill('18:00');
@@ -366,7 +366,7 @@ test('Regression: the New todo dialog says where a planned day sends the todo', 
 	await page.getByRole('button', { name: 'New todo' }).click();
 	await form.getByLabel('Planned', { exact: true }).fill('2026-10-15');
 	await expect(form.getByText('Goes to this sprint')).toHaveCount(0);
-	await expect(form.getByText('Goes to the backlog')).toHaveCount(0);
+	await expect(form.getByText('Goes to the backlog')).toBeVisible();
 	await form.getByLabel('Planned', { exact: true }).fill('2026-11-03');
 	await expect(form.getByText('Goes to the backlog')).toBeVisible();
 });
@@ -384,13 +384,17 @@ test('Regression: quick add in a week day column stores the slot on that day', a
 	await form.getByLabel('To', { exact: true }).fill('10:00');
 	await form.getByRole('button', { name: 'Add todo' }).click();
 
-	await expect(plannedLabel(sprintCard(column, 'Dentist'))).toHaveText('09:00–10:00');
+	await expect(plannedLabel(sprintCard(column, 'Dentist'))).toHaveText('09:00');
 
+	// The dialog closes after an add; a day column's "+" opens it again for the same day.
+	await page.getByRole('button', { name: 'Add a todo to Thu 15' }).click();
 	await form.getByLabel('Title').fill('Laundry');
 	await form.getByRole('button', { name: 'Remove plan' }).click();
 	await form.getByRole('button', { name: 'Add todo' }).click();
 	await page.goto('/sprint?view=aspect');
 	await expect(rowOf(page, 'Laundry')).toHaveAttribute('data-day', '');
+	await page.goto('/sprint?view=board');
+	await expect(plannedLabel(sprintCard(boardColumn(page, 'todo'), 'Dentist'))).toHaveText('09:00–10:00');
 	await page.goto('/backlog');
 	await expect(page.getByRole('heading', { level: 1, name: 'Backlog' })).toBeVisible();
 	await expect(rowOf(page, 'Laundry')).toHaveCount(0);
@@ -468,11 +472,10 @@ test('Regression: a cleared slot does not leak into the next quick add', async (
 	await seed(request, { aspects: [HEALTH] });
 	await page.goto('/backlog');
 	await expect(page.getByRole('heading', { level: 1, name: 'Backlog' })).toBeVisible();
-	await page.getByRole('button', { name: 'Add a todo' }).first().click();
-	const form = quickAddForm(page);
-	const planned = form.getByLabel('Planned', { exact: true });
-	const from = form.getByLabel('From', { exact: true });
-	const to = form.getByLabel('To', { exact: true });
+	let form = await openNewTodo(page);
+	let planned = form.getByLabel('Planned', { exact: true });
+	let from = form.getByLabel('From', { exact: true });
+	let to = form.getByLabel('To', { exact: true });
 
 	await form.getByLabel('Title').fill('Dentist');
 	await planned.fill('2026-11-03');
@@ -482,6 +485,10 @@ test('Regression: a cleared slot does not leak into the next quick add', async (
 	await form.getByRole('button', { name: 'Add todo' }).click();
 	await expect(plannedLabel(rowOf(page, 'Dentist'))).toHaveText('Tue 3 Nov');
 
+	form = await openNewTodo(page);
+	planned = form.getByLabel('Planned', { exact: true });
+	from = form.getByLabel('From', { exact: true });
+	to = form.getByLabel('To', { exact: true });
 	await planned.fill('2026-11-03');
 	await from.fill('09:00');
 	await expect(to).toHaveValue('');

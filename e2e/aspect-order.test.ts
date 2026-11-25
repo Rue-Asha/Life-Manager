@@ -30,7 +30,7 @@ test('Scenario: Pickers, backlog groups and the rule form follow the manual orde
 	const order = ['Job', 'Health', 'Uni'];
 
 	await page.goto('/backlog');
-	await expect(page.getByRole('main').getByRole('region').getByRole('heading', { level: 2 })).toHaveText(order.map((name) => new RegExp(`^${name}\\b`)));
+	await expect(page.getByRole('main').getByRole('region').getByRole('heading', { level: 2 })).toHaveText(order.map((name) => new RegExp(`^\\s*${name}\\b`)));
 
 	await todoRow(page, 'Book physio').getByRole('button', { name: 'Book physio', exact: true }).click();
 	const editor = page.getByRole('form', { name: 'Edit todo' });

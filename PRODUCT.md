@@ -29,7 +29,7 @@ A single-user, self-hosted sprint ritual for a whole life rather than a team bac
 - Aspects with name, colour and icon, in an order the owner sets by hand; safe delete by moving todos to another aspect. Onboarding presets that already exist are shown as existing and cannot be added twice.
 - Uni hub: semesters (archive/unarchive/delete), classes (lecturer, room, ECTS, links, exam, grade), class todos by type (lecture, exercise, other), revision tracking, grade summary.
 - IT projects: five statuses (backlog, active, in progress, paused, implemented), description, repo URL, tags, Markdown notes, linked todos.
-- Constraints: single user, no auth; form posts need a correct origin/protocol configuration (a deployment requirement documented in the README, no in-app warning); drag and drop is a pointer-only convenience and every action has a non-drag equivalent; all UI copy is English; the framework default error page stays.
+- Constraints: single user, no auth; form posts need a correct origin/protocol configuration (a deployment requirement documented in the README, no in-app warning); drag and drop is a pointer-only convenience and every action has a non-drag equivalent; all UI copy is English; the framework default error page stays, except the three detail routes (aspect, project, class), which have their own 404 page.
 - Decided: Rue's gate-1 decisions are in "Gate-1 decisions" in `docs/functional-contract.md`; nothing is left open there.
 
 ## Brand Commitments
@@ -43,7 +43,7 @@ README, `openspec/specs/*`, the Playwright suite in `e2e/`, and `docs/functional
 2. Capture first, decide later: adding a todo never forces a date.
 3. Every item belongs to an aspect of life, and aspects stay visible.
 4. Every action has a keyboard and touch path; pointer drag is never the only way.
-5. The phone is its own UI, designed for the phone and not a squeezed desktop: it may omit display-only secondary data, but every action and decision stays reachable.
+5. The phone is its own UI, designed for the phone and not a squeezed desktop: it may omit display-only secondary data, but every action and decision stays reachable. Navigation is a top bar on wide screens and a pill bar (Today, Sprint, Backlog, Calendar, More) on phones; a global `New todo` quick add (the round `+` on phones) is reachable from every screen.
 6. The app never loses or silently rewrites user data: destructive actions confirm, deletes move or cascade explicitly, and failures say what happened.
 
 ## Accessibility & Inclusion

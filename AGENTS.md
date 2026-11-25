@@ -10,6 +10,7 @@ Single user, no auth; light theme only.
 - run: `npm run dev` → http://localhost:5173
 - package: `npm run package` → `dist/life-manager-<version>.tgz` + `.sha256`
 - ship: merge
+- release: tag
 
 ## Specs
 - Before changing app-runtime, read openspec/specs/app-runtime/spec.md.
@@ -43,3 +44,12 @@ Single user, no auth; light theme only.
 - **e2e helper `reset()`** → call `setClock` again after every reset in a multi-state test. (weil: reset() also clears the test clock, so the phase came out wrong) [2026-10-11 · today-quick-add-always]
 - **Single-file e2e runs** → run `npm run build` first and again after each edit. (weil: Playwright serves build/; fresh worktrees hit "Cannot find module .../build") [2026-10-18 · calendar-planning]
 - **e2e on /sync or any page in a fresh DB** → seed an aspect first. (weil: no aspects redirects to /welcome; a unit lost a run on it) [2026-10-18 · proton-calendar-sync]
+- **e2e target-size sweeps (getBoundingClientRect)** → measure pseudo-element hit areas with `elementFromPoint` or document the pseudo in the kit. (weil: `.wf-check::before` was missed by every box sweep) [2026-11-25 · redesign]
+- **e2e on motion duration or easing (menus, sheets, toasts)** → assert the configured duration/easing token or a tolerance, never a wall-clock threshold. (weil: `overlay-motion` failed at 244-301 ms vs 240 under load in three units) [2026-11-25 · redesign]
+
+## Design fingerprint
+
+- `DESIGN.md`, `DESIGN-reference.md`, `.gitleaks.toml`, `src/lib/styles/fingerprint/` and `scripts/fingerprint/` are vendored from Design-System and never edited here. `check-drift` in `proof` fails on any edit.
+- Fingerprint changes go to `Design-System/requests.md`, not into this repo.
+- Primitives are copied in with `Design-System/scripts/sync.sh <app-path> --primitive <name>`; the app owns them afterwards.
+- Styling uses fingerprint tokens only; `check-slop` enforces it and lists banned patterns in `scripts/fingerprint/banned.md`.

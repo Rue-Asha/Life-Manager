@@ -1,46 +1,42 @@
 import type { Page } from '@playwright/test';
-import { ASPECT_ICONS, PRESET_ASPECTS } from '../src/lib/aspect-style';
+import { ASPECT_ICONS } from '../src/lib/aspect-style';
 import { expect, test, reset, seed, setClock } from './helpers';
 
 function aspectRow(page: Page, name: string) {
 	return page.getByRole('main').getByRole('listitem', { name, exact: true });
 }
 
+// An aspect's icon sits on a round chip in its colour (a fingerprint token); the chip is the one element of the row that carries data-color.
 async function expectStyle(page: Page, name: string, color: string, icon: keyof typeof ASPECT_ICONS) {
-	const svg = aspectRow(page, name).locator('svg').first();
-	await expect(svg).toHaveAttribute('style', new RegExp(`--aspect-${color}\\)`));
-	await expect(svg.locator('path')).toHaveAttribute('d', ASPECT_ICONS[icon]);
+	const chip = aspectRow(page, name).locator('[data-color]');
+	const token = await page.evaluate((c) => {
+		const probe = document.createElement('span');
+		probe.style.background = `var(--aspect-${c})`;
+		document.body.append(probe);
+		const value = getComputedStyle(probe).backgroundColor;
+		probe.remove();
+		return value;
+	}, color);
+	await expect(chip).toHaveCSS('background-color', token);
+	await expect(chip.locator('path')).toHaveAttribute('d', ASPECT_ICONS[icon]);
 }
 
 const aspectCards = (page: Page) => page.getByRole('main').getByRole('listitem', { name: /\S/ });
 
-function sidebarAspects(page: Page) {
-	return page.getByRole('navigation', { name: 'Main' }).getByRole('list', { name: 'Aspects' }).getByRole('link');
+// The aspects sit in the top bar's More menu, one item each.
+async function sidebarAspects(page: Page) {
+	await page.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: /^More/ }).click();
+	return page.getByRole('menu', { name: 'More' }).getByRole('group', { name: 'Aspects' }).getByRole('menuitem');
 }
 
 async function openEdit(page: Page, name: string) {
 	await aspectRow(page, name).getByRole('button', { name: `Actions for ${name}` }).click();
-	await page.getByRole('menu').getByRole('menuitem', { name: 'Edit' }).click();
+	await page.getByRole('menu', { name: `Actions for ${name}` }).getByRole('menuitem', { name: 'Edit' }).click();
 	return page.getByRole('dialog', { name: 'Edit aspect' });
 }
 
 test.beforeEach(async ({ request }) => {
 	await reset(request);
-});
-
-test('Scenario: First run shows onboarding', async ({ page }) => {
-	await page.goto('/');
-	await expect(page).toHaveURL(/\/welcome$/);
-
-	for (const preset of PRESET_ASPECTS) {
-		const toggle = page.getByRole('checkbox', { name: preset.name, exact: true });
-		await expect(toggle).toBeVisible();
-		await expect(toggle).not.toBeChecked();
-		const icon = page.getByRole('listitem').filter({ has: toggle }).locator('svg').first();
-		await expect(icon).toHaveAttribute('style', new RegExp(`--aspect-${preset.color}\\)`));
-		await expect(icon.locator('path')).toHaveAttribute('d', ASPECT_ICONS[preset.icon]);
-	}
-	await expect(page.getByRole('button', { name: 'Add your own' })).toBeVisible();
 });
 
 test('Scenario: Onboarding creates the chosen aspects', async ({ page }) => {
@@ -57,22 +53,7 @@ test('Scenario: Onboarding creates the chosen aspects', async ({ page }) => {
 
 	await expect(page).toHaveURL(/\/backlog$/);
 	await page.goto('/');
-	await expect(sidebarAspects(page)).toHaveText(['Health', 'Uni', 'Music']);
-});
-
-test('onboarding needs at least one aspect', async ({ page }) => {
-	await page.goto('/welcome');
-	await expect(page.getByRole('button', { name: /^Continue/ })).toBeDisabled();
-});
-
-test('onboarding rejects an empty custom name inline', async ({ page }) => {
-	await page.goto('/welcome');
-	await page.getByRole('button', { name: 'Add your own' }).click();
-	await page.getByRole('textbox', { name: 'Name' }).fill('   ');
-	await page.getByRole('button', { name: 'Continue with 1 aspect' }).click();
-
-	await expect(page.getByText('Give the aspect a name.')).toBeVisible();
-	await expect(page).toHaveURL(/\/welcome$/);
+	await expect(await sidebarAspects(page)).toHaveText(['Health', 'Uni', 'Music']);
 });
 
 test('Scenario: Create an aspect with colour and icon', async ({ page, request }) => {
@@ -159,8 +140,8 @@ test('Scenario: Delete confirmation asks for a target aspect', async ({ page, re
 	await page.goto('/aspects');
 
 	const dialog = await openDelete(page, 'Health');
-	await expect(dialog.getByRole('radio')).toHaveCount(2);
-	await dialog.getByRole('radio', { name: 'Uni' }).check();
+	await expect(dialog.getByLabel('Move them to').getByRole('option')).toHaveText(['Choose an aspect', 'Uni', 'Job']);
+	await dialog.getByLabel('Move them to').selectOption({ label: 'Uni' });
 	await dialog.getByRole('button', { name: 'Move 2 and delete' }).click();
 
 	await expect(dialog).toBeHidden();
@@ -174,7 +155,7 @@ test('Scenario: Aspect without todos is deleted with a simple confirm', async ({
 	await page.goto('/aspects');
 
 	const dialog = await openDelete(page, 'Uni');
-	await expect(dialog.getByRole('radio')).toHaveCount(0);
+	await expect(dialog.getByLabel('Move them to')).toHaveCount(0);
 	await dialog.getByRole('button', { name: 'Delete aspect' }).click();
 
 	await expect(dialog).toBeHidden();
@@ -211,22 +192,28 @@ test('Scenario: Deleting the last aspect returns to first run', async ({ page, r
 	await expect(page.getByRole('checkbox', { name: 'Health', exact: true })).toBeVisible();
 });
 
-test('Scenario: Sidebar and Aspects rows open the aspect page', async ({ page, request }) => {
+test('Scenario: Menu and Aspects rows open the aspect page', async ({ page, request }) => {
 	await page.setViewportSize({ width: 1280, height: 900 });
 	const ids = await seed(request, { aspects: [{ name: 'Health' }, { name: 'Uni' }] });
 	await page.goto('/');
 
-	await sidebarAspects(page).filter({ hasText: 'Uni' }).click();
+	await (await sidebarAspects(page)).filter({ hasText: 'Uni' }).click();
 	await expect(page).toHaveURL(new RegExp(`/aspects/${ids.aspects[1]}$`));
 	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Uni');
 
+	await page.setViewportSize({ width: 375, height: 800 });
+	await page.goto('/menu');
+	await page.getByRole('main').getByRole('list', { name: 'Aspects' }).getByRole('link', { name: /^\s*Health/ }).click();
+	await expect(page).toHaveURL(new RegExp(`/aspects/${ids.aspects[0]}$`));
+	await page.setViewportSize({ width: 1280, height: 900 });
+
 	await page.goto('/aspects');
-	await page.getByRole('main').getByRole('link', { name: 'Health', exact: true }).click();
+	await aspectRow(page, 'Health').getByRole('link').click();
 	await expect(page).toHaveURL(new RegExp(`/aspects/${ids.aspects[0]}$`));
 	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Health');
 });
 
-test.describe('aspect cards', () => {
+test.describe('aspect list', () => {
 	// Wednesday 7 October 2026 in Berlin; the active sprint runs Monday 5 to Sunday 11 October.
 	test.beforeEach(async ({ request }) => {
 		await setClock(request, '2026-10-07T10:00:00Z');
@@ -254,32 +241,31 @@ test.describe('aspect cards', () => {
 		]
 	};
 
-	test('Scenario: Aspects page shows cards at 1024 and wider', async ({ page, request }) => {
+	test('Scenario: Aspects page is one list with counts from 768', async ({ page, request }) => {
 		await page.setViewportSize({ width: 1280, height: 900 });
 		await seed(request, RUNNING);
 		await page.goto('/aspects');
 
 		const expected = [
-			{ name: 'Health', icon: 'heart', progress: '1 / 2', backlog: '2 in backlog' },
-			{ name: 'Uni', icon: 'cap', progress: '0 / 1', backlog: '0 in backlog' },
-			{ name: 'Home', icon: 'house', progress: '1 / 1', backlog: '1 in backlog' }
+			{ name: 'Health', icon: 'heart', count: '4 todos', line: '2 in backlog · 1 / 2 this sprint' },
+			{ name: 'Uni', icon: 'cap', count: '1 todo', line: '0 in backlog · 0 / 1 this sprint' },
+			{ name: 'Home', icon: 'house', count: '2 todos', line: '1 in backlog · 1 / 1 this sprint' }
 		] as const;
-		for (const card of expected) {
-			const el = aspectRow(page, card.name);
+		for (const row of expected) {
+			const el = aspectRow(page, row.name);
 			await expect(el).toBeVisible();
-			await expect(el.locator('svg path').first()).toHaveAttribute('d', ASPECT_ICONS[card.icon]);
-			await expect(el.getByText(card.progress)).toBeVisible();
-			await expect(el.getByText(card.backlog, { exact: true })).toBeVisible();
+			await expect(el.locator('[data-color] path')).toHaveAttribute('d', ASPECT_ICONS[row.icon]);
+			await expect(el.getByText(row.count, { exact: true })).toBeVisible();
+			await expect(el.getByText(row.line, { exact: true })).toBeVisible();
 		}
-		const [first, second] = await Promise.all(
-			['Health', 'Uni'].map((name) => aspectRow(page, name).boundingBox())
-		);
-		expect(Math.abs(first!.y - second!.y)).toBeLessThan(1);
-		expect(second!.x).toBeGreaterThan(first!.x + first!.width - 1);
+		const boxes = await Promise.all(['Health', 'Uni', 'Home'].map((name) => aspectRow(page, name).boundingBox()));
+		for (const [i, box] of boxes.entries()) {
+			expect(Math.abs(box!.x - boxes[0]!.x)).toBeLessThan(1);
+			if (i > 0) expect(box!.y).toBeGreaterThanOrEqual(boxes[i - 1]!.y + boxes[i - 1]!.height - 1);
+		}
 
-		await page.setViewportSize({ width: 1024, height: 900 });
-		const [a, b] = await Promise.all(['Health', 'Uni'].map((name) => aspectRow(page, name).boundingBox()));
-		expect(Math.abs(a!.y - b!.y)).toBeLessThan(1);
+		await page.setViewportSize({ width: 768, height: 900 });
+		await expect(aspectRow(page, 'Uni').getByText('0 in backlog · 0 / 1 this sprint', { exact: true })).toBeVisible();
 	});
 
 	test('Scenario: Aspects page stays a list on phone', async ({ page, request }) => {
@@ -287,41 +273,50 @@ test.describe('aspect cards', () => {
 		await seed(request, RUNNING);
 		await page.goto('/aspects');
 
-		const boxes = await Promise.all(
-			['Health', 'Uni', 'Home'].map((name) => aspectRow(page, name).boundingBox())
-		);
-		const main = (await page.getByRole('main').boundingBox())!;
+		const boxes = await Promise.all(['Health', 'Uni', 'Home'].map((name) => aspectRow(page, name).boundingBox()));
+		const list = (await page.getByRole('main').getByRole('listitem', { name: 'Health', exact: true }).locator('xpath=..').boundingBox())!;
 		for (const [i, box] of boxes.entries()) {
-			expect(box!.width).toBeGreaterThan(main.width - 2 * 16 - 1);
+			expect(box!.width).toBeGreaterThan(list.width - 2 * 16 - 1);
 			if (i > 0) expect(box!.y).toBeGreaterThanOrEqual(boxes[i - 1]!.y + boxes[i - 1]!.height - 1);
 		}
+		await expect(aspectRow(page, 'Health')).toContainText('4 todos');
+		await expect(aspectRow(page, 'Health').getByText('2 in backlog · 1 / 2 this sprint', { exact: true })).toBeVisible();
 	});
 
-	test('Scenario: Single aspect is one left-aligned card', async ({ page, request }) => {
+	test('Scenario: Single aspect is one row', async ({ page, request }) => {
 		await page.setViewportSize({ width: 1280, height: 900 });
 		await seed(request, { aspects: [{ name: 'Health' }] });
 		await page.goto('/aspects');
 
-		const cards = aspectCards(page);
-		await expect(cards).toHaveCount(1);
-		const card = (await cards.boundingBox())!;
-		const title = (await page.getByRole('heading', { level: 1 }).boundingBox())!;
-		expect(Math.abs(card.x - title.x)).toBeLessThan(1);
-		expect(card.width).toBeLessThan(400);
+		const rows = aspectCards(page);
+		await expect(rows).toHaveCount(1);
+		const row = (await rows.boundingBox())!;
+		const list = (await rows.locator('xpath=..').boundingBox())!;
+		expect(Math.abs(row.x - list.x)).toBeLessThan(list.width * 0.05);
+		expect(row.width).toBeGreaterThan(list.width * 0.9);
 	});
 
-	test('Scenario: Card menu holds edit and delete', async ({ page, request }) => {
+	test('Scenario: Row menu holds the moves, edit and delete', async ({ page, request }) => {
 		await page.setViewportSize({ width: 1280, height: 900 });
 		await seed(request, RUNNING);
 		await page.goto('/aspects');
 
 		await aspectRow(page, 'Uni').getByRole('button', { name: 'Actions for Uni' }).click();
-		const menu = page.getByRole('menu');
-		await expect(menu.getByRole('menuitem')).toHaveText(['Edit', 'Delete']);
+		const menu = page.getByRole('menu', { name: 'Actions for Uni' });
+		await expect(menu.getByRole('menuitem')).toHaveText(['Move up', 'Move down', 'Edit', 'Delete']);
 		await menu.getByRole('menuitem', { name: 'Edit' }).click();
 
 		const sheet = page.getByRole('dialog', { name: 'Edit aspect' });
 		await expect(sheet.getByRole('textbox', { name: 'Name' })).toHaveValue('Uni');
 		await expect(sheet.getByRole('radio', { name: 'Sky' })).toBeChecked();
+	});
+
+	test('Key facts show the real counts', async ({ page, request }) => {
+		await page.setViewportSize({ width: 1280, height: 900 });
+		await seed(request, RUNNING);
+		await page.goto('/aspects');
+
+		const facts = page.getByRole('list', { name: 'Your aspects' });
+		await expect(facts.getByRole('listitem')).toHaveText([/Your aspects/, /^3\s*aspects$/, /^7\s*todos$/, /^4\s*in this sprint$/]);
 	});
 });

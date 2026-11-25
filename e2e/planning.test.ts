@@ -1,6 +1,7 @@
 import type { Page } from '@playwright/test';
 import { expect, test, reset, seed, setClock, todoRow as row, todoRows } from './helpers';
 import { sprintList } from './sprint-locators';
+import { statusOf } from './row-locators';
 
 // Wednesday 7 October 2026 in Berlin; the target week runs Monday 5 to Sunday 11 October.
 const NOW = '2026-10-07T10:00:00Z';
@@ -26,9 +27,9 @@ const planBacklog = (page: Page) => page.getByRole('region', { name: /^Backlog\b
 // and planning is over.
 async function expectStarted(page: Page, inSprint: string[], inBacklog: string[]) {
 	await expect(page).toHaveURL(/\/sprint$/);
-	await expect(page.getByText('Mon 5 – Sun 11 Oct', { exact: true })).toBeVisible();
+	await expect(page.getByText(/Mon 5 – Sun 11 Oct/)).toBeVisible();
 	await expect(todoRows(sprintList(page))).toHaveCount(inSprint.length);
-	for (const title of inSprint) await expect(row(page, title)).toContainText('Status: To do');
+	for (const title of inSprint) await expect(statusOf(row(page, title), 'To do')).toBeVisible();
 	await page.goto('/backlog');
 	for (const title of inSprint) await expect(row(page, title)).toHaveCount(0);
 	for (const title of inBacklog) await expect(row(page, title)).toBeVisible();
@@ -47,7 +48,7 @@ test.describe('desktop', () => {
 		await page.goto('/sprint/plan');
 
 		await expect(page.getByRole('heading', { level: 1 })).toHaveText('Plan your week');
-		await expect(page.getByText('Mon 5 – Sun 11 Oct', { exact: true })).toBeVisible();
+		await expect(page.getByText(/Mon 5 – Sun 11 Oct/)).toBeVisible();
 		const backlog = planBacklog(page);
 		await expect(todoRows(backlog)).toHaveCount(2);
 		await expect(todoRows(planSprint(page))).toHaveCount(0);

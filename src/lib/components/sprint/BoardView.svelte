@@ -1,47 +1,15 @@
-<script lang="ts" module>
-	import { receive, send } from '$lib/motion';
-
-	// A hidden column (the phone's other days) has no box to travel from or to, and crossfade
-	// would scale by width / 0; such a card just appears.
-	const rendered = (node: Element) => node.getClientRects().length > 0;
-
-	// While it fades out, the old card is only a picture of the move: the todo already lives in its
-	// new place, so the copy leaves the accessibility tree and stops being a row. A refused move
-	// brings the same element back, so this is undone when it arrives again.
-	function ghost(node: Element, leaving: boolean) {
-		if (leaving) node.setAttribute('aria-hidden', 'true');
-		else node.removeAttribute('aria-hidden');
-	}
-
-	export const arrive: typeof receive = (node, params) => {
-		ghost(node, false);
-		return rendered(node) ? receive(node, params) : () => ({});
-	};
-
-	export const leave: typeof send = (node, params) => {
-		ghost(node, true);
-		return rendered(node) ? send(node, params) : () => ({});
-	};
-
-	// From 1280 the columns run down to the viewport bottom; how far down they start depends on
-	// the header and bar above them.
-	export function viewportTop(node: HTMLElement) {
-		const measure = () => node.style.setProperty('--top', `${node.getBoundingClientRect().top + scrollY}px`);
-		measure();
-		addEventListener('resize', measure);
-		return { destroy: () => removeEventListener('resize', measure) };
-	}
-</script>
-
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { tick } from 'svelte';
 	import { flip } from 'svelte/animate';
 	import { dropZone } from '$lib/dnd';
-	import { flipOpts } from '$lib/motion';
+	import { arrive, flipOpts, leave } from '$lib/motion';
+	import { copy } from '$lib/copy';
 	import type { Aspect, Id, IsoDate, Placement, Status, Todo } from '$lib/types';
+	import { pill } from '../shell/pill';
 	import { STATUS_LABELS } from '../todo/StatusControl.svelte';
 	import { submit } from '../todo/form';
+	import Button from '../ui/Button.svelte';
 	import SprintCard from './SprintCard.svelte';
 
 	let {
@@ -72,6 +40,9 @@
 	let moveForm = $state<HTMLFormElement>();
 	const statusOf = (todo: Todo) => (moved?.id === todo.id ? moved.status : todo.status);
 
+	// Below 768 px one column is shown at a time.
+	let shown = $state<Status>('todo');
+
 	async function drop(id: Id, status: Status) {
 		if (todos.find((t) => t.id === id)?.status === status) return;
 		moved = { id, status };
@@ -93,93 +64,43 @@
 	<input type="hidden" name="status" value={moved?.status} />
 </form>
 
-<div class="board" use:viewportTop>
-	{#each STATUSES as status (status)}
-		{@const cards = todos.filter((t) => statusOf(t) === status)}
-		<section
-			class="column"
-			use:dropZone={{
-				accepts: (p) => p.from === 'sprint' || !!onadd,
-				ondrop: (p) => (p.from === 'sprint' ? drop(p.id, status) : onadd?.(p.id, { status }))
-			}}
-			aria-labelledby="column-{status}"
-		>
-			<h2 id="column-{status}">{STATUS_LABELS[status]}<span class="num">{cards.length}</span></h2>
-			{#each cards as todo (todo.id)}
-				<div in:arrive={{ key: todo.id }} out:leave={{ key: todo.id }} animate:flip={flipOpts()}>
-					<SprintCard {todo} aspect={aspectOf(todo)} {today} {sprintDays} variant="card" />
-				</div>
-			{:else}
-				<p class="placeholder">{PLACEHOLDERS[status]}</p>
+<section class="card hs-board">
+	<div class="hs-colswitch" role="group" aria-label="Column">
+		<ul data-pill use:pill>
+			{#each STATUSES as status (status)}
+				<li>
+					<Button variant="quiet" size="s" type="button" data-press aria-pressed={shown === status} onclick={() => (shown = status)}>
+						{STATUS_LABELS[status]}<span class="hs-count">{todos.filter((t) => statusOf(t) === status).length}</span>
+					</Button>
+				</li>
 			{/each}
-		</section>
-	{/each}
-</div>
-
-<style>
-	.board {
-		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
-		gap: var(--space-4);
-		align-items: start;
-	}
-
-	.column {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-2);
-		min-height: 180px;
-		padding: var(--space-2) var(--space-2) var(--space-3);
-		border-radius: var(--radius-group);
-		background: var(--sunk);
-		transition:
-			background-color var(--dur-fast) var(--ease-out),
-			box-shadow var(--dur-fast) var(--ease-out);
-	}
-
-	/* The drop slot is a hairline, not a filled target. */
-	.column:global([data-over]) {
-		background: var(--accent-soft);
-		box-shadow: inset 0 0 0 1px var(--accent);
-	}
-
-	h2 {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		padding: var(--space-2) var(--space-2) var(--space-1);
-		font-size: var(--text-sm);
-		font-weight: var(--weight-semibold);
-	}
-
-	h2 span {
-		color: var(--ink-3);
-		font-weight: var(--weight-regular);
-	}
-
-	.placeholder {
-		display: grid;
-		place-items: center;
-		height: 64px;
-		border: 1.5px dashed var(--line-strong);
-		border-radius: var(--radius-md);
-		color: var(--ink-3);
-		font-size: var(--text-sm);
-	}
-
-	@media (min-width: 1280px) {
-		.column {
-			min-height: calc(100dvh - var(--top, 0px) - var(--space-9));
-		}
-	}
-
-	@media (max-width: 767px) {
-		.board {
-			grid-template-columns: minmax(0, 1fr);
-		}
-
-		.column {
-			min-height: 0;
-		}
-	}
-</style>
+		</ul>
+	</div>
+	<div class="hs-cols">
+		{#each STATUSES as status (status)}
+			{@const cards = todos.filter((t) => statusOf(t) === status)}
+			<section
+				class="hs-col"
+				data-col={status}
+				data-show={shown === status ? '' : undefined}
+				use:dropZone={{
+					accepts: (p) => p.from === 'sprint' || !!onadd,
+					ondrop: (p) => (p.from === 'sprint' ? drop(p.id, status) : onadd?.(p.id, { status }))
+				}}
+				aria-labelledby="column-{status}"
+			>
+				<header class="hs-col-head"><h2 id="column-{status}">{STATUS_LABELS[status]}</h2><span class="hs-col-n">{cards.length}</span></header>
+				<div class="hs-col-body">
+					{#each cards as todo (todo.id)}
+						<div in:arrive={{ key: todo.id }} out:leave={{ key: todo.id }} animate:flip={flipOpts()}>
+							<SprintCard {todo} aspect={aspectOf(todo)} {today} {sprintDays} variant="card" />
+						</div>
+					{:else}
+						<p class="hs-col-empty">{PLACEHOLDERS[status]}</p>
+					{/each}
+					<p class="hs-dropnote" aria-hidden="true">{copy.sprintViews.dropToStatus(STATUS_LABELS[status])}</p>
+				</div>
+			</section>
+		{/each}
+	</div>
+</section>

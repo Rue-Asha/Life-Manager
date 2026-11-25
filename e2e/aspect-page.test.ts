@@ -83,10 +83,10 @@ test('Scenario: Aspect without todos shows an empty state with quick add', async
 	const ids = await seed(request, { ...RUNNING, aspects: [...ASPECTS, { name: 'Music', icon: 'music' }] });
 	await page.goto(`/aspects/${ids.aspects[2]}`);
 
-	const empty = page.getByText(/^Nothing in Music yet\./);
-	await expect(empty).toBeVisible();
-	await empty.getByRole('button', { name: 'Add a todo' }).click();
-	await expect(page.getByRole('form', { name: 'New todo' })).toBeVisible();
+	await expect(page.getByRole('heading', { level: 2, name: 'Nothing in Music yet' })).toBeVisible();
+	await expect(page.getByText('Add a todo to start.', { exact: true })).toBeVisible();
+	await page.getByRole('main').getByRole('button', { name: 'Add a todo' }).click();
+	await expect(page.getByRole('dialog', { name: 'New todo' })).toBeVisible();
 });
 
 test('Scenario: Aspect page rail shows the aspect\'s details', async ({ page, request }) => {
@@ -118,6 +118,8 @@ test('Scenario: Move todos between sprint and backlog on the aspect page', async
 });
 
 test('Scenario: Drag between sections on the aspect page', async ({ page, request }) => {
+	// Both sections fit the viewport, so the page does not scroll under the pointer while it drags.
+	await page.setViewportSize({ width: 1280, height: 1100 });
 	const ids = await seed(request, RUNNING);
 	await page.goto(`/aspects/${ids.aspects[0]}`);
 
@@ -137,11 +139,12 @@ test('Scenario: Quick add on the aspect page defaults to the aspect', async ({ p
 	const ids = await seed(request, RUNNING);
 	await page.goto(`/aspects/${ids.aspects[1]}`);
 
-	await backlogSection(page).getByRole('button', { name: 'Add a todo' }).click();
-	const form = page.getByRole('form', { name: 'New todo' });
+	const form = backlogSection(page).getByRole('form', { name: 'Add a todo to Uni' });
+	await expect(form).toContainText('Goes to the backlog, aspect Uni');
 	await form.getByRole('textbox', { name: 'Title' }).fill('Email the tutor');
-	await form.getByRole('button', { name: 'Add todo' }).click();
+	await form.getByRole('button', { name: 'Add', exact: true }).click();
 	await expect(row(backlogSection(page), 'Email the tutor')).toBeVisible();
+	await expect(form.getByRole('textbox', { name: 'Title' })).toHaveValue('');
 
 	await page.goto('/backlog');
 	await expect(row(page.getByRole('region', { name: /^Uni\b/ }), 'Email the tutor')).toBeVisible();

@@ -25,7 +25,8 @@ test('Scenario: Cards are grouped by status', async ({ page, request }) => {
 		/^Active/,
 		/^Backlog/,
 		/^Paused/,
-		/^\s*Implemented/
+		/^\s*Implemented/,
+		'IT aspect'
 	]);
 
 	const implemented = page.getByRole('region', { name: /^Implemented/ });
@@ -37,7 +38,7 @@ test('Scenario: Cards are grouped by status', async ({ page, request }) => {
 	await expect(projectCards(implemented)).toHaveText(/Implemented one/);
 });
 
-test('Scenario: Card shows the project summary', async ({ page, request }) => {
+test('Scenario: Row shows the project summary', async ({ page, request }) => {
 	await seed(request, {
 		aspects: [IT],
 		itAspect: 0,
@@ -65,17 +66,18 @@ test('Scenario: Card shows the project summary', async ({ page, request }) => {
 	await expect(card.getByText('sqlite', { exact: true })).toBeVisible();
 	await expect(card.getByText('Repository linked')).toBeVisible();
 	await expect(card).toContainText('2 open');
-	const lineHeight = await card.getByText('Weekly-sprint planner').evaluate((el) => el.getBoundingClientRect().height);
-	expect(lineHeight, 'description wraps').toBeLessThan(30);
+	const lines = await card.getByText('Weekly-sprint planner').evaluate((el) => el.getBoundingClientRect().height / parseFloat(getComputedStyle(el).lineHeight));
+	expect(lines, 'description clamps at two lines').toBeLessThanOrEqual(2.05);
 });
 
 test('Scenario: No projects shows an empty state', async ({ page, request }) => {
 	await seed(request, { aspects: [IT], itAspect: 0 });
 	await page.goto('/projects');
 
-	const empty = page.getByText(/Capture your first idea/);
-	await expect(empty.getByRole('button', { name: 'New project' })).toBeVisible();
-	await expect(page.getByRole('heading', { level: 2 })).toHaveCount(0);
+	await expect(page.getByRole('heading', { level: 2, name: 'No projects yet' })).toBeVisible();
+	await expect(page.getByText('A project starts in the backlog.')).toBeVisible();
+	await expect(page.getByRole('button', { name: 'New project' })).toBeVisible();
+	await expect(page.getByRole('heading', { level: 2 })).toHaveText(['No projects yet', 'IT aspect']);
 });
 
 test('Scenario: Empty groups are not rendered', async ({ page, request }) => {
@@ -88,7 +90,7 @@ test('Scenario: Empty groups are not rendered', async ({ page, request }) => {
 	}
 });
 
-test('Scenario: Phone shows one card per row', async ({ page, request }) => {
+test('Scenario: Projects are one row each', async ({ page, request }) => {
 	await seed(request, {
 		aspects: [IT],
 		itAspect: 0,
@@ -98,41 +100,42 @@ test('Scenario: Phone shows one card per row', async ({ page, request }) => {
 			{ name: 'Three', status: 'active' }
 		]
 	});
-	await page.setViewportSize({ width: 375, height: 812 });
-	await page.goto('/projects');
+	for (const size of [{ width: 375, height: 812 }, { width: 1600, height: 900 }]) {
+		await page.setViewportSize(size);
+		await page.goto('/projects');
 
-	const boxes = await projectCards(page).getByRole('link').evaluateAll((els) =>
-		els.map((el) => {
-			const r = el.getBoundingClientRect();
-			return { left: r.left, top: r.top, bottom: r.bottom };
-		})
-	);
-	expect(boxes).toHaveLength(3);
-	expect(new Set(boxes.map((b) => b.left)).size).toBe(1);
-	expect(boxes[1].top).toBeGreaterThanOrEqual(boxes[0].bottom);
-	expect(boxes[2].top).toBeGreaterThanOrEqual(boxes[1].bottom);
+		const boxes = await projectCards(page).getByRole('link').evaluateAll((els) =>
+			els.map((el) => {
+				const r = el.getBoundingClientRect();
+				return { left: r.left, top: r.top, bottom: r.bottom };
+			})
+		);
+		expect(boxes).toHaveLength(3);
+		expect(new Set(boxes.map((b) => b.left)).size, `${size.width}px`).toBe(1);
+		expect(boxes[1].top).toBeGreaterThanOrEqual(boxes[0].bottom);
+		expect(boxes[2].top).toBeGreaterThanOrEqual(boxes[1].bottom);
+	}
 });
 
-test('Scenario: Wide desktop grid fills the content column', async ({ page, request }) => {
+test('Scenario: IT aspect panel sits beside the groups from 1280', async ({ page, request }) => {
 	await seed(request, {
 		aspects: [IT],
 		itAspect: 0,
 		projects: ['One', 'Two', 'Three', 'Four'].map((name) => ({ name, status: 'active' as const }))
 	});
+	const panel = page.getByRole('complementary', { name: 'IT aspect' });
+	const group = page.getByRole('region', { name: /^Active/ });
+	const box = async (el: typeof panel) => (await el.boundingBox())!;
+
 	await page.setViewportSize({ width: 1600, height: 900 });
 	await page.goto('/projects');
-
 	await expect(projectCards(page)).toHaveCount(4);
-	const column = await page.getByRole('main').evaluate((main) => {
-		const style = getComputedStyle(main);
-		return main.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
-	});
-	const grid = await page.getByRole('list', { name: 'Active projects' }).evaluate((el) => el.getBoundingClientRect().width);
-	const cards = await projectCards(page).getByRole('link').evaluateAll((els) => els.map((c) => c.getBoundingClientRect().top));
-	const firstRow = cards.filter((top) => top === cards[0]).length;
-	expect(Math.abs(grid - column)).toBeLessThanOrEqual(2);
-	expect(column, 'the column cap does not bind at 1600').toBeLessThan(1000);
-	expect(firstRow).toBeGreaterThan(1);
+	expect((await box(panel)).x).toBeGreaterThan((await box(group)).x + (await box(group)).width);
+
+	await page.setViewportSize({ width: 375, height: 812 });
+	await page.goto('/projects');
+	await expect(projectCards(page)).toHaveCount(4);
+	expect((await box(panel)).y).toBeGreaterThanOrEqual((await box(group)).y + (await box(group)).height - 1);
 });
 
 test('Scenario: New project lands in Backlog', async ({ page, request }) => {
@@ -151,7 +154,7 @@ test('Scenario: New project form shows field errors', async ({ page, request }) 
 	await seed(request, { aspects: [IT], itAspect: 0 });
 	await page.goto('/projects');
 
-	await page.getByText(/Capture your first idea/).getByRole('button', { name: 'New project' }).click();
+	await page.getByRole('button', { name: 'New project' }).click();
 	await page.getByLabel('Name').fill('   ');
 	await page.getByRole('button', { name: 'Add project' }).click();
 	await expect(page.getByRole('alert')).toHaveText('Give the project a name.');
@@ -194,9 +197,9 @@ test('Scenario: Changing the IT aspect removes links after confirmation', async 
 	await page.getByRole('button', { name: 'Change IT aspect' }).click();
 	const prompt = page.getByRole('region', { name: /aspect/i });
 	await prompt.getByRole('radio', { name: 'Health' }).check();
-	await prompt.getByRole('button', { name: 'Use Health for projects' }).click();
+	await page.getByRole('button', { name: 'Use Health for projects' }).click();
 
-	const dialog = page.getByRole('dialog');
+	const dialog = page.getByRole('dialog', { name: 'Change the IT aspect?' });
 	await expect(dialog).toContainText('2 todos');
 	await dialog.getByRole('button', { name: 'Change aspect' }).click();
 
@@ -215,7 +218,7 @@ test('Scenario: Changing the IT aspect without links needs no confirmation', asy
 	await page.getByRole('button', { name: 'Change IT aspect' }).click();
 	const prompt = page.getByRole('region', { name: /aspect/i });
 	await prompt.getByRole('radio', { name: 'Health' }).check();
-	await prompt.getByRole('button', { name: 'Use Health for projects' }).click();
+	await page.getByRole('button', { name: 'Use Health for projects' }).click();
 
 	await expect(page.getByRole('strong')).toHaveText('Health');
 	await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -224,4 +227,14 @@ test('Scenario: Changing the IT aspect without links needs no confirmation', asy
 test('Scenario: Without aspects Projects leads to creating one', async ({ page }) => {
 	await page.goto('/projects');
 	await expect(page).toHaveURL(/\/welcome$/);
+});
+
+test('Scenario: Project title hyphenation does not leak to other screens', async ({ page, request }) => {
+	await seed(request, { aspects: [IT], itAspect: 0, projects: [{ name: 'One', status: 'active' }] });
+	await page.goto('/projects');
+	await page.getByRole('link', { name: /^Today/ }).first().click();
+	await expect(page).toHaveURL(/\/today$|\/$/);
+	const h1 = page.getByRole('heading', { level: 1 });
+	await expect(h1).toBeVisible();
+	expect(await h1.evaluate((el) => getComputedStyle(el).hyphens)).not.toBe('auto');
 });

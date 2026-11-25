@@ -1,6 +1,5 @@
 import type { Page } from '@playwright/test';
-import { expect, test, reset, seed, setClock, dayColumn, todoRow, todoRows, type SeedInput } from './helpers';
-import { backlogRail, boardColumn, contextRail, railToggle } from './sprint-locators';
+import { expect, test, reset, seed, setClock, type SeedInput } from './helpers';
 
 // Sunday 11 October 2026 in Berlin: the sprint of 5–11 October is still running and its review is open.
 const SUNDAY = '2026-10-11T10:00:00Z';
@@ -134,28 +133,41 @@ const screens = (aspect: number, project: number, cls: number) => [
 	[`/uni/classes/${cls}`, 'class-detail']
 ];
 
-test('Scenario: Every screen fits 375 px without horizontal scroll', async ({ page, request }) => {
+test('Scenario: Every screen fits 320 and 390 px without horizontal scroll', async ({ page, request }) => {
+	test.setTimeout(240_000);
 	await reset(request);
 	await page.goto('/welcome');
-	await expectFits(page, 'welcome');
+	for (const width of [320, 390]) {
+		await page.setViewportSize({ width, height: 812 });
+		await expectFits(page, 'welcome');
+	}
 
 	await setClock(request, SUNDAY);
 	const { aspects, projects, classes } = await seedSunday(request);
-	for (const [path, name] of screens(aspects[1], projects[0], classes[0])) {
-		await page.goto(path);
-		await expectFits(page, name);
+	for (const width of [320, 390]) {
+		await page.setViewportSize({ width, height: 812 });
+		for (const [path, name] of [...screens(aspects[1], projects[0], classes[0]), ['/menu', 'menu'], ['/sync', 'sync']]) {
+			await page.goto(path);
+			await expectFits(page, name);
+		}
+
+		await page.goto('/sprint');
+		await page.getByRole('button', { name: 'Manage', exact: true }).tap();
+		await expect(page.getByRole('dialog', { name: 'Backlog' })).toBeVisible();
+		await expectFits(page, 'sprint-manage');
 	}
 
-	await page.goto('/sprint');
-	await page.getByRole('button', { name: 'Manage', exact: true }).tap();
-	await expect(page.getByRole('dialog', { name: 'Backlog' })).toBeVisible();
-	await expectFits(page, 'sprint-manage');
-
 	// Planning opens once the review is closed.
-	await page.goto('/sprint/review');
-	await page.getByRole('button', { name: /close/i }).tap();
-	await expect(page).toHaveURL(/\/sprint\/plan$/);
-	await expectFits(page, 'plan');
+	for (const width of [320, 390]) {
+		await page.setViewportSize({ width, height: 812 });
+		await reset(request);
+		await setClock(request, SUNDAY);
+		await seedSunday(request);
+		await page.goto('/sprint/review');
+		await page.getByRole('button', { name: /close/i }).tap();
+		await expect(page).toHaveURL(/\/sprint\/plan$/);
+		await expectFits(page, 'plan');
+	}
 });
 
 test.describe('on desktop', () => {
@@ -184,12 +196,12 @@ test.describe('on desktop', () => {
 			}
 		}
 
+		// Below 1280 px the backlog is the Manage sheet, not an overlay rail.
 		await page.setViewportSize({ width: 1100, height: 800 });
 		await page.goto('/sprint');
-		await railToggle(page).click();
-		await expect(contextRail(page)).toBeVisible();
-		await expect(contextRail(page)).toHaveCSS('transform', 'none');
-		await expectFits(page, 'sprint-overlay-rail');
+		await page.getByRole('button', { name: 'Manage', exact: true }).click();
+		await expect(page.getByRole('dialog', { name: 'Backlog' })).toBeVisible();
+		await expectFits(page, 'sprint-manage');
 
 		await page.goto('/sprint/review');
 		await page.getByRole('button', { name: /close/i }).click();
@@ -199,69 +211,4 @@ test.describe('on desktop', () => {
 			await fits(page, 'plan');
 		}
 	});
-});
-
-test('Scenario: Phone home list drills into each list', async ({ page, request }) => {
-	await reset(request);
-	await seed(request, { aspects: ASPECTS });
-	await page.goto('/menu');
-
-	for (const [name, path] of [
-		['Today', '/'],
-		['Sprint', '/sprint'],
-		['Calendar', '/calendar'],
-		['Backlog', '/backlog'],
-		['Recurring', '/recurring'],
-		['Projects', '/projects'],
-		['Uni', '/uni'],
-		['Aspects', '/aspects']
-	]) {
-		await page.getByRole('navigation', { name: 'Lists' }).getByRole('link', { name, exact: true }).tap();
-		await expect.poll(() => new URL(page.url()).pathname).toBe(path);
-		await expect(page.getByRole('heading', { level: 1 })).toHaveText(name);
-		await page.getByRole('link', { name: 'Lists' }).tap();
-		await expect(page).toHaveURL(/\/menu$/);
-	}
-});
-
-test('Scenario: Touch-only device completes the sprint ritual', async ({ page, request }) => {
-	await reset(request);
-	await setClock(request, '2026-10-07T10:00:00Z');
-	await seed(request, {
-		aspects: ASPECTS,
-		todos: [{ title: 'Book a physio appointment' }, { title: 'Read chapter 4', aspect: 1 }, { title: 'Clean the fridge', aspect: 2 }]
-	});
-	const row = (title: string) => todoRow(page, title);
-
-	await page.goto('/sprint/plan');
-	await expect(page.locator('[draggable="true"]')).toHaveCount(0);
-	await page.getByRole('button', { name: 'Add to sprint: Book a physio appointment' }).tap();
-	await page.getByRole('button', { name: 'Add to sprint: Read chapter 4' }).tap();
-	await expect(todoRows(page.getByRole('region', { name: /^This sprint/ }))).toHaveCount(2);
-	await page.getByRole('button', { name: 'Start sprint with 2 todos' }).tap();
-	await expect(page).toHaveURL(/\/sprint$/);
-
-	await page.getByRole('navigation', { name: 'Sprint view' }).getByRole('link', { name: 'Board' }).tap();
-	await expect(page).toHaveURL(/view=board$/);
-	await expect(page.locator('[draggable="true"]')).toHaveCount(0);
-	await row('Read chapter 4').getByLabel('Status').selectOption('doing');
-	await expect(boardColumn(page, 'doing')).toContainText('Read chapter 4');
-
-	await page.getByRole('navigation', { name: 'Sprint view' }).getByRole('link', { name: 'Week' }).tap();
-	await expect(page).toHaveURL(/view=week$/);
-	await expect(page.locator('[draggable="true"]')).toHaveCount(0);
-	await page.getByRole('navigation', { name: 'Days' }).getByRole('button', { name: 'Unscheduled' }).tap();
-	await row('Book a physio appointment').getByLabel('Day').selectOption({ label: 'Thu 8' });
-	await page.getByRole('navigation', { name: 'Days' }).getByRole('button', { name: 'Thu 8' }).tap();
-	await expect(dayColumn(page, '2026-10-08')).toContainText('Book a physio appointment');
-	await page.getByRole('checkbox', { name: 'Done: Book a physio appointment' }).tap();
-	await expect(row('Book a physio appointment').getByLabel('Status')).toHaveValue('done');
-
-	await setClock(request, '2026-10-11T16:00:00Z');
-	await page.goto('/sprint/review');
-	await page.getByRole('radiogroup', { name: 'Read chapter 4' }).getByText('Back to backlog').tap();
-	await page.getByRole('button', { name: 'Return 1 and close' }).tap();
-	await expect(page).toHaveURL(/\/sprint\/plan$/);
-	await expect(todoRows(backlogRail(page))).toHaveText([/Read chapter 4/, /Clean the fridge/]);
-	await expect(todoRows(page.getByRole('region', { name: /^This sprint/ }))).toHaveCount(0);
 });

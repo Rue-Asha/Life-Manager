@@ -39,13 +39,13 @@ test('Scenario: Sync page shows state, last sync and pending count', async ({ pa
 	await protonOn(request);
 
 	await page.goto('/sync');
-	await expect(syncRow(page, 'State')).toHaveText(/^State\s*Up to date$/);
+	await expect(syncRow(page, 'State')).toHaveText(/^\s*Up to date\s*$/);
 	await expect(syncRow(page, 'Last sync')).toHaveText(/^Last sync\s*Never$/);
 	await expect(syncRow(page, 'Pending changes')).toHaveText(/^Pending changes\s*2$/);
 
 	await protonPass(request);
 	await page.reload();
-	await expect(syncRow(page, 'State')).toHaveText(/^State\s*Up to date$/);
+	await expect(syncRow(page, 'State')).toHaveText(/^\s*Up to date\s*$/);
 	await expect(syncRow(page, 'Last sync')).not.toHaveText(/^Last sync\s*Never$/);
 	await expect(syncRow(page, 'Pending changes')).toHaveText(/^Pending changes\s*0$/);
 	await expect(page.getByText(/renaming or recolouring/i)).toBeVisible();
@@ -58,7 +58,7 @@ test('Scenario: Sync page lists failed items with their error', async ({ page, r
 	await protonPass(request);
 
 	await page.goto('/sync');
-	await expect(syncRow(page, 'State')).toHaveText(/^State\s*Up to date$/);
+	await expect(syncRow(page, 'State')).toHaveText(/^\s*Up to date · 1 item failed\s*$/);
 	const failed = failedItems(page);
 	await expect(failed).toHaveCount(1);
 	await expect(failed).toContainText('Stretch');
@@ -72,13 +72,13 @@ test('Scenario: Re-login needed shows the login command and recovers after Sync 
 	await protonPass(request);
 
 	await page.goto('/sync');
-	await expect(syncRow(page, 'State')).toHaveText(/^State\s*Re-login needed$/);
+	await expect(syncRow(page, 'State')).toHaveText(/^\s*Re-login needed\s+Needs attention\s*$/);
 	await expect(page.getByText('proton account login --profile default', { exact: true })).toBeVisible();
 	await expect(page.getByText('Error: not logged in', { exact: true })).toBeVisible();
 
 	fake().clearFailures();
 	await page.getByRole('button', { name: 'Sync now' }).click();
-	await expect(syncRow(page, 'State')).toHaveText(/^State\s*Up to date$/);
+	await expect(syncRow(page, 'State')).toHaveText(/^\s*Up to date\s*$/);
 	expect(Object.keys(fake().state().events)).toHaveLength(1);
 });
 

@@ -111,7 +111,7 @@ instances are already done by the archive, so nothing is placed. (uni-hub S15)
 
 #### Scenario: Rule with a class generates linked instances
 - **WHEN** Rue creates on `/recurring` a rule for the Uni aspect on Tuesday with class "Analysis" and type EXC, then starts a sprint
-- **THEN** the rule list shows the class, and the Tuesday instance carries the class badge "Analysis · EXC"
+- **THEN** the rule row shows the class name "Analysis" and the type tag EXC beside it (as signed at gate 5), and the Tuesday instance carries the class badge "Analysis · EXC"
 - **proof:** e2e
 
 #### Scenario: Generated instances inherit class and type
@@ -141,6 +141,29 @@ instances are already done by the archive, so nothing is placed. (uni-hub S15)
 
 #### Scenario: Editing a rule of an archived class keeps its class
 - **WHEN** Rue renames on `/recurring` a rule whose class "Statistics" (type LEC) belongs to an archived semester and saves
-- **THEN** after reload the rule still shows the class badge "Statistics · LEC"
+- **THEN** after reload the rule row still shows the class name "Statistics" and the type tag LEC
+- **proof:** e2e
+
+### Requirement: Recurring screen on the fingerprint
+`/recurring` SHALL render on the fingerprint with the rule list and the rule form (title, aspect, weekdays, slot, checklist template, and the class field only when the aspect is the Uni aspect); delete keeps its confirmation. From 1280 px the rule list runs in two columns (gate 5, Q11); "New rule" in the page head is a secondary (glass) pill (gate 5, Q3) and the empty state carries its own add, with no header copy about a new rule (gate 4 pick). (S15)
+
+#### Scenario: No rules shows the empty copy
+- **WHEN** no recurring rule exists and `/recurring` is opened
+- **THEN** it reads the heading "No recurring rules yet" and offers adding a rule
+- **proof:** e2e
+
+#### Scenario: Class field only for the Uni aspect
+- **WHEN** Rue opens the rule form with the aspect Health, then switches the aspect to the Uni aspect
+- **THEN** no Class field is shown for Health, and a Class field appears for Uni
+- **proof:** e2e
+
+#### Scenario: Long checklist template stays usable
+- **WHEN** a rule with a 25-item checklist template of 120-character items is edited at 375 px
+- **THEN** every item can be reached and edited, save stays reachable, and the page does not scroll horizontally
+- **proof:** e2e
+
+#### Scenario: Rules sit in two columns from 1280
+- **WHEN** four rules exist and `/recurring` is opened at 1280 px and at 1100 px
+- **THEN** at 1280 px the first two rules share one top edge, and at 1100 px every rule starts below the previous one
 - **proof:** e2e
 

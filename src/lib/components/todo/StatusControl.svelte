@@ -4,93 +4,106 @@
 	export const STATUS_LABELS: Record<Status, string> = { todo: 'To do', doing: 'Doing', done: 'Done' };
 </script>
 
+<!--
+	A sprint row's status as a glyph (empty ring To do, half disc Doing, filled disc with a check Done) that opens the status menu on the
+	menu primitive; its name is "Status: <label>". The glyph changes at once, the post follows. `small` is the week chip's glyph.
+-->
 <script lang="ts">
-	import { enhance } from '$app/forms';
-	import type { Id } from '$lib/types';
-	import { submit } from './form';
+	import type { Id, IsoDate } from '$lib/types';
+	import type { MenuItem } from '../menu/Menu.svelte';
+	import PopMenu from '../menu/PopMenu.svelte';
+	import { UI_ICONS } from '../ui/icons';
+	import { dayItems, runItem, statusItems } from './DayPicker.svelte';
 
-	let { todoId, status }: { todoId: Id; status: Status } = $props();
+	// With `sprintDays` the menu also holds the Day group and the way back to the backlog (a week chip has no "More actions").
+	let {
+		todoId,
+		status,
+		small = false,
+		day = null,
+		sprintDays,
+		recurring = false,
+		onremove = () => {},
+		onerror = () => {}
+	}: {
+		todoId: Id;
+		status: Status;
+		small?: boolean;
+		day?: IsoDate | null;
+		sprintDays?: IsoDate[];
+		recurring?: boolean;
+		onremove?: () => void;
+		onerror?: (message: string) => void;
+	} = $props();
+
+	let pending = $state<Status | null>(null);
+	$effect(() => {
+		void status;
+		pending = null;
+	});
+	const shown = $derived(pending ?? status);
+
+	const items = $derived([...statusItems(shown, false).map((i, n) => ({ ...i, group: n === 0 ? 'Status' : undefined })), ...(sprintDays ? dayItems(day, sprintDays, recurring) : [])]);
+
+	function choose(item: MenuItem) {
+		if (item.value?.startsWith('status:')) {
+			const value = item.value.slice(7) as Status;
+			if (value === shown) return;
+			pending = value;
+			runItem(todoId, item, { onremove, onerror: (m) => ((pending = null), onerror(m)) });
+		} else runItem(todoId, item, { onremove, onerror });
+	}
 </script>
 
-<form method="POST" action="/todos?/setStatus" use:enhance={submit()}>
-	<input type="hidden" name="id" value={todoId} />
-	<!-- The glyph shows the status; the native select lies over it, invisible, so it keeps the platform
-	     menu on touch and the name "Status: Doing" for everyone else. -->
-	<label class="glyph" data-status={status} title="Status: {STATUS_LABELS[status]}">
-		<svg viewBox="0 0 16 16" aria-hidden="true">
-			{#if status === 'done'}
-				<circle cx="8" cy="8" r="7" class="fill" /><path d="m5 8.2 2 2 4-4.2" class="tick" />
-			{:else}
-				<circle cx="8" cy="8" r="6" class="ring" />
-				{#if status === 'doing'}<path d="M8 4a4 4 0 0 1 0 8Z" class="fill" />{/if}
-			{/if}
-		</svg>
-		<span class="visually-hidden">Status: {STATUS_LABELS[status]}</span>
-		<select name="status" value={status} onchange={(e) => e.currentTarget.form?.requestSubmit()}>
-			{#each Object.entries(STATUS_LABELS) as [value, label] (value)}
-				<option {value}>{label}</option>
-			{/each}
-		</select>
-	</label>
-</form>
+<PopMenu name={sprintDays ? 'Status and day' : 'Status'} {items} radio onselect={choose}>
+	{#snippet trigger(attrs)}
+		<button type="button" class="glyph" class:small data-press="round" data-status={shown} aria-label="Status: {STATUS_LABELS[shown]}" {...attrs}>
+			<span>
+				{#if shown === 'done'}
+					<svg viewBox="0 0 24 24" width={small ? 12 : 14} height={small ? 12 : 14} fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={UI_ICONS.check} /></svg>
+				{/if}
+			</span>
+		</button>
+	{/snippet}
+</PopMenu>
 
 <style>
 	.glyph {
-		position: relative;
 		display: grid;
 		place-items: center;
-		width: 24px;
-		height: 24px;
-		border-radius: 6px;
-		color: var(--ink-3);
+		flex: none;
+		inline-size: max(var(--control-height), var(--target));
+		block-size: max(var(--control-height), var(--target));
+		padding: 0;
+		border: 0;
+		border-radius: var(--radius-round);
+		background: none;
+		color: var(--ink);
 	}
-
-	.glyph:hover {
-		background: var(--sunk);
-		color: var(--ink-2);
+	.glyph > span {
+		display: grid;
+		place-items: center;
+		inline-size: var(--space-6);
+		block-size: var(--space-6);
+		border-radius: var(--radius-round);
+		box-shadow: var(--ring-control);
+		background: var(--surface-raised);
 	}
-
-	.glyph:focus-within {
-		box-shadow: var(--ring-focus);
+	/* Doing is a half-filled disc: a shape between the empty ring and the filled Done, never a tint alone. */
+	.glyph[data-status='doing'] > span {
+		background: linear-gradient(90deg, var(--ink) 50%, var(--surface-raised) 50%);
 	}
-
-	[data-status='doing'] {
-		color: var(--accent);
+	.glyph[data-status='done'] > span {
+		background: var(--surface-inverse);
+		box-shadow: none;
+		color: var(--ink-on-inverse);
 	}
-
-	[data-status='done'] {
-		color: var(--line-strong);
+	.glyph.small {
+		inline-size: max(var(--space-7), var(--target));
+		block-size: max(var(--space-7), var(--target));
 	}
-
-	svg {
-		width: 16px;
-		height: 16px;
-	}
-
-	.ring {
-		fill: none;
-		stroke: currentColor;
-		stroke-width: 1.75;
-	}
-
-	.fill {
-		fill: currentColor;
-	}
-
-	.tick {
-		fill: none;
-		stroke: var(--surface);
-		stroke-width: 1.75;
-		stroke-linecap: round;
-		stroke-linejoin: round;
-	}
-
-	select {
-		position: absolute;
-		inset: 0;
-		width: 100%;
-		height: 100%;
-		opacity: 0;
-		cursor: pointer;
+	.glyph.small > span {
+		inline-size: var(--space-5);
+		block-size: var(--space-5);
 	}
 </style>

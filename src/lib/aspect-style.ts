@@ -1,15 +1,24 @@
-// Aspect palette, icon set and first-run presets. Colours resolve to tokens in
-// src/lib/styles/tokens.css; rationale in design/brief.md.
+// Aspect palette, icon set and first-run presets. Colours are the fingerprint's --aspect-<name>
+// tokens (src/lib/styles/fingerprint/tokens.css); the fingerprint has no tints, so tint (chip
+// fill) and bright (a mark on a light surface) mix the token into the raised surface.
+
+const aspect = (label: string, key: string) =>
+	({
+		label,
+		fg: `var(--aspect-${key})`,
+		tint: `color-mix(in oklab, var(--aspect-${key}) 16%, var(--surface-raised))`,
+		bright: `color-mix(in oklab, var(--aspect-${key}) 55%, var(--surface-raised))`
+	}) as const;
 
 export const ASPECT_COLORS = {
-	sage: { label: 'Sage', fg: 'var(--aspect-sage)', tint: 'var(--aspect-sage-tint)', bright: 'var(--aspect-sage-bright)' },
-	sky: { label: 'Sky', fg: 'var(--aspect-sky)', tint: 'var(--aspect-sky-tint)', bright: 'var(--aspect-sky-bright)' },
-	lavender: { label: 'Lavender', fg: 'var(--aspect-lavender)', tint: 'var(--aspect-lavender-tint)', bright: 'var(--aspect-lavender-bright)' },
-	ochre: { label: 'Ochre', fg: 'var(--aspect-ochre)', tint: 'var(--aspect-ochre-tint)', bright: 'var(--aspect-ochre-bright)' },
-	berry: { label: 'Berry', fg: 'var(--aspect-berry)', tint: 'var(--aspect-berry-tint)', bright: 'var(--aspect-berry-bright)' },
-	lagoon: { label: 'Lagoon', fg: 'var(--aspect-lagoon)', tint: 'var(--aspect-lagoon-tint)', bright: 'var(--aspect-lagoon-bright)' },
-	tangerine: { label: 'Tangerine', fg: 'var(--aspect-tangerine)', tint: 'var(--aspect-tangerine-tint)', bright: 'var(--aspect-tangerine-bright)' },
-	slate: { label: 'Slate', fg: 'var(--aspect-slate)', tint: 'var(--aspect-slate-tint)', bright: 'var(--aspect-slate-bright)' }
+	sage: aspect('Sage', 'sage'),
+	sky: aspect('Sky', 'sky'),
+	lavender: aspect('Lavender', 'lavender'),
+	ochre: aspect('Ochre', 'ochre'),
+	berry: aspect('Berry', 'berry'),
+	lagoon: aspect('Lagoon', 'lagoon'),
+	tangerine: aspect('Tangerine', 'tangerine'),
+	slate: aspect('Slate', 'slate')
 } as const;
 
 export type AspectColor = keyof typeof ASPECT_COLORS;

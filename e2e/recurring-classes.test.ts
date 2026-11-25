@@ -33,13 +33,13 @@ test('Scenario: Rule with a class generates linked instances', async ({ page }) 
 	await form.getByLabel('Title').fill('Exercise sheet');
 	await form.getByRole('radio', { name: 'Uni' }).check();
 	await form.getByLabel('Class').selectOption({ label: 'Analysis' });
-	await form.getByRole('group', { name: 'Type' }).getByRole('radio', { name: 'EXC' }).check();
+	await form.getByLabel('Type').selectOption('EXC');
 	await form.getByRole('checkbox', { name: 'Tuesday' }).check();
 	await form.getByRole('button', { name: 'Add rule' }).click();
 	await expect(form).toBeHidden();
 
 	const rule = ruleRow(page, 'Exercise sheet');
-	await expect(rule.getByText('Analysis · EXC', { exact: true })).toBeVisible();
+	await expect(rule.locator('.hr-facts').first()).toHaveText(/^Uni\s*Analysis\s*EXC$/);
 
 	await page.goto('/sprint/plan');
 	await page.getByRole('button', { name: 'Start sprint' }).click();
@@ -55,11 +55,11 @@ test('Scenario: Rule class fields appear only for the Uni aspect', async ({ page
 	const form = page.getByRole('dialog', { name: 'New rule' });
 	await expect(form.getByRole('radio', { name: 'Health' })).toBeChecked();
 	await expect(form.getByLabel('Class')).toHaveCount(0);
-	await expect(form.getByRole('group', { name: 'Type' })).toHaveCount(0);
+	await expect(form.getByLabel('Type')).toHaveCount(0);
 
 	await form.getByRole('radio', { name: 'Uni' }).check();
 	await expect(form.getByLabel('Class')).toBeVisible();
-	await expect(form.getByRole('group', { name: 'Type' })).toBeVisible();
+	await expect(form.getByLabel('Type')).toBeVisible();
 });
 
 test('Scenario: Editing a rule of an archived class keeps its class', async ({ page, request }) => {
@@ -83,5 +83,5 @@ test('Scenario: Editing a rule of an archived class keeps its class', async ({ p
 
 	await page.reload();
 	const rule = ruleRow(page, 'Stats recap');
-	await expect(rule.getByText('Statistics · LEC', { exact: true })).toBeVisible();
+	await expect(rule.locator('.hr-facts').first()).toHaveText(/^Uni\s*Statistics\s*LEC$/);
 });

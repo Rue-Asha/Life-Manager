@@ -4,11 +4,13 @@ import {
 	backlogRail as rail,
 	boardColumn,
 	contextRail,
+	manageButton,
 	railGroup,
-	railToggle,
+	railTab,
 	sprintList,
 	sprintPrompt
 } from './sprint-locators';
+import { statusOf } from './row-locators';
 
 // Wednesday 7 October 2026 in Berlin; the active sprint runs Monday 5 to Sunday 11 October.
 const NOW = '2026-10-07T10:00:00Z';
@@ -33,7 +35,9 @@ const ASPECTS: SeedInput['aspects'] = [
 
 const row = todoRow;
 
-const iconColor = (scope: Locator) => scope.getByRole('heading').locator('svg').nth(1).evaluate((svg) => getComputedStyle(svg).color);
+// The aspect's colour as the sprint group's icon tile and the rail group's dot show it.
+const tileColor = (scope: Locator) => scope.locator('.nav-tile').evaluate((el) => getComputedStyle(el).backgroundColor);
+const dotColor = (scope: Locator) => scope.locator('.hs-asp').evaluate((el) => getComputedStyle(el).backgroundColor);
 
 async function seedRunning(request: Parameters<typeof seed>[0], todos: SeedInput['todos']) {
 	return seed(request, { aspects: ASPECTS, sprint: { state: 'active', weekStart: WEEK }, todos });
@@ -63,9 +67,7 @@ test('Scenario: Sprint tab shows the backlog rail grouped by aspect', async ({ p
 	await expect(sprintGroups).toHaveCount(2);
 	for (const [i, { name }] of ASPECTS!.entries()) {
 		await expect(sprintGroups.nth(i)).toHaveAccessibleName(new RegExp(`^${name}\\b`));
-		const sprintColor = await aspectGroup(sprintList(page), name).getByRole('heading').locator('svg').first()
-			.evaluate((svg) => getComputedStyle(svg).color);
-		expect(await iconColor(railGroup(page, name))).toBe(sprintColor);
+		expect(await dotColor(railGroup(page, name))).toBe(await tileColor(aspectGroup(sprintList(page), name)));
 	}
 });
 
@@ -121,77 +123,25 @@ test('Scenario: No rail while the review is required', async ({ page, request })
 
 test('Scenario: Sprint at 1280 shows a context rail', async ({ page, request }) => {
 	await seedRunning(request, [{ title: 'Morning run', inSprint: true }, { title: 'Book a physio appointment' }]);
-	const context = contextRail(page);
-	const sidebarRight = () =>
-		page.evaluate(() => document.querySelector('main')!.previousElementSibling!.getBoundingClientRect().right);
 
-	async function expectDockedRail() {
-		await expect(context).toBeVisible();
-		await expect(railToggle(page)).toBeHidden();
-		const box = (await context.boundingBox())!;
-		const width = await page.evaluate(() => document.documentElement.clientWidth);
-		expect(Math.abs(box.x + box.width - width)).toBeLessThanOrEqual(1);
-		const [background, surface, edge] = await context.evaluate((el) => {
-			const probe = document.createElement('div');
-			probe.style.background = 'var(--surface)';
-			document.body.append(probe);
-			const value = getComputedStyle(probe).backgroundColor;
-			probe.remove();
-			return [getComputedStyle(el).backgroundColor, value, getComputedStyle(el).borderLeftWidth];
-		});
-		expect(background).toBe(surface);
-		expect(edge).toBe('1px');
-		return box;
-	}
-
-	// At 1280 the track between sidebar and rail is narrower than the list cap, so only 1600 can tell a
-	// centred, capped column from a filled one.
+	// By aspect and Board keep the rail docked at the right of the content, with no fold control and no Manage.
 	for (const width of [1280, 1600]) {
 		await page.setViewportSize({ width, height: 800 });
-		await page.goto('/sprint?view=aspect');
-		const box = await expectDockedRail();
-		const list = (await sprintList(page).boundingBox())!;
-		expect(list.width).toBeLessThanOrEqual(720);
-		const free = ((await sidebarRight()) + box.x) / 2;
-		expect(Math.abs(list.x + list.width / 2 - free), `list off-centre at ${width}`).toBeLessThanOrEqual(2);
-		expect(list.x + list.width).toBeLessThanOrEqual(box.x);
-
-		await page.goto('/sprint?view=board');
-		await page.waitForFunction(() => !document.documentElement.matches(':active-view-transition'));
-		const boardRail = await expectDockedRail();
-		const todo = (await boardColumn(page, 'todo').boundingBox())!;
-		const done = (await boardColumn(page, 'done').boundingBox())!;
-		expect(todo.x - (await sidebarRight()), `board starts late at ${width}`).toBeLessThanOrEqual(64);
-		expect(done.x + done.width).toBeLessThanOrEqual(boardRail.x);
-		expect(boardRail.x - (done.x + done.width), `board stops short of the rail at ${width}`).toBeLessThanOrEqual(64);
+		for (const view of ['aspect', 'board']) {
+			await page.goto(`/sprint?view=${view}`);
+			await page.waitForFunction(() => !document.documentElement.matches(':active-view-transition'));
+			const context = contextRail(page);
+			await expect(context).toBeVisible();
+			await expect(context).toHaveCSS('position', 'sticky');
+			await expect(railTab(page)).toHaveCount(0);
+			await expect(manageButton(page)).toBeHidden();
+			const rail = (await context.boundingBox())!;
+			const content = (await (view === 'aspect' ? sprintList(page) : boardColumn(page, 'done')).boundingBox())!;
+			expect(content.x + content.width, `${view} overlaps the rail at ${width}`).toBeLessThanOrEqual(rail.x);
+			expect(rail.x - (content.x + content.width), `${view} stops short of the rail at ${width}`).toBeLessThanOrEqual(64);
+			expect(rail.x + rail.width).toBeLessThanOrEqual(width);
+		}
 	}
-});
-
-test('Scenario: Rail becomes an overlay toggle below 1280', async ({ page, request }) => {
-	await page.setViewportSize({ width: 1100, height: 800 });
-	await seedRunning(request, [{ title: 'Morning run', inSprint: true }, { title: 'Book a physio appointment' }]);
-	await page.goto('/sprint');
-
-	const context = contextRail(page);
-	const toggle = railToggle(page);
-	await expect(context).toBeHidden();
-	await expect(toggle).toBeVisible();
-
-	await toggle.click();
-	await expect(context).toBeVisible();
-	await expect(row(rail(page), 'Book a physio appointment')).toBeVisible();
-	await expect(context).toHaveCSS('transform', 'none');
-	expect(await page.evaluate(() => document.querySelector('dialog[open]'))).toBeNull();
-	// Content stays usable while the overlay is open: no scrim covers it.
-	await expect(row(sprintList(page), 'Morning run')).toBeVisible();
-	const hit = await sprintList(page).evaluate((el) => {
-		const r = el.getBoundingClientRect();
-		return el.contains(document.elementFromPoint(r.left + 10, r.top + 10));
-	});
-	expect(hit).toBe(true);
-
-	await toggle.click();
-	await expect(context).toBeHidden();
 });
 
 test('Scenario: Rail title filter narrows the list', async ({ page, request }) => {
@@ -224,7 +174,7 @@ test('Scenario: Empty backlog shows the rail\'s empty state', async ({ page, req
 	await seedRunning(request, [{ title: 'Morning run', inSprint: true }]);
 	await page.goto('/sprint');
 
-	await expect(rail(page)).toContainText('The backlog is empty.');
+	await expect(rail(page)).toContainText('The backlog is empty');
 	await expect(rail(page).getByRole('link')).toHaveAttribute('href', '/backlog');
 	await expect(page.getByRole('searchbox', { name: 'Filter backlog' })).toHaveCount(0);
 });
@@ -257,13 +207,13 @@ test('Scenario: Add to sprint from the rail', async ({ page, request }) => {
 	await page.getByRole('button', { name: 'Add to sprint: Book a physio appointment' }).click();
 	await expect(row(rail(page), 'Book a physio appointment')).toHaveCount(0);
 	const added = row(sprintList(page), 'Book a physio appointment');
-	await expect(added.getByLabel('Status')).toHaveValue('todo');
+	await expect(statusOf(added, 'To do')).toBeVisible();
 	await expect(added).toHaveAttribute('data-day', '');
 	await expect(page).toHaveURL(/\/sprint$/);
 	expect(await page.evaluate(() => (window as unknown as { __stay?: boolean }).__stay)).toBe(true);
 
 	await page.reload();
-	await expect(row(sprintList(page), 'Book a physio appointment').getByLabel('Status')).toHaveValue('todo');
+	await expect(statusOf(row(sprintList(page), 'Book a physio appointment'), 'To do')).toBeVisible();
 	await expect(row(rail(page), 'Book a physio appointment')).toHaveCount(0);
 });
 
@@ -275,7 +225,7 @@ test('Scenario: Drag a rail todo onto the sprint list', async ({ page, request }
 	await expect(row(sprintList(page), 'Book a physio appointment')).toBeVisible();
 
 	await page.reload();
-	await expect(row(sprintList(page), 'Book a physio appointment').getByLabel('Status')).toHaveValue('todo');
+	await expect(statusOf(row(sprintList(page), 'Book a physio appointment'), 'To do')).toBeVisible();
 	await expect(row(rail(page), 'Book a physio appointment')).toHaveCount(0);
 });
 
@@ -300,6 +250,8 @@ test('Scenario: Drag a sprint todo onto the rail', async ({ page, request }) => 
 		{ title: 'Morning run', inSprint: true },
 		{ title: 'Book a physio appointment', inSprint: true, status: 'doing', day: '2026-10-08' }
 	]);
+	// Tall enough to see the list and the rail together: a drag that has to scroll mid-press does not start.
+	await page.setViewportSize({ width: 1280, height: 1100 });
 	await page.goto('/sprint');
 
 	await row(sprintList(page), 'Book a physio appointment').dragTo(rail(page), { sourcePosition: { x: 8, y: 8 } });
@@ -319,18 +271,23 @@ test('Scenario: Group header shows done of total', async ({ page, request }) => 
 	]);
 	await page.goto('/sprint');
 
-	const header = aspectGroup(sprintList(page), 'Health').getByRole('heading');
-	const progress = header.getByText('1 / 3', { exact: true });
-	await expect(progress).toBeVisible();
-	const bar = await progress.evaluate((count) => {
-		const [track, fill] = [count.nextElementSibling!, count.nextElementSibling!.firstElementChild!];
-		return {
-			ratio: fill.getBoundingClientRect().width / track.getBoundingClientRect().width,
-			color: getComputedStyle(fill).backgroundColor
-		};
+	// The signed header names the count only ("1 / 3"), with the aspect's colour on its icon tile; there is no bar.
+	const group = aspectGroup(sprintList(page), 'Health');
+	const header = group.locator('.hs-group-head');
+	await expect(header).toHaveText(/^\s*Health\s*Done\s*1 \/ 3\s*$/);
+	const tile = header.locator('.nav-tile');
+	await expect(tile).toHaveAttribute('data-color', 'sage');
+	const sage = await page.evaluate(() => {
+		const probe = document.createElement('span');
+		probe.style.background = 'var(--aspect-sage)';
+		document.body.append(probe);
+		const value = getComputedStyle(probe).backgroundColor;
+		probe.remove();
+		return value;
 	});
-	expect(bar.ratio).toBeCloseTo(1 / 3, 1);
-	expect(bar.color).toBe(await header.locator('svg').first().evaluate((svg) => getComputedStyle(svg).color));
+	await expect(tile).toHaveCSS('background-color', sage);
+	await expect(group.getByRole('progressbar')).toHaveCount(0);
+	await expect(group.locator('progress, meter')).toHaveCount(0);
 });
 
 test('Scenario: Rail header shows backlog count and progress', async ({ page, request }) => {
@@ -344,7 +301,7 @@ test('Scenario: Rail header shows backlog count and progress', async ({ page, re
 
 	const header = railGroup(page, 'Health').getByRole('heading');
 	await expect(header.getByLabel('2 in backlog')).toHaveText('2');
-	await expect(header.getByText('1 / 2', { exact: true })).toBeVisible();
+	await expect(header.getByText('1 / 2')).toBeVisible();
 });
 
 test('Scenario: Aspect without sprint todos shows only in the rail', async ({ page, request }) => {
@@ -373,15 +330,18 @@ test('Scenario: Aspect without backlog todos is omitted from the rail', async ({
 });
 
 test('Scenario: Phone Sprint tab shows Manage instead of a rail', async ({ page, request }) => {
-	await page.setViewportSize({ width: 375, height: 812 });
 	await seedRunning(request, [{ title: 'Morning run', inSprint: true }, { title: 'Book a physio appointment' }]);
-	await page.goto('/sprint');
 
-	await expect(page.getByRole('button', { name: 'Manage', exact: true })).toBeVisible();
-	await expect(page.getByRole('button', { name: 'Manage', exact: true })).toHaveText('Manage');
-	await expect(contextRail(page)).toBeHidden();
-	await expect(railToggle(page)).toBeHidden();
-	await expect(rail(page).getByRole('listitem', { name: 'Book a physio appointment', includeHidden: true })).toBeHidden();
+	for (const width of [375, 1100]) {
+		await page.setViewportSize({ width, height: 812 });
+		await page.goto('/sprint');
+
+		await expect(page.getByRole('button', { name: 'Manage', exact: true })).toBeVisible();
+		await expect(page.getByRole('button', { name: 'Manage', exact: true })).toHaveText('Manage');
+		await expect(contextRail(page)).toBeHidden();
+		await expect(railTab(page)).toBeHidden();
+		await expect(rail(page).getByRole('listitem', { name: 'Book a physio appointment', includeHidden: true })).toBeHidden();
+	}
 });
 
 test('Manage is not offered beside a docked rail', async ({ page, request }) => {
@@ -412,7 +372,7 @@ test.describe('touch phone', () => {
 		await expect(row(sheet, 'Book a physio appointment')).toHaveCount(0);
 		await expect(row(sheet, 'Email the tutor')).toBeVisible();
 		await page.getByRole('button', { name: 'Close' }).tap();
-		await expect(row(sprintList(page), 'Book a physio appointment').getByLabel('Status')).toHaveValue('todo');
+		await expect(statusOf(row(sprintList(page), 'Book a physio appointment'), 'To do')).toBeVisible();
 
 		await page.reload();
 		await expect(row(sprintList(page), 'Book a physio appointment')).toBeVisible();
@@ -427,7 +387,7 @@ test.describe('touch phone', () => {
 		await page.goto('/sprint');
 		await page.getByRole('button', { name: 'Manage', exact: true }).tap();
 
-		const items = page.getByRole('dialog', { name: 'Backlog' }).getByRole('presentation');
+		const items = page.getByRole('dialog', { name: 'Backlog' }).getByRole('listitem');
 		await expect(items).toHaveCount(2);
 		for (const item of await items.all()) {
 			await expect(item).not.toHaveAttribute('draggable', 'true');
@@ -501,5 +461,5 @@ test('Scenario: Reduced motion moves instantly', async ({ page, request }) => {
 	await page.waitForTimeout(300);
 	expect((await motion(page)).max).toBe(0);
 	await page.reload();
-	await expect(row(boardColumn(page, 'doing'), 'Morning run').getByLabel('Status')).toHaveValue('doing');
+	await expect(statusOf(row(boardColumn(page, 'doing'), 'Morning run'), 'Doing')).toBeVisible();
 });

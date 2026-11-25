@@ -146,23 +146,31 @@ test('Scenario: Row shows status as a glyph with its name', async ({ page, reque
 	await expect(first.getByLabel('Status: To do')).toBeVisible();
 	await expect(row(list, 'Stretch for ten minutes').getByLabel('Status: Doing')).toBeVisible();
 	for (const title of ['Book a physio appointment', 'Stretch for ten minutes']) {
-		await expect(row(list, title).getByLabel('Pick a day')).toBeVisible();
-		// Visible text only: the native selects keep their option names for assistive tech and the menu.
+		await expect(row(list, title).getByRole('button', { name: 'More actions' })).toBeVisible();
+		await expect(row(list, title).getByRole('button', { name: 'Pick a day' })).toHaveCount(0);
+		// "Unscheduled" may read as meta text; the status word never does.
 		const visible = await row(list, title).evaluate((el) => {
 			const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
 			const parts: string[] = [];
 			for (let n = walker.nextNode(); n; n = walker.nextNode()) {
 				const parent = n.parentElement!;
-				if (parent.closest('select, .visually-hidden')) continue;
+				if (parent.closest('[popover], .visually-hidden')) continue;
 				if (parent.checkVisibility({ opacityProperty: true, visibilityProperty: true })) parts.push(n.textContent!);
 			}
 			return parts.join(' ');
 		});
-		expect(visible).not.toMatch(/To do|Unscheduled/);
+		expect(visible).not.toMatch(/To do/);
 	}
 
-	await first.getByLabel('Status: To do').selectOption({ label: 'Doing' });
-	await expect(first).toContainText('Status: Doing');
+	await first.getByRole('button', { name: 'More actions' }).click();
+	const day = page.getByRole('menu', { name: 'More actions' });
+	await expect(day.getByRole('menuitemradio', { name: 'Unscheduled' })).toHaveAttribute('aria-checked', 'true');
+	await expect(day.getByRole('menuitemradio')).toHaveCount(8);
+	await page.keyboard.press('Escape');
+
+	await first.getByLabel('Status: To do').click();
+	await page.getByRole('menu', { name: 'Status' }).getByRole('menuitemradio', { name: 'Doing' }).click();
+	await expect(first.getByLabel('Status: Doing')).toBeVisible();
 	await page.reload();
-	await expect(row(list, 'Book a physio appointment')).toContainText('Status: Doing');
+	await expect(row(list, 'Book a physio appointment').getByLabel('Status: Doing')).toBeVisible();
 });

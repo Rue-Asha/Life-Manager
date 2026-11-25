@@ -1,0 +1,102 @@
+/* Calendar on the fingerprint, lifted from hifi/calendar/calendar.css (gate 5). The rows are the list-row look scoped to the day list. Marks differ by shape, never by colour alone. */
+.hc-body { align-content: start; }
+/* seven 44 px columns: below 768 px the month card (and the day list with it, so the edges line up) reaches out to 4 px from the frame edge */
+@media (max-width: 767px) {
+	.screen-body > .card.hc-month { padding-inline: var(--space-1); margin-inline: calc(var(--space-1) - var(--pad-inline)); }
+	.screen-body > .hc-side { margin-inline: calc(var(--space-1) - var(--pad-inline)); }
+}
+.hc-month { display: grid; gap: var(--space-3); padding: var(--space-5) var(--space-1); min-inline-size: 0; }
+.hc-nav { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-3); padding-inline: var(--space-1); }
+.hc-nav h2 { font-family: var(--font-display); font-weight: var(--weight-display); font-size: var(--type-display-s-size); line-height: var(--type-display-s-line); letter-spacing: var(--type-display-s-tracking); }
+.hc-nav-links { display: flex; align-items: center; gap: var(--space-1); }
+.hc-flip { display: grid; transform: scaleX(-1); }
+.hc-grid { display: grid; gap: var(--space-1); min-inline-size: 0; }
+.hc-heads, .hc-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--space-0-5); }
+.hc-heads span { padding-block: var(--space-1); text-align: center; font-size: var(--type-overline-size); line-height: var(--type-overline-line); letter-spacing: var(--type-overline-tracking); font-weight: var(--type-overline-weight); text-transform: uppercase; color: var(--ink-secondary); }
+.hc-weeks { display: grid; gap: var(--space-1); }
+.hc-cell {
+	position: relative;
+	display: grid;
+	grid-template-rows: auto 1fr;
+	justify-items: center;
+	gap: var(--space-1);
+	min-inline-size: 0;
+	min-block-size: var(--space-16);
+	padding: var(--space-1-5) var(--space-0-5) var(--space-6);
+	border: 0;
+	border-radius: var(--radius-item);
+	background: var(--surface-sunken);
+	color: var(--ink);
+	font-family: var(--font-ui);
+	text-align: center;
+}
+.hc-cell:disabled { background: none; color: var(--ink-muted); cursor: default; }
+.hc-cell[aria-current="date"] { outline: var(--stroke-strong) solid var(--ink); outline-offset: calc(-1 * var(--stroke-strong)); }
+.hc-cell[aria-pressed="true"] { background: var(--surface-inverse); color: var(--ink-on-inverse); }
+.hc-cell[aria-pressed="true"][aria-current="date"] { outline-color: var(--ink-on-inverse); }
+.hc-num { font-size: var(--type-body-s-size); line-height: var(--type-body-s-line); font-weight: var(--weight-semibold); font-variant-numeric: var(--numeric-figures); }
+.hc-marks { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--space-0-5) var(--space-1); }
+.hc-titles { display: none; }
+.hc-mark { display: inline-block; flex: none; inline-size: var(--space-1-5); block-size: var(--space-1-5); border-radius: var(--radius-round); background: currentColor; }
+.hc-mark[data-kind="projection"] { box-sizing: border-box; background: none; border: var(--stroke-rule) solid currentColor; }
+/* three shapes, never colour: planned a filled dot, projected a ring, exam a diamond */
+.hc-mark[data-kind="exam"] { border-radius: 0; rotate: 45deg; scale: 0.85; }
+.hc-more { font-size: var(--type-caption-size); font-weight: var(--weight-semibold); line-height: 1; }
+.hc-due { position: absolute; inset-block-end: var(--space-1); inset-inline: 0; justify-self: center; inline-size: max-content; margin-inline: auto; display: inline-flex; align-items: baseline; gap: var(--space-0-5); padding: 0 var(--space-1); border-radius: var(--radius-pill); background: var(--surface-tint-strong); color: var(--ink); font-size: var(--type-overline-size); line-height: var(--space-4); font-weight: var(--weight-bold); font-variant-numeric: var(--numeric-figures); }
+.hc-cell[aria-pressed="true"] .hc-due { background: var(--surface-inverse-tint-strong); color: var(--ink-on-inverse); }
+.hc-due-word { display: none; }
+.hc-key { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); margin: 0; padding: var(--space-1) var(--space-2) 0; list-style: none; font-size: var(--type-caption-size); color: var(--ink-secondary); }
+.hc-key li { display: inline-flex; align-items: center; gap: var(--space-1-5); }
+.hc-side { min-inline-size: 0; }
+.hc-list { display: grid; gap: var(--space-3); padding: var(--space-4); align-content: start; }
+.hc-sub { margin: 0 0 var(--space-1); font-size: var(--type-overline-size); line-height: var(--type-overline-line); letter-spacing: var(--type-overline-tracking); font-weight: var(--type-overline-weight); text-transform: uppercase; color: var(--ink-secondary); }
+.hc-entries, .hc-due-group { display: grid; gap: var(--space-1-5); }
+.hc-entry .title { overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.hc-done { color: var(--ink-secondary); }
+.hc-tick { display: grid; place-items: center; inline-size: var(--space-5); block-size: var(--space-5); border-radius: var(--radius-round); box-shadow: var(--ring-control); background: var(--surface-raised); }
+.hc-tick[data-on] { background: var(--surface-inverse); color: var(--ink-on-inverse); box-shadow: none; }
+.hc-tag { justify-self: start; inline-size: fit-content; padding: 0 var(--space-2); border-radius: var(--radius-pill); background: var(--surface-tint); font-size: var(--type-overline-size); line-height: var(--space-5); letter-spacing: var(--type-overline-tracking); font-weight: var(--weight-bold); text-transform: uppercase; }
+.hc-tag[data-kind="exam"] { background: var(--surface-inverse); color: var(--ink-on-inverse); }
+.hc-list .row .main { align-items: center; }
+.hc-list .row .meta { font-variant-numeric: var(--numeric-figures); }
+
+@media (min-width: 768px) {
+	.hc-month { padding: var(--space-5); }
+	.hc-heads, .hc-week { gap: var(--space-1); }
+	/* equal cell heights whatever a day holds: the title list clips, "+N more" stands for the rest; the due badge shares the number's row instead of sitting over it */
+	.hc-cell { grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); min-block-size: 0; block-size: calc(var(--space-16) + var(--space-8)); justify-items: stretch; text-align: start; padding: var(--space-2); gap: var(--space-1) var(--space-2); overflow: hidden; }
+	.hc-num { justify-self: start; }
+	.hc-due { position: static; inset: auto; inline-size: auto; margin: 0; grid-column: 2; grid-row: 1; justify-self: end; align-self: center; }
+	.hc-marks { display: none; }
+	.hc-titles { display: grid; grid-column: 1 / -1; align-content: start; gap: var(--space-0-5); min-inline-size: 0; overflow: hidden; }
+	.hc-t { display: flex; align-items: center; gap: var(--space-1); min-inline-size: 0; font-size: var(--type-caption-size); line-height: var(--type-caption-line); }
+	.hc-t > span { min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.hc-t[data-done] > span { color: var(--ink-secondary); }
+	.hc-cell:disabled .hc-titles { display: none; }
+	.hc-due-word { display: inline; }
+}
+@media (min-width: 1024px) {
+	.hc-body { grid-template-columns: minmax(0, 1fr) 22rem; align-items: start; }
+	.hc-cell { block-size: calc(var(--space-16) + var(--space-8)); }
+	/* the day card stays solid with its date on top; only the entries scroll inside it, fading at the edge they continue past */
+	/* the day card never runs past the month card: the column takes the month's height (its own content doesn't size the row) and the card fits inside it */
+	.hc-side { position: sticky; inset-block-start: calc(var(--bar-h) + var(--space-4)); align-self: stretch; contain: size; display: grid; grid-template-rows: fit-content(100%); max-block-size: calc(100dvh - var(--bar-h) - var(--space-8)); }
+	.hc-side > .hc-list { grid-template-rows: auto minmax(0, 1fr) auto; min-block-size: 0; overflow: hidden; }
+	.hc-scroll { min-block-size: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--edge-control) transparent; padding-inline-end: var(--space-1); }
+}
+.hc-scroll { display: grid; gap: var(--space-3); align-content: start; min-inline-size: 0; }
+.hc-key-due { display: inline-grid; place-items: center; min-inline-size: var(--space-4); padding: 0 var(--space-1); border-radius: var(--radius-pill); background: var(--surface-tint-strong); color: var(--ink); font-size: var(--type-overline-size); line-height: var(--space-4); font-weight: var(--weight-bold); }
+
+/* The day list's rows: the list-row primitive's look, scoped to this card */
+.hc-list .row { container: row / inline-size; display: flex; align-items: center; gap: var(--space-1); min-block-size: max(var(--control-height), var(--target)); border-radius: var(--radius-panel); background: var(--surface-glass-strong); box-shadow: var(--shadow-rim); color: var(--ink); }
+.hc-list .main { flex: 1; display: flex; align-items: center; gap: var(--space-3); min-inline-size: 0; align-self: stretch; padding: var(--space-3) var(--space-4); border: 0; border-radius: inherit; background: none; color: inherit; font: inherit; text-align: start; text-decoration: none; }
+.hc-list .interactive .main { cursor: pointer; }
+@media (hover: hover) { .hc-list .interactive:has(.main:hover) { background: var(--surface-hover); } }
+.hc-list .leading { display: grid; place-items: center; flex: none; }
+.hc-list .text { display: grid; gap: var(--space-0-5); flex: 1; min-inline-size: 0; }
+.hc-list .title { font-size: var(--type-title-size); line-height: var(--type-title-line); font-weight: var(--type-title-weight); }
+.hc-list .meta { font-size: var(--type-caption-size); line-height: var(--type-caption-line); color: var(--ink-secondary); }
+.hc-empty { padding: var(--space-6) 0; }
+.hc-empty .title { font-family: var(--font-display); font-weight: var(--weight-display); font-size: var(--type-display-s-size); line-height: var(--type-display-s-line); letter-spacing: var(--type-display-s-tracking); }
+.more-below { display: none; align-items: center; justify-content: center; gap: var(--space-1); margin: 0; font-size: var(--type-caption-size); line-height: var(--type-caption-line); font-weight: var(--weight-semibold); color: var(--ink-secondary); }
+.hc-scroll[data-fade-bottom] + .more-below { display: flex; }

@@ -41,7 +41,7 @@ test('Scenario: Review carries over and returns open todos', async ({ page, requ
 	await expect(carried.getByRole('radio', { name: 'Carry over' })).toBeChecked();
 	const returned = page.getByRole('radiogroup', { name: 'Clean the fridge' });
 	await expect(returned.getByRole('radio', { name: 'Carry over' })).toBeChecked();
-	await returned.getByText('Back to backlog').click();
+	await returned.getByRole('radio', { name: 'Back to backlog' }).check();
 
 	await page.getByRole('button', { name: 'Carry 1, return 1 and close' }).click();
 	await expect(page).toHaveURL(/\/sprint\/plan$/);
@@ -67,7 +67,7 @@ test('Scenario: All-done review closes in one tap', async ({ page, request }) =>
 	});
 	await page.goto('/sprint/review');
 
-	await expect(page.getByText('All 2 done. Nice week.')).toBeVisible();
+	await expect(page.getByText('All 2 done. Nothing to carry over.')).toBeVisible();
 	await expect(page.getByRole('radio')).toHaveCount(0);
 	await page.getByRole('button', { name: 'Close sprint' }).click();
 	await expect(page).toHaveURL(/\/sprint\/plan$/);
@@ -89,7 +89,7 @@ test('Recurring instances offer carry or drop, and the label counts drops', asyn
 	const gym = page.getByRole('radiogroup', { name: 'Gym' });
 	await expect(gym.getByRole('radio')).toHaveCount(2);
 	await expect(gym.getByRole('radio', { name: 'Back to backlog' })).toHaveCount(0);
-	await gym.getByText('Drop').click();
+	await gym.getByRole('radio', { name: 'Drop' }).check();
 
 	await page.getByRole('button', { name: 'Carry 1, drop 1 and close' }).click();
 	await expect(page).toHaveURL(/\/sprint\/plan$/);

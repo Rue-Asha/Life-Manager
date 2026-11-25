@@ -15,18 +15,23 @@ export const classCards = (scope: Page | Locator) => classGrid(scope).getByRole(
 
 export const sprintTodos = (scope: Page | Locator) => scope.getByRole('region', { name: /^This week/ });
 
+// The one-time prompt is a region; "Change" opens the same list on a dialog.
 export const uniPrompt = (page: Page) =>
-	page.getByRole('region', { name: /^(Which aspect holds your uni todos\?|Change the Uni aspect)$/ });
+	page
+		.getByRole('region', { name: 'Which aspect holds your uni todos?' })
+		.or(page.getByRole('dialog', { name: 'Change the Uni aspect' }));
 
 // The sentence naming the Uni aspect; its <strong> carries the aspect name.
 export const uniAspectLine = (scope: Page | Locator) => scope.getByText(/^Todos of the aspect/);
 
 export const uniAspect = (scope: Page | Locator) => uniAspectLine(scope).getByRole('strong');
 
-export const uniRail = (page: Page) => page.getByRole('complementary', { name: 'Uni', exact: true, includeHidden: true });
-
-export const uniRailToggle = (page: Page) => page.getByRole('button', { name: 'Uni', exact: true, includeHidden: true });
+// The "Notes and Uni aspect" panel: a right column from 1280, a card below the main column under it.
+export const uniPanel = (page: Page) => page.getByRole('complementary', { name: 'Notes and Uni aspect', exact: true });
 
 export const notesRegion = (scope: Page | Locator) => scope.getByRole('region', { name: 'Notes', exact: true });
 
-export const emptyState = (scope: Page | Locator) => scope.getByText('Start with the semester you are in now.');
+export const emptyState = (scope: Page | Locator) => scope.getByRole('heading', { name: 'Start with the semester you are in now' });
+
+// The sheet the "New semester" and "New class" buttons open.
+export const sheet = (page: Page, name: string) => page.getByRole('dialog', { name, exact: true });

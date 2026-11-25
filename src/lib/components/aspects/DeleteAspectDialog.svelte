@@ -1,8 +1,12 @@
+<!--
+	"Delete <name>?" on the confirm pattern. An aspect with todos or rules asks where they go: the count in the message and on the confirm is
+	the todo count the row shows, the recurring rules get their own sentence, and no receiver is preselected. An empty aspect has no target.
+-->
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { ASPECT_COLORS } from '../../aspect-style';
+	import { copy } from '../../copy';
 	import type { Aspect } from '../../types';
-	import AspectIcon from '../ui/AspectIcon.svelte';
+	import Select from '../select/Select.svelte';
 	import ConfirmDialog from '../ui/ConfirmDialog.svelte';
 
 	let {
@@ -17,47 +21,45 @@
 		onclose: () => void;
 	} = $props();
 
-	const ERRORS: Record<string, string> = {
-		'only-aspect-in-use': 'It is your only aspect and still has todos or rules.',
-		'target-required': 'Pick the aspect that receives them.',
-		'not-found': 'That aspect no longer exists.'
-	};
+	const ERRORS = copy.aspects.errors;
 
 	let form = $state<HTMLFormElement>();
 	let error = $state<string>();
+	let target = $state('');
 
-	const moved = $derived(usage.todos + usage.rules);
+	const used = $derived(usage.todos + usage.rules > 0);
+	$effect(() => {
+		if (aspect) {
+			target = '';
+			error = undefined;
+		}
+	});
 
-	function plural(n: number, word: string) {
-		return `${n} ${word}${n === 1 ? '' : 's'}`;
-	}
-
+	const ruleNote = $derived(usage.rules > 0 && usage.todos > 0 ? copy.aspects.rulesMove(usage.rules) : '');
 	const message = $derived.by(() => {
 		if (!aspect) return '';
-		if (moved === 0) return `${aspect.name} has no todos or recurring rules.`;
-		const parts = [usage.todos && plural(usage.todos, 'todo'), usage.rules && plural(usage.rules, 'recurring rule')];
-		return `${aspect.name} has ${parts.filter(Boolean).join(' and ')}. Which aspect should they move to?`;
+		if (!used) return copy.aspects.noUsage(aspect.name);
+		if (usage.todos === 0) return copy.aspects.rulesOnly(aspect.name, usage.rules);
+		return copy.aspects.todos(aspect.name, usage.todos) + ruleNote;
 	});
+	const confirmLabel = $derived(!used ? copy.aspects.deleteEmpty : usage.todos > 0 ? copy.aspects.moveAndDelete(usage.todos) : copy.aspects.moveRulesAndDelete(usage.rules));
 </script>
 
-<ConfirmDialog
-	open={aspect !== null}
-	title={aspect ? `Delete ${aspect.name}?` : ''}
-	{message}
-	confirmLabel={moved === 0 ? 'Delete aspect' : `Move ${moved} and delete`}
-	onconfirm={() => form?.requestSubmit()}
-	oncancel={onclose}
->
+<ConfirmDialog open={aspect !== null} title={aspect ? copy.aspects.deleteTitle(aspect.name) : ''} {message} {confirmLabel} onconfirm={() => form?.requestSubmit()} oncancel={onclose}>
 	{#if aspect}
 		<form
 			bind:this={form}
 			method="POST"
 			action="?/delete"
-			use:enhance={() => {
+			use:enhance={({ cancel }) => {
 				error = undefined;
+				if (used && !target) {
+					error = 'target-required';
+					return cancel();
+				}
 				return async ({ result, update }) => {
 					if (result.type === 'failure') {
-						error = ERRORS[String(result.data?.error)];
+						error = String(result.data?.error);
 						return;
 					}
 					await update({ reset: false });
@@ -66,79 +68,23 @@
 			}}
 		>
 			<input type="hidden" name="id" value={aspect.id} />
-			{#if moved > 0}
-				<fieldset>
-					<legend class="visually-hidden">Move to</legend>
-					{#each targets as target, i (target.id)}
-						<label class="target">
-							<span class="tile" style:background={ASPECT_COLORS[target.color].tint}>
-								<AspectIcon icon={target.icon} color={target.color} size="sm" />
-							</span>
-							{target.name}
-							<input type="radio" name="targetId" value={target.id} checked={i === 0} />
-						</label>
+			{#if used}
+				<Select label={copy.aspects.moveTo} name="targetId" placeholder={copy.aspects.chooseAspect} bind:value={target} error={error ? (ERRORS[error] ?? error) : undefined}>
+					{#each targets as t (t.id)}
+						<option value={String(t.id)}>{t.name}</option>
 					{/each}
-				</fieldset>
+				</Select>
+			{:else if error}
+				<p class="error" role="alert">{ERRORS[error] ?? error}</p>
 			{/if}
-			{#if error}<p class="error">{error}</p>{/if}
 		</form>
 	{/if}
 </ConfirmDialog>
 
 <style>
-	fieldset {
-		margin: var(--space-4) 0 0;
-		padding: 0;
-		border: 0;
-		min-width: 0;
-	}
-
-	.target {
-		position: relative;
-		display: flex;
-		align-items: center;
-		gap: var(--space-3);
-		min-height: var(--row-height);
-		padding: 0 var(--space-3);
-		border-radius: var(--radius-md);
-		cursor: pointer;
-	}
-
-	.target:hover {
-		background: var(--hover);
-	}
-
-	.target:has(:checked) {
-		background: var(--sunk);
-		font-weight: var(--weight-medium);
-	}
-
-	.target:has(:focus-visible) {
-		box-shadow: var(--ring-focus);
-	}
-
-	/* The radio covers the row, so the whole row is the tap target. */
-	input {
-		position: absolute;
-		inset: 0;
-		width: 100%;
-		height: 100%;
-		margin: 0;
-		opacity: 0;
-		cursor: pointer;
-	}
-
-	.tile {
-		display: grid;
-		place-items: center;
-		width: 28px;
-		height: 28px;
-		border-radius: var(--radius-sm);
-	}
-
 	.error {
-		margin-top: var(--space-3);
-		font-size: var(--text-sm);
-		font-weight: var(--weight-medium);
+		margin: 0;
+		color: var(--danger);
+		font-size: var(--type-body-s-size);
 	}
 </style>

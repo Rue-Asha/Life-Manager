@@ -56,27 +56,31 @@ const heading = (page: Page) => page.getByRole('heading', { level: 1 });
 const tint = (page: Page, token: string) =>
 	page.evaluate((name) => {
 		const probe = document.createElement('i');
-		probe.style.background = `var(--aspect-${name}-tint)`;
+		probe.style.background = `var(--aspect-${name})`;
 		document.body.append(probe);
 		const color = getComputedStyle(probe).backgroundColor;
 		probe.remove();
 		return color;
 	}, token);
 
-const rail = (page: Page) => page.getByRole('complementary', { name: 'Details', exact: true, includeHidden: true });
+const details = (page: Page) => page.getByRole('region', { name: 'Details', exact: true });
+
+const openMenu = async (page: Page, name: string) => {
+	await page.getByRole('button', { name: 'Class actions' }).click();
+	await page.getByRole('menuitem', { name }).click();
+};
 
 const todoGroup = (page: Page, name: 'Open' | 'Planned' | 'Done') => page.getByRole('group', { name, exact: true });
 
-test('Scenario: Class metadata sits in the rail at 1280', async ({ page, request }) => {
+test('Scenario: Class details sit in the Details card at every width', async ({ page, request }) => {
 	const id = await seedClass(request);
-	for (const width of [1280, 1600]) {
+	for (const width of [1280, 375]) {
 		await page.setViewportSize({ width, height: 900 });
 		await page.goto(`/uni/classes/${id}`);
 
 		await expect(heading(page)).toHaveText('Analysis II');
-		const aside = rail(page);
-		await expect(aside).toBeVisible();
-		const meta = aside;
+		const meta = details(page);
+		await expect(meta).toBeVisible();
 		await expect(meta).toContainText('Prof. Kühn');
 		await expect(meta).toContainText('H 2.013');
 		await expect(meta).toContainText('7.5');
@@ -85,30 +89,28 @@ test('Scenario: Class metadata sits in the rail at 1280', async ({ page, request
 		await expect(meta).toContainText('1.7');
 		await expect(meta.getByRole('link', { name: 'Moodle' })).toHaveAttribute('target', '_blank');
 		await expect(page.getByText('Prof. Kühn')).toHaveCount(1);
+		expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 	}
 });
 
-test('Scenario: Class metadata wraps under the title below 1280', async ({ page, request }) => {
-	const id = await seedClass(request);
-	for (const width of [1100, 375]) {
-		await page.setViewportSize({ width, height: 900 });
-		await page.goto(`/uni/classes/${id}`);
+test('Scenario: Class rules sit beside the main column from 1280', async ({ page, request }) => {
+	const id = await seedClass(request, { rules: [{ title: 'Lecture review', aspect: 1, weekdays: [1], class: 0, type: 'LEC' }] });
+	const panel = page.getByRole('complementary', { name: 'Recurring', exact: true });
+	const todos = page.getByRole('region', { name: 'Todos', exact: true });
 
-		await expect(rail(page)).toHaveCount(0);
-		await expect(page.getByRole('button', { name: 'Details', exact: true, includeHidden: true })).toHaveCount(0);
-		const main = page.getByRole('main');
-		const lecturer = main.getByText('Prof. Kühn');
-		await expect(lecturer).toBeVisible();
-		await expect(main.getByText('H 2.013')).toBeVisible();
-		await expect(main.getByText('7.5 ECTS')).toBeVisible();
-		await expect(main.getByText('Audimax')).toBeVisible();
-		await expect(main.getByText('Grade 1.7')).toBeVisible();
-		await expect(main.getByRole('link', { name: 'Moodle' })).toHaveAttribute('target', '_blank');
-		const title = await heading(page).boundingBox();
-		const row = await lecturer.boundingBox();
-		expect(row!.y).toBeGreaterThan(title!.y + title!.height - 1);
-		expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-	}
+	await page.setViewportSize({ width: 1280, height: 900 });
+	await page.goto(`/uni/classes/${id}`);
+	await expect(panel).toBeVisible();
+	const side = (await panel.boundingBox())!;
+	const main = (await todos.boundingBox())!;
+	expect(side.x).toBeGreaterThanOrEqual(main.x + main.width);
+
+	await page.setViewportSize({ width: 1100, height: 900 });
+	await expect(panel).toBeVisible();
+	const stacked = (await panel.boundingBox())!;
+	const below = (await todos.boundingBox())!;
+	expect(stacked.y).toBeGreaterThanOrEqual(below.y + below.height - 1);
+	await expect(page.getByRole('button', { name: 'Details', exact: true, includeHidden: true })).toHaveCount(0);
 });
 
 test('Scenario: Unknown class id shows 404', async ({ page, request }) => {
@@ -141,10 +143,11 @@ test('Scenario: Edit a class on its detail page', async ({ page, request }) => {
 
 	const check = async () => {
 		await expect(heading(page)).toHaveText('Analysis III');
-		await expect(heading(page).locator('xpath=preceding-sibling::span')).toHaveCSS('background-color', await tint(page, 'berry'));
-		const meta = rail(page);
+		await expect(page.getByTestId('class-tile')).toHaveAttribute('data-color', 'berry');
+		await expect(page.getByTestId('class-tile')).toHaveCSS('background-color', await tint(page, 'berry'));
+		const meta = details(page);
 		await expect(meta).toContainText('Dr. Weber');
-		await expect(meta.getByText('ECTS', { exact: true }).locator('xpath=following-sibling::dd[1]')).toHaveText('10');
+		await expect(meta.getByText('ECTS', { exact: true }).locator('xpath=following-sibling::dd[1]')).toHaveText('10 ECTS');
 		await expect(meta).toContainText('Mon 1 Mar 2027, 10:00');
 		await expect(meta).toContainText('2.3');
 		await expect(meta).not.toContainText('Prof. Kühn');
@@ -230,7 +233,7 @@ test('Scenario: Class rules are listed with a link to Recurring', async ({ page,
 	});
 	await page.goto(`/uni/classes/${id}`);
 
-	const rules = page.getByRole('region', { name: 'Recurring', exact: true });
+	const rules = page.getByRole('complementary', { name: 'Recurring', exact: true });
 	await expect(rules.getByRole('listitem')).toHaveText([/Lecture review/]);
 	await expect(rules.getByRole('listitem')).toContainText(['LEC']);
 	await rules.getByRole('link', { name: 'Edit in Recurring' }).click();
@@ -243,14 +246,11 @@ test('Scenario: Quick add on class detail creates a linked todo', async ({ page,
 	await page.setViewportSize({ width: 1280, height: 900 });
 	await page.goto(`/uni/classes/${id}`);
 
-	await page.getByRole('button', { name: 'Add a todo' }).click();
-	const form = page.getByRole('form', { name: 'New todo' });
-	await expect(form.getByLabel('Aspect').getByRole('option', { selected: true })).toHaveText('Uni');
-	await expect(form.getByLabel('Class')).toHaveValue(String(id));
-	await form.getByRole('group', { name: 'Type' }).getByRole('button', { name: 'LEC' }).click();
-	await form.getByLabel('Title').fill('Rework lecture 5');
-	await form.getByLabel('Due date', { exact: true }).fill('2026-10-09');
-	await form.getByRole('button', { name: 'Add todo' }).click();
+	const form = page.getByRole('form', { name: 'Add todo' });
+	await expect(form.getByLabel(/due|priority/i)).toHaveCount(0);
+	await form.getByRole('radio', { name: 'LEC' }).check();
+	await form.getByLabel('New todo title').fill('Rework lecture 5');
+	await form.getByRole('button', { name: 'Add', exact: true }).click();
 
 	const open = todoRows(todoGroup(page, 'Open'));
 	await expect(open).toHaveText([/Rework lecture 5/]);
@@ -268,11 +268,10 @@ test('Scenario: Type defaults to OTH', async ({ page, request }) => {
 	await page.setViewportSize({ width: 1280, height: 900 });
 	await page.goto(`/uni/classes/${id}`);
 
-	await page.getByRole('button', { name: 'Add a todo' }).click();
-	const form = page.getByRole('form', { name: 'New todo' });
-	await expect(form.getByRole('group', { name: 'Type' }).getByRole('button', { name: 'OTH' })).toHaveAttribute('aria-pressed', 'true');
-	await form.getByLabel('Title').fill('Summarise chapter 3');
-	await form.getByRole('button', { name: 'Add todo' }).click();
+	const form = page.getByRole('form', { name: 'Add todo' });
+	await expect(form.getByRole('radio', { name: 'OTH' })).toBeChecked();
+	await form.getByLabel('New todo title').fill('Summarise chapter 3');
+	await form.getByRole('button', { name: 'Add', exact: true }).click();
 	await expect(todoRows(todoGroup(page, 'Open'))).toHaveText([/Summarise chapter 3/]);
 
 	await page.goto('/backlog');
@@ -285,7 +284,7 @@ const revised = (page: Page, title: string, label: string) => {
 	return row.getByText(label, { exact: true }).and(row.locator('span'));
 };
 const markRevised = (page: Page, title: string) =>
-	revisedRow(page, title).getByRole('button', { name: `Revised today: ${title}`, exact: true });
+	revisedRow(page, title).getByRole('button', { name: `Mark revised today: ${title}`, exact: true });
 
 test('Scenario: Revised today sets the date', async ({ page, request }) => {
 	const id = await seedClass(request, { todos: [{ title: 'Exercise sheet 4', aspect: 1, class: 0, type: 'EXC' }] });
@@ -320,14 +319,14 @@ test('Scenario: Deleting a class asks for confirmation naming the todo count', a
 	await page.goto(`/uni/classes/${id}`);
 
 	const dialog = page.getByRole('dialog');
-	await page.getByRole('button', { name: 'Delete class' }).click();
+	await openMenu(page, 'Delete class');
 	await expect(dialog).toContainText('3 todos');
 	await dialog.getByRole('button', { name: 'Cancel' }).click();
 	await expect(dialog).toBeHidden();
 	await page.reload();
 	await expect(heading(page)).toHaveText('Analysis II');
 
-	await page.getByRole('button', { name: 'Delete class' }).click();
+	await openMenu(page, 'Delete class');
 	await dialog.getByRole('button', { name: 'Delete class' }).click();
 	await expect(page).toHaveURL(/\/uni$/);
 	const response = await page.goto(`/uni/classes/${id}`);
@@ -362,15 +361,60 @@ test('Scenario: Archived class has no edit controls', async ({ page, request }) 
 		await expect(todos.getByText('Not revised', { exact: true })).toHaveCount(3);
 		await expect(page.getByRole('button', { name: 'Edit details' })).toHaveCount(0);
 		await expect(page.getByRole('button', { name: 'Edit notes' })).toHaveCount(0);
-		await expect(page.getByRole('button', { name: 'Add a todo' })).toHaveCount(0);
-		await expect(page.getByRole('button', { name: /Revised today/ })).toHaveCount(0);
+		await expect(page.getByRole('form', { name: 'Add todo' })).toHaveCount(0);
+		await expect(page.getByRole('button', { name: /Mark revised today/ })).toHaveCount(0);
 		const rows = todoRows(todos);
-		await expect(rows.getByRole('button')).toHaveCount(0);
+		await expect(rows.getByRole('button')).toHaveCount(3);
+		await expect(rows.getByRole('button', { name: /^Delete todo: / })).toHaveCount(3);
 		await expect(rows.getByRole('checkbox')).toHaveCount(0);
 		await expect(rows.getByRole('combobox')).toHaveCount(0);
 		await expect(rows.getByRole('link')).toHaveCount(0);
 		await todoRow(todos, 'Old sheet').getByText('Old sheet').click();
 		await expect(page.getByLabel('Edit todo')).toHaveCount(0);
-		await expect(page.getByRole('button', { name: 'Delete class' })).toBeVisible();
+		await expect(page.getByRole('dialog')).toHaveCount(0);
+		await page.getByRole('button', { name: 'Class actions' }).click();
+		await expect(page.getByRole('menuitem', { name: 'Delete class' })).toBeVisible();
+		await page.keyboard.press('Escape');
 	}
+});
+
+test('Scenario: Archived class todo deletes from the row', async ({ page, request }) => {
+	const id = await seedClass(
+		request,
+		{
+			sprint: { state: 'active', weekStart: WEEK },
+			todos: [
+				{ title: 'Old sheet', aspect: 1, class: 0, type: 'EXC' },
+				{ title: 'Old notes', aspect: 1, class: 0, inSprint: true, day: '2026-10-07' }
+			]
+		},
+		{},
+		{ name: 'WS 25/26', archivedAt: '2026-09-30T10:00:00Z' }
+	);
+	await page.goto(`/uni/classes/${id}`);
+	const todos = todoGroup(page, 'Open').or(todoGroup(page, 'Planned'));
+	await expect(todoRows(todos)).toHaveCount(2);
+	await todoRow(todos, 'Old sheet').getByRole('button', { name: 'Delete todo: Old sheet' }).click();
+	const confirm = page.getByRole('dialog', { name: 'Delete this todo?' });
+	await confirm.getByRole('button', { name: 'Cancel' }).click();
+	await expect(todoRows(todos)).toHaveCount(2);
+	await todoRow(todos, 'Old sheet').getByRole('button', { name: 'Delete todo: Old sheet' }).click();
+	await confirm.getByRole('button', { name: 'Delete todo' }).click();
+	await expect(todoRows(todos)).toHaveCount(1);
+	await expect(page.getByLabel('Edit todo')).toHaveCount(0);
+	await expect(page.getByRole('button', { name: 'Delete todo: Old notes' })).toBeFocused();
+});
+
+test('Scenario: Open class todos have a More actions menu', async ({ page, request }) => {
+	const id = await seedClass(request, { todos: [{ title: 'Read chapter 3', aspect: 1, class: 0 }] });
+	await page.goto(`/uni/classes/${id}`);
+	await expect(todoRow(todoGroup(page, 'Open'), 'Read chapter 3').getByRole('checkbox')).toHaveCount(0);
+	await todoRow(todoGroup(page, 'Open'), 'Read chapter 3').getByRole('button', { name: 'More actions: Read chapter 3' }).click();
+	await expect(page.getByRole('menuitem', { name: 'Plan a day' })).toBeVisible();
+});
+
+test('Scenario: Uni kicker names the section, not the chosen aspect', async ({ page, request }) => {
+	await seedClass(request);
+	await page.goto('/uni');
+	await expect(page.locator('.screen-lead .kicker')).toHaveText(/Life\s*Study/);
 });

@@ -23,12 +23,12 @@ test('Scenario: Sprint header shows progress and days left', async ({ page, requ
 		}))
 	});
 
+	// The header is the screen's title (the figure, accented) and its lede, in every view.
 	for (const view of ['aspect', 'board', 'week']) {
 		await page.goto(`/sprint?view=${view}`);
-		const header = page.getByRole('region', { name: 'Summary' });
-		await expect(header.getByText('4 / 12', { exact: true })).toBeVisible();
-		await expect(header).toContainText('done');
-		await expect(header.getByText('Mon 12 – Sun 18 Oct')).toBeVisible();
-		await expect(header.getByText('3 days left')).toBeVisible();
+		const title = page.getByRole('heading', { level: 1 });
+		await expect(title).toContainText('4 / 12 done');
+		await expect(page.getByText('Mon 12 – Sun 18 Oct')).toBeVisible();
+		await expect(page.getByText('3 days left')).toBeVisible();
 	}
 });

@@ -8,58 +8,33 @@
 		aspect,
 		today,
 		sprintDays,
-		variant = 'card'
-	}: { todo: Todo; aspect: Aspect; today: IsoDate; sprintDays: IsoDate[]; variant?: 'card' | 'chip' | 'row' } =
-		$props();
+		variant = 'card',
+		named = true,
+		mixed = false
+	}: {
+		todo: Todo;
+		aspect: Aspect;
+		today: IsoDate;
+		sprintDays: IsoDate[];
+		variant?: 'card' | 'chip' | 'row';
+		// A By-aspect row is only a draggable wrapper; a board card or week chip is a group named by its todo.
+		named?: boolean;
+		// Names the aspect in the row's meta line (a day's list mixes aspects).
+		mixed?: boolean;
+	} = $props();
 
 	// Inside a draggable element a mouse selection in the editor's fields would start a drag.
 	let typing = $state(false);
 </script>
 
 <div
-	class="card"
-	class:chip={variant === 'chip'}
-	role="group"
-	aria-label={todo.title}
+	class="hs-drag"
+	role={named ? 'group' : 'presentation'}
+	aria-label={named ? todo.title : undefined}
 	use:draggableTodo={{ id: todo.id, from: 'sprint', recurring: todo.recurring }}
 	draggable={canDrag.current && !typing}
 	onfocusin={(e) => (typing = (e.target as Element).matches('input, textarea'))}
 	onfocusout={() => (typing = false)}
 >
-	<ul><TodoRow {todo} {aspect} {today} context="sprint" {sprintDays} {variant} /></ul>
+	<ul><TodoRow {todo} {aspect} {today} context="sprint" {sprintDays} {variant} {mixed} /></ul>
 </div>
-
-<style>
-	.card {
-		border-radius: var(--radius-md);
-		background: var(--surface);
-		box-shadow: var(--shadow-card);
-	}
-
-	/* Week chips sit on the white week sheet, so they take the canvas grey instead of a lift. */
-	.chip {
-		border-radius: 8px;
-		background: var(--canvas);
-		box-shadow: none;
-	}
-
-	.card[draggable='true'] {
-		cursor: grab;
-	}
-
-	/* Lifted, not tilted: the browser snapshots the card with its shadow for the drag image. */
-	.card:global([data-dragging]) {
-		box-shadow: var(--shadow-float);
-	}
-
-	ul {
-		margin: 0;
-		padding: 0;
-		list-style: none;
-	}
-
-	/* A removed recurring instance waits behind its undo toast; only the toast is left of the card. */
-	.card:has(:global(.removed)) {
-		display: contents;
-	}
-</style>

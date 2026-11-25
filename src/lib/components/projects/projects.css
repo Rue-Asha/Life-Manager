@@ -1,0 +1,109 @@
+/* Projects, Project and Sync on the fingerprint, lifted from the signed hi-fi (hifi/projects, hifi/project, hifi/sync, with the parts of
+   hifi/project/parts.css they use). Fingerprint tokens only; every class carries the pj- prefix so nothing leaks into other pages. */
+
+/* A card that holds its own content (the layout card has no padding) */
+.card.pj-panel {
+	display: grid;
+	gap: var(--space-4);
+	align-content: start;
+	padding: var(--space-5);
+	min-inline-size: 0;
+}
+.pj-panel > .card-head { align-items: center; }
+.card.pj-panel .empty { max-inline-size: none; padding-block: var(--space-8); padding-inline: 0; background: none; box-shadow: none; }
+.card.pj-panel .empty > p { margin: 0; font-size: var(--type-body-size); line-height: var(--type-body-line); color: var(--ink-secondary); }
+.pj-stack { display: grid; gap: var(--space-2); min-inline-size: 0; margin: 0; padding: 0; list-style: none; }
+.pj-stack-s { display: grid; gap: var(--space-1-5); min-inline-size: 0; }
+.pj-quiet { margin: 0; font-size: var(--type-caption-size); line-height: var(--type-caption-line); color: var(--ink-secondary); overflow-wrap: anywhere; }
+.pj-tail { display: flex; flex-wrap: wrap; gap: var(--space-2); justify-content: flex-start; }
+.pj-tail > *, .pj-head-action > * { max-inline-size: 100%; }
+.pj-head-action { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.pj-count-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-2) var(--space-3); }
+.pj-count-head .card-note { margin: 0; }
+.pj-count-head h2, .pj-card-title { overflow-wrap: anywhere; }
+
+
+/* Key-value rows (details of a project) */
+.pj-kv { display: grid; gap: 0; margin: 0; }
+.pj-kv > div {
+	display: grid;
+	grid-template-columns: minmax(5rem, 7rem) minmax(0, 1fr);
+	gap: var(--space-3);
+	align-items: baseline;
+	min-block-size: var(--target-touch);
+	padding-block: var(--space-2);
+	align-content: center;
+}
+.pj-kv > div + div { box-shadow: var(--rule-above); }
+.pj-kv dt { font-size: var(--type-body-s-size); line-height: var(--type-body-s-line); color: var(--ink-secondary); }
+.pj-kv dd { margin: 0; min-inline-size: 0; overflow-wrap: anywhere; font-variant-numeric: var(--numeric-figures); }
+.pj-ext { display: flex; align-items: center; max-inline-size: 100%; min-block-size: var(--target-touch); color: var(--ink); text-decoration: underline; text-underline-offset: 0.25em; text-decoration-thickness: var(--stroke-hairline); overflow-wrap: anywhere; }
+.pj-ext > span { min-inline-size: 0; overflow-wrap: anywhere; }
+@media (hover: hover) { .pj-ext:hover { text-decoration-thickness: var(--stroke-strong); } }
+@media (max-width: 767px) { .pj-kv > .pj-hide-phone { display: none; } }
+
+/* Tags */
+.pj-tags { display: flex; flex-wrap: wrap; gap: var(--space-1); min-inline-size: 0; }
+.pj-tag {
+	display: inline-block;
+	vertical-align: top;
+	max-inline-size: 100%;
+	box-sizing: border-box;
+	min-block-size: var(--space-6);
+	padding-inline: var(--space-2-5);
+	border-radius: var(--radius-panel);
+	background: var(--surface-sunken);
+	font-size: var(--type-caption-size);
+	line-height: var(--space-6);
+	overflow-wrap: anywhere;
+}
+.pj-tag.more { background: none; color: var(--ink-secondary); padding-inline: var(--space-1); }
+.pj-clamp2 { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+
+/* Rows: flat link rows inside a group card, a rule between them */
+.pj-row { container: row / inline-size; display: flex; align-items: stretch; min-block-size: max(var(--control-height), var(--target)); border-radius: var(--radius-panel); color: var(--ink); }
+.pj-row + .pj-row { box-shadow: var(--rule-above); border-start-start-radius: 0; border-start-end-radius: 0; }
+.pj-row > .pj-main { flex: 1; display: flex; align-items: flex-start; gap: var(--space-3); min-inline-size: 0; padding: var(--space-3) var(--space-2); border-radius: inherit; color: inherit; text-decoration: none; cursor: pointer; }
+@media (hover: hover) { .pj-row:has(> .pj-main:hover) { background: var(--surface-hover); } }
+.pj-text { display: grid; gap: var(--space-0-5); flex: 1; min-inline-size: 0; }
+.pj-title { font-size: var(--type-title-size); line-height: var(--type-title-line); font-weight: var(--type-title-weight); overflow-wrap: anywhere; }
+.pj-meta { font-size: var(--type-caption-size); line-height: var(--type-caption-line); color: var(--ink-secondary); overflow-wrap: anywhere; }
+.pj-facts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-0-5) var(--space-3); }
+.pj-facts .pj-cluster { display: inline-flex; align-items: center; gap: var(--space-1); }
+.pj-lead { display: grid; place-items: center; flex: none; }
+
+/* A radio list on the list-row look: the chosen row is charcoal like the current thing everywhere else */
+.pj-fieldset { display: grid; gap: var(--space-2); margin: 0; padding: 0; border: 0; min-inline-size: 0; }
+.pj-opts { display: grid; gap: var(--space-4); margin: 0; padding: 0; list-style: none; }
+.pj-opt { position: relative; display: flex; align-items: center; min-block-size: max(var(--control-height), var(--target)); border-radius: var(--radius-panel); background: var(--surface-glass-strong); box-shadow: var(--shadow-rim); color: var(--ink); }
+.pj-opt > input { position: absolute; inset: 0; z-index: 1; inline-size: 100%; block-size: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.pj-opt-main { flex: 1; display: flex; align-items: center; gap: var(--space-3); min-inline-size: 0; padding: var(--space-3) var(--space-4); }
+.pj-opt-name { flex: 1; min-inline-size: 0; font-size: var(--type-title-size); line-height: var(--type-title-line); font-weight: var(--type-title-weight); overflow-wrap: anywhere; }
+.pj-opt .check { visibility: hidden; display: grid; place-items: center; flex: none; }
+.pj-opt:has(input:checked) { background: var(--surface-inverse); box-shadow: none; color: var(--ink-on-inverse); }
+.pj-opt:has(input:checked) .check { visibility: visible; }
+.pj-opt:has(input:focus-visible) { outline: var(--focus-width) solid var(--focus-ring); outline-offset: var(--focus-offset); }
+@media (hover: hover) { .pj-opt:not(:has(input:checked)):hover { background: var(--surface-hover); } }
+
+
+/* The title row of a detail screen: the title, then its ··· button centred on the h1's first line */
+.pj-title-row { display: flex; align-items: flex-start; gap: var(--space-3); min-inline-size: 0; max-inline-size: 100%; }
+.pj-title-row > .long-title { flex: 1; }
+.pj-title-trail { flex: none; margin-block-start: calc((var(--type-display-xl-size) * var(--type-display-xl-line) - var(--target-touch)) / 2); }
+@media (max-width: 767px) {
+	.pj-title-row { gap: var(--space-2); }
+	.pj-title-trail { margin-block-start: calc((var(--type-display-xl-size-compact) * var(--type-display-xl-line) - var(--target-touch)) / 2); margin-inline-end: calc(-1 * var(--space-3)); }
+}
+/* From 1280 the ··· sits at the title's first line; a title that wraps keeps it there, not at the end of the line box */
+.pj-title-row h1 { overflow-wrap: anywhere; hyphens: auto; }
+.pj-kicker a { display: inline-flex; align-items: center; min-block-size: var(--target-touch); padding-inline: var(--space-2); margin-inline: calc(-1 * var(--space-2)); }
+
+/* The stage photo fades out over a longer run behind a screen with a context card */
+@media (min-width: 768px) { .frame:has(.pj-split) { --stage-fade: calc(var(--space-12) * 5); } }
+
+/* The key-facts card is display-only on the detail screens; phones leave it out */
+@media (max-width: 767px) { .screen-facts.pj-wide-only { display: none; } }
+
+/* Sheet forms */
+.pj-form { display: grid; gap: var(--space-4); min-inline-size: 0; }
+dialog[data-sheet] .pj-form .field input { font-size: max(1rem, var(--type-body-size)); }

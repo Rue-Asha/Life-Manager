@@ -61,7 +61,7 @@ export interface SeedInput {
 		recurring?: boolean;
 		rule?: number;
 		project?: number;
-		checklist?: string[];
+		checklist?: (string | { text: string; done?: boolean })[];
 		createdAt?: string;
 		completedAt?: string;
 		class?: number;
@@ -188,7 +188,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	);
 	const insertItem = db.prepare(
-		'INSERT INTO checklist_items (todo_id, text, position) VALUES (?, ?, ?)'
+		'INSERT INTO checklist_items (todo_id, text, done, position) VALUES (?, ?, ?, ?)'
 	);
 	for (const t of input.todos ?? []) {
 		const status = t.status ?? 'todo';
@@ -213,7 +213,9 @@ export const POST: RequestHandler = async ({ request }) => {
 			status === 'done' ? (t.completedAt ?? now) : null
 		);
 		const id = Number(lastInsertRowid);
-		(t.checklist ?? []).forEach((text, i) => insertItem.run(id, text, i));
+		(t.checklist ?? []).forEach((item, i) =>
+			typeof item === 'string' ? insertItem.run(id, item, 0, i) : insertItem.run(id, item.text, item.done ? 1 : 0, i)
+		);
 		result.todos.push(id);
 	}
 
