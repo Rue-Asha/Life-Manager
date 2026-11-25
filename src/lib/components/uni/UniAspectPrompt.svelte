@@ -1,150 +1,120 @@
+<!--
+	Which aspect holds the uni todos. Before the first choice it is a card that replaces the whole hub ("Which aspect holds your uni todos?",
+	"Use <aspect> for classes"); once an aspect is set, "Change" opens the same list on a sheet ("Change the Uni aspect"). Changing it while class
+	links exist asks first and names the count. The chosen row is charcoal with a check mark; the post goes through one hidden form.
+-->
 <script lang="ts">
+	import { copy } from '$lib/copy';
 	import { enhance } from '$app/forms';
-	import { ASPECT_COLORS } from '$lib/aspect-style';
+	import { tick } from 'svelte';
 	import type { Aspect, Id } from '$lib/types';
-	import AspectIcon from '../ui/AspectIcon.svelte';
-	import Button from '../ui/Button.svelte';
+	import Button from '../button/Button.svelte';
+	import Icon from '../shell/Icon.svelte';
 	import ConfirmDialog from '../ui/ConfirmDialog.svelte';
-	import { UI_ICONS } from '../ui/icons';
+	import Sheet from '../ui/Sheet.svelte';
+	import './uni.css';
 
 	let {
 		aspects,
 		current = null,
 		linkCount,
-		oncancel,
-		onsaved
-	}: { aspects: Aspect[]; current?: Id | null; linkCount: number; oncancel?: () => void; onsaved?: () => void } = $props();
+		open = false,
+		onclose
+	}: { aspects: Aspect[]; current?: Id | null; linkCount: number; open?: boolean; onclose?: () => void } = $props();
 
 	// svelte-ignore state_referenced_locally
 	let selected = $state<Id | null>(current ?? aspects.find((a) => a.name.toLowerCase() === 'uni')?.id ?? null);
 	let confirming = $state(false);
-	let confirmed = false;
-	let form: HTMLFormElement;
+	let form = $state<HTMLFormElement>();
+	const uid = $props.id();
+
+	$effect(() => {
+		if (open && current !== null) selected = current;
+	});
 
 	const name = $derived(aspects.find((a) => a.id === selected)?.name);
 	const dropsLinks = $derived(current !== null && selected !== current && linkCount > 0);
+	const label = $derived(`Use ${name ?? 'an aspect'} for classes`);
+
+	async function post() {
+		confirming = false;
+		await tick();
+		form?.requestSubmit();
+	}
+
+	function go() {
+		if (dropsLinks) {
+			onclose?.();
+			confirming = true;
+		} else post();
+	}
 </script>
 
-<section class="prompt" aria-labelledby="uni-aspect-prompt-h">
-	<h2 id="uni-aspect-prompt-h">{current === null ? 'Which aspect holds your uni todos?' : 'Change the Uni aspect'}</h2>
-	<p>Todos of this aspect can be linked to a class. You can change it later.</p>
-	<form
-		method="POST"
-		action="?/setUniAspect"
-		bind:this={form}
-		use:enhance={({ cancel }) => {
-			if (dropsLinks && !confirmed) {
-				cancel();
-				confirming = true;
-				return;
-			}
-			return async ({ update }) => {
-				await update();
-				onsaved?.();
-			};
-		}}
-	>
-		<ul>
+{#snippet options()}
+	<fieldset class="u-fieldset">
+		<legend class="sr-only">Aspects</legend>
+		<div class="u-stack opts">
 			{#each aspects as aspect (aspect.id)}
-				<li style:--a={ASPECT_COLORS[aspect.color].fg}>
-					<label>
-						<input class="hit" type="radio" name="aspectId" value={aspect.id} bind:group={selected} />
-						<AspectIcon icon={aspect.icon} color={aspect.color} />{aspect.name}
-						<svg class="tick" viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.check} /></svg>
-					</label>
-				</li>
+				<label class="u-opt">
+					<input type="radio" name="{uid}-aspect" value={aspect.id} bind:group={selected} />
+					<span class="main">
+						<span class="nav-tile" data-color={aspect.color} aria-hidden="true"><Icon aspect={aspect.icon} size={16} /></span>
+						<span class="text u-clamp2" data-user>{aspect.name}</span>
+						<span class="check" aria-hidden="true"><Icon name="check" /></span>
+					</span>
+				</label>
 			{/each}
-		</ul>
-		<footer>
-			{#if oncancel}<Button type="button" variant="quiet" onclick={oncancel}>Cancel</Button>{/if}
-			<Button type="submit" variant="primary" disabled={selected === null}>Use {name ?? 'an aspect'} for classes</Button>
-		</footer>
-	</form>
-</section>
+		</div>
+	</fieldset>
+{/snippet}
+
+{#if current === null}
+	<section class="card u-panel" aria-labelledby="{uid}-h">
+		<div class="u-stack-s">
+			<h2 id="{uid}-h" class="ask">Which aspect holds your uni todos?</h2>
+			<p class="u-note">Todos of this aspect can be linked to a class. You can change it later.</p>
+		</div>
+		{@render options()}
+		<div class="u-tail"><Button variant="primary" disabled={selected === null} onclick={go}>{label}</Button></div>
+	</section>
+{/if}
+
+{#snippet foot()}
+	<Button onclick={() => onclose?.()}>Cancel</Button>
+	<Button variant="primary" disabled={selected === null} onclick={go}>{label}</Button>
+{/snippet}
+
+{#if current !== null}
+	<Sheet {open} title={copy.uni.changeAspectTitle} onclose={() => onclose?.()} actions={foot}>
+		<div class="u-stack">
+			<p class="u-note">Todos of this aspect can be linked to a class. You can change it later.</p>
+			{@render options()}
+		</div>
+	</Sheet>
+{/if}
+
+<form method="POST" action="?/setUniAspect" hidden bind:this={form} use:enhance={() => async ({ update }) => { await update(); onclose?.(); }}>
+	<input type="hidden" name="aspectId" value={selected ?? ''} />
+</form>
 
 <ConfirmDialog
 	open={confirming}
 	title="Use {name} for classes?"
 	message="{linkCount} {linkCount === 1 ? 'todo or rule is' : 'todos and rules are'} linked to classes. Changing the aspect removes those links, their types and revised dates. The todos stay."
 	confirmLabel="Remove {linkCount} {linkCount === 1 ? 'link' : 'links'} and change"
-	onconfirm={() => {
-		confirming = false;
-		confirmed = true;
-		form.requestSubmit();
-	}}
+	onconfirm={post}
 	oncancel={() => (confirming = false)}
 />
 
 <style>
-	.prompt {
-		padding: var(--space-5);
-		border-radius: var(--radius-md);
-		background: var(--sunk);
+	.opts {
+		gap: var(--space-4);
 	}
-
-	h2 {
-		margin-bottom: var(--space-1);
-		font-size: var(--text-lg);
-		font-weight: var(--weight-semibold);
-	}
-
-	p {
-		margin-bottom: var(--space-4);
-		color: var(--ink-2);
-	}
-
-	ul {
-		margin: 0 0 var(--space-4);
-		padding: 0;
-		list-style: none;
-	}
-
-	label {
-		position: relative;
-		display: flex;
-		align-items: center;
-		gap: var(--space-3);
-		height: var(--row-height);
-		padding: 0 var(--space-2);
-		border-radius: var(--radius-md);
-		cursor: pointer;
-	}
-
-	label:has(:checked) {
-		background: var(--surface);
-	}
-
-	label:has(:focus-visible) {
-		box-shadow: var(--ring-focus);
-	}
-
-	.hit {
-		position: absolute;
-		inset: 0;
-		margin: 0;
-		opacity: 0;
-		cursor: pointer;
-	}
-
-	.tick {
-		display: none;
-		width: var(--icon-md);
-		height: var(--icon-md);
-		margin-left: auto;
-		fill: none;
-		stroke: var(--accent);
-		stroke-width: 2;
-		stroke-linecap: round;
-		stroke-linejoin: round;
-	}
-
-	label:has(:checked) .tick {
-		display: block;
-	}
-
-	footer {
-		display: flex;
-		justify-content: flex-end;
-		gap: var(--space-2);
+	.ask {
+		font-size: var(--type-display-m-size);
+		line-height: var(--type-display-m-line);
+		letter-spacing: var(--type-display-m-tracking);
+		overflow-wrap: anywhere;
+		text-wrap: balance;
 	}
 </style>

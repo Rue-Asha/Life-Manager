@@ -5,6 +5,9 @@
 	import { addDays } from '$lib/week';
 	import type { Aspect, ClassType, HhMm, Id, IsoDate, Priority, Target } from '$lib/types';
 	import Button from '../ui/Button.svelte';
+	import { copy } from '$lib/copy';
+	import LinkButton from '../button/Button.svelte';
+	import { pill } from '../shell/pill';
 	import Chip from '../ui/Chip.svelte';
 	import Sheet from '../ui/Sheet.svelte';
 	import { UI_ICONS } from '../ui/icons';
@@ -30,7 +33,7 @@
 		defaultClassId?: Id;
 		defaultType?: ClassType;
 		defaultDueDate?: IsoDate;
-		// `dialog` has no field of its own: something else opens it (the sidebar's "New todo").
+		// `dialog` has no field of its own: something else opens it (the top bar's "New todo", the pill bar's "+"); it states its destination and offers the running sprint.
 		variant?: 'inline' | 'dialog';
 		// The running sprint's Monday: a planned day in its week sends a backlog-target todo into the sprint.
 		sprintWeekStart?: IsoDate | null;
@@ -56,6 +59,9 @@
 	let chosenType = $state<ClassType | null>(null);
 	let checklist = $state<string[]>([]);
 	let error = $state<ActionError | null>(null);
+	let chosenDest = $state<'sprint' | 'backlog' | null>(null);
+	// The form stays rendered while the sheet leaves, then goes: a closed sheet holds no fields for anything to find.
+	let shown = $state(false);
 	let titleInput = $state<HTMLInputElement>();
 	let fields = $state<ReturnType<typeof TodoFields>>();
 
@@ -64,15 +70,22 @@
 	const dueDate = $derived(chosenDueDate ?? defaultDueDate ?? '');
 	const type = $derived(chosenType ?? defaultType ?? 'OTH');
 	const plannedDay = $derived(chosenPlannedDay ?? (target.kind === 'day' ? target.day : ''));
-	// A day column whose plan was removed still adds to its sprint, just without a day.
-	const postedTarget = $derived(target.kind === 'day' && !plannedDay ? 'sprint' : target.kind);
-
 	const intoSprint = $derived(
 		sprintWeekStart !== null && plannedDay >= sprintWeekStart && plannedDay <= addDays(sprintWeekStart, 6)
 	);
 
+	// The dialog offers the running sprint unless its review is due; elsewhere the page's target stands.
+	const sprintOffered = $derived(sprintWeekStart !== null && !reviewRequired);
+	// A day column or the sprint's Unscheduled list adds to the sprint, even once its plan is removed.
+	const dest = $derived(chosenDest ?? (target.kind === 'backlog' ? 'backlog' : 'sprint'));
+	const toSprint = $derived(variant === 'dialog' ? (sprintOffered && dest === 'sprint') || (intoSprint && !reviewRequired) : intoSprint);
+	// A day column whose plan was removed still adds to its sprint, just without a day.
+	const postedTarget = $derived(
+		variant === 'dialog' ? (sprintOffered && dest === 'sprint' ? 'sprint' : 'backlog') : target.kind === 'day' && !plannedDay ? 'sprint' : target.kind
+	);
+
 	const MESSAGES: Record<string, string> = {
-		required: 'Give the todo a title.',
+		required: copy.quickAdd.missingTitle,
 		'no-aspect': 'Pick an aspect.',
 		'no-active-sprint': 'There is no running sprint to add this to.',
 		'day-outside-sprint': 'That day is not part of the sprint.'
@@ -91,11 +104,18 @@
 		chosenClassId = null;
 		chosenType = null;
 		checklist = [];
+		chosenDest = null;
 		error = null;
 	}
 
 	$effect(() => {
-		if (open) titleInput?.focus();
+		if (open) {
+			shown = true;
+			titleInput?.focus();
+			return;
+		}
+		const gone = setTimeout(() => (shown = false), 300);
+		return () => clearTimeout(gone);
 	});
 
 	function close() {
@@ -182,14 +202,25 @@
 			<p class="error" role="alert">{MESSAGES[error.error] ?? planError(error) ?? `Couldn’t add the todo (${error.error}).`}</p>
 		{/if}
 
-		<footer>
-			{#if variant === 'dialog' && target.kind === 'backlog' && !(intoSprint && reviewRequired)}
-				<span class="hint">
-					<svg viewBox="0 0 24 24" aria-hidden="true"><path d={intoSprint ? UI_ICONS['calendar-days'] : UI_ICONS.inbox} /></svg>{intoSprint
-						? 'Goes to this sprint'
-						: 'Goes to the backlog'}
-				</span>
+		{#if variant === 'dialog'}
+			{#if sprintWeekStart !== null}
+				<div class="dest">
+					<span class="choice-host">
+						<div class="choice" role="group" aria-label="Add to" data-pill use:pill>
+							<button type="button" aria-pressed={toSprint} disabled={reviewRequired} onclick={() => (chosenDest = 'sprint')}>This sprint</button>
+							<button type="button" aria-pressed={!toSprint} onclick={() => ((chosenDest = 'backlog'), (chosenPlannedDay = ''))}>Backlog</button>
+						</div>
+					</span>
+					{#if reviewRequired}
+						<p class="note">The sprint needs its review first.</p>
+						<LinkButton href="/sprint/review" variant="secondary" size="s" onclick={() => (open = false)}>{copy.quickAdd.reviewLink}</LinkButton>
+					{/if}
+				</div>
 			{/if}
+			<p class="line" role="status">{toSprint ? copy.quickAdd.toSprint : copy.quickAdd.toBacklog}</p>
+		{/if}
+
+		<footer>
 			<Button type="button" variant={variant === 'dialog' ? 'secondary' : 'quiet'} onclick={close}>Cancel</Button>
 			<Button type="submit" variant="primary">Add todo</Button>
 		</footer>
@@ -213,82 +244,10 @@
 {/if}
 
 {#if !desktop.current || variant === 'dialog'}
-	<Sheet open={open} title="New todo" onclose={close}>{@render form()}</Sheet>
+	<Sheet open={open} title="New todo" onclose={close}>{#if shown}{@render form()}{/if}</Sheet>
 {/if}
 
 <style>
-	.field {
-		display: flex;
-		align-items: center;
-		gap: var(--space-3);
-		width: 100%;
-		height: 46px;
-		padding: 0 var(--space-4);
-		border: 1px solid var(--line);
-		border-radius: var(--radius-group);
-		background: var(--surface);
-		color: var(--ink-3);
-		text-align: left;
-		cursor: text;
-	}
-
-	.field:hover {
-		color: var(--ink-2);
-		border-color: var(--line-strong);
-	}
-
-	.field svg {
-		width: var(--icon-md);
-		height: var(--icon-md);
-		fill: none;
-		stroke: currentColor;
-		stroke-width: 2;
-		stroke-linecap: round;
-		color: var(--accent);
-	}
-
-	.plus {
-		display: grid;
-		place-items: center;
-		width: 28px;
-		height: 28px;
-		padding: 0;
-		border: 0;
-		border-radius: 8px;
-		background: none;
-		color: var(--ink-3);
-		cursor: pointer;
-	}
-
-	.plus:hover {
-		background: var(--sunk);
-		color: var(--ink);
-	}
-
-	.plus svg {
-		width: var(--icon-sm);
-		height: var(--icon-sm);
-		fill: none;
-		stroke: currentColor;
-		stroke-width: 2;
-		stroke-linecap: round;
-	}
-
-	.card {
-		padding: var(--space-4) var(--space-4) var(--space-3);
-		border-radius: var(--radius-lg);
-		background: var(--surface);
-		box-shadow: var(--shadow-float);
-		animation: expand var(--dur-base) var(--ease-out);
-	}
-
-	@keyframes expand {
-		from {
-			opacity: 0;
-			transform: scale(0.98);
-		}
-	}
-
 	input,
 	textarea {
 		display: block;
@@ -305,24 +264,26 @@
 	}
 
 	.title {
+		min-block-size: var(--target);
 		font-weight: var(--weight-medium);
 	}
 
 	.title::placeholder {
-		color: var(--ink-3);
+		color: var(--ink-muted);
 		font-weight: var(--weight-regular);
 	}
 
 	.notes {
+		min-block-size: var(--target);
 		margin: var(--space-1) 0 var(--space-4);
 		resize: none;
 		field-sizing: content;
-		color: var(--ink-2);
+		color: var(--ink-secondary);
 	}
 
 	.notes::placeholder,
 	.checklist input::placeholder {
-		color: var(--ink-3);
+		color: var(--ink-muted);
 	}
 
 	.checklist {
@@ -336,40 +297,89 @@
 		align-items: center;
 		gap: var(--space-2);
 		min-height: 32px;
-		border-bottom: 1px solid var(--line);
+		border-bottom: 1px solid var(--hairline);
 	}
 
 	.checklist i {
 		width: 12px;
 		height: 12px;
 		flex: none;
-		border: 1.5px solid var(--line-strong);
+		border: 1.5px solid var(--edge-control);
 		border-radius: var(--radius-pill);
 	}
 
-	.hint {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--space-1);
-		margin-right: auto;
-		color: var(--ink-3);
-		font-size: var(--text-sm);
+	.dest {
+		display: grid;
+		gap: var(--space-2);
+		justify-items: start;
+		margin-top: var(--space-4);
 	}
 
-	.hint svg {
-		width: var(--icon-sm);
-		height: var(--icon-sm);
-		fill: none;
-		stroke: currentColor;
-		stroke-width: 1.75;
-		stroke-linecap: round;
-		stroke-linejoin: round;
+	.choice-host {
+		position: relative;
+		display: inline-block;
+		max-inline-size: 100%;
+	}
+
+	.choice {
+		display: inline-flex;
+		gap: var(--space-0-5);
+		max-inline-size: 100%;
+		padding: var(--space-1);
+		border-radius: var(--radius-pill);
+		background: var(--surface-sunken);
+	}
+
+	.choice > button {
+		min-block-size: max(var(--control-height-s), var(--target));
+		padding: 0 var(--space-4);
+		border: 0;
+		border-radius: var(--radius-pill);
+		background: none;
+		color: var(--ink);
+		font-family: var(--font-ui);
+		font-size: var(--type-label-size);
+		font-weight: var(--type-label-weight);
+		white-space: nowrap;
+	}
+
+	.choice > button[aria-pressed='true'] {
+		background: var(--surface-inverse);
+		color: var(--ink-on-inverse);
+	}
+
+	.choice > button:disabled {
+		opacity: var(--disabled-opacity);
+		cursor: default;
+	}
+
+	@media (hover: hover) {
+		.choice > button:not([aria-pressed='true']):not(:disabled):hover {
+			background: var(--surface-tint);
+		}
+	}
+
+	.choice > button:focus-visible {
+		outline-offset: calc(-1 * var(--focus-width));
+	}
+
+	.line {
+		margin: var(--space-3) 0 0;
+		font-size: var(--type-body-s-size);
+		font-weight: var(--weight-semibold);
+		color: var(--ink);
+	}
+
+	.note {
+		margin: 0;
+		font-size: var(--type-caption-size);
+		color: var(--ink-secondary);
 	}
 
 	.error {
 		margin-top: var(--space-3);
-		color: var(--overdue);
-		font-size: var(--text-sm);
+		color: var(--danger);
+		font-size: var(--type-label-size);
 	}
 
 	footer {
@@ -378,12 +388,12 @@
 		gap: var(--space-2);
 		margin-top: var(--space-4);
 		padding-top: var(--space-3);
-		border-top: 1px solid var(--line);
+		border-top: 1px solid var(--hairline);
 	}
 
 	@media (max-width: 767px) {
 		.title {
-			font-size: var(--text-lg);
+			font-size: var(--type-body-size);
 		}
 
 		footer {

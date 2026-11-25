@@ -1,5 +1,6 @@
 import { expect, test, reset, seed, setClock, aspectGroup, todoRow, todoRows, todoTitles } from './helpers';
 import { sprintList } from './sprint-locators';
+import { statusOf } from './row-locators';
 
 // Wednesday 7 October 2026 in Berlin; its sprint week starts Monday 5 October.
 const NOW = '2026-10-07T10:00:00Z';
@@ -74,11 +75,12 @@ test('Scenario: Empty backlog shows an empty state', async ({ page, request }) =
 	await seed(request, { aspects: [...ASPECTS] });
 	await page.goto('/backlog');
 
-	const empty = page.getByText('Your backlog is empty.');
-	await expect(empty).toContainText('Your backlog is empty.');
-	await empty.getByRole('button', { name: 'Add a todo' }).click();
-	await expect(page.getByRole('form', { name: 'New todo' })).toBeVisible();
-	await expect(page.getByRole('form', { name: 'New todo' }).getByLabel('Title')).toBeFocused();
+	await expect(page.getByRole('heading', { name: 'Your backlog is empty' })).toBeVisible();
+	await expect(page.getByText('Add a todo to start planning.')).toBeVisible();
+	await page.getByRole('main').getByRole('button', { name: 'Add a todo' }).click();
+	const dialog = page.getByRole('dialog', { name: 'New todo' });
+	await expect(dialog).toBeVisible();
+	await expect(dialog.getByLabel('Title')).toBeFocused();
 });
 
 test('Scenario: Overdue todos are marked in the backlog', async ({ page, request }) => {
@@ -114,7 +116,7 @@ test('Scenario: Add a backlog todo to the active sprint', async ({ page, request
 
 	await page.goto('/sprint');
 	const added = todoRow(page, 'Clean the fridge');
-	await expect(added.getByLabel('Status')).toHaveValue('todo');
+	await expect(statusOf(added, 'To do')).toBeVisible();
 	await expect(todoRow(sprintList(page), 'Water the plants')).toHaveCount(0);
 });
 
@@ -140,7 +142,8 @@ test('Scenario: Backlog page points to Review instead of adding', async ({ page,
 
 	await expect(todoRows(page)).toBeVisible();
 	await expect(page.getByRole('button', { name: /Add to sprint/ })).toHaveCount(0);
-	await page.getByText('This week’s sprint is over, so nothing can join it.').getByRole('link', { name: /review/i }).click();
+	const note = page.getByRole('status').filter({ hasText: 'This week’s sprint is over, so nothing can join it.' });
+	await note.getByRole('link', { name: /review/i }).click();
 	await expect(page).toHaveURL(/\/sprint\/review$/);
 });
 
@@ -167,7 +170,7 @@ test('Scenario: Planned todos are listed in the Planned section', async ({ page,
 	await seed(request, {
 		aspects: [...ASPECTS],
 		todos: [
-			{ title: 'Dentist', aspect: 0, day: '2026-10-28', startTime: '18:00' },
+			{ title: 'Dentist', aspect: 0, day: '2026-10-28', startTime: '18:00', dueDate: '2026-10-30', priority: 1 },
 			{ title: 'Tax return', aspect: 1, day: '2026-10-28' },
 			{ title: 'Call grandma', aspect: 0, day: '2026-10-21', startTime: '09:00' },
 			{ title: 'Clean the fridge', aspect: 0 }
@@ -179,6 +182,14 @@ test('Scenario: Planned todos are listed in the Planned section', async ({ page,
 	await expect(planned.getByRole('heading', { name: 'Planned' })).toBeVisible();
 	await expect.poll(() => todoTitles(planned)).toEqual(['Call grandma', 'Tax return', 'Dentist']);
 	await expect(planned.getByText('Clean the fridge')).toHaveCount(0);
+
+	// As signed: aspect, then the planned day and slot, then due and priority.
+	const meta = await todoRow(planned, 'Dentist').innerText();
+	const at = (part: string) => meta.indexOf(part);
+	const when = await todoRow(planned, 'Dentist').getByRole('time').innerText();
+	expect(at('Health')).toBeGreaterThan(-1);
+	expect(at('Health')).toBeLessThan(at(when));
+	expect(at(when)).toBeLessThan(at('P1'));
 
 	const health = aspectGroup(page, 'Health');
 	await expect.poll(() => todoTitles(health)).toEqual(['Clean the fridge']);

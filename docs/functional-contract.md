@@ -56,7 +56,7 @@ Merged from the route notes below. Dates are `YYYY-MM-DD`, times `HH:MM`, all Eu
 
 ### 3.2 Aspects, recurring rules, IT projects, Uni
 **Aspects**
-- Fields: id, name (unique, case-insensitive, non-ASCII too), colour (8 fixed), icon (25 fixed), position (the user-defined order), created_at. New aspects take the next position. Aspects are manually reorderable; every list of aspects follows this order (Pending server change: a reorder action; the position column already exists).
+- Fields: id, name (unique, case-insensitive, non-ASCII too), colour (8 fixed), icon (24 fixed), position (the user-defined order), created_at. New aspects take the next position. Aspects are manually reorderable; every list of aspects follows this order (Pending server change: a reorder action; the position column already exists).
 - First-run presets (onboarding on `/welcome`): Health (sage, heart), Uni, Job, Home, Finance, Social, plus custom; todos need >=1 aspect (`no-aspect`). A preset whose name already exists as an aspect is marked as existing and cannot be selected (Pending server change: `/welcome` reports which presets exist).
 - Relations: todos, recurring rules, settings `it_aspect_id` / `uni_aspect_id`.
 - Delete: needs target aspect when in use; moves todos + rules; clears project link, class link, type, revised date; unsets IT/Uni settings if they pointed to it; blocked for only aspect in use; deleting the last (empty) aspect -> onboarding.
@@ -82,7 +82,7 @@ Merged from the route notes below. Dates are `YYYY-MM-DD`, times `HH:MM`, all Eu
 
 ### 3.3 Calendar items and Proton sync items
 **Calendar item** (derived, not stored; built per month by `calendarMonth`)
-- `todo` (source: todos with explicit `day` in the shown month, any status/sprint/backlog; fields title, aspect, slot start/end, done). Opens editor. Done entries stay listed and must be distinguishable as done.
+- `todo` (source: todos with explicit `day` in the shown month, any status/sprint/backlog; fields title, aspect, slot start/end, done). Opens editor. Done entries stay listed and must be distinguishable as done (muted, never struck through).
 - `projection` (source: recurring rules; one per matching weekday). Projected only for days after the active sprint's week (or from today with no active sprint); never before; not for rules of archived-semester classes; suppressed on a day that already has a real instance of that rule. Instances inside the active sprint week are real todos, not projections. Links to `/recurring#rule-<id>`. Carries title, aspect, slot.
 - `exam` (source: classes with `exam_at`, active and archived semesters; date-only = all-day; with time = start time only, no end). Shows class name, room, class colour; links to `/uni/classes/<id>`.
 - Due todo (separate list, not an entry): open (`status != done`) todo with `due_date` on that day, in backlog or sprint, any past/future day, sorted by title (case-insensitive).
@@ -131,18 +131,18 @@ All dates are calendar days in Europe/Berlin, computed server-side (`today()`); 
 4. The backlog list, titled `Backlog` (count), holds open backlog todos not already suggested/auto, grouped by aspect, with title filter. Per todo `Add to sprint: <title>` (`?/pull`) or, on pointer devices, drag onto the draft. A pulled todo loses its planned day and slot.
 5. Draft todos have `Remove from sprint: <title>` (`?/unpull`: back to backlog, status `To do`, day/slot cleared) or, on pointer devices, can be dragged back to the backlog list (not recurring).
 6. Start: hint `Recurring todos join on their days when the sprint starts.` and the page's primary action `Start sprint` (0 todos) or `Start sprint with N todo`/`N todos` (N = draft + marked suggestions; auto-join and recurring not counted).
-7. Errors (`role="alert"`, tied to the start action): `review-pending` -> `The last sprint needs a review first.`; `sprint-active` -> `A sprint is already running.`; anything else -> `That didn’t work. Reload and try again.`
+7. Errors (`role="alert"`, tied to the start action): `review-pending` -> `The last sprint needs a review first.`; `sprint-active` -> `A sprint is already running.`; anything else -> `Couldn’t start the sprint — try again.`
 8. Success: 303 redirect to `/sprint`.
 
 ### 4.3 Review flow (`/sprint/review`)
 
 1. Entry: running -> redirect `/sprint`; none/planning -> redirect `/sprint/plan`. Available on the sprint's Sunday, required from Monday after.
 2. Title `Review your sprint` + the sprint's week label.
-3. Summary line: no open todos -> `All N done. Nice week.` (N>0) or `Nothing was planned this week.` (0 todos); otherwise `Open todos carry over into next week unless you send them back.`
+3. Summary line: no open todos -> `All N done. Nothing to carry over.` (N>0) or `Nothing was planned this week.` (0 todos); otherwise `Open todos carry over into next week unless you send them back.`
 4. `Done` collapsible section with count (done todos, read-only: no decision, no done toggle) when any are done.
 5. Open todos grouped by aspect; each gets a choice: `Carry over` (default), plus `Back to backlog` (normal todos) or `Drop` (recurring instances only). Nothing is changed until closing.
-6. Close action label is generated from the choices: `Close sprint` (nothing open) else e.g. `Carry 2, return 1 and close`, `Carry 1, drop 1 and close` (verbs `Carry`/`return`/`drop`, zero-count parts omitted, first letter capitalised). All-done review = one tap.
-7. `?/close` (atomic): `carry` -> into the planning draft, day/slot cleared, status kept; `backlog` -> backlog, status `To do`, day/slot cleared; `drop` -> instance deleted. Errors: invalid/missing decision -> per-todo `This todo can’t go there.` (backlog for a recurring instance, drop for a non-recurring todo, unknown value); `sprint-active` (closing before Sunday) or `no-active-sprint` -> `That didn’t work. Reload and try again.`
+6. Close action label is generated from the choices: `Close sprint` (nothing open) else e.g. `Carry 2, return 1 and close`, `Carry 1, drop 1 and close` (verbs `Carry`/`return`/`drop`, zero-count parts omitted, first letter capitalised). All-done review = one tap. On phones (below 768 px) the sticky close bar holds the short count (`3 open · 1 done`) and the button `Close sprint`; the generated label leads the summary at the end of the list (Rue, wave 11).
+7. `?/close` (atomic): `carry` -> into the planning draft, day/slot cleared, status kept; `backlog` -> backlog, status `To do`, day/slot cleared; `drop` -> instance deleted. Errors: invalid/missing decision -> per-todo `This todo can’t go there.` (backlog for a recurring instance, drop for a non-recurring todo, unknown value); `sprint-active` (closing before Sunday) or `no-active-sprint` -> `Couldn’t close the sprint — try again.`
 8. Success: 303 redirect to `/sprint/plan` (target week = next week on Sunday, else current week).
 
 ### 4.4 Onboarding (`/welcome`)
@@ -181,9 +181,9 @@ One-way push of planned work to Proton Calendar. The app never reads Proton back
    - Session expired / not logged in (CLI exit 2): the pass stops, state `Re-login needed`, sync paused. `/sync` shows the exact command to run on the server: `proton account login --profile <profile>`, then "Sync now". Without that, it retries by itself after 30 minutes.
    - Network/transient (exit 5, incl. timeout): the pass stops, state `Error` with the message, paused with backoff 1, 2, 4 … minutes capped at 30; then retries by itself. "Sync now" retries at once.
    - Binary missing or not executable: state `Error` with the message; app keeps running; the next tick or "Sync now" tries again.
-   - Any other per-item failure (CLI exit 1 etc.): only that item is marked failed with the CLI's `Error: …` line and the pass continues with the rest; the pass still ends `Up to date`. Failed items are listed on `/sync` (label + error). A failed item is retried only when its content or target aspect changes, on "Sync now", or on "Resync all"; the failure clears once its content matches Proton again.
+   - Any other per-item failure (CLI exit 1 etc.): only that item is marked failed with the CLI's `Error: …` line and the pass continues with the rest; the pass still ends `Up to date`. Failed items are listed on `/sync` (label + error, under the next step `Edit an item to try it again, or press Sync now.`). A failed item is retried only when its content or target aspect changes, on "Sync now", or on "Resync all"; the failure clears once its content matches Proton again.
    - Other unexpected errors end the pass in `Error` with the message; queued requests still run.
-   - Nav marker: while the state is `Re-login needed` or `Error`, every navigation entry to `/sync` (primary navigation and the `/menu` hub) carries an attention indicator with accessible name `Needs attention`.
+   - Nav marker: while the state is `Re-login needed` or `Error`, every navigation entry to `/sync` (the `More` menu of the top bar, the `More` tab of the pill bar and the `/menu` hub) carries an attention indicator with accessible name `Needs attention`.
 8. **Resync all** forgets every stored hash and re-pushes every item, recreating events that were removed in Proton, then runs a pass.
 9. **App-side effects of user actions** on sync: planning, editing, ticking done, unplanning, deleting a todo; editing/deleting a rule; starting a sprint (moves series, creates instance events); setting/clearing an exam; archiving a semester (completed todos get `✓ `); deleting a class or aspect; changing the Uni aspect (moves exam events). All reach Proton on the next pass, not synchronously; the UI gives no per-action sync feedback.
 
@@ -195,20 +195,21 @@ User-facing routes under `src/routes` (excluding `/__test*` and `/__mockups*`). 
 
 **Data shown**
 - Page title `Today`; long date (en-GB, e.g. `Thursday 12 November`).
-- Summary figure = count of distinct open (not done) todos among: today's list, overdue list, due-today backlog; label `open today`. In `running`/`review-available` also context `<Weekday> · this sprint`, line `Sprint <done> / <total> done · <N> day(s) left` (days left = sprint days after today) and a per-aspect progress breakdown.
+- Summary figure = count of distinct open (not done) todos among: today's list, overdue list, due-today backlog; label `open today`. In `running`/`review-available` also context `<Weekday> · this sprint`, line `Sprint <done> / <total> done · <N> day(s) left` (`ends today` when none are left; in `review-required` the line reads `Last week’s sprint <done> / <total> done` when that sprint has todos) (days left = sprint days after today) and a per-aspect progress breakdown.
 - Sprint progress (only in `running`/`review-available`), titled `This sprint`: `<done> / <total>`; per aspect with sprint todos: name (link to `/aspects/<id>`) + done/total; empty: `Nothing in this sprint yet.`
 - Sprint prompt whenever phase is not `running` (each phase has its own distinct link name): `none` -> `No sprint is running.` `Plan your week` (-> `/sprint/plan`); `planning` -> `Your next sprint is being planned.` `Continue planning`; `review-available` -> `This sprint ends today.` `Review it`; `review-required` -> `Last week’s sprint needs a review before the next one can start.` `Review the sprint`.
 - `Overdue` group (count): every open todo with `dueDate` < today in any state (sprint, backlog, draft), plus sprint todos that were overdue and ticked done today (stay listed in their done state until the day ends); sorted by due date then id; each row names its aspect.
 - Aspect groups (name + count; empty aspects hidden), containing: (a) active-sprint todos with `day` = today, or with no day and `dueDate` = today; (b) backlog todos due today or planned for today, only when today is NOT one of the active sprint's days (e.g. Sunday between sprints, review required, no sprint). Sorted by priority (1,2,3, none last), then due date, then id. Todos already in Overdue are not repeated.
 - Todo item data: title, aspect (in mixed lists), planned label (`Fri 9 Oct · 18:00–19:30`; on Today for today's day only the slot), linked class name (Uni), `Recurring` flag, checklist progress `x/y`, has-notes indicator (`Notes`), linked project name as a link (`/projects/<id>`), due label (`Today`, `Tomorrow`, `Nd left`, `Nd late`; open past-due todos are flagged overdue, with accessible text `Overdue,`), priority 1-3.
-- Empty state: when in `running`/`review-available`, no aspect groups and no overdue: `Nothing planned for today. The week view has the rest of your sprint.` (link -> `/sprint?view=week`).
+- Empty state: when in `running`/`review-available`, no aspect groups and no overdue: heading `Nothing planned for today`, body `The week view has the rest of your sprint.` (link -> `/sprint?view=week`).
+- Sync banner (region `Sync needs attention`, above the summary; link `Open sync`; state `Re-login needed` or `Error`; no dismiss while the state holds; none in `Off`, `Up to date`, `Syncing…`), linking `/sync`: `Re-login needed` -> `Proton sync needs you to log in again. Open sync to do it.`; `Error` -> `Proton sync stopped with an error. Open sync to see what failed.`
 
 **Actions**
-- Quick add `Add a todo` (form `/todos?/create`, always shown in every phase). Target: if today is a day of the sprint -> creates in the active sprint on today (status `To do`; Planned prefilled with today, can be changed to another sprint day or removed = in sprint, no day, not shown on Today); otherwise creates a backlog todo with due date = today. Fields: see "Todo create/edit fields" below. Success clears the form (current UI: keeps it open and refocuses the title on pointer devices, closes it on phones).
-- Done checkbox (`Done: <title>`) on sprint todos: `/todos?/toggleDone` (Done <-> To do). Done todos stay listed in their done state.
+- Inline quick add (form `Add a todo`: `Title` field, `Add`, destination line `Goes to this sprint, planned today` / `Goes to the backlog, due today`; first aspect; no sheet at any width; other aspect or day via the global `New todo`). (form `/todos?/create`, always shown in every phase). Target: if today is a day of the sprint -> creates in the active sprint on today (status `To do`; Planned prefilled with today, can be changed to another sprint day or removed = in sprint, no day, not shown on Today); otherwise creates a backlog todo with due date = today. Fields: see "Todo create/edit fields" below. Success clears the form (current UI: keeps it open and refocuses the title on pointer devices, closes it on phones).
+- Done checkbox (`Done: <title>`) on sprint todos: `/todos?/toggleDone` (Done <-> To do); a tick raises the toast `Done: <title>` with `Undo` (5 s, `role=status`, above the pill bar), Undo sets the todo back to To do. The Overdue group shows 5 rows with `Show all <n>` / `Show fewer`. Done todos stay listed in their done state: muted (secondary ink), never struck through — this holds for every list, the calendar included.
 - Overdue/due-today todos that are not in the active sprint show no checkbox; in `running`/`review-available` they offer `Add to sprint` (`/todos?/addToSprint`, lands as `To do`, no day); without an active sprint they are plain rows. Draft (planning) todos show neither.
 - Open editor by clicking a title (see Todo editor). Prompt links navigate.
-- Errors: `required` -> `Give the todo a title.`; `no-aspect` -> `Pick an aspect.`; `no-active-sprint` -> `There is no running sprint to add this to.`; `day-outside-sprint` -> `That day is not part of the sprint.`; plan errors (see Shared todo behavior); other -> `Couldn’t add the todo (<code>).` Add-to-sprint failure: `review-required` -> `The sprint needs its review first.` + `Review` link; other -> `That didn’t work. Reload and try again.`; `not-found` -> silent reload.
+- Errors: `required` -> `Give the todo a title.`; `no-aspect` -> `Pick an aspect.`; `no-active-sprint` -> `There is no running sprint to add this to.`; `day-outside-sprint` -> `That day is not part of the sprint.`; plan errors (see Shared todo behavior); other -> `Couldn’t add the todo — try again.` Add-to-sprint failure: `review-required` -> `The sprint needs its review first.` + `Review` link; other -> `Couldn’t add that todo to the sprint — try again.`; `not-found` -> silent reload.
 
 **States**
 - Empty (no todos anywhere): Applies - summary `0` `open today`, prompt per phase, quick add; no groups; in running phase the empty-state message.
@@ -236,6 +237,7 @@ User-facing routes under `src/routes` (excluding `/__test*` and `/__mockups*`). 
 - Heading, intro text, six preset aspects (name, colour value, icon value, and whether an aspect of that name already exists), `Add your own` / custom form, submit action with live count. See 4.4.
 
 **Actions**
+- The submit reads `Continue` (disabled) at 0 and `Continue with N aspect(s)`; a custom aspect counts once it has a name and is not the one the server just refused (a refused name is not counted until it changes). With every preset existing the custom form is open from the start. Picked presets are the charcoal pressed state with a check. First run (no aspect) shows neither bar nor `+`.
 - Toggle preset checkboxes (client-only until submit); presets that already exist are disabled and marked as existing.
 - `Add your own` / `Remove` (client-only).
 - Submit -> `POST ?/create` (all-or-nothing). Validation/errors and redirect as in 4.4. After a failure the ticked presets remain ticked.
@@ -266,10 +268,10 @@ User-facing routes under `src/routes` (excluding `/__test*` and `/__mockups*`). 
 - Title `Sprint`. Data is loaded only in `running`/`review-available` (Sunday still shows the sprint). In `none`, `planning`, `review-required` the page shows only the title and the sprint prompt (see Today copy) - no views, no summary, no backlog access, no `Manage` action.
 - Summary (not in `review-required`): `<done> / <total>` `done`, context `This sprint`, line `<Mon 5> – <Sun 11 Oct>` `· <N> day(s) left` plus ` · <M> doing` when M>0; per-aspect progress (done/total per aspect).
 - View choice (URL `?view=`, exposed as navigation `Sprint view` with the current view marked `aria-current="page"`): `By aspect` (default; unknown value falls back), `Board`, `Week`.
-- **By aspect:** aspect groups (name + done/total progress; aspects without sprint todos hidden), each todo with status, day, row actions. Empty: `Nothing in this sprint yet. Add a todo above, or pull some in from the backlog.` (link `/backlog`). The position word (`above`) may be reworded to fit the new layout.
+- **By aspect:** aspect groups (name + done/total progress; aspects without sprint todos hidden), each todo with status, day, row actions. Empty: heading `Nothing in this sprint yet`, body `Add a todo above, or pull some in from the backlog.` (link `/backlog`). The position word (`above`) may be reworded to fit the new layout.
 - **Board:** todos grouped by status `To do` / `Doing` / `Done` with counts; each todo shows title, aspect, due label (not when done), planned label, priority; empty-group text `Nothing left to start`, `Nothing in progress`, `Nothing done yet`.
 - **Week:** seven day groups Mon-Sun (weekday + date number, today identified, count of todos), plus an `Unscheduled` group. A todo belongs to the day of its planned `day`, or - if it has none - of its due date when that falls in the sprint week; otherwise Unscheduled. Within a day group a todo shows only its title and time slot. Done todos stay on their day. When only one day is presented at a time (current UI on phones), a day picker navigation named `Days` selects it (default today, else Monday), flags days that have open todos, and includes `Unscheduled` as an entry.
-- Backlog access (in `running` and on Sunday; not in `review-required`): titled `Backlog`, grouped by aspect with backlog count per aspect + sprint progress, filter `Filter backlog` (title substring), collapsible aspect groups (collapsed state remembered per browser, key `lm:rail-collapsed`), empty `The backlog is empty.` + `Open Backlog`, no match `No backlog todo matches`. Current UI presents it next to the views on wider screens and behind a `Manage` action (opening `Backlog`, closed with `Close`) on phones; `Manage` and `Close` are asserted copy.
+- Backlog access (in `running` and on Sunday; not in `review-required`): titled `Backlog`, grouped by aspect with backlog count per aspect + sprint progress, filter `Filter backlog` (title substring), collapsible aspect groups (collapsed state remembered per browser, key `lm:rail-collapsed`), empty heading `The backlog is empty` + `Open backlog`, no match `No backlog todo matches`. Current UI presents it next to the views on wider screens and behind a `Manage` action (opening `Backlog`, closed with `Close`) on phones; `Manage` and `Close` are asserted copy.
 - Prompt: `This sprint ends today.` `Review it` on Sunday, in addition to the views.
 
 **Actions**
@@ -278,7 +280,7 @@ User-facing routes under `src/routes` (excluding `/__test*` and `/__mockups*`). 
 - Day picker on todos (`Pick a day` / `Day`; options `Unscheduled` + `Mon 6`...`Sun 12`) -> `/todos?/setDay`; Week, pointer devices: drag a todo to another day (keeps slot) or to Unscheduled (clears day and slot).
 - Row actions menu (`More actions`): `Move to backlog` (`/todos?/moveToBacklog`; clears day/slot, status -> `To do`, `completedAt` cleared; allowed for done todos without confirmation) or, for recurring instances, `Remove from sprint` (deletes the instance after an undo toast `Removed “<title>” from the sprint` + `Undo`; the deletion is posted when the toast expires or when leaving the page; the rule stays).
 - Add from the backlog: `Add to sprint: <title>` (optimistic move; `/todos?/addToSprint`), or, on pointer devices, drag a backlog todo onto the By-aspect list (no day, `To do`), a Board status group (sets that status; Done sets completion), a Week day (sets that day), Unscheduled. Dragging a non-recurring sprint todo onto the backlog returns it.
-- Moves are optimistic and revert on refusal. Failure message (`role="alert"`): `review-required` -> `The sprint needs its review first.` + `Review` link; `not-found` -> silent reload; other -> `That didn’t work. Reload and try again.` Failures of `Add to sprint` from the backlog (non-optimistic) show the same copy tied to that todo. `day-outside-sprint` is refused for out-of-week days.
+- Moves are optimistic and revert on refusal. Failure message (`role="alert"`): `review-required` -> `The sprint needs its review first.` + `Review` link; `not-found` -> silent reload; other -> `Couldn’t move that todo — try again.` Failures of `Add to sprint` from the backlog (non-optimistic) show the same `review-required` copy, otherwise `Couldn’t add that todo to the sprint — try again.`, tied to that todo. `day-outside-sprint` is refused for out-of-week days.
 - Todo editor (activate title): see Shared todo behavior.
 
 **States**
@@ -322,7 +324,7 @@ User-facing routes under `src/routes` (excluding `/__test*` and `/__mockups*`). 
 - Single item: Applies - `Start sprint with 1 todo`.
 - Many items: Applies - grouped by aspect, counts per group.
 - Overlong text: Applies - no limits.
-- Backlog empty: Applies - backlog list shows `The backlog is empty.` + `Open Backlog`.
+- Backlog empty: Applies - backlog list shows the heading `The backlog is empty` + `Open backlog`.
 
 **Keyboard & touch**
 - Drag-and-drop on hover + fine-pointer devices; touch uses `Add to sprint`/`Remove from sprint` buttons and the include checkboxes. Filter field `Filter backlog`.
@@ -347,11 +349,11 @@ User-facing routes under `src/routes` (excluding `/__test*` and `/__mockups*`). 
 **States**
 - Empty: Applies - `Nothing was planned this week.` (no done, no open); button `Close sprint`.
 - Loading: N/A.
-- Error: Applies - per-todo `This todo can’t go there.`; general `That didn’t work. Reload and try again.`
+- Error: Applies - per-todo `This todo can’t go there.`; general `Couldn’t close the sprint — try again.`
 - Single item: Applies.
 - Many items: Applies - grouped by aspect; button label summarises counts.
 - Overlong text: Applies - no limits.
-- All done: Applies - `All N done. Nice week.`; no choices.
+- All done: Applies - `All N done. Nothing to carry over.`; no choices.
 
 **Keyboard & touch**
 - Choices are a radio group per todo (name `decision-<id>`, labelled by the todo title). Standard form submit.
@@ -371,12 +373,14 @@ User-facing routes under `src/routes` (excluding `/__test*` and `/__mockups*`). 
 - `Planned` section (count), listed before the aspect groups: backlog todos with a planned `day`, sorted by day, then all-day before timed, then start time, then title; rows show planned label (`Tue 3 Nov · 18:00–19:30`). Omitted when none.
 - Aspect groups (aspect icon value, name, count) for unplanned todos; empty aspects hidden; order inside: priority (1,2,3, none last), due date (undated last), id.
 - Aspect filter (navigation `Filter by aspect`, only when more than one aspect): `All` + one link per aspect, URL `?aspect=<id>`; the selected one is `aria-current`. A `?aspect=` value that is not a whole number, or names no existing aspect, shows an empty filtered list (never `All`, never an error); `All` stays available to leave it (decision 4; Pending server change: strict parsing).
+- Key-facts card `In the backlog` (charcoal, list `In the backlog`): `<n> open todo(s)`, `<n> planned for a day`, `<n> overdue` (a due date before today, the rows' `late` rule), counted over the whole backlog whatever the filter shows.
 - Review note when `review-required`: `This week’s sprint is over, so nothing can join it.` `Review the sprint` (-> `/sprint/review`); no `Add to sprint` is offered.
-- Empty: `Your backlog is empty.` `Add a todo` (opens quick add) `to start planning.`; with a filter: `Nothing for <aspect> in the backlog.` `Add a todo` `to it.`
+- Empty: heading `Your backlog is empty`, body `Add a todo to start planning.` with the button `Add a todo` (opens quick add); with a filter: heading `Nothing for <aspect> in the backlog`, body `Add a todo to it.`
 - Todo item data as in Today (due label, overdue flag, priority, planned label, linked project, linked class, checklist progress, has-notes; recurring not applicable).
 
 **Actions**
-- Quick add (`/todos?/create`, target backlog): default aspect = the filtered aspect else the first aspect. A planned day inside the running sprint's week sends the todo straight into the sprint (only the global `New todo` quick add, section 6, states the destination live: `Goes to this sprint`, otherwise `Goes to the backlog`); a planned day in the past outside the sprint is refused (`day-in-past`); a planned day inside a review-required week is refused (`review-required`).
+- The page's own inline add (form `Add a todo`: a title field and `Add`, the line `Goes to the backlog` or `Goes to the backlog, aspect <name>` under it) creates a backlog todo in the filtered aspect else the first; every other field goes through the global `New todo`. Quick add (`/todos?/create`, target backlog, from `New todo`): default aspect = the filtered aspect else the first aspect. A planned day inside the running sprint's week sends the todo straight into the sprint (only the global `New todo` quick add, section 6, states the destination live: `Goes to this sprint`, otherwise `Goes to the backlog`); a planned day in the past outside the sprint is refused (`day-in-past`); a planned day inside a review-required week is refused (`review-required`).
+- Row menu `More actions: <title>` on every row: `Plan a day` (opens the row's plan panel `Plan a day: <title>` with the select `Planned day` focused: `No day`, the running week's days, `Another date…` with a date field; `Save` posts `/todos?/setDay`, `Remove plan` clears it; a day of the running week pulls the todo into the sprint) and `Edit todo`. No visible `Plan a day` button on the row. Group headings (aspect groups, not `Planned`) are buttons with `aria-expanded` that collapse their rows.
 - `Add to sprint` per row (`/todos?/addToSprint`; offered only in `running`/`review-available`): lands as `To do`; a planned day within the sprint is kept with its slot, otherwise day/slot dropped; refused when review required (`The sprint needs its review first.` + `Review` link) or already moved (silent reload).
 - Open editor by clicking title (edit all fields, plan, checklist, delete); planning a backlog todo to a day inside the running week moves it into the sprint.
 - Aspect filter navigation.
@@ -435,7 +439,7 @@ User-facing routes under `src/routes` (excluding `/__test*` and `/__mockups*`). 
 ### Shared todo behavior (appears on Today, Sprint, Backlog, Plan, Review)
 
 **Todo create/edit fields** (quick add and editor share them): `Title` (placeholder `Add a todo`; required), `Description` (`Add a description`), `Aspect` (select, default first/defaulted aspect), `Priority` (`No priority`, `Priority 1`, `Priority 2`, `Priority 3`), `Due` (date, clearable via `Clear due date`), `Planned` (date, clearable via `Remove plan`; time fields are offered only after a day is set), `Time` `From`/`To` (typed `HH:MM`, 24h; `Add time` sets the next full hour clamped to 06:00-21:00 for one hour; length shortcuts `30m`, `1h`, `1h30`, `2h` (disabled when passing midnight); moving the start keeps the length (end capped at 23:59); clearing the start clears the end, retyping restores the remembered length; `Clear time`; a backwards slot shows `End must be after start`), `Project` (only when the aspect is the IT aspect and non-implemented projects exist; `No project` option; an implemented project stays selectable only on the todo linked to it), `Class` (`No class`, only when aspect is Uni and active classes exist; hidden otherwise, decision 7) with `Type` single choice `LEC` (Lecture) / `EXC` (Exercise) / `OTH` (Other), shown once a class is chosen, `Checklist` (quick add: toggle, items `Checklist item N`, Enter adds the next).
-- Plan error copy: `day-in-past` -> `That day has already passed. Pick today or a later day.`; `review-required` -> `The sprint needs its review before a day can be changed.`; `recurring-outside-week` -> `A recurring todo stays in its sprint’s week. Pick a day of that week.`; `end-before-start` -> `The end time has to be after the start time.`; `end-without-start` -> `Set a start time before the end time.`; `invalid` -> `Use a time like 18:00.` Editor title error `Give the todo a title.`; other editor errors `Couldn’t save the todo (<code>).`
+- Plan error copy: `day-in-past` -> `That day has already passed. Pick today or a later day.`; `review-required` -> `The sprint needs its review before a day can be changed.`; `recurring-outside-week` -> `A recurring todo stays in its sprint’s week. Pick a day of that week.`; `end-before-start` -> `The end time has to be after the start time.`; `end-without-start` -> `Set a start time before the end time.`; `invalid` -> `Use a time like 18:00.` Editor title error `Give the todo a title.`; other editor errors `Couldn’t save the todo — try again.`
 
 **Placement rule (planned day):** a day inside the active sprint's week puts the todo in the sprint (status reset to `To do` when it comes in from outside; refused with `review-required` once the Monday after is reached); a day before today and outside the active week is `day-in-past`; a day outside the active week (not past) leaves/keeps the todo in the backlog (a sprint todo moved out has status reset to `To do`); with no active sprint it stays in the backlog; a todo of a closed sprint keeps its sprint and may only move within that sprint's week (`day-outside-sprint`); a recurring instance must stay within its sprint's week (`recurring-outside-week` takes precedence over `day-in-past`; instances in a planning draft cannot be planned). Pulling by hand or carrying over clears the planned day.
 
@@ -456,18 +460,18 @@ User-facing routes under `src/routes` (excluding `/__test*` and `/__mockups*`). 
 ### /aspects
 
 **Data shown**
-- Every aspect (ordered by `position`, then id): name, colour (fixed palette of 8: sage, sky, lavender, ochre, berry, lagoon, tangerine, slate), icon (fixed set of 25 icon values: heart, cap, briefcase, house, wallet, people, dumbbell, book, leaf, sprout, utensils, plane, music, palette, code, pen, sun, moon, coffee, car, baby, paw, flower, star, ...).
+- Every aspect (ordered by `position`, then id): name, colour (fixed palette of 8: sage, sky, lavender, ochre, berry, lagoon, tangerine, slate), icon (fixed set of 24 icon values: heart, cap, briefcase, house, wallet, people, dumbbell, book, leaf, sprout, utensils, plane, music, palette, code, pen, sun, moon, coffee, car, baby, paw, flower, star).
 - Order: the user-defined order (position, then id).
 - Per aspect: todo count (`No todos` / `1 todo` / `n todos`; counts all todos of the aspect, incl. done), backlog count `n in backlog`, and this-sprint progress (done / total) only while a sprint is `running` or `review-available`; an aspect with no todos in that sprint reads `Not in this sprint`. When no sprint is shown, no progress is given. Progress and backlog count are display-only secondary data and may be omitted on phones (decision 9).
 - Usage (todos + recurring rules) per aspect is loaded for the delete flow.
 
 **Actions**
-- `New aspect` (page-level action) opens a form (title `New aspect`): name input (placeholder `Aspect name`, autofocused), colour choice (8 radios, default `tangerine`), icon choice (25 radios). Submit `Create aspect` -> server action `?/create`; new aspect is appended at the end (position = max+1). The form closes on success.
+- `New aspect` (page-level action) opens a form (title `New aspect`): name input (placeholder `Aspect name`, autofocused), colour choice (8 radios, default `tangerine`), icon choice (24 radios, the `ASPECT_ICONS` set; the signed hi-fi's count of 25 was a miscount). Submit `Create aspect` -> server action `?/create`; new aspect is appended at the end (position = max+1). The form closes on success.
 - The aspect name is a link to `/aspects/<id>`; activating anywhere on the aspect's entry (except its actions menu) opens it.
 - Per-aspect actions menu (button labelled `Actions for <name>`): `Edit`, `Delete`. `Edit` opens the same form titled `Edit aspect` (`Save`), action `?/update` (hidden `id`). In edit mode the form also offers `Delete aspect` and `Cancel`.
 - `Delete` (menu item or form button) opens a confirm dialog `Delete <name>?`:
   - Aspect has no todos and no rules: message `<name> has no todos or recurring rules.`, confirm label `Delete aspect`, no target.
-  - Aspect in use: message `<name> has n todo(s) and m recurring rule(s). Which aspect should they move to?`, a required target choice among all other aspects (first preselected), confirm label `Move <n+m> and delete`. Action `?/delete` with `id` and `targetId`.
+  - Aspect in use: message `<name> has n todo(s). Which aspect should they move to?` plus ` Its m recurring rule(s) move(s) with them.` when it has rules too (rules only: `<name> has m recurring rule(s). Which aspect should it/they move to?`), a required target as a labelled select `Move them to` among all other aspects with the placeholder `Choose an aspect` and no preselection (as signed at gate 5; submitting without one shows `Pick the aspect that receives them.`), confirm label `Move <n> and delete` (rules only: `Move m rule(s) and delete`). Action `?/delete` with `id` and `targetId`.
   - Moving: todos and rules go to the target keeping sprint, status, day; todo project/class links, type and revised date are cleared; rule class/type cleared. If the deleted aspect was the IT or Uni aspect, that setting becomes unset (prompts reappear on `/projects` / `/uni`).
   - Disabled: delete is disabled (menu item and form button) when this is the only aspect and it has todos or rules; form shows `This is your only aspect and it still has todos or rules. Add another aspect to move them to first.`
 - Validation (server, shown at the name field, `role="alert"`): empty/whitespace name -> `Give the aspect a name.` (`required`); case-insensitive duplicate (also non-ASCII fold, e.g. Ärzte/ärzte) -> `You already have an aspect with this name.` (`duplicate`). Invalid colour/icon -> `required` on colour/icon (not reachable through the pickers). Failed save keeps the form open with entered values.
@@ -504,7 +508,7 @@ User-facing routes under `src/routes` (excluding `/__test*` and `/__mockups*`). 
 
 **Data shown**
 - Page title = aspect name; the aspect's icon and colour values are shown with it.
-- Section `This sprint`: the aspect's todos of the running (or review-available) sprint, progress done/total; each with the sprint-context todo actions (day picker, status, row actions as on `/sprint`). `This sprint` shows `Nothing from <name> in this sprint yet.` when a sprint is shown but has none of this aspect.
+- Section `This sprint`: the aspect's todos of the running (or review-available) sprint, sorted as on `/sprint` (priority P1–P3 first, no priority last, then due date with none last, then creation), progress done/total; each with the sprint-context todo actions (day picker, status, row actions as on `/sprint`). `This sprint` shows `Nothing from <name> in this sprint yet.` when a sprint is shown but has none of this aspect.
 - Section `Backlog` (with count): aspect's backlog todos (not in a sprint, not done) and a QuickAdd defaulting to this aspect (target = backlog).
 - Details: `Colour` (colour name), `This sprint` (progress, or `Waiting for its review`, or `No sprint running`), `Backlog` (`n in backlog`).
 
@@ -512,15 +516,15 @@ User-facing routes under `src/routes` (excluding `/__test*` and `/__mockups*`). 
 - Move to sprint: `Add to sprint` on a backlog todo -> posts `/todos?/addToSprint` (id); the todo moves optimistically to `This sprint` and progress updates; on failure it moves back.
 - Move to backlog: `Move to backlog` on a sprint todo -> `/todos?/moveToBacklog`; recurring instances cannot be moved to backlog (not draggable / not accepted by the backlog drop zone).
 - Drag (pointer devices only): drag a backlog todo onto the `This sprint` section = add to sprint; drag a non-recurring sprint todo onto `Backlog` = move to backlog. `This sprint` accepts drops only when a sprint is shown.
-- QuickAdd in Backlog creates a backlog todo under this aspect (aspect preselected, changeable); empty-state button `Add a todo` opens it.
+- The Backlog section's own inline add (`Add a todo to <name>`, title only as signed; line `Goes to the backlog, aspect <name>`) creates a backlog todo under this aspect; aspect, due and the rest go through the global `New todo`, pre-filled with this aspect. The empty-state button `Add a todo` opens the global quick add.
 - Todo actions (edit, status, done, delete, planning) are the shared todo behaviour documented under Today/Backlog; they work here.
-- Errors: move failing with `review-required` shows `The sprint needs its review first.` + link `Review` (/sprint/review); any other failure shows `That didn’t work. Reload and try again.`; `not-found` (todo already moved elsewhere) silently reloads the page data.
+- Errors: move failing with `review-required` shows `The sprint needs its review first.` + link `Review` (/sprint/review); any other failure shows `Couldn’t move that todo — try again.`; `not-found` (todo already moved elsewhere) silently reloads the page data.
 - No aspect edit/delete here; those are on `/aspects`.
 
 **States**
-- Empty: Applies - aspect with no todos at all: `Nothing in <name> yet. Add a todo to start.` (button opens quick add). Backlog empty but sprint todos exist: `Nothing from <name> in the backlog.`
+- Empty: Applies - aspect with no todos at all: heading `Nothing in <name> yet`, body `Add a todo to start.` (button opens quick add). Backlog empty but sprint todos exist: `Nothing from <name> in the backlog`.
 - Loading: N/A - server load; moves are optimistic and settle on response.
-- Error: Applies - unknown or deleted id -> 404, `+error.svelte`: title `Aspect not found`, message `This aspect doesn’t exist, or it was deleted.` with link `Aspects` (/aspects); non-404 error: `Something went wrong loading this aspect.` with the same link. Move errors as above.
+- Error: Applies - unknown or deleted id -> 404, `+error.svelte`: title `Aspect not found`, message `This aspect doesn’t exist, or it was deleted. Go back to Aspects.` with link `Aspects` (/aspects); non-404 error: `Couldn’t load this aspect. Try again, or go back to Aspects.` with the same link. Move errors as above.
 - Single item: Applies - one todo in a section.
 - Many items: Applies - full lists, no pagination.
 - Overlong text: Applies - todo titles as in shared todo behaviour; aspect name in headings and empty copy shown in full.
@@ -551,12 +555,12 @@ User-facing routes under `src/routes` (excluding `/__test*` and `/__mockups*`). 
 **Actions**
 - `New project` (page-level action) shows a form: `Name` (required), `Description` (placeholder `One line about it`), `Repository URL` (placeholder `https://github.com/…`), `Tags` (placeholder `SvelteKit, SQLite`, hint `Separate with commas.`); `Add project` / `Cancel`. Server action `?/create`; new project starts in status `backlog`.
 - Validation: empty name -> `Give the project a name.` (`required`@name); repo URL not http(s) -> `Enter a link starting with http:// or https://.` (`invalid`@repoUrl). Form stays open with errors; on success it closes. Tags: split on commas, trimmed, empties and duplicates dropped, order kept.
-- Empty-state button `New project` (when no projects exist) opens the same form.
+- Empty-state button `New project` (when no projects exist) opens the same form; the page-head `New project` pill shows only while projects exist, so there is one such button at a time. The form is a sheet.
 - Expand/collapse `Implemented (n)` group (collapsed by default, lists its projects only when expanded).
-- `Change IT aspect` re-shows the prompt (titled `Change the IT aspect`, with `Cancel`). Submit -> `?/setItAspect` (aspectId). If the choice differs from current and any todo is linked to a project, a confirm dialog `Change the IT aspect?` / `<n> todo(s) lose(s) their project link. The todos themselves stay.` / confirm `Change aspect`; with zero links, or same aspect, no dialog. Result: all todo->project links removed; setting stored. Unknown aspect -> `not-found`@aspectId.
+- `Change IT aspect` (in the `IT aspect` side panel) opens a sheet titled `Change the IT aspect` with the same radio list, `Cancel` and `Use <aspect> for projects` (build 24.1, as signed). Submit -> `?/setItAspect` (aspectId); the sheet closes first when the confirmation follows. If the choice differs from current and any todo is linked to a project, a confirm dialog `Change the IT aspect?` / `<n> todo(s) lose(s) their project link. The todos themselves stay.` / confirm `Change aspect`; with zero links, or same aspect, no dialog. Result: all todo->project links removed; setting stored. Unknown aspect -> `not-found`@aspectId.
 
 **States**
-- Empty: Applies - no projects: `Capture your first idea. A project starts in the backlog.` + `New project`; no group headings.
+- Empty: Applies - no projects: heading `No projects yet`, body `A project starts in the backlog.` + `New project`; no group headings.
 - Loading: N/A - server load.
 - Error: Applies - field errors on create; no page-level error.
 - Single item: Applies - one project in its group.
@@ -579,31 +583,31 @@ User-facing routes under `src/routes` (excluding `/__test*` and `/__mockups*`). 
 ### /projects/[id]
 
 **Data shown**
-- Back link `Projects`; heading = project name; current status label (also the trigger of the status menu); description if set.
-- `Details`: repo link (shown as host/path, opens in new tab with `rel=noopener noreferrer`), tags, `Todos` summary `n open, n planned, n done`, `Created`, `Updated` (dates en-GB, Europe/Berlin, e.g. `Created <d Mon>`), `Edit details`. The `Todos` summary is display-only secondary data and may be omitted on phones (decision 9).
-- `Notes`: rendered Markdown (raw HTML is escaped; links allow only relative/http/https/mailto) or placeholder `No notes yet. Write down the plan, decisions or change requests.` Long notes are never truncated.
+- Breadcrumb `Projects › Project` (the first part links back); heading = project name with a `Project actions` menu whose one item is `Delete project`; a status button named `Status: <status>. Set status` (shows the current status, opens the status menu); description if set; from 768 px a key-facts card `Linked todos` with the Open, Planned and Done counts.
+- `Details` (group `Project details`; a right panel from 1280 px, a closed disclosure at the top below it): repo link (shown as host/path, opens in new tab with `rel=noopener noreferrer`), tags, `Created`, `Updated` (dates en-GB, Europe/Berlin, `<d Mon>`, with the year when it is not the current one; left out on phones), `Edit details`. The old `Todos` summary row is gone: the `Linked todos` key-facts card carries the counts.
+- `Notes`: rendered Markdown (raw HTML is escaped; links allow only relative/http/https/mailto) or placeholder `No notes yet. Write down the plan, decisions or change requests.` Long notes are never truncated: collapsed they clip at 16 rem with a fade behind `Show more` / `Show less`, and every line stays in the page.
 - `Linked todos`: groups `Open` (not in a sprint, not done, backlog-context rows), `Planned` (in a sprint, not done), `Done` (collapsed by default with count, newest completion first). Each uses the shared todo row.
 - `Delete project` action.
 
 **Actions**
-- Status menu `Set status`: Backlog, Active, In progress, Paused, Implemented (any to any; current one marked). Picking the current status does nothing. Action `?/status`. Picking Implemented while open linked todos > 0 opens confirm `Mark as implemented?` / `<n> linked todo(s) is/are still open. They stay as they are.` / `Mark as implemented`; cancel changes nothing. Leaving Implemented, or no open todos: no dialog. Updates `updated_at`.
+- Status menu `Set status` (radio items `menuitemradio`): Backlog, Active, In progress, Paused, Implemented (any to any; current one checked). Picking the current status does nothing. Action `?/status`. Picking Implemented while open linked todos > 0 opens confirm `Mark as implemented?` / `<n> linked todo(s) is/are still open. They stay as they are.` / `Mark as implemented`; cancel changes nothing. Leaving Implemented, or no open todos: no dialog. Updates `updated_at`.
 - `Edit details` opens a form titled `Edit details`: Name, Description, Repository URL, Tags -> `?/update`, same validation/messages as create (`Give the project a name.`, `Enter a link starting with http:// or https://.`); stays open on error, `Save`/`Cancel`; bumps `updated_at`.
 - Notes: `Edit notes` toggles a multi-line Markdown text field (autofocus) with `Save`/`Cancel` -> `?/notes`; saving updates `updated_at`; editor shows raw Markdown, view shows rendered.
 - `Done` group toggle expands/collapses.
 - Linked todos: shared todo actions (edit, status, planning, move to sprint when a sprint can accept it - sprint days are provided only for a running or review-available sprint).
-- `Delete project` -> confirm `Delete project?` / `No todos are linked to it.` or `<n> linked todo(s) will be unlinked and kept.` / `Delete project` -> `?/delete`; todos stay with project link cleared; redirect 303 to `/projects`.
+- `Delete project` (item of the `Project actions` menu) -> confirm `Delete project?` / `No todos are linked to it.` or `<n> linked todo(s) will be unlinked and kept.` / `Delete project` -> `?/delete`; todos stay with project link cleared; redirect 303 to `/projects`.
 - Errors: `not-found` -> `That project no longer exists.` (action failure 400).
 
 **States**
 - Empty: Applies - no notes: placeholder above; no linked todos: `No linked todos yet. Choose the IT aspect on a todo, then pick this project in the Project field.`; no repo/tags: those fields omitted.
 - Loading: N/A - server load.
-- Error: Applies - unknown id -> 404 `+error.svelte`: title `Project not found`, `This project doesn’t exist, or it was deleted.` + link `Projects` (/projects); non-404: `Something went wrong loading this project.` + same link.
+- Error: Applies - unknown id -> 404 `+error.svelte`: title `Project not found`, `This project doesn’t exist, or it was deleted. Go back to Projects.` + link `Projects` (/projects); non-404: `Couldn’t load this project. Try again, or go back to Projects.` + same link.
 - Single item: Applies - one todo in a group.
 - Many items: Applies - all linked todos listed, no pagination.
 - Overlong text: Applies - notes are never truncated; name/description shown in full.
 
 **Keyboard & touch**
-- Status menu: opening focuses the first item; `Escape`/outside click closes. Must be operable by touch. Notes field autofocuses on edit.
+- Status menu: opening focuses the current status; `Escape`/outside click closes. Must be operable by touch. Notes field autofocuses on edit.
 
 **Serves jobs**
 - Keep project notes/plan
@@ -630,7 +634,7 @@ User-facing routes under `src/routes` (excluding `/__test*` and `/__mockups*`). 
 - Rule instances are generated by sprint start: one per weekday, pre-assigned to that day, including weekdays already past when the sprint starts mid-week (decision 5); carried-over open instances are re-used first (not duplicated); rules whose class sits in an archived semester generate nothing.
 
 **States**
-- Empty: Applies - `No recurring rules yet. Add one for anything you do every week.`
+- Empty: Applies - heading `No recurring rules yet`, body `Add one for anything you do every week.`
 - Loading: N/A - server load.
 - Error: Applies - field errors only; no page-level error.
 - Single item: Applies - one rule.
@@ -653,23 +657,23 @@ User-facing routes under `src/routes` (excluding `/__test*` and `/__mockups*`). 
 
 **Data shown**
 - Before the Uni aspect is chosen: prompt `Which aspect holds your uni todos?` / `Todos of this aspect can be linked to a class. You can change it later.` (radio list of aspects, preselects one named `Uni`), submit `Use <aspect> for classes`. Replaces the entire hub.
-- Hub content, in this reading order: title `Uni` with `New semester`; overall grade line `Overall average <x.xx> · <n> ECTS earned` (average `—` when none counts); active semesters newest first (by created time), each with name, `Average <x.xx> · <n> ECTS` and its classes (creation order); `This week` section; collapsed `Archived (n)` group (each archived semester itself collapsed); `Notes` (global Uni Markdown notes); the Uni-aspect line `Todos of the aspect <name> can be linked to a class.` + `Change` (accessible name `Change Uni aspect`).
-- Per class: class icon and colour values, name, lecturer (if set), grade if set (`Passed` or e.g. `1.3`), `<n> open` todos, next due date of open todos (`Yesterday`/`Today`/`Tomorrow`/`Fri 9 Oct`, overdue flagged), exam countdown `Exam in <n> d` / `Exam today` (past exams show nothing). Missing bits are omitted. The class entry links to `/uni/classes/<id>`.
-- `This week` (heading with count): every open (not done) class todo of a non-archived semester that sits in the active sprint; each shows title, class name with type (`LEC`/`EXC`/`OTH`; untyped treated as OTH), due text (flagged `Overdue` when past); sorted by due date ascending, undated last, then id. Empty: `Nothing in this week's sprint`. Paged client-side, 6 todos per page, `Previous` / `Next` / `Page n of m`; pager hidden when <= 6.
+- Hub content, in this reading order: title `Uni` with `New semester`; the overall grade line `Overall average <x.xx> · <n> ECTS earned` (average `—` when none counts) as the key-facts card, right of the heading at 1280 px and wider and below it on phones; active semesters newest first (by created time), each with name, `Average <x.xx> · <n> ECTS` and its classes (creation order); `This week` section; collapsed `Archived (n)` group (each archived semester itself collapsed); `Notes` (global Uni Markdown notes); the Uni-aspect line `Todos of the aspect <name> can be linked to a class.` + `Change` (accessible name `Change Uni aspect`).
+- Per class: class icon and colour values, name, lecturer (if set), grade if set (`Passed` or e.g. `1.3`), `<n> open` todos, next due line after `<n> open` / `No open todos` (`Next due tomorrow`, `Next due Thu 8 Oct`, `Overdue since Mon 5 Oct`), exam countdown `Exam in <n> d` / `Exam today` (past exams show nothing). Missing bits are omitted. The class entry links to `/uni/classes/<id>`.
+- `This week` (heading with count): every open (not done) class todo of a non-archived semester that sits in the active sprint; each shows title, class name (plain text, not a link) with type (`LEC`/`EXC`/`OTH`; untyped treated as OTH), due text (`Due Thu 8 Oct`, or `Overdue · Mon 5 Oct` when past); sorted by due date ascending, undated last, then id. Empty: `Nothing in this week's sprint`. Paged client-side, 6 todos per page, `Previous` / `Next` / `Page n of m`; pager hidden when <= 6.
 - Grade averages: ECTS-weighted mean of graded classes with ECTS; `passed` counts toward earned ECTS only; `5.0` counts toward neither; classes without ECTS excluded; two decimals; archived semesters count toward overall.
 
 **Actions**
 - `New semester` -> form (`Semester name`, placeholder `WS 26/27`, `Add semester`/`Cancel`), action `createSemester`; new semester appears first among active. Empty name -> `Give it a name.` (`required`@name). Duplicate names allowed.
-- Semester actions menu (`Semester actions`): active semester -> `Rename`, `Archive`, `Delete`; archived semester -> `Unarchive`, `Delete`. Actions `renameSemester` (name input in place with `Save`/`Cancel`; empty -> `Give it a name.`; archived -> `This semester is archived and read-only.`), `archive`, `unarchive`, `deleteSemester` (all take `id`).
-  - Archive: if open class todos exist, confirm `Archive <name>?` / `<n> class todo(s) is/are still open. Archiving marks them done, and the semester becomes read-only. You can unarchive it later.` / `Mark <n> done and archive`; otherwise immediate. Archive sets open todos done (completed now); semester read-only (no rename, no new/edited class, no notes/revised/todo edits; todos not pullable into sprints; deleting a single todo of an archived class still allowed; archived todos leave backlog and planning suggestions). Unarchive lifts read-only; todos stay done.
+- Semester actions menu (trigger accessible name `Semester actions: <name>`; groups `Active semesters`, regions `Semester <name>` also for archived ones, `Archived (n)`; side panels `Notes and Uni aspect`, `Recurring`, `Details`): active semester -> `Rename`, `Archive`, `Delete`; archived semester -> `Unarchive`, `Delete`. Actions `renameSemester` (name input in place with `Save`/`Cancel`; empty -> `Give it a name.`; archived -> `This semester is archived and read-only.`), `archive`, `unarchive`, `deleteSemester` (all take `id`).
+  - Archive: if open class todos exist, confirm `Archive <name>?` / `<n> class todo(s) is/are still open. Archiving marks them done, and the semester becomes read-only. You can unarchive it later.` / `Mark <n> done and archive`; otherwise immediate. Archive sets open todos done (completed now); semester read-only (no rename, no new/edited class, no notes/revised/todo edits; todos not pullable into sprints; deleting a single todo of an archived class still allowed, from a trash button on the row (`Delete todo: <title>`, the standard `Delete this todo?` confirm; the editor stays closed); archived todos leave backlog and planning suggestions). Unarchive lifts read-only; todos stay done.
   - Delete: confirm `Delete <name>?` / no classes: `It has no classes. This can’t be undone.` else `This deletes <n> class(es) and <n> todo(s), done ones included, and their recurring rules. This can’t be undone.` / `Delete semester`. Removes semester, classes, todos (incl. checklist items) and rules.
 - `New class` (in each active semester, also offered by its empty state) opens a form: `Name` (placeholder `Analysis II`), colour choice (default per choice set), icon choice, `Lecturer`, `Room`, `ECTS`, `Grade` (select: `No grade`, 1.0 1.3 1.7 2.0 2.3 2.7 3.0 3.3 3.7 4.0 5.0 `Passed`), links rows (`Link n label` placeholder `Moodle`, `Link n URL` placeholder `https://`, `Remove link n`, add link), `Exam date` + `Exam time` (time disabled until a date is set), `Exam room`. `Add class` / `Cancel`; action `createClass` (hidden `semesterId`). Errors shown per field: `Give it a name.`; `Pick one of the colours.`; `Pick one of the icons.`; `Enter ECTS as a number of 0 or more, in steps of 0.5.`; `Enter links starting with http:// or https://.`; `Enter the exam as a date, optionally with a time.`; `Pick a grade from the list.`; archived -> `This semester is archived and read-only.`; unknown semester -> `not-found`. Rows with empty label and URL are dropped. All field errors are collected at once. Server status: 404 not-found, 409 archived, 400 other.
-- `Change` (Uni aspect) re-shows the prompt (`Change the Uni aspect`, with `Cancel`); action `setUniAspect`. If it changes aspect and class links exist (todos + rules), confirm `Use <name> for classes?` / `<n> todo(s) and rule(s) … linked to classes. Changing the aspect removes those links, their types and revised dates. The todos stay.` / `Remove <n> link(s) and change`; otherwise immediate.
+- `Change` (Uni aspect) opens a sheet `Change the Uni aspect` with the radio list, `Cancel` and `Use <aspect> for classes` (the hub stays; build 25); action `setUniAspect`. When the confirmation follows, the sheet closes first. If it changes aspect and class links exist (todos + rules), confirm `Use <name> for classes?` / `<n> todo(s) and rule(s) … linked to classes. Changing the aspect removes those links, their types and revised dates. The todos stay.` / `Remove <n> link(s) and change`; otherwise immediate.
 - Global notes: `Edit notes` -> multi-line Markdown text field, `Save`/`Cancel`, action `notes`; placeholder `No notes yet. Keep your study plan, module list or anything else for Uni here.`
 - Expand/collapse `Archived (n)` and each archived semester; archived semester shows `Read-only.` with `Unarchive`.
 
 **States**
-- Empty: Applies - no semesters: `Start with the semester you are in now.` + `New semester`; no `This week` section. Semester without classes: empty state `No classes yet.` with `New class`.
+- Empty: Applies - no semesters: heading `Start with the semester you are in now` + `New semester`; no `This week` section. Semester without classes: empty state heading `No classes yet` with `New class`.
 - Loading: N/A - server load.
 - Error: Applies - form errors at their fields; no page-level error.
 - Single item: Applies - single semester/class.
@@ -695,24 +699,24 @@ User-facing routes under `src/routes` (excluding `/__test*` and `/__mockups*`). 
 
 **Data shown**
 - Back link to `/uni`; class name as heading with the class icon and colour values; semester name; if the semester is archived: `<semester> is archived. This class is read-only.`
-- `Details`: Lecturer, Room, ECTS (`<n> ECTS`), Links (labelled, open in new tab; label falls back to URL without scheme), Exam (date, optional time, exam room, countdown `in <n> d` / `today`), Grade (`Passed` or value; when none, current UI reads `—` or `No grade yet` depending on screen width; the phone may omit it and the wording is the designer's choice, decision 9), Todos `n open, n planned, n done` (display-only; may be omitted on phones, decision 9), `Edit details` (hidden when archived).
+- `Details`: Lecturer, Room, ECTS (`<n> ECTS`), Links (labelled, open in new tab; label falls back to URL without scheme), Exam (date, optional time, exam room, countdown `in <n> d` / `today`), Grade (`Passed` or value; when none: `No grade yet`; the phone may omit it and the wording is the designer's choice, decision 9), Todos `n open, n planned, n done` (display-only; may be omitted on phones, decision 9), `Edit details` (hidden when archived).
 - `Notes`: rendered Markdown (HTML escaped), placeholder `No notes yet. Collect exam topics, formulas or links here.`; edit hidden when archived.
-- `Todos` section: quick add preset to Uni aspect + this class with a Type choice (default OTH), shown only if not archived and a Uni aspect is set; groups `Open`, `Planned`, `Done` (collapsed, newest completion first); each todo shows its type (LEC/EXC/OTH) and revised status `Not revised` / `Revised today` / `Revised yesterday` / `Revised <n> days ago`. Empty: `No todos for this class yet. Add one above.`
+- `Todos` section: the signed inline add form (named `Add todo`, field `New todo title`) with title and type (LEC/EXC/OTH, default OTH) only, preset to the Uni aspect and this class (due date and priority come from the global `New todo`), shown only if not archived and a Uni aspect is set; the old `Add a todo` button and `New todo` form are gone; groups `Open`, `Planned`, `Done` (collapsed, newest completion first); each todo shows its type (LEC/EXC/OTH) and revised status `Not revised` / `Revised today` / `Revised yesterday` / `Revised <n> days ago`. Empty: `No todos for this class yet. Add one above.`
 - `Recurring`: rules linked to this class (title, type, `Daily` or `Weekly, Mon, Tue...`) with link `Edit in Recurring` (/recurring); empty `No recurring rules for this class.`
-- `Delete class` control.
+- `Delete class` as an item of the `Class actions` menu (not a visible button).
 
 **Actions**
 - `Edit details` form (same fields as class creation) -> `?/update`; per-field errors as on `/uni`; archived -> `This semester is archived and read-only.` (409); name/other 400. Success closes the form.
 - Notes edit -> `?/notes` (blocked with `archived` in read-only semesters).
-- Revised: per todo `Revised today` (posts date = today) and a clear control (`Clear revised date`) -> `?/revised` (todoId, date; empty date clears). Only class-linked todos; refused for archived (409). `Revised today` hidden when already today.
-- QuickAdd creates a backlog todo with the Uni aspect, this class, a type (default OTH), due date and priority.
+- Revised: per todo `Mark revised today` (accessible name `Mark revised today: <title>`; posts date = today) and a clear control (`Clear revised date`) -> `?/revised` (todoId, date; empty date clears). Only class-linked todos; refused for archived (409). `Mark revised today` hidden when already today; the status label then reads `Revised today`.
+- The inline add creates a backlog todo with the Uni aspect, this class and a type (default OTH); due date and priority are set in the editor or the global `New todo`.
 - Todos: shared todo actions (edit, status, plan to sprint) unless archived (read-only todos: no editor, no done/status control, no day picker, no sprint actions).
-- `Delete class` -> confirm `Delete <name>?` / `This deletes its <n> todo(s) and <m> recurring rule(s). This can’t be undone.` or `It has no todos or recurring rules. This can’t be undone.` / `Delete class` -> `?/delete`, redirect 303 to `/uni`. Still available when archived.
+- `Delete class` (item of `Class actions`) -> confirm `Delete <name>?` / `This deletes its <n> todo(s) and <m> recurring rule(s). This can’t be undone.` or `It has no todos or recurring rules. This can’t be undone.` / `Delete class` -> `?/delete`, redirect 303 to `/uni`. Still available when archived.
 
 **States**
 - Empty: Applies - no notes / no todos / no rules / no metadata placeholders as above.
 - Loading: N/A - server load.
-- Error: Applies - unknown id -> 404 `+error.svelte`: title `Class not found`, `This class doesn’t exist, or it was deleted.` + link `Uni`; non-404: `Something went wrong loading this class.` + same link. Form errors at their fields.
+- Error: Applies - unknown id -> 404 `+error.svelte`: title `Class not found`, `This class doesn’t exist, or it was deleted. Go back to Uni.` + link `Uni`; non-404: `Couldn’t load this class. Try again, or go back to Uni.` + same link. Form errors at their fields.
 - Single item: Applies - one todo.
 - Many items: Applies - full lists, no paging.
 - Overlong text: Applies - notes never truncated; names and links shown in full.
@@ -775,12 +779,12 @@ Month view of dated work. Read-only except opening a todo for editing; nothing h
 Status and control page for the Proton sync (see "Sync ritual"). Page title `Proton sync`, subtitle `Planned todos, recurring rules and exams, pushed to Proton Calendar.`
 
 **Data shown**
-- State: `Off` | `Up to date` | `Syncing…` | `Re-login needed` | `Error` (the last two flagged as needing attention).
+- State: `Off` | `Up to date` | `Syncing…` | `Re-login needed` | `Error` (the last two flagged `Needs attention`). The state is the heading of the status card (group `State`); with failed items and state `Up to date` it reads `Up to date · <n> item(s) failed`. A key-facts card shows `Pending` and `Failed items`. Off shows the heading `Off` and the notice (no repeated heading).
 - `Last sync`: Europe/Berlin, `en-GB` medium date + short time (e.g. `18 Oct 2026, 14:05`), or `Never`.
 - `Pending changes`: number of calls a pass would make now.
 - Last error text if any.
-- In `Re-login needed`: `Run this on the server, then press Sync now:` and the command `proton account login --profile <profile>` (copyable as text).
-- `Failed items` list: item label + its error line.
+- In `Re-login needed`: `Run this on the server, then press Sync now:` and the command `proton account login --profile <profile>` with a `Copy command` button (shows `Copied` for 2 s).
+- `Failed items` list: item label + its error line (the CLI's `Error: …` line, unchanged), under the next step `Edit an item to try it again, or press Sync now.`
 - Note: `Sync only writes to Proton. Renaming or recolouring an aspect doesn't change its Proton calendar, and edits made in Proton aren't read back; Resync all restores this app's state.`
 - When Off: only a notice: `Sync is off. Set PROTON_CLI to the path of the proton binary and restart the app to turn it on. PROTON_PROFILE picks the login profile and defaults to default.` No state rows, no buttons, no note.
 
@@ -805,31 +809,30 @@ Status and control page for the Proton sync (see "Sync ritual"). Page title `Pro
 - Check that calendar sync is healthy; recover from expired session; force a sync or full re-push; see what failed.
 
 **Redirects/guards**
-- No aspects yet redirects to `/welcome`. In the nav, `/sync` is the only current entry when open. Reachable from the primary navigation and from `/menu` as its own entry, separate from the eight lists.
+- No aspects yet redirects to `/welcome`. In the nav, `/sync` is the only current entry when open. Reachable from the `More` menu of the top bar and from `/menu` as its own entry.
 
 ### /menu
 
-Navigation hub (the phone's home list): the list of destinations. Static page, no server load of its own (nav data comes from the root layout load).
+More hub (the phone's `More` tab): the secondary destinations. Static page, no server load of its own (nav data comes from the root layout load).
 
 **Data shown**
-- Title `Life Manager`; the eight lists in fixed order: `Today` (`/`), `Sprint`, `Calendar`, `Backlog`, `Recurring`, `Projects`, `Uni`, `Aspects`, each with a count where defined (Calendar has none): Today shows open todos for today, but while anything is overdue it shows the overdue count instead, flagged late; Sprint = open todos in the active sprint; Backlog = backlog size; Recurring = rules; Projects = active projects; Uni = open class todos; Aspects = aspect count. A count of 0 is not shown.
-- A separate `Proton sync` entry (to `/sync`), apart from the lists, with the `Needs attention` marker when sync state is `Re-login needed` or `Error`.
-- Page title tag: `Lists · Life Manager`. No `New todo` button here.
+- Heading `More`. Two card groups of list rows: a list `Aspects` (each aspect as a row with its colour and icon, linking its page, with its backlog count, then `All aspects` linking `/aspects` with the aspect count) and a list `Lists` with `Projects` (active projects), `Uni` (open class todos), `Recurring` (rules) and `Proton sync` (its state as the row's second line, and the `Needs attention` marker inside the row while sync state is `Re-login needed` or `Error`). Counts of 0 are not shown. Today, Sprint, Backlog and Calendar live in the pill bar, not here.
+- Page title tag: `More · Life Manager`. The pill bar with the round `+` is present as on every screen; the page scrolls above it with many aspects.
 
 **Actions**
 - Each entry navigates to its screen. No forms.
 
 **States**
-- Empty: counts hidden at 0. Applies. Loading / error: N/A. Single/many/overlong: N/A (fixed list).
+- Empty: counts hidden at 0. Many aspects: the page scrolls, every row can be reached above the pill bar. Overlong aspect names clamp to two lines inside the row. Loading / error: N/A.
 
 **Keyboard & touch**
 - Links; touch is the primary context.
 
 **Serves jobs**
-- Navigate between lists on a phone (the hub every screen's `Lists` back link returns to).
+- Navigate between lists on a phone (the `More` tab of the pill bar).
 
 **Redirects/guards**
-- No aspects yet redirects to `/welcome`. On wide screens (where the persistent primary navigation is shown) `/menu` redirects to `/` (decision 12). The redirect is decided in the browser from the screen width, since the server cannot know it; a replace, not a history entry, so Back does not loop. Without script the hub is shown at any width. Pending server/data change: none; small client-side change before the redesign.
+- No aspects yet redirects to `/welcome`. `/menu` is reachable at every width and never redirects (decision 12 superseded by Rue, 2026-11-23); from 1280 px the two groups sit side by side. Pending server/data change: none.
 
 ### /healthz
 
@@ -839,13 +842,14 @@ Non-UI endpoint. `GET /healthz` runs a trivial query on the SQLite database and 
 
 ### Navigation between routes
 
-- **Destinations.** Eight lists, in this fixed order everywhere: Today `/`, Sprint `/sprint`, Calendar `/calendar`, Backlog `/backlog`, Recurring `/recurring`, Projects `/projects`, Uni `/uni`, Aspects `/aspects`. Outside the lists: Proton sync `/sync`, Lists hub `/menu`, onboarding `/welcome`. Per-aspect pages `/aspects/<id>` are reached from the aspects list and, on wide screens, from per-aspect links in the primary navigation.
-- **Wide screens: persistent primary navigation** (landmark `navigation` named `Main`). Contains: home link to `/`; `New todo` action (only once at least one aspect exists; opens a quick add in a dialog titled `New todo` whose default target is the backlog with no day; a planned day inside the active sprint's week sends it into the sprint instead, and the dialog states the destination live as `Goes to this sprint` / `Goes to the backlog`; it closes after adding; Cancel/Escape adds nothing); the eight lists with counts; then one link per aspect (list named `Aspects`) with its backlog count; then `Proton sync` (with the `Needs attention` indicator). All routes are directly reachable; `/menu` is not needed and, when opened on a wide screen, redirects to `/`.
-- **Phones: hub navigation.** No persistent primary navigation. `/menu` is the hub (landmark `navigation` named `Lists`): pick a list, drill in; every list-type page offers a `Lists` back link (to `/menu`). Aspect pages are reached through `/aspects`, `/sync` through its own entry on `/menu`. No global `New todo` action on phones; adding happens within pages.
+- **Destinations.** Primary: Today `/`, Sprint `/sprint`, Backlog `/backlog`, Calendar `/calendar`. Behind `More`: Aspects `/aspects` (and `/aspects/<id>`), Projects `/projects`, Uni `/uni`, Recurring `/recurring`, Proton sync `/sync`. Also: More hub `/menu`, onboarding `/welcome`. Per-aspect pages are reached from the `More` menu / hub and from the aspects list.
+- **Wide screens: top bar** (from 768 px; landmark `navigation` named `Main`). Contains: `Today`, `Sprint`, `Backlog`, `Calendar` as links with counts; a `More` menu button whose menu holds `Aspects` with one link per aspect (colour, icon, backlog count), `Projects`, `Uni`, `Recurring` and `Proton sync` (with the `Needs attention` indicator); and the `New todo` button (only once at least one aspect exists). `More` is marked current when the current route sits in its menu. All routes are directly reachable; `/menu` stays reachable at every width (the hub page, two columns from 1280 px) beside the `More` menu.
+- **Phones: pill bar** (below 768 px; landmark `navigation` named `Main`). A pill bar with `Today · Sprint · Backlog · Calendar · More` plus a separate round `+` (accessible name `New todo`) that opens the `New todo` quick add from every screen once an aspect exists. `More` opens the `/menu` hub (aspects, Projects, Uni, Recurring, Proton sync) and is current on `/menu` and on every route reached only through it; it carries the `Needs attention` marker while sync needs attention. The bar is hidden while a text field has focus and respects the safe-area insets.
+- **Global quick add** (`+` on phones, `New todo` on wide screens): one dialog titled `New todo` from every screen, posting to `/todos?/create`. The aspect is pre-filled with the aspect of `/aspects/<id>` on that page, else the first aspect. On `/sprint` the destination is pre-set to the sprint; elsewhere it defaults to the backlog, and a planned day inside the active sprint's week sends it into the sprint. The dialog always states the destination live as `Goes to this sprint` / `Goes to the backlog`; while the review is required the sprint destination is disabled with a link to the review. Errors show inline (`role="alert"`); Enter in the title submits; Escape, the close control and a backdrop click close it without adding.
 - **Active-state semantics.** A list is current when the path equals its href or starts with `<href>/` (Today only on exactly `/`; Calendar also with `?month=`; Projects also on project detail; Uni also on class detail; Sprint also on plan/review sub-pages). On an aspect page `/aspects/<id>` that aspect's own link is current and `Aspects` is not. On `/sync` only the sync link is current. Current is exposed as `aria-current="page"`.
-- **Counts.** Today count = open todos today, replaced by overdue count (flagged late) when any overdue; others as listed under `/menu`; counts hidden at 0.
+- **Counts.** Today count = open todos today, replaced by overdue count (flagged late) when any overdue; others as listed under `/menu`, plus Sprint = open todos in the active sprint and Backlog = backlog size; counts hidden at 0 and shown as `99+` from 100.
 - **Secondary context per page.** Several pages have secondary content beside their main list: Sprint (backlog access), Today (sprint progress per aspect), aspect page (details), project detail (details), Uni (Uni-aspect line), class detail (details), Calendar (selected day's list). Every action and decision in it must be reachable on every screen size; where it lives is a design decision. Display-only secondary data may be omitted on phones (section 1, phone principle). In the current UI it is exposed as a complementary landmark named by its title (for example `This sprint`, `Day list`).
-- **Backlog access behavior** (used on Sprint and Plan): optional filter `Filter backlog` (case-insensitive title substring) shown when the backlog is non-empty; empty backlog = `The backlog is empty.` + link `Open Backlog`; no match = `No backlog todo matches`. Todos grouped per aspect with a backlog count (and sprint progress where known); each group collapsible (heading button with `aria-expanded`), collapsed set remembered per browser (localStorage `lm:rail-collapsed`, best effort). When adding is allowed each todo has an add button `<addLabel>: <title>` (default `Add to sprint`) posting to the page's add action; error `The sprint needs its review first.` + link `Review` for `review-required`, otherwise `That didn’t work. Reload and try again.`; a `not-found` (moved in another tab) silently reloads. Todos are draggable on hover + fine-pointer devices and the backlog is a drop target for sprint todos returned to it (non-recurring only).
+- **Backlog access behavior** (used on Sprint and Plan): optional filter `Filter backlog` (case-insensitive title substring) shown when the backlog is non-empty; empty backlog = heading `The backlog is empty` + link `Open backlog`; no match = `No backlog todo matches`. Todos grouped per aspect with a backlog count (and sprint progress where known); each group collapsible (heading button with `aria-expanded`), collapsed set remembered per browser (localStorage `lm:rail-collapsed`, best effort). When adding is allowed each todo has an add button `<addLabel>: <title>` (default `Add to sprint`) posting to the page's add action; error `The sprint needs its review first.` + link `Review` for `review-required`, otherwise `Couldn’t add that todo to the sprint — try again.`; a `not-found` (moved in another tab) silently reloads. Todos are draggable on hover + fine-pointer devices and the backlog is a drop target for sprint todos returned to it (non-recurring only).
 - **Page transitions**: navigation cross-fades unless reduced motion is on (progressive; no behavior change).
 
 ### Persistence
@@ -892,7 +896,7 @@ Non-UI endpoint. `GET /healthz` runs a trivial query on the SQLite database and 
 
 ### Error pages
 
-- No custom error page (decision 10): unknown routes and uncaught errors show the framework default. Form validation errors are returned to the form and rendered inline (HTTP 400 `fail`), not as error pages. A form post whose origin check fails is rejected with HTTP 403 (see runtime).
+- The three detail routes (`/aspects/<id>`, `/projects/<id>`, `/uni/classes/<id>`) have their own 404 page (decision 10 otherwise stands): unknown routes and uncaught errors show the framework default. Form validation errors are returned to the form and rendered inline (HTTP 400 `fail`), not as error pages. A form post whose origin check fails is rejected with HTTP 403 (see runtime).
 - Bad `?month=` never errors. `/__test/*` returns 404 outside test mode.
 
 ### Offline / runtime facts
@@ -903,10 +907,11 @@ Non-UI endpoint. `GET /healthz` runs a trivial query on the SQLite database and 
 - `GET /healthz` = 200 `ok` when up and DB open. Data persists across restarts. Migration failure stops the process (non-zero exit).
 - Every non-GET request also nudges the Proton sync debounce (see Sync ritual).
 - Single-user; no authentication.
+- App icon: `app.html` links the favicon (SVG and 32 px ICO), the apple-touch icon, `theme-color` and `manifest.webmanifest`; a web manifest for the icon only; no service worker.
 
 ## 7. Copy list
 
-Every UI string the e2e suite (`e2e/*.test.ts`, `e2e/helpers.ts`) matches by `getByText`, `getByRole` name, `getByLabel`, `toHaveText`, `toContainText`, `toHaveTitle` or `aria-label`, verified against `src/`. Finding: all current copy is already English (`<html lang="en">`, `Intl` formatters use `en-GB`), so every target equals the current string and the redesign must not change it. Spec files are short names without `.test.ts`. Where the e2e only matches a fragment or a regex, the regex source is shown and the row names the full string. `{x}` marks a runtime value. The spec column lists only usages where the string is asserted as UI copy; a spec that merely seeds the same word as user data (for example an aspect named `Uni`) or reads it as fixture data is not listed (decision 14). Copy that names a position (`below`, `above`) may be reworded to fit the new layout (decision 16); every other string stays as listed. German seeded data is user content, not UI copy (decision 13).
+Every UI string the e2e suite (`e2e/*.test.ts`, `e2e/helpers.ts`) matches by `getByText`, `getByRole` name, `getByLabel`, `toHaveText`, `toContainText`, `toHaveTitle` or `aria-label`, verified against `src/`. Finding: all current copy is already English (`<html lang="en">`, `Intl` formatters use `en-GB`), so every target equals the current string and the redesign must not change it, except the rows Rue changed at gate 5 (Q12, 2026-11-22: empty-state headings without a trailing period, calm review copy, the verb-first revised action), where the target differs and the owning build unit migrates the e2e assertion with the UI. Spec files are short names without `.test.ts`. Where the e2e only matches a fragment or a regex, the regex source is shown and the row names the full string. `{x}` marks a runtime value. The spec column lists only usages where the string is asserted as UI copy; a spec that merely seeds the same word as user data (for example an aspect named `Uni`) or reads it as fixture data is not listed (decision 14). Copy that names a position (`below`, `above`) may be reworded to fit the new layout (decision 16); every other string stays as listed. German seeded data is user content, not UI copy (decision 13).
 
 Excluded: seeded fixture data that is user content, not copy (aspect, project, class, semester and todo names, and Markdown typed into notes, such as `Ideas`, `Reading`, `Sheet 4`, `Health`, `Gym`, `Analysis II`, `Book a physio appointment`, repo slugs, notes text). It includes German-language user data that must survive unchanged: `Prof. Kühn`, `Studienplan`, `Netzsicherheit`, `Hörsaal 1 im Hauptgebäude, Erdgeschoss` (uni, uni-journey, class-detail, responsive). Date, weekday and month tokens follow `en-GB` short/long formats and must keep that locale.
 
@@ -914,8 +919,8 @@ Excluded: seeded fixture data that is user content, not copy (aspect, project, c
 
 | current string | English target | used in spec file | lang |
 |---|---|---|---|
-| Main | Main | aspects, journey, motion, navigation, proton-nav | EN |
-| Lists | Lists | journey, navigation, proton-nav, responsive | EN |
+| Main | Main | aspects, journey, motion, navigation, pill-bar, proton-nav, quick-add, sync-marker, top-bar | EN |
+| More | More | journey, more-hub, navigation, pill-bar, proton-nav, sync-marker, top-bar | EN |
 | Today | Today | calendar, journey, motion, today, uni-journey | EN |
 | Sprint | Sprint | journey, motion, uni-journey | EN |
 | Calendar | Calendar | calendar, navigation, plan-ahead, todo-planning | EN |
@@ -924,8 +929,8 @@ Excluded: seeded fixture data that is user content, not copy (aspect, project, c
 | Projects | Projects | motion, navigation, project-detail | EN |
 | Uni | Uni | class-detail, motion, navigation, responsive, uni-journey, uni-sprint-todos | EN |
 | Aspects | Aspects | aspect-page, journey | EN |
-| Proton sync | Proton sync | proton-nav, proton-page | EN |
-| Needs attention | Needs attention | proton-nav | EN |
+| Proton sync | Proton sync | more-hub, navigation, proton-nav, proton-page, top-bar | EN |
+| Needs attention | Needs attention | more-hub, proton-nav, sync-marker | EN |
 | Sprint view | Sprint view | journey, motion, plan-ahead, responsive, sprint-rail, sprint-views | EN |
 | Board | Board | motion, responsive, sprint-rail, sprint-views | EN |
 | Days | Days | journey, responsive, sprint-views | EN |
@@ -982,7 +987,7 @@ Excluded: seeded fixture data that is user content, not copy (aspect, project, c
 | Continue planning | Continue planning | today | EN |
 | Review the sprint | Review the sprint | today | EN |
 | Review it | Review it | journey, today | EN |
-| Nothing planned for today. | Nothing planned for today. | today | EN |
+| Nothing planned for today. | Nothing planned for today | today | EN |
 | open today | open today | today | EN |
 | Sprint 3 / 9 done · 3 days left | Sprint 3 / 9 done · 3 days left | today | EN |
 | week view | week view | today | EN |
@@ -994,7 +999,7 @@ Excluded: seeded fixture data that is user content, not copy (aspect, project, c
 
 | current string | English target | used in spec file | lang |
 |---|---|---|---|
-| Your backlog is empty. | Your backlog is empty. | backlog | EN |
+| Your backlog is empty. | Your backlog is empty | backlog | EN |
 | The sprint needs its review first. | The sprint needs its review first. | backlog | EN |
 | Overdue,  3d late | Overdue,  3d late | backlog | EN |
 | 2d late | 2d late | todos | EN |
@@ -1032,7 +1037,7 @@ Excluded: seeded fixture data that is user content, not copy (aspect, project, c
 | 1 / 2 | 1 / 2 | aspect-page, sprint-rail | EN |
 | 1 / 3 | 1 / 3 | aspect-page, sprint-rail | EN |
 | Manage | Manage | sprint-rail | EN |
-| The backlog is empty. | The backlog is empty. | sprint-rail | EN |
+| The backlog is empty. | The backlog is empty | sprint-rail | EN |
 | No backlog todo matches | No backlog todo matches | sprint-rail | EN |
 | Unscheduled | Unscheduled | journey, responsive, sprint-views | EN |
 | Done | Done | review | EN |
@@ -1051,8 +1056,8 @@ Excluded: seeded fixture data that is user content, not copy (aspect, project, c
 | Drop | Drop | journey, review | EN |
 | Close sprint | Close sprint | review, today | EN |
 | Done 1 | Done 1 | journey, review | EN |
-| All 2 done. Nice week. | All 2 done. Nice week. | review | EN |
-| Carry {n}[,  return {n}][,  drop {n}] and close | Carry {n}[,  return {n}][,  drop {n}] and close | journey, responsive, review | EN |
+| All 2 done. Nice week. | All 2 done. Nothing to carry over. | review | EN |
+| Carry {n}[,  return {n}][,  drop {n}] and close | Carry {n}[,  return {n}][,  drop {n}] and close (button from 768 px; on phones it leads the end-of-list summary and the sticky bar button reads `Close sprint`) | journey, responsive, review | EN |
 | /close/i | /close/i | responsive | EN |
 
 **Calendar and planning (time)**
@@ -1091,7 +1096,7 @@ Excluded: seeded fixture data that is user content, not copy (aspect, project, c
 | Edit rule | Edit rule | proton-sync, recurring, recurring-classes | EN |
 | Save rule | Save rule | proton-sync, recurring, recurring-classes | EN |
 | Delete rule | Delete rule | recurring | EN |
-| No recurring rules yet. | No recurring rules yet. | recurring | EN |
+| No recurring rules yet. | No recurring rules yet | recurring | EN |
 | Pick at least one day. | Pick at least one day. | recurring | EN |
 | Monday | Monday | recurring | EN |
 | Tuesday | Tuesday | journey, recurring-classes | EN |
@@ -1142,7 +1147,7 @@ Excluded: seeded fixture data that is user content, not copy (aspect, project, c
 | New class | New class | uni | EN |
 | Add class | Add class | uni | EN |
 | Delete class | Delete class | class-detail | EN |
-| No classes yet. | No classes yet. | uni | EN |
+| No classes yet. | No classes yet | uni | EN |
 | Class not found | Class not found | class-detail | EN |
 | Grade | Grade | class-detail | EN |
 | Lecturer | Lecturer | class-detail | EN |
@@ -1162,12 +1167,12 @@ Excluded: seeded fixture data that is user content, not copy (aspect, project, c
 | This week | This week | uni-sprint-todos | EN |
 | Nothing in this week's sprint | Nothing in this week's sprint | uni-sprint-todos | EN |
 | Overdue | Overdue | uni-sprint-todos | EN |
-| Tomorrow | Tomorrow | uni-sprint-todos | EN |
+| Tomorrow | Due {weekday} {d} Oct / Overdue · {weekday} {d} Oct | uni-sprint-todos | EN |
 | Page 1 of 2 | Page 1 of 2 | uni-sprint-todos | EN |
 | Page 2 of 2 | Page 2 of 2 | uni-sprint-todos | EN |
 | Revised {n} days ago / yesterday | Revised {n} days ago / yesterday | class-detail | EN |
 | Exam in {n} d | Exam in {n} d | uni, uni-sprint-todos | EN |
-| Revised today: {title} / Clear revised date: {title} (aria-label) | Revised today: {title} / Clear revised date: {title} (aria-label) | class-detail | EN |
+| Revised today: {title} / Clear revised date: {title} (aria-label) | Mark revised today: {title} / Clear revised date: {title} (aria-label) | class-detail | EN |
 | /Revised today/ | /Revised today/ | class-detail | EN |
 | Mark {n} done and archive | Mark {n} done and archive | uni | EN |
 | Delete {semester}? | Delete {semester}? | uni | EN |
@@ -1176,7 +1181,7 @@ Excluded: seeded fixture data that is user content, not copy (aspect, project, c
 | {class} · {LEC\|EXC\|OTH} (class and type label) | {class} · {LEC\|EXC\|OTH} (class and type label) | recurring-classes, todo-classes, uni-sprint-todos | EN |
 | Winter {yy}/{yy} (semester long name) | Winter {yy}/{yy} (semester long name) | uni | EN |
 | {n} class(es)/todo(s) (regex /\d+ (class\|todo)/) | {n} class(es)/todo(s) (regex /\d+ (class\|todo)/) | uni | EN |
-| {d} Oct\|Today\|Tomorrow\|Yesterday (regex) | {d} Oct\|Today\|Tomorrow\|Yesterday (regex) | uni-sprint-todos | EN |
+| {d} Oct\|Today\|Tomorrow\|Yesterday (regex) | {d} Oct\|Due\|Overdue (regex) | uni-sprint-todos | EN |
 | Give the todo a title. | Give the todo a title. | todos | EN |
 | {done}/{total} (checklist progress) | {done}/{total} (checklist progress) | todos | EN |
 | {grade} / {ects} decimal numbers with a point (1.3,  1.7,  2.23,  7.5) | {grade} / {ects} decimal numbers with a point (1.3,  1.7,  2.23,  7.5) | class-detail, uni, uni-journey | EN |
@@ -1265,7 +1270,7 @@ Rule of the contract: a `data-*` hook is allowed only when it carries state that
 
 Owner decision (Rue, 2026-11-15). A few purely visual facts have no role, accessible name or allow-listed hook, so their tests use structural locators (`xpath=`, `:has(> i)`, `[aria-hidden="true"] >`, `locator('svg')`/`locator('span')`). This coupling is known and accepted; these tests are rewritten together with the visuals at the redesign's build gate.
 
-1. Summary bar segments: `today.test.ts`, "Scenario: Header shows sprint progress during a sprint" (`[aria-hidden="true"] > span`); `sprint-rail.test.ts`, "Scenario: Group header shows done of total" (bar colour against the header icon).
+1. Summary bar segments: `today.test.ts`, "Scenario: Header shows sprint progress during a sprint" (`[aria-hidden="true"] > span`); `sprint-rail.test.ts`, "Scenario: Group header shows done of total" (the colour tile on the header, `.nav-tile`; the signed header has no bar).
 2. Calendar dots, entry colours and cell entries: `calendar.test.ts`, "Scenario: Calendar shows aspect colours and marks projections", "Scenario: Recurring rule with a slot shows in later months", "Scenario: Wide cells show up to three titles", "Scenario: Phone shows dots and the selected day's list", "Scenario: Due todos show as marker and Due section" (`dots` = `[aria-hidden="true"] > i`, `cellEntries` = `span:has(> i)`); `todo-planning.test.ts`, "Regression: saving a due-dated sprint todo plans it on its due day" (`cellEntries`).
 3. Page-header icon path: `aspect-page.test.ts`, "Scenario: Aspect page shows this sprint and its backlog" (`xpath=../preceding-sibling::span` then `path`).
 4. Class colour tile: `class-detail.test.ts`, "Scenario: Edit a class on its detail page" (`xpath=preceding-sibling::span`, tint via `toHaveCSS`, before and after reload; the checked `Berry` radio is asserted as well).
@@ -1328,10 +1333,10 @@ Rue's answers to the contract's open questions. Types: contract-only (no code ch
 | 9 | Wide-screen-only data on phones | Not required; phone is its own UI and may omit secondary data (principle in section 1 and `PRODUCT.md`) | contract-only (design principle) |
 | 10 | Unknown routes and uncaught errors | Keep the framework default error page | contract-only |
 | 11 | Plain-http 403 without `PROTOCOL_HEADER`/`ORIGIN` | Deployment requirement documented in the README only; no in-app warning | server/data (README text only, no app code) |
-| 12 | `/menu` on wide screens | Redirects to `/` (decided in the browser from screen width) | server/data (small client-side redirect before the redesign) |
+| 12 | `/menu` on wide screens | Reachable at every width, no redirect (Rue 2026-11-23, supersedes the gate-1 redirect to `/`) | none |
 | 13 | Seeded German data | Confirmed as user content, not UI copy | contract-only |
 | 14 | Copy list "used in spec file" | Only usages where the string is asserted as UI copy; rule stated at the top of section 7 | contract-only |
 | 15 | `data-status` | Replaced by an accessible three-state status on every todo presentation; dropped from the allow-list | UI (accessible status built in the redesign) |
 | 16 | Copy that names a position | May be reworded to fit the new layout | contract-only |
 
-Agent interpretations of 12 (`/menu` redirect client-side at 768 px and wider), 2 (`/welcome` skips presets that already exist) and 4 (an invalid `aspect` parameter gives an empty list) were **confirmed by Rue on 2026-11-13 (gate 1 / task 2.5)**.
+Agent interpretations of 12 (the gate-1 client-side `/menu` redirect at 768 px and wider, superseded 2026-11-23), 2 (`/welcome` skips presets that already exist) and 4 (an invalid `aspect` parameter gives an empty list) were **confirmed by Rue on 2026-11-13 (gate 1 / task 2.5)**.

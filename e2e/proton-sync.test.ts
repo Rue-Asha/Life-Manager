@@ -2,6 +2,7 @@ import type { Page } from '@playwright/test';
 import type { ProtonOp } from '../src/lib/server/proton/types';
 import { expect, test, reset, seed, setClock, fake, protonOn, protonPass, todoRow, todoRows } from './helpers';
 import { sprintList } from './sprint-locators';
+import { chooseStatus, statusOf } from './row-locators';
 
 // Wednesday 14 October 2026, midday in Berlin.
 const WEDNESDAY = '2026-10-14T10:00:00Z';
@@ -80,8 +81,8 @@ test('Scenario: Editing, ticking done and unplanning a todo follow in Proton', a
 	await expect(row(page, 'Dentist check-up')).toBeVisible();
 	await protonPass(request);
 
-	await page.getByRole('checkbox', { name: 'Done: Dentist check-up' }).click();
-	await expect(row(page, 'Dentist check-up').getByLabel('Status')).toHaveValue('done');
+	await chooseStatus(page, row(page, 'Dentist check-up'), 'Done');
+	await expect(statusOf(row(page, 'Dentist check-up'), 'Done')).toBeVisible();
 	await protonPass(request);
 
 	await openTodo(page, 'Dentist check-up');
@@ -108,7 +109,7 @@ test('Scenario: Deleting a todo in the app deletes its event', async ({ page, re
 	await page.goto('/backlog');
 	await expect(page.getByRole('heading', { level: 1, name: 'Backlog' })).toBeVisible();
 	await openTodo(page, 'Dentist');
-	await page.getByRole('button', { name: 'Delete', exact: true }).click();
+	await page.getByRole('button', { name: 'Delete todo', exact: true }).click();
 	await page.getByRole('dialog', { name: 'Delete this todo?' }).getByRole('button', { name: 'Delete todo' }).click();
 	await expect(row(page, 'Dentist')).toHaveCount(0);
 	await protonPass(request);
@@ -229,8 +230,8 @@ test('Scenario: Due date syncs as a bundled event and done removes it', async ({
 
 	const eventRef = onlyRef();
 	const m2 = mark();
-	await page.getByRole('checkbox', { name: 'Done: File taxes' }).click();
-	await expect(row(page, 'File taxes').getByLabel('Status')).toHaveValue('done');
+	await chooseStatus(page, row(page, 'File taxes'), 'Done');
+	await expect(statusOf(row(page, 'File taxes'), 'Done')).toBeVisible();
 	await protonPass(request);
 	expect(ops(m2)).toEqual([{ kind: 'event.delete', ref: eventRef }]);
 	expect(Object.keys(fake().state().events)).toEqual([]);

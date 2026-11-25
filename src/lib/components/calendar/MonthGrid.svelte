@@ -1,10 +1,13 @@
+<!--
+	The month grid (lifted from hifi/calendar/Month.svelte). Below 768 px a cell carries marks (filled circle = planned todo, ring = projection,
+	diamond = exam; at most 3, then "+"); from 768 px it carries up to two titles and "+n more". The shapes name the kind, never a colour.
+	Today is `aria-current="date"`, the selected day `aria-pressed`, days outside the month are disabled.
+-->
 <script lang="ts">
-	import { MediaQuery } from 'svelte/reactivity';
 	import { dateLabel } from '$lib/components/todo/format';
 	import type { CalendarEntry, DueTodo } from '$lib/server/calendar';
-	import type { Aspect, IsoDate } from '$lib/types';
-	import { UI_ICONS } from '../ui/icons';
-	import { entryColor } from './DayList.svelte';
+	import type { IsoDate } from '$lib/types';
+	import './calendar.css';
 
 	let {
 		month,
@@ -13,7 +16,6 @@
 		due,
 		selected,
 		today,
-		aspects,
 		onselect
 	}: {
 		month: string;
@@ -22,254 +24,54 @@
 		due: Record<IsoDate, DueTodo[]>;
 		selected: IsoDate;
 		today: IsoDate;
-		aspects: Aspect[];
 		onselect: (day: IsoDate) => void;
 	} = $props();
-
-	const tablet = new MediaQuery('min-width: 768px');
 
 	const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 </script>
 
-<div class="grid" role="group" aria-label="Month grid">
-	{#each WEEKDAYS as name (name)}
-		<span class="weekday" aria-hidden="true">{name}</span>
-	{/each}
-	{#each weeks.flat() as day (day)}
-		{@const outside = !day.startsWith(month)}
-		{@const list = entries[day] ?? []}
-		{@const dueCount = due[day]?.length ?? 0}
-		<button
-			type="button"
-			class="cell"
-			class:today={day === today}
-			aria-pressed={day === selected}
-			disabled={outside}
-			onclick={() => onselect(day)}
-		>
-			<span class="visually-hidden">{dateLabel(day)}</span>
-			<span class="top">
-				<span class="num day-num" aria-hidden="true">{Number(day.slice(8))}</span>
-				{#if dueCount > 0}
-					<span class="due num" role="img" aria-label="{dueCount} due">
-						<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.flag} /></svg>{dueCount}
-					</span>
-				{/if}
-			</span>
-			{#if tablet.current}
-				{#each list.slice(0, 3) as entry, i (i)}
-					<span class="entry" style:--a={entryColor(entry, aspects)}>
-						<i class="mark" class:ring={entry.kind === 'projection'}></i>
-						<span class="title" class:done={entry.kind === 'todo' && entry.done}>{entry.title}</span>
-						{#if entry.kind === 'projection'}
-							<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.repeat} /></svg>
-							<span class="visually-hidden">Projected</span>
-						{/if}
-					</span>
+<div class="hc-grid" role="group" aria-label="Month grid">
+	<div class="hc-heads" aria-hidden="true">{#each WEEKDAYS as name (name)}<span>{name}</span>{/each}</div>
+	<div class="hc-weeks">
+		{#each weeks as week (week[0])}
+			<div class="hc-week">
+				{#each week as day (day)}
+					{@const inMonth = day.startsWith(month)}
+					{@const list = inMonth ? (entries[day] ?? []) : []}
+					{@const dueCount = inMonth ? (due[day]?.length ?? 0) : 0}
+					<button
+						type="button"
+						class="hc-cell"
+						disabled={!inMonth}
+						aria-pressed={inMonth ? selected === day : undefined}
+						aria-current={day === today ? 'date' : undefined}
+						data-press
+						onclick={() => onselect(day)}
+					>
+						<span class="sr-only">{dateLabel(day)}</span>
+						<span class="hc-num" aria-hidden="true">{Number(day.slice(8))}</span>
+						{#if list.length > 0}<span class="sr-only">{list.length} planned</span>{/if}
+						<span class="hc-marks" aria-hidden="true">
+							{#each list.slice(0, 3) as entry, i (i)}<i class="hc-mark" data-kind={entry.kind}></i>{/each}
+							{#if list.length > 3}<span class="hc-more">+</span>{/if}
+						</span>
+						<span class="hc-titles" aria-hidden="true">
+							{#each list.slice(0, 2) as entry, i (i)}
+								<span class="hc-t" data-done={entry.kind === 'todo' && entry.done ? '' : undefined}><i class="hc-mark" data-kind={entry.kind}></i><span>{entry.title}</span></span>
+							{/each}
+							{#if list.length > 2}<span class="hc-more">+{list.length - 2} more</span>{/if}
+						</span>
+						{#if dueCount > 0}<span class="hc-due" role="img" aria-label="{dueCount} due">{dueCount}<span class="hc-due-word" aria-hidden="true">due</span></span>{/if}
+					</button>
 				{/each}
-				{#if list.length > 3}<span class="more">+{list.length - 3} more</span>{/if}
-			{:else if list.length > 0}
-				<span class="dots" aria-hidden="true">
-					{#each list.slice(0, 3) as entry, i (i)}
-						<i class="dot" class:ring={entry.kind === 'projection'} style:--a={entryColor(entry, aspects)}></i>
-					{/each}
-					{#if list.length > 3}<span class="plus">+</span>{/if}
-				</span>
-				<span class="visually-hidden">{list.length} planned</span>
-			{/if}
-		</button>
-	{/each}
+			</div>
+		{/each}
+	</div>
 </div>
 
-<style>
-	.grid {
-		display: grid;
-		grid-template-columns: repeat(7, minmax(0, 1fr));
-		gap: 1px;
-		overflow: hidden;
-		border: 1px solid var(--line);
-		border-radius: var(--radius-group);
-		background: var(--line);
-	}
-
-	.weekday {
-		padding: var(--space-2);
-		background: var(--surface);
-		color: var(--ink-3);
-		font-size: var(--text-sm);
-		font-weight: var(--weight-medium);
-		text-align: center;
-	}
-
-	.cell {
-		display: flex;
-		flex-direction: column;
-		align-items: stretch;
-		gap: 3px;
-		min-width: 0;
-		min-height: 112px;
-		padding: var(--space-2);
-		border: 0;
-		border-radius: 0;
-		background: var(--surface);
-		color: var(--ink);
-		font: inherit;
-		text-align: left;
-		cursor: pointer;
-	}
-
-	.cell:hover:not(:disabled) {
-		background: var(--hover);
-	}
-
-	.cell[aria-pressed='true'] {
-		box-shadow: inset 0 0 0 2px var(--accent);
-	}
-
-	.cell:disabled {
-		background: var(--canvas);
-		color: var(--ink-3);
-		cursor: default;
-	}
-
-	.top {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--space-1);
-	}
-
-	.due {
-		display: inline-flex;
-		align-items: center;
-		gap: 2px;
-		color: var(--ink-2);
-		font-size: var(--text-xs);
-		font-weight: var(--weight-semibold);
-	}
-
-	.due svg {
-		width: 11px;
-		height: 11px;
-		fill: none;
-		stroke: currentColor;
-		stroke-width: 2;
-		stroke-linecap: round;
-		stroke-linejoin: round;
-	}
-
-	.day-num {
-		align-self: flex-start;
-		min-width: 24px;
-		padding: 0 var(--space-1);
-		border-radius: var(--radius-pill);
-		font-size: var(--text-sm);
-		font-weight: var(--weight-medium);
-		text-align: center;
-	}
-
-	.today .day-num {
-		background: var(--accent);
-		color: var(--ink-on-accent);
-	}
-
-	.entry {
-		display: flex;
-		align-items: center;
-		gap: var(--space-1);
-		min-width: 0;
-		font-size: var(--text-xs);
-		line-height: var(--leading-snug);
-	}
-
-	.mark {
-		flex: none;
-		width: 8px;
-		height: 8px;
-		border-radius: var(--radius-pill);
-		background: var(--a);
-		box-sizing: border-box;
-	}
-
-	.mark.ring {
-		background: transparent;
-		border: 1.5px solid var(--a);
-	}
-
-	.title {
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
-	.title.done {
-		color: var(--ink-3);
-		text-decoration: line-through;
-	}
-
-	.entry svg {
-		flex: none;
-		width: 11px;
-		height: 11px;
-		margin-left: auto;
-		fill: none;
-		stroke: var(--ink-3);
-		stroke-width: 2;
-		stroke-linecap: round;
-		stroke-linejoin: round;
-	}
-
-	.dots {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 3px;
-		height: 8px;
-	}
-
-	.dot {
-		width: 6px;
-		height: 6px;
-		border-radius: var(--radius-pill);
-		background: var(--a);
-		box-sizing: border-box;
-	}
-
-	.dot.ring {
-		background: transparent;
-		border: 1.5px solid var(--a);
-	}
-
-	.plus {
-		color: var(--ink-3);
-		font-size: 10px;
-		line-height: 1;
-	}
-
-	.more {
-		color: var(--ink-3);
-		font-size: var(--text-xs);
-	}
-
-	@media (max-width: 767px) {
-		.cell {
-			align-items: center;
-			min-height: 52px;
-			padding: var(--space-2) 0;
-		}
-
-		.top {
-			flex-direction: column;
-			gap: 2px;
-		}
-
-		.day-num {
-			align-self: center;
-		}
-
-		.weekday {
-			padding: var(--space-2) 0;
-			font-size: var(--text-xs);
-		}
-	}
-</style>
+<ul class="hc-key" aria-label="Marks">
+	<li><i class="hc-mark" data-kind="todo"></i>Planned</li>
+	<li><i class="hc-mark" data-kind="projection"></i>Projected</li>
+	<li><i class="hc-mark" data-kind="exam"></i>Exam</li>
+	<li><span class="hc-key-due" aria-hidden="true">1</span>Due that day</li>
+</ul>

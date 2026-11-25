@@ -1,25 +1,29 @@
+<!--
+	The todo editor: every field of the contract on the sheet primitive (a bottom sheet below 768 px, a centred card from 768 px). The body
+	scrolls and the footer stays pinned. Checklist edits save at once; the rest, status included, on Save. `readonly` (a todo of an archived
+	class) locks every field and drops Save and Delete. `actions` (Add to sprint, Move to backlog) sits under the checklist.
+-->
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { untrack, type Snippet } from 'svelte';
-	import { MediaQuery } from 'svelte/reactivity';
-	import { ASPECT_COLORS } from '$lib/aspect-style';
-	import type { Aspect, ClassType, HhMm, Id, IsoDate, Priority, Todo } from '$lib/types';
+	import type { Aspect, ClassType, HhMm, Id, IsoDate, Priority, Status, Todo } from '$lib/types';
+	import Field from '../field/Field.svelte';
 	import Button from '../ui/Button.svelte';
 	import ConfirmDialog from '../ui/ConfirmDialog.svelte';
 	import Sheet from '../ui/Sheet.svelte';
 	import { UI_ICONS } from '../ui/icons';
 	import TodoFields from './TodoFields.svelte';
 	import { planError, submit, type ActionError } from './form';
+	import { postTodo } from './post';
 
 	let {
 		todo,
 		aspects,
 		open,
 		onclose,
-		actions
-	}: { todo: Todo; aspects: Aspect[]; open: boolean; onclose: () => void; actions?: Snippet } = $props();
-
-	const desktop = new MediaQuery('min-width: 768px');
+		actions,
+		readonly = false
+	}: { todo: Todo; aspects: Aspect[]; open: boolean; onclose: () => void; actions?: Snippet; readonly?: boolean } = $props();
 
 	// A draft of the main fields: checklist edits save at once and reload `todo`, and must not
 	// overwrite what is typed here before Save.
@@ -34,15 +38,17 @@
 	let startTime = $state<HhMm | ''>('');
 	let endTime = $state<HhMm | ''>('');
 	let type = $state<ClassType>('OTH');
+	let status = $state<Status>('todo');
 	let error = $state<ActionError | null>(null);
 	let newItem = $state('');
 	let confirming = $state(false);
 	let deleteForm = $state<HTMLFormElement>();
+	let editForm = $state<HTMLFormElement>();
 
 	$effect.pre(() => {
 		if (!open) return;
 		untrack(() => {
-			({ title, notes, aspectId, priority } = todo);
+			({ title, notes, aspectId, priority, status } = todo);
 			dueDate = todo.dueDate ?? '';
 			projectId = todo.projectId ?? '';
 			classId = todo.classId ?? '';
@@ -54,107 +60,168 @@
 		});
 	});
 
-	const aspectColor = $derived(ASPECT_COLORS[(aspects.find((a) => a.id === todo.aspectId) ?? aspects[0]).color].fg);
+	async function saved() {
+		// `update` leaves the status alone; it has its own action.
+		if (todo.sprintId !== null && status !== todo.status) {
+			const failed = await postTodo('setStatus', { id: String(todo.id), status });
+			if (failed) return (error = failed);
+		}
+		onclose();
+	}
 
-	function onkeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape' && open && desktop.current && !confirming) onclose();
+	function titleKeys(e: KeyboardEvent) {
+		if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
+		e.preventDefault();
+		editForm?.requestSubmit();
 	}
 
 	function renameOnEnter(e: KeyboardEvent) {
 		if (e.key !== 'Enter') return;
 		// Enter would submit through the item's first button (the checkbox); blurring saves via change.
 		e.preventDefault();
-		(e.currentTarget as HTMLInputElement).blur();
+		(e.currentTarget as HTMLElement).blur();
 	}
 </script>
 
-<svelte:window {onkeydown} />
+{#snippet footer()}
+	{#if !readonly}
+		<Button variant="danger" type="button" class="editor-delete" onclick={() => (confirming = true)}>
+			<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={UI_ICONS.trash} /></svg>
+			<span class="label">Delete todo</span>
+		</Button>
+		<Button type="button" onclick={onclose}>Cancel</Button>
+		<Button variant="primary" type="submit" form="edit-{todo.id}">Save</Button>
+	{/if}
+{/snippet}
 
-{#snippet body()}
-	<form
-		id="edit-{todo.id}"
-		method="POST"
-		action="/todos?/update"
-		aria-label="Edit todo"
-		use:enhance={submit({ onerror: (e) => (error = e), onsuccess: onclose })}
-	>
-		<input type="hidden" name="id" value={todo.id} />
-		<input class="title" name="title" aria-label="Title" autocomplete="off" bind:value={title} />
-		{#if error?.field === 'title'}<p class="error" role="alert">Give the todo a title.</p>{/if}
-		<textarea class="notes" name="notes" placeholder="Add a description" aria-label="Description" rows="2" bind:value={notes}
-		></textarea>
-		<TodoFields
-			{aspects}
-			bind:aspectId
-			bind:priority
-			bind:dueDate
-			bind:projectId
-			bind:classId
-			bind:type
-			planned
-			bind:plannedDay
-			bind:startTime
-			bind:endTime
-			linkedId={todo.projectId}
-			clearProject
-			clearClass
-		/>
-		{#if error && error.field !== 'title'}
-			<p class="error" role="alert">{planError(error) ?? `Couldn’t save the todo (${error.error}).`}</p>
-		{/if}
-	</form>
+<Sheet {open} title="Edit todo" {onclose} actions={readonly ? undefined : footer}>
+	<div class="editor">
+		<form
+			id="edit-{todo.id}"
+			class="form"
+			method="POST"
+			action="/todos?/update"
+			aria-label="Edit todo"
+			bind:this={editForm}
+			use:enhance={submit({ onerror: (e) => (error = e), onsuccess: saved })}
+		>
+			<input type="hidden" name="id" value={todo.id} />
+			{#if readonly}
+				<p class="note">This todo belongs to a class in an archived semester, so its fields are locked. Unarchive the semester to edit it.</p>
+			{/if}
+			<Field
+				multiline
+				rows={2}
+				label="Title"
+				name="title"
+				autocomplete="off"
+				placeholder="Add a todo"
+				{readonly}
+				error={error?.field === 'title' ? 'Give the todo a title.' : undefined}
+				bind:value={title}
+				onkeydown={titleKeys}
+			/>
+			<TodoFields
+				{aspects}
+				bind:aspectId
+				bind:priority
+				bind:dueDate
+				bind:projectId
+				bind:classId
+				bind:type
+				bind:status
+				showStatus={todo.sprintId !== null}
+				planned
+				bind:plannedDay
+				bind:startTime
+				bind:endTime
+				linkedId={todo.projectId}
+				clearProject
+				clearClass
+				{readonly}
+			/>
+			<Field
+				multiline
+				rows={4}
+				label="Description"
+				name="notes"
+				placeholder="Add a description"
+				hint="Markdown. Rendered notes show on the page and can be selected."
+				{readonly}
+				bind:value={notes}
+			/>
+			{#if error && error.field !== 'title'}
+				<p class="form-error" role="alert">{planError(error) ?? `Couldn’t save the todo (${error.error}).`}</p>
+			{/if}
+		</form>
 
-	<ul class="checklist" aria-label="Checklist" style:--a={aspectColor}>
-		{#each todo.checklist as item, i (item.id)}
-			<li>
-				<form method="POST" action="/todos?/checklistRename" use:enhance={submit()}>
-					<input type="hidden" name="itemId" value={item.id} />
-					<button
-						class="check"
-						role="checkbox"
-						aria-checked={item.done}
-						aria-label="Done: {item.text}"
-						formaction="/todos?/checklistToggle"
-						name="done"
-						value={String(!item.done)}
-					>
-						<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.check} /></svg>
-					</button>
-					<input
-						class:done={item.done}
-						name="text"
-						value={item.text}
-						aria-label="Checklist item {i + 1}"
-						autocomplete="off"
-						onchange={(e) => e.currentTarget.form?.requestSubmit()}
-						onkeydown={renameOnEnter}
-					/>
-					<button class="remove" formaction="/todos?/checklistDelete" aria-label="Delete item: {item.text}">
-						<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.x} /></svg>
-					</button>
+		<div class="checklist-block">
+			<h3>Checklist</h3>
+			<ul class="checklist" aria-label="Checklist">
+				{#each todo.checklist as item, i (item.id)}
+					<li>
+						<form method="POST" action="/todos?/checklistRename" use:enhance={submit()}>
+							<input type="hidden" name="itemId" value={item.id} />
+							<button
+								class="tick"
+								role="checkbox"
+								aria-checked={item.done}
+								aria-label="Done: {item.text}"
+								disabled={readonly}
+								data-press="round"
+								formaction="/todos?/checklistToggle"
+								name="done"
+								value={String(!item.done)}
+							>
+								<span>
+									{#if item.done}
+										<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={UI_ICONS.check} /></svg>
+									{/if}
+								</span>
+							</button>
+							<Field
+								multiline
+								rows={1}
+								hideLabel
+								label="Checklist item {i + 1}"
+								name="text"
+								autocomplete="off"
+								{readonly}
+								value={item.text}
+								onchange={(e) => e.currentTarget.form?.requestSubmit()}
+								onkeydown={renameOnEnter}
+							/>
+							{#if !readonly}
+								<Button variant="quiet" icon type="submit" label="Delete item: {item.text}" formaction="/todos?/checklistDelete">
+									<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={UI_ICONS.trash} /></svg>
+								</Button>
+							{/if}
+						</form>
+					</li>
+				{/each}
+			</ul>
+			{#if todo.checklist.length === 0}<p class="empty">No items yet.</p>{/if}
+			{#if !readonly}
+				<form method="POST" action="/todos?/checklistAdd" use:enhance={submit({ onsuccess: () => (newItem = '') })}>
+					<input type="hidden" name="todoId" value={todo.id} />
+					<Field label="New checklist item" hideLabel name="text" placeholder="Add a checklist item" autocomplete="off" bind:value={newItem} />
 				</form>
-			</li>
-		{/each}
-	</ul>
-	<form
-		class="add-item"
-		method="POST"
-		action="/todos?/checklistAdd"
-		use:enhance={submit({ onsuccess: () => (newItem = '') })}
-	>
-		<input type="hidden" name="todoId" value={todo.id} />
-		<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.plus} /></svg>
-		<input name="text" placeholder="Add a checklist item" aria-label="New checklist item" autocomplete="off" bind:value={newItem} />
-	</form>
+			{/if}
+		</div>
 
-	<footer>
-		<span class="danger"><Button type="button" variant="quiet" onclick={() => (confirming = true)}>Delete</Button></span>
-		{@render actions?.()}
-		<span class="spacer"></span>
-		<Button type="button" variant="quiet" onclick={onclose}>Cancel</Button>
-		<Button type="submit" variant="primary" form="edit-{todo.id}">Save</Button>
-	</footer>
+		{#if actions && !readonly}<div class="cluster">{@render actions()}</div>{/if}
+	</div>
+</Sheet>
 
+{#if !readonly}
+	<ConfirmDialog
+		open={confirming}
+		title="Delete this todo?"
+		message="“{todo.title.length > 60 ? `${todo.title.slice(0, 60)}…` : todo.title}” and its checklist will be gone for good."
+		confirmLabel="Delete todo"
+		onconfirm={() => deleteForm?.requestSubmit()}
+		oncancel={() => (confirming = false)}
+	/>
 	<form
 		bind:this={deleteForm}
 		method="POST"
@@ -164,211 +231,123 @@
 	>
 		<input type="hidden" name="id" value={todo.id} />
 	</form>
-{/snippet}
-
-{#if desktop.current}
-	{#if open}
-		<div class="card">{@render body()}</div>
-	{/if}
-{:else}
-	<Sheet {open} title="Edit todo" {onclose}>{@render body()}</Sheet>
 {/if}
 
-<ConfirmDialog
-	open={confirming}
-	title="Delete this todo?"
-	message="“{todo.title}” and its checklist will be gone for good."
-	confirmLabel="Delete todo"
-	onconfirm={() => deleteForm?.requestSubmit()}
-	oncancel={() => (confirming = false)}
-/>
-
 <style>
-	.card {
-		position: relative;
-		z-index: 2;
-		margin: var(--space-2) calc(-1 * var(--space-4));
-		padding: var(--space-4) var(--space-4) var(--space-3);
-		border-radius: var(--radius-lg);
-		background: var(--surface);
-		box-shadow: var(--shadow-float);
-		transform-origin: top center;
-		animation: expand var(--dur-slow) var(--ease-out);
+	.editor {
+		display: grid;
+		gap: var(--space-4);
+		min-inline-size: 0;
 	}
-
-	@keyframes expand {
-		from {
-			opacity: 0.4;
-			transform: scaleY(0.6);
-		}
+	.form {
+		display: grid;
+		gap: var(--space-4);
+		min-inline-size: 0;
 	}
-
-	input,
-	textarea {
-		display: block;
-		width: 100%;
-		padding: 0;
-		border: 0;
-		background: none;
-		outline: none;
+	.note {
+		margin: 0;
+		padding: var(--space-3) var(--space-4);
+		border-radius: var(--radius-panel);
+		background: var(--surface-sunken);
+		font-size: var(--type-body-s-size);
+		overflow-wrap: anywhere;
 	}
-
-	input:focus-visible,
-	textarea:focus-visible {
-		box-shadow: none;
-	}
-
-	.title {
-		font-size: var(--text-lg);
+	.form-error {
+		margin: 0;
+		font-size: var(--type-caption-size);
 		font-weight: var(--weight-semibold);
-		letter-spacing: var(--tracking-title);
+		color: var(--danger);
 	}
-
-	/* Two lines at rest, so the description reads as a field to write in rather than a hint. */
-	.notes {
-		min-height: 2lh;
-		margin: var(--space-2) 0 var(--space-4);
-		resize: none;
-		field-sizing: content;
-		color: var(--ink-2);
-		line-height: var(--leading-body);
+	.empty {
+		margin: 0;
+		font-size: var(--type-caption-size);
+		color: var(--ink-secondary);
 	}
-
-	.notes::placeholder,
-	.add-item input::placeholder {
-		color: var(--ink-3);
+	.checklist-block {
+		display: grid;
+		gap: var(--space-2);
+		min-inline-size: 0;
 	}
-
-	.error {
-		margin-top: var(--space-2);
-		color: var(--overdue);
-		font-size: var(--text-sm);
+	h3 {
+		margin: 0;
+		font-family: var(--font-ui);
+		font-size: var(--type-overline-size);
+		line-height: var(--type-overline-line);
+		letter-spacing: var(--type-kicker-tracking);
+		font-weight: var(--type-overline-weight);
+		text-transform: uppercase;
+		color: var(--ink-secondary);
 	}
-
 	.checklist {
-		margin: var(--space-4) 0 0;
+		display: grid;
+		gap: var(--space-1);
+		margin: 0 calc(-1 * var(--space-3));
 		padding: 0;
 		list-style: none;
 	}
-
-	.checklist form,
-	.add-item {
+	.checklist li > form {
 		display: flex;
 		align-items: center;
-		gap: var(--space-3);
-		min-height: 36px;
-		border-bottom: 1px solid var(--line);
+		gap: var(--space-1);
+		min-inline-size: 0;
 	}
-
-	.check {
+	.checklist li > form > :global(.field) {
+		flex: 1;
+		min-inline-size: 0;
+	}
+	.tick {
 		display: grid;
 		place-items: center;
-		width: 15px;
-		height: 15px;
 		flex: none;
-		padding: 0;
-		border: 1.5px solid var(--line-strong);
-		border-radius: var(--radius-pill);
-		background: var(--surface);
-		cursor: pointer;
-	}
-
-	.check svg {
-		width: 9px;
-		height: 9px;
-		stroke: var(--ink-on-accent);
-		stroke-width: 3.5;
-		opacity: 0;
-	}
-
-	.check[aria-checked='true'] {
-		background: var(--a);
-		border-color: var(--a);
-	}
-
-	.check[aria-checked='true'] svg {
-		opacity: 1;
-	}
-
-	.checklist input.done {
-		color: var(--ink-3);
-		text-decoration: line-through;
-	}
-
-	.remove {
-		display: grid;
-		place-items: center;
-		width: 28px;
-		height: 28px;
-		flex: none;
+		inline-size: max(var(--control-height-s), var(--target));
+		block-size: max(var(--control-height-s), var(--target));
 		padding: 0;
 		border: 0;
-		border-radius: var(--radius-sm);
+		border-radius: var(--radius-round);
 		background: none;
-		color: var(--ink-3);
-		cursor: pointer;
-		opacity: 0;
+		color: var(--ink-on-inverse);
 	}
-
-	.checklist li:hover .remove,
-	.remove:focus-visible {
-		opacity: 1;
+	.tick > span {
+		display: grid;
+		place-items: center;
+		inline-size: var(--space-6);
+		block-size: var(--space-6);
+		border-radius: var(--radius-round);
+		background: var(--surface-raised);
+		box-shadow: var(--ring-control);
 	}
-
-	.remove:hover {
-		color: var(--ink);
+	.tick[aria-checked='true'] > span {
+		background: var(--surface-inverse);
+		box-shadow: none;
 	}
-
-	.add-item {
-		color: var(--ink-3);
+	.tick:focus-visible {
+		outline-offset: calc(-1 * var(--focus-width));
 	}
-
-	svg {
-		width: var(--icon-sm);
-		height: var(--icon-sm);
-		flex: none;
-		fill: none;
-		stroke: currentColor;
-		stroke-width: 1.75;
-		stroke-linecap: round;
-		stroke-linejoin: round;
-	}
-
-	footer {
+	.cluster {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
 		gap: var(--space-2);
-		margin-top: var(--space-4);
 	}
-
-	.spacer {
-		flex: 1;
-	}
-
-	.danger {
+	.cluster :global(form) {
 		display: contents;
 	}
 
-	.danger :global(.btn.quiet) {
-		color: var(--overdue);
+	/* Delete leads the pinned footer; on a phone it shrinks to the trash, its name stays for assistive tech. */
+	:global(dialog[data-sheet] > footer > .btn.editor-delete) {
+		margin-inline-end: auto;
 	}
-
-	@media (hover: none) {
-		.remove {
-			opacity: 1;
+	@media (max-width: 479px) {
+		:global(dialog[data-sheet] > footer > .btn.editor-delete .label) {
+			position: absolute;
+			inline-size: 1px;
+			block-size: 1px;
+			overflow: hidden;
+			clip-path: inset(50%);
+			white-space: nowrap;
 		}
-	}
-
-	@media (max-width: 767px) {
-		.title {
-			font-size: var(--text-xl);
-		}
-
-		/* Save leads on a phone, full width, so the row of other actions never pushes it onto a line alone. */
-		footer > :global(.btn.primary) {
-			order: -1;
-			flex-basis: 100%;
+		:global(dialog[data-sheet] > footer > .btn.editor-delete) {
+			padding-inline: 0;
 		}
 	}
 </style>

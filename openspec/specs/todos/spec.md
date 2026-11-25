@@ -325,7 +325,7 @@ quick add starts with its day filled in, and a day column whose date was removed
 
 #### Scenario: Quick add in a week day column stores the slot on that day
 - **WHEN** Rue opens quick add in the Thursday column of the Week view, sees "Planned" filled with that Thursday, sets 09:00–10:00 and adds it, then adds a second todo after removing the plan
-- **THEN** the first card is in the Thursday column labelled "09:00–10:00", and the second is in the active sprint with no day
+- **THEN** the first card is in the Thursday column as a compact chip labelled "09:00" (start only), its board card shows the stored slot "09:00–10:00", and the second is in the active sprint with no day
 - **proof:** e2e — `Regression: quick add in a week day column stores the slot on that day`
 
 #### Scenario: Quick add with a planned day in a review-required week is refused, without a day it is not
@@ -334,8 +334,8 @@ quick add starts with its day filled in, and a day column whose date was removed
 - **proof:** unit — `Regression: createTodo with a planned day in a review-required week is refused, without a day it is not`
 
 #### Scenario: The New todo dialog says where a planned day sends the todo
-- **WHEN** with an active sprint of 2026-10-12 to 2026-10-18 Rue opens "New todo" from the sidebar, then sets "Planned" to 2026-10-16, then to 2026-11-03
-- **THEN** the footer hint reads "Goes to the backlog" before a day is set, "Goes to this sprint" for 2026-10-16, and "Goes to the backlog" again for 2026-11-03; while the sprint's review is required (today 2026-10-19), a day in its week such as 2026-10-15 shows no hint, since that add is refused
+- **WHEN** with an active sprint of 2026-10-12 to 2026-10-18 Rue opens "New todo" from the top bar on `/backlog`, then sets "Planned" to 2026-10-16, then to 2026-11-03
+- **THEN** the footer hint reads "Goes to the backlog" before a day is set, "Goes to this sprint" for 2026-10-16, and "Goes to the backlog" again for 2026-11-03; while the sprint's review is required (today 2026-10-19), a day in its week such as 2026-10-15 shows "Goes to the backlog" and never "Goes to this sprint", since the sprint target is disabled and that add is refused
 - **proof:** e2e — `Regression: the New todo dialog says where a planned day sends the todo`
 
 #### Scenario: Retyping From after clearing it restores the slot length
@@ -432,5 +432,38 @@ the label shows only the slot, and nothing when there is no slot. (S4)
 #### Scenario: Unplanned row shows only its due label
 - **WHEN** a backlog todo with a due date and no planned date is shown on Backlog
 - **THEN** its row shows no planned label and shows the due label as before
+- **proof:** e2e
+
+### Requirement: Todo editor on the fingerprint
+The todo editor SHALL render on the fingerprint `sheet` primitive (bottom sheet below 768 px, centred card from 768 px) with every field: title, aspect, priority, due date, status, planned day and slot, Markdown notes, checklist, the project link only for the IT aspect and the class link with type only for the Uni aspect, and "Delete todo" behind its confirmation ("Delete this todo?"). Long titles and notes SHALL wrap inside the editor; an empty checklist shows its add control; a todo of an archived semester's class opens read-only. (S6)
+
+#### Scenario: Editor shows every field and saves
+- **WHEN** Rue opens a sprint todo of the IT aspect, changes priority, due date, status, day and slot, adds a checklist item, writes notes and picks a project, and saves
+- **THEN** after reload every changed value is shown in the editor
+- **proof:** e2e
+
+#### Scenario: Link fields follow the aspect
+- **WHEN** the editor is opened for a Health todo, then the aspect is switched to the IT aspect, then to the Uni aspect
+- **THEN** Health shows no Project or Class field, IT shows Project only, and Uni shows Class and Type only
+- **proof:** e2e
+
+#### Scenario: Long title and notes wrap in the editor
+- **WHEN** a todo with a 200-character title and 4,000 characters of notes is opened at 375 px
+- **THEN** both are fully reachable inside the editor, its save control stays reachable, and the page does not scroll horizontally
+- **proof:** e2e
+
+#### Scenario: Delete asks first
+- **WHEN** Rue presses "Delete todo" in the editor
+- **THEN** "Delete this todo?" asks with "Delete todo" and "Cancel"; Cancel keeps the todo, confirming removes it
+- **proof:** e2e
+
+#### Scenario: Archived class todo opens read-only
+- **WHEN** a todo of an archived semester's class is opened from a list
+- **THEN** no editable field and no delete control are shown in the editor
+- **proof:** e2e
+
+#### Scenario: Archived class todo deletes from the row
+- **WHEN** Rue looks at a todo row on the page of a class of an archived semester
+- **THEN** the row has no editable field and the editor stays closed; its only action is a trash button ("Delete todo: <title>") that asks "Delete this todo?" with "Delete todo" and "Cancel", and confirming removes the todo
 - **proof:** e2e
 

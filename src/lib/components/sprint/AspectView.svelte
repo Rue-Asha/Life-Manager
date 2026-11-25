@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { flip } from 'svelte/animate';
-	import { canDrag, draggableTodo, dropZone } from '$lib/dnd';
+	import { dropZone } from '$lib/dnd';
+	import { copy } from '$lib/copy';
 	import { flipOpts, receive, send } from '$lib/motion';
 	import type { Aspect, Id, IsoDate, Todo } from '$lib/types';
-	import TodoRow from '../todo/TodoRow.svelte';
-	import AspectIcon from '../ui/AspectIcon.svelte';
-	import ListGroup from '../ui/ListGroup.svelte';
-	import ProgressBar from '../ui/ProgressBar.svelte';
+	import Icon from '../shell/Icon.svelte';
+	import EmptyState from '../ui/EmptyState.svelte';
+	import SprintCard from './SprintCard.svelte';
 
 	let {
 		todos,
@@ -22,9 +22,6 @@
 		onadd?: (id: Id) => void;
 	} = $props();
 
-	// Inside a draggable element a mouse selection in the editor's fields would start a drag.
-	let typing = $state<Id | null>(null);
-
 	const groups = $derived(
 		aspects
 			.map((aspect) => ({ aspect, todos: todos.filter((t) => t.aspectId === aspect.id) }))
@@ -33,111 +30,30 @@
 </script>
 
 <div
-	class="list"
+	class="hs-groups"
 	role="group"
 	aria-label="Sprint todos"
 	use:dropZone={{ accepts: (p) => !!onadd && p.from === 'backlog', ondrop: (p) => onadd?.(p.id) }}
 >
 	{#each groups as { aspect, todos } (aspect.id)}
 		{@const done = todos.filter((t) => t.status === 'done').length}
-		<section class="group" aria-labelledby="group-{aspect.id}">
-			<h2 id="group-{aspect.id}">
-				<AspectIcon icon={aspect.icon} color={aspect.color} />{aspect.name}
-				<span class="progress"><ProgressBar {done} total={todos.length} color={aspect.color} /></span>
-			</h2>
-			<ListGroup>
+		<section class="card hs-group" aria-labelledby="group-{aspect.id}">
+			<div class="hs-group-head">
+				<span class="nav-tile" data-color={aspect.color} aria-hidden="true"><Icon aspect={aspect.icon} size={16} /></span>
+				<h2 id="group-{aspect.id}" data-user>{aspect.name}</h2>
+				<span class="hs-count"><span class="sr-only">Done </span>{done} / {todos.length}</span>
+			</div>
+			<div class="hs-list">
 				<!-- Global: the first todo of an aspect arrives with its group and should still travel in. -->
 				{#each todos as todo (todo.id)}
-					<div
-						class="item"
-						role="presentation"
-						in:receive|global={{ key: todo.id }}
-						out:send|global={{ key: todo.id }}
-						animate:flip={flipOpts()}
-						use:draggableTodo={{ id: todo.id, from: 'sprint', recurring: todo.recurring }}
-						draggable={canDrag.current && typing !== todo.id}
-						onfocusin={(e) => (typing = (e.target as Element).matches('input, textarea') ? todo.id : null)}
-						onfocusout={() => (typing = null)}
-					>
-						<ul><TodoRow {todo} {aspect} {today} context="sprint" {sprintDays} /></ul>
+					<div in:receive|global={{ key: todo.id }} out:send|global={{ key: todo.id }} animate:flip={flipOpts()}>
+						<SprintCard {todo} {aspect} {today} {sprintDays} variant="row" named={false} />
 					</div>
 				{/each}
-			</ListGroup>
+			</div>
 		</section>
 	{:else}
-		<p class="empty">
-			Nothing in this sprint yet. Add a todo above, or pull some in from the <a href="/backlog">backlog</a>.
-		</p>
+		<EmptyState title={copy.empty.sprint.heading} body={copy.empty.sprint.body} href="/backlog" actionLabel={copy.openBacklog} />
 	{/each}
+	<p class="hs-dropnote" aria-hidden="true">{copy.sprintViews.dropToSprint}</p>
 </div>
-
-<style>
-	.group + .group {
-		margin-top: var(--space-6);
-	}
-
-	h2 {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		margin-bottom: var(--space-2);
-		padding: 0 var(--space-1);
-		font-size: var(--text-md);
-		font-weight: var(--weight-semibold);
-		line-height: var(--leading-snug);
-	}
-
-	.progress {
-		margin-left: auto;
-		font-weight: var(--weight-regular);
-	}
-
-	.list {
-		min-height: 120px;
-		border-radius: var(--radius-md);
-		transition:
-			background-color var(--dur-fast) var(--ease-out),
-			box-shadow var(--dur-fast) var(--ease-out);
-	}
-
-	/* The drop slot is a hairline, not a filled target. */
-	.list:global([data-over]) {
-		background: var(--accent-soft);
-		box-shadow: inset 0 0 0 1px var(--accent);
-	}
-
-	.item {
-		border-radius: var(--radius-group);
-	}
-
-	.item[draggable='true'] {
-		cursor: grab;
-	}
-
-	.item:global([data-dragging]) {
-		background: var(--surface);
-		box-shadow: var(--shadow-float);
-	}
-
-	ul {
-		margin: 0;
-		padding: 0;
-		list-style: none;
-	}
-
-	.empty {
-		padding: var(--space-8) var(--space-4);
-		color: var(--ink-3);
-		text-align: center;
-	}
-
-	.empty a {
-		color: var(--accent);
-		font-weight: var(--weight-medium);
-		text-decoration: none;
-	}
-
-	.empty a:hover {
-		text-decoration: underline;
-	}
-</style>

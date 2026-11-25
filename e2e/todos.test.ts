@@ -163,7 +163,7 @@ test('Scenario: Deleting a todo asks for confirmation', async ({ page, request }
 	await page.goto('/backlog');
 
 	await openTodo(page, 'Clean the fridge');
-	await page.getByRole('button', { name: 'Delete', exact: true }).click();
+	await page.getByRole('button', { name: 'Delete todo', exact: true }).click();
 	const confirm = page.getByRole('dialog', { name: 'Delete this todo?' });
 	await expect(confirm).toBeVisible();
 	await confirm.getByRole('button', { name: 'Cancel' }).click();
@@ -172,7 +172,7 @@ test('Scenario: Deleting a todo asks for confirmation', async ({ page, request }
 	await expect(todoRow(page, 'Clean the fridge')).toBeVisible();
 
 	await openTodo(page, 'Clean the fridge');
-	await page.getByRole('button', { name: 'Delete', exact: true }).click();
+	await page.getByRole('button', { name: 'Delete todo', exact: true }).click();
 	await confirm.getByRole('button', { name: 'Delete todo' }).click();
 	await expect(todoRow(page, 'Clean the fridge')).toHaveCount(0);
 	await page.reload();

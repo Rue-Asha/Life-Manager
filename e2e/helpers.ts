@@ -1,6 +1,7 @@
 import { test as base, type APIRequestContext, type Locator, type Page, type Response } from '@playwright/test';
 import { resolve } from 'node:path';
 import { createFake } from '../scripts/fake-proton.mjs';
+import { menuNav, POSTURE_SWITCH } from '../src/lib/nav';
 import type { PassOutcome, SyncStatus } from '../src/lib/server/proton/types';
 import type { SeedInput, SeedResult } from '../src/routes/__test/seed/+server';
 
@@ -83,6 +84,42 @@ export async function setClock(request: APIRequestContext, now: string | null): 
 	if (!response.ok()) throw new Error(`setClock failed: ${response.status()}`);
 }
 
+// Top bar from POSTURE_SWITCH, pill bar below (navigation contract).
+export function posture(page: Page): 'phone' | 'desktop' {
+	return (page.viewportSize()?.width ?? 1280) >= POSTURE_SWITCH ? 'desktop' : 'phone';
+}
+
+// A primary destination is a link in navigation "Main" at both postures; the rest sit in the
+// top bar's "More" menu or, on the phone, in the More hub behind the "More" tab. An aspect is
+// opened by its name.
+export async function openNav(page: Page, name: string): Promise<void> {
+	const nav = page.getByRole('navigation', { name: 'Main' });
+	const label = new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`);
+	const primary = nav.getByRole('link', { name: label });
+	if (!menuNav.some((item) => item.label === name) && (await primary.count()) > 0) {
+		await primary.first().click();
+		return;
+	}
+	if (posture(page) === 'desktop') {
+		await nav.getByRole('button', { name: /^More\b/ }).click();
+		const menu = page.getByRole('menu');
+		await menu.getByRole('menuitem', { name: label }).or(menu.getByRole('link', { name: label })).first().click();
+	} else {
+		await nav.getByRole('link', { name: /^More\b/ }).click();
+		await page.waitForURL('**/menu');
+		// The hub's Aspects entry is the "All aspects" row; each aspect has its own row above it.
+		const entry = name === 'Aspects' ? /^All aspects\b/ : label;
+		await page.getByRole('main').getByRole('link', { name: entry }).first().click();
+	}
+}
+
+// The desktop "New todo" pill and the phone "+" share the name; both open the one quick add.
+export async function openNewTodo(page: Page): Promise<Locator> {
+	await page.getByRole('navigation', { name: 'Main' }).getByRole('button', { name: 'New todo' }).click();
+	const dialog = page.getByRole('dialog', { name: 'New todo' });
+	await dialog.waitFor();
+	return dialog;
+}
 
 export const todoRow = (scope: Page | Locator, title: string) => scope.getByRole('listitem', { name: title });
 
@@ -120,3 +157,14 @@ export const projectCards = (scope: Page | Locator) => scope.getByRole('listitem
 export const ruleRow = (scope: Page | Locator, title: string) => scope.getByRole('listitem', { name: title });
 
 export const ruleRows = (scope: Page | Locator) => scope.getByRole('listitem', { name: /\S/ });
+
+// The computed colour a fingerprint token resolves to, for comparing against a rendered element.
+export const tokenColor = (page: Page, token: string) =>
+	page.evaluate((t) => {
+		const probe = document.createElement('span');
+		probe.style.color = `var(${t})`;
+		document.body.append(probe);
+		const value = getComputedStyle(probe).color;
+		probe.remove();
+		return value;
+	}, token);

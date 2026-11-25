@@ -1,17 +1,10 @@
 <script lang="ts" module>
 	import { deserialize } from '$app/forms';
-	import { invalidateAll } from '$app/navigation';
-	import { MediaQuery } from 'svelte/reactivity';
 	import { shownDay } from '$lib/todo-utils';
+	import { reloadAfterMove } from './reload';
 	import type { Id, IsoDate, Todo } from '$lib/types';
 
-	// From 1280 the week is one row and its Unscheduled column lives in the rail (UnscheduledList).
-	export const wideWeek = new MediaQuery('min-width: 1280px');
-	// From 768 the columns sit side by side and todos are one-line chips; a phone shows full rows.
-	export const chips = new MediaQuery('min-width: 768px');
-
-	// A dropped card sits on its new day while the move saves, instead of springing back. Shared
-	// with UnscheduledList so a card leaves one component as it lands in the other.
+	// A dropped card sits on its new day while the move saves, instead of springing back.
 	const moved = $state<Record<Id, IsoDate | null>>({});
 	export const dayOf = (todo: Todo) => (todo.id in moved ? moved[todo.id] : shownDay(todo));
 
@@ -26,7 +19,7 @@
 			body,
 			headers: { 'x-sveltekit-action': 'true' }
 		});
-		if (deserialize(await response.text()).type === 'success') await invalidateAll();
+		if (deserialize(await response.text()).type === 'success') await reloadAfterMove();
 		delete moved[todo.id];
 	}
 </script>
@@ -34,12 +27,12 @@
 <script lang="ts">
 	import { flip } from 'svelte/animate';
 	import { dropZone } from '$lib/dnd';
-	import { flipOpts } from '$lib/motion';
-	import type { Aspect, Placement, Target } from '$lib/types';
-	import QuickAdd from '../todo/QuickAdd.svelte';
+	import { arrive, flipOpts, leave } from '$lib/motion';
+	import { copy } from '$lib/copy';
+	import type { Aspect, Placement } from '$lib/types';
+	import Icon from '../shell/Icon.svelte';
 	import { dayLabel } from '../todo/format';
-	import { UI_ICONS } from '../ui/icons';
-	import { arrive, leave, viewportTop } from './BoardView.svelte';
+	import Button from '../ui/Button.svelte';
 	import SprintCard from './SprintCard.svelte';
 
 	let {
@@ -47,309 +40,116 @@
 		aspects,
 		today,
 		sprintDays,
-		onadd
+		layout = 'rail',
+		onadd,
+		onaddto
 	}: {
 		todos: Todo[];
 		aspects: Aspect[];
 		today: IsoDate;
 		sprintDays: IsoDate[];
+		// `full`: the backlog rail is folded away, so from 1280 px the seven days share one row.
+		layout?: 'rail' | 'full';
 		onadd?: (id: Id, placement: Placement) => void;
+		// Opens the new-todo dialog for a day (null: the sprint without a day).
+		onaddto?: (day: IsoDate | null, trigger: HTMLElement) => void;
 	} = $props();
 
 	const weekday = new Intl.DateTimeFormat('en-GB', { weekday: 'short', timeZone: 'UTC' });
 	const utc = (d: IsoDate) => new Date(`${d}T00:00:00Z`);
-
-	const columns = $derived([
-		...sprintDays.map((day) => ({ key: day, day, target: { kind: 'day', day } as Target })),
-		...(wideWeek.current ? [] : [{ key: 'unscheduled', day: null, target: { kind: 'sprint' } as Target }])
-	]);
+	const name = (d: IsoDate | null) => (d ? dayLabel(d) : 'Unscheduled');
 
 	const aspectOf = (todo: Todo) => aspects.find((a) => a.id === todo.aspectId)!;
+	const onDay = (d: IsoDate | null) => todos.filter((t) => dayOf(t) === d);
+	const open = (d: IsoDate | null) => onDay(d).filter((t) => t.status !== 'done').length;
 
-	// The phone shows one column at a time, starting on today.
-	let chosen = $state<string | null>(null);
-	const shown = $derived(chosen ?? (sprintDays.includes(today) ? today : sprintDays[0]));
+	// The phone shows one day at a time, starting on today.
+	let chosen = $state<IsoDate | 'none' | null>(null);
+	const shown = $derived<IsoDate | null>(chosen === 'none' ? null : (chosen ?? (sprintDays.includes(today) ? today : sprintDays[0])));
+
+	const zone = (day: IsoDate | null) => ({
+		accepts: (p: { from: string }) => p.from === 'sprint' || !!onadd,
+		ondrop: (p: { id: Id; from: string }) => (p.from === 'sprint' ? moveToDay(todos.find((t) => t.id === p.id), day) : onadd?.(p.id, { day }))
+	});
 </script>
 
-<nav class="strip" aria-label="Days">
-	{#each columns as { key, day } (key)}
-		{@const open = todos.some((t) => dayOf(t) === day && t.status !== 'done')}
-		<button
-			type="button"
-			class:today={day === today}
-			class:busy={open}
-			aria-pressed={shown === key}
-			aria-label={day ? dayLabel(day) : 'Unscheduled'}
-			onclick={() => (chosen = key)}
-		>
-			{#if day}
-				<span class="wd">{weekday.format(utc(day))}</span>
-				<span class="dn num">{utc(day).getUTCDate()}</span>
-			{:else}
-				<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.inbox} /></svg>
-			{/if}
-		</button>
-	{/each}
-</nav>
+{#snippet add(d: IsoDate | null)}
+	<Button class="hs-day-add" variant="quiet" icon type="button" label={copy.sprintViews.addTodoTo(name(d))} aria-haspopup="dialog" onclick={(e) => onaddto?.(d, e.currentTarget as HTMLElement)}>
+		<Icon name="plus" size={16} />
+	</Button>
+{/snippet}
 
-<div class="week" role="group" aria-label="Week" use:viewportTop>
-	{#each columns as { key, day, target } (key)}
-		{@const cards = todos.filter((t) => dayOf(t) === day)}
-		<section
-			class="column"
-			class:unscheduled={!day}
-			class:away={shown !== key}
-			use:dropZone={{
-				accepts: (p) => p.from === 'sprint' || !!onadd,
-				ondrop: (p) =>
-					p.from === 'sprint' ? moveToDay(todos.find((t) => t.id === p.id), day) : onadd?.(p.id, { day })
-			}}
-			aria-labelledby="day-{key}"
-		>
-			<h2 id="day-{key}">
-				{#if day}
-					{weekday.format(utc(day))}
-					<span class="date num" aria-current={day === today ? 'date' : undefined}>{utc(day).getUTCDate()}</span>
-				{:else}
-					Unscheduled
-				{/if}
-				<span class="count num">{cards.length || ''}</span>
-			</h2>
-			{#each cards as todo (todo.id)}
-				<div in:arrive={{ key: todo.id }} out:leave={{ key: todo.id }} animate:flip={flipOpts()}>
-					<SprintCard {todo} aspect={aspectOf(todo)} {today} {sprintDays} variant={chips.current ? 'chip' : 'row'} />
-				</div>
+<div class="hs-week-phone">
+	<nav aria-label="Days">
+		<div class="hs-days">
+			{#each sprintDays as d (d)}
+				<button type="button" class="hs-daybtn" data-press aria-current={d === shown ? 'true' : undefined} data-today={d === today ? '' : undefined} onclick={() => (chosen = d)}>
+					<span>{dayLabel(d)}</span>
+					<span class="hs-dayflag">{#if open(d) > 0}<i class="hs-dot"></i><span class="sr-only">{open(d)} open</span>{/if}</span>
+				</button>
 			{/each}
-			<div class="add">
-				<QuickAdd {aspects} {target} compactLabel="Add a todo to {day ? dayLabel(day) : 'Unscheduled'}" />
-			</div>
-		</section>
-	{/each}
+			<button type="button" class="hs-daybtn" data-press aria-current={shown === null ? 'true' : undefined} onclick={() => (chosen = 'none')}>
+				<span class="hs-day-long">Unscheduled</span>
+				<span class="hs-dayflag">{#if open(null) > 0}<i class="hs-dot"></i><span class="sr-only">{open(null)} open</span>{/if}</span>
+			</button>
+		</div>
+	</nav>
+	<section class="card hs-group" aria-labelledby="phone-day">
+		<div class="hs-group-head">
+			<h2 id="phone-day">{shown ? `${dayLabel(shown)}${shown === today ? ' · Today' : ''}` : 'Unscheduled'}</h2>
+			<span class="hs-count">{onDay(shown).length}</span>
+		</div>
+		<div class="hs-list">
+			{#each onDay(shown) as todo (todo.id)}
+				<div in:arrive={{ key: todo.id }} out:leave={{ key: todo.id }} animate:flip={flipOpts()}>
+					<SprintCard {todo} aspect={aspectOf(todo)} {today} {sprintDays} variant="row" mixed />
+				</div>
+			{:else}
+				<p class="hs-none">{copy.sprintViews.nothingPlanned}</p>
+			{/each}
+		</div>
+		<Button class="hs-addwide" variant="secondary" type="button" aria-haspopup="dialog" onclick={(e) => onaddto?.(shown, e.currentTarget as HTMLElement)}>
+			<Icon name="plus" size={18} />{copy.sprintViews.addTodoTo(name(shown))}
+		</Button>
+	</section>
 </div>
 
-<style>
-	.strip {
-		display: none;
-	}
-
-	.week {
-		display: grid;
-		/* Up to four columns: the week reads as two rows, Monday–Thursday over Friday–Unscheduled. */
-		grid-template-columns: repeat(auto-fill, minmax(max(200px, (100% - 3 * var(--space-3)) / 4), 1fr));
-		gap: var(--space-3);
-		align-items: start;
-	}
-
-	.column {
-		display: flex;
-		flex-direction: column;
-		gap: 4px;
-		min-height: 160px;
-		padding: var(--space-2);
-		border-radius: var(--radius-group);
-		background: var(--surface);
-		box-shadow: var(--shadow-card);
-		transition:
-			background-color var(--dur-fast) var(--ease-out),
-			box-shadow var(--dur-fast) var(--ease-out);
-	}
-
-	/* The drop slot is a hairline, not a filled target. */
-	.column:global([data-over]) {
-		background: var(--accent-soft);
-		box-shadow: inset 0 0 0 1px var(--accent);
-	}
-
-	h2 {
-		display: flex;
-		align-items: center;
-		gap: var(--space-1);
-		height: 40px;
-		margin: calc(-1 * var(--space-2)) calc(-1 * var(--space-2)) var(--space-1);
-		padding: 0 var(--space-3);
-		border-bottom: 1px solid var(--line);
-		border-radius: var(--radius-group) var(--radius-group) 0 0;
-		font-size: var(--text-sm);
-		font-weight: var(--weight-semibold);
-	}
-
-	/* Today's header gets the accent band; its date is the accent badge. */
-	h2:has([aria-current='date']) {
-		background: var(--accent-soft);
-	}
-
-	.date {
-		display: inline-grid;
-		place-items: center;
-		min-width: 24px;
-		height: 24px;
-		padding: 0 var(--space-1);
-		border-radius: var(--radius-sm);
-	}
-
-	.date[aria-current='date'] {
-		background: var(--accent);
-		color: var(--ink-on-accent);
-	}
-
-	.count {
-		margin-left: auto;
-		color: var(--ink-3);
-		font-weight: var(--weight-regular);
-	}
-
-	.add {
-		margin-top: var(--space-1);
-	}
-
-	/* Wide desktop: Monday–Sunday in one row across the content width (the rail is an overlay in
-	   Week, so seven columns fit); a busy day scrolls inside its column. */
-	@media (min-width: 1280px) {
-		/* One white sheet: the seven days share it, divided by hairlines. */
-		.week {
-			grid-template-columns: repeat(7, minmax(var(--day-col-min), 1fr));
-			gap: 0;
-			align-items: stretch;
-			border-radius: var(--radius-group);
-			background: var(--surface);
-			box-shadow: var(--shadow-card);
-			overflow: clip;
-		}
-
-		.column {
-			height: calc(100dvh - var(--top, 0px) - var(--space-9));
-			overflow-y: auto;
-			border-radius: 0;
-			box-shadow: none;
-		}
-
-		.column + .column {
-			border-left: 1px solid var(--line);
-		}
-
-		h2 {
-			position: sticky;
-			top: calc(-1 * var(--space-2));
-			z-index: 1;
-			border-radius: 0;
-			background: var(--surface);
-		}
-
-		h2:has([aria-current='date']) {
-			background: var(--accent-soft);
-		}
-
-		/* The server renders Unscheduled before the width is known; from 1280 it is in the rail. */
-		.unscheduled {
-			display: none;
-		}
-
-		/* A scrolling column would cut off the row menu; fixed at its static place it escapes the
-		   clip, shifted left to line up with its trigger. */
-		.column :global(.menu) {
-			position: fixed;
-			top: auto;
-			right: auto;
-			margin-top: var(--space-1);
-			transform: translateX(calc(-100% + 28px));
-		}
-	}
-
-	@media (max-width: 767px) {
-		.strip {
-			display: grid;
-			grid-template-columns: repeat(8, minmax(0, 1fr));
-			gap: var(--space-1);
-			margin-bottom: var(--space-4);
-		}
-
-		.strip button {
-			position: relative;
-			display: flex;
-			flex-direction: column;
-			align-items: center;
-			gap: var(--space-0);
-			height: 60px;
-			padding: var(--space-2) 0 var(--space-3);
-			border: 0;
-			border-radius: var(--radius-md);
-			background: none;
-			color: var(--ink-2);
-			cursor: pointer;
-		}
-
-		.strip svg {
-			width: var(--icon-md);
-			height: var(--icon-md);
-			margin: auto 0;
-			fill: none;
-			stroke: currentColor;
-			stroke-width: 2;
-			stroke-linecap: round;
-			stroke-linejoin: round;
-		}
-
-		.wd {
-			color: var(--ink-3);
-			font-size: var(--text-xs);
-		}
-
-		.dn {
-			font-weight: var(--weight-semibold);
-		}
-
-		.strip .today .dn {
-			color: var(--accent);
-		}
-
-		.strip [aria-pressed='true'] {
-			background: var(--sunk);
-			color: var(--ink);
-		}
-
-		.strip .today[aria-pressed='true'] {
-			background: var(--accent);
-			color: var(--ink-on-accent);
-		}
-
-		.strip .today[aria-pressed='true'] :is(.wd, .dn) {
-			color: var(--ink-on-accent);
-		}
-
-		/* A dot under a day that still has open todos. */
-		.busy::after {
-			content: '';
-			position: absolute;
-			bottom: 6px;
-			width: 4px;
-			height: 4px;
-			border-radius: var(--radius-pill);
-			background: currentColor;
-			opacity: 0.5;
-		}
-
-		.week {
-			grid-template-columns: minmax(0, 1fr);
-		}
-
-		.column {
-			min-height: 0;
-			padding: 0;
-			background: none;
-			box-shadow: none;
-		}
-
-		.column h2 {
-			margin: 0 0 var(--space-1);
-			border: 0;
-		}
-
-		.column :global(.card) {
-			border-radius: var(--radius-group);
-		}
-
-		.away {
-			display: none;
-		}
-	}
-</style>
+<div class="hs-week-wide" role="group" aria-label="Week" data-layout={layout}>
+	<div class="hs-week">
+		{#each sprintDays as d (d)}
+			{@const list = onDay(d)}
+			<section class="hs-day" aria-label={dayLabel(d)} aria-current={d === today ? 'date' : undefined} use:dropZone={zone(d)}>
+				<div class="hs-day-head">
+					<h2><span class="wd">{weekday.format(utc(d))}</span> <span class="dn">{utc(d).getUTCDate()}</span></h2>
+					{@render add(d)}
+				</div>
+				<p class="hs-day-n"><span class="sr-only">Planned </span>{list.length}{#if d === today}<span aria-hidden="true">{' · '}</span><span class="hs-today">Today</span>{/if}</p>
+				{#each list as todo (todo.id)}
+					<div in:arrive={{ key: todo.id }} out:leave={{ key: todo.id }} animate:flip={flipOpts()}>
+						<SprintCard {todo} aspect={aspectOf(todo)} {today} {sprintDays} variant="chip" />
+					</div>
+				{:else}
+					<p class="hs-none">{copy.sprintViews.nothingPlanned}</p>
+				{/each}
+				<p class="hs-dropnote" aria-hidden="true">{copy.sprintViews.dropOnDay(dayLabel(d))}</p>
+			</section>
+		{/each}
+	</div>
+	<section class="hs-day hs-unsched" aria-label="Unscheduled" use:dropZone={zone(null)}>
+		<div class="hs-day-head">
+			<h2><span class="wd">Unscheduled</span></h2>
+			{@render add(null)}
+		</div>
+		<p class="hs-day-n">{onDay(null).length}</p>
+		<div class="hs-list-wide">
+			{#each onDay(null) as todo (todo.id)}
+				<div in:arrive={{ key: todo.id }} out:leave={{ key: todo.id }} animate:flip={flipOpts()}>
+					<SprintCard {todo} aspect={aspectOf(todo)} {today} {sprintDays} variant="chip" />
+				</div>
+			{:else}
+				<p class="hs-none">{copy.sprintViews.nothingUnscheduled}</p>
+			{/each}
+		</div>
+		<p class="hs-dropnote" aria-hidden="true">{copy.sprintViews.dropToClearDay}</p>
+	</section>
+</div>

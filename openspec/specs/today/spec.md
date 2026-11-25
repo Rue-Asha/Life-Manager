@@ -5,12 +5,12 @@ TBD - created by archiving change build-life-manager. Update Purpose after archi
 ## Requirements
 ### Requirement: Today view
 Today SHALL be the default landing screen, showing active-sprint todos assigned to today plus overdue
-todos (due before today, not done), with status toggles and a quick add in every phase (running, review
-available, review required, planning, none, Sunday after the review). While an active sprint has today
-among its days, quick add SHALL add to the sprint on today unless its "Planned" field, prefilled with today, is changed or removed (the todo then lands on the chosen day, or in the sprint with no day); otherwise it SHALL create a backlog todo due
-today, and Today SHALL list open backlog todos due today or planned for today under their aspect, each once even
+todos (due before today, not done), with status toggles and its own inline quick add "Add a todo" in every phase (running, review
+available, review required, planning, none, Sunday after the review). As picked at gate 4 (P8) the inline quick add stays next to the global "+" / "New todo": as signed at gate 5 it is one title field and "Add" inside the page at every width (no sheet), with a line under it naming the destination. While an active sprint has today
+among its days, the inline quick add SHALL add to the sprint on today ("Goes to this sprint, planned today"); otherwise it SHALL create a backlog todo due
+today ("Goes to the backlog, due today"). It uses the first aspect; another aspect, another planned day, no day or any other field goes through the global "New todo" quick add. Today SHALL list open backlog todos due today or planned for today under their aspect, each once even
 when both apply. Today's todos are grouped by aspect; overdue todos are listed once, in a single "Overdue" group that
-names each todo's aspect. (S21, calendar-planning S8)
+names each todo's aspect. The key-facts card comes first, below the review-required prompt when there is one; the sprint's per-aspect progress ("This sprint") is a right column from 1280 px and a card stacked below the lists under 1280 px (gate 4 pick a). (S21, calendar-planning S8, S8)
 
 #### Scenario: Today shows today's sprint todos and overdue todos
 - **WHEN** Rue opens `/` with one sprint todo on today, one on tomorrow, and one backlog todo due yesterday
@@ -29,7 +29,7 @@ names each todo's aspect. (S21, calendar-planning S8)
 
 #### Scenario: Status toggle on Today
 - **WHEN** Rue ticks a todo's checkbox on Today
-- **THEN** its status is Done and it stays visible struck through
+- **THEN** its status is Done and it stays visible, muted and not struck through
 - **proof:** e2e
 
 #### Scenario: Overdue todos outside the sprint offer the sprint instead of a checkbox
@@ -39,18 +39,13 @@ names each todo's aspect. (S21, calendar-planning S8)
 
 #### Scenario: Quick add is shown in every Today state
 - **WHEN** Rue opens `/` with a running sprint, with a review available, with a review required, in planning, with no sprint, and on the Sunday after the review
-- **THEN** each state shows the "Add a todo" quick add
+- **THEN** each state shows the inline "Add a todo" form with its title field and "Add" button
 - **proof:** e2e
 
 #### Scenario: Quick add on Today adds to the sprint on today
 - **WHEN** Rue quick-adds a todo on Today during an active sprint whose days include today
 - **THEN** the todo is in the active sprint with status To do, assigned to today, and listed on Today
 - **proof:** e2e
-
-#### Scenario: Changing or removing Planned in Today's quick add
-- **WHEN** during an active sprint whose days include today, Rue quick-adds on Today with "Planned" (prefilled with today) changed to a later day of the sprint, and another with "Planned" removed
-- **THEN** the first is in the active sprint on that later day and the second is in the active sprint with no day, so it is not listed on Today
-- **proof:** e2e — `Scenario: Changing or removing Planned in Today's quick add`
 
 #### Scenario: Quick add on Today outside the sprint's days saves a backlog todo due today
 - **WHEN** Rue quick-adds a todo on a day that is not among the active sprint's days (the Sunday before next week's sprint, or review required)
@@ -62,9 +57,9 @@ names each todo's aspect. (S21, calendar-planning S8)
 - **THEN** the todo is in the backlog with due date today and is listed on Today under its aspect, also after a reload
 - **proof:** e2e
 
-#### Scenario: Quick add on a phone opens the sheet in every state
-- **WHEN** Rue taps "Add a todo" on Today at phone width with no sprint
-- **THEN** the same sheet as elsewhere opens, and submitting adds the todo as above
+#### Scenario: Quick add on a phone stays inline in every state
+- **WHEN** Rue types a title into Today's "Add a todo" field at phone width with no sprint and presses "Add"
+- **THEN** no dialog opens, the field is cleared, and the todo is added as above
 - **proof:** e2e
 
 #### Scenario: Backlog todos due today are listed apart from sprint todos
@@ -117,13 +112,17 @@ names each todo's aspect. (S21, calendar-planning S8)
 - **THEN** Today shows a prompt to plan next week
 - **proof:** e2e
 
+#### Scenario: Today's quick add states its destination
+- **WHEN** Rue opens `/` on a day of the running sprint, and separately with no sprint
+- **THEN** the line under the inline quick add reads "Goes to this sprint, planned today" and "Goes to the backlog, due today" respectively
+- **proof:** e2e
+
 ### Requirement: Today summary header
 Today SHALL open with a summary header under the page title: one large tabular number, the count of open
 todos listed on Today (today's sprint todos not done, overdue todos and listed due-today backlog todos), labelled
 "open today"; while a sprint is active a second line "Sprint <done> / <total> done · <n> days left" and a
 segmented bar with one segment per aspect, sized by its sprint todos and filled by its done share in the aspect
-colour. Without an active sprint the header shows only the number. The header is the `--chrome` surface with
-light text. (cohesive-look)
+colour. Without an active sprint the header shows only the number. The header is the screen's key-facts card as signed at gate 5. (cohesive-look, S8)
 
 #### Scenario: Header counts open todos on Today
 - **WHEN** Rue opens `/` during a running sprint with two open and one done todo on today and one overdue backlog todo
@@ -138,5 +137,59 @@ light text. (cohesive-look)
 #### Scenario: Header without a sprint shows only the count
 - **WHEN** no sprint is active and one backlog todo is due today
 - **THEN** the header shows "1" with "open today" and no sprint line or bar
+- **proof:** e2e
+
+### Requirement: Today on the fingerprint
+Today SHALL render on the fingerprint with its summary, the phase prompt, the Overdue group, the aspect groups, sprint progress and due backlog items with "Add to sprint", in every phase (none, planning, running, review-available, review-required, Sunday after the review), each with its contract empty copy. Long titles SHALL wrap or clamp inside their row with the full title as the row's accessible name; many aspects and many overdue todos SHALL stay readable without horizontal scroll. (S8)
+
+#### Scenario: Today renders every phase on the fingerprint
+- **WHEN** `/` is opened in the phases none, planning, running, review-available and review-required at 375 px and at 1280 px
+- **THEN** each shows its phase prompt link ("Plan your week", "Continue planning", none, "Review it", "Review the sprint") and the page sits in the fingerprint frame with no horizontal scroll
+- **proof:** e2e
+
+#### Scenario: Today empty copy per phase
+- **WHEN** Today has no groups and no overdue todos in the running phase, and separately with no sprint at all
+- **THEN** the running phase shows the heading "Nothing planned for today" and "The week view has the rest of your sprint." linking `/sprint?view=week`, and without a sprint only the summary "0" "open today" and the "Plan your week" prompt are shown
+- **proof:** e2e
+
+#### Scenario: Many aspects and many overdue todos stay readable
+- **WHEN** Today holds todos in 12 aspects and 30 overdue todos at 375 px and at 1280 px
+- **THEN** every aspect group and the Overdue group with "30" are listed, and the page does not scroll horizontally
+- **proof:** e2e
+
+#### Scenario: Long titles stay inside their rows on Today
+- **WHEN** a todo titled with 200 characters and one with an unbroken 60-character word are on today at 375 px
+- **THEN** both rows stay inside the card (scrollWidth <= clientWidth) and each row's accessible name holds the full title
+- **proof:** e2e
+
+#### Scenario: Review required blocks with the review prompt
+- **WHEN** the phase is review-required and `/` is opened
+- **THEN** the "Review the sprint" prompt is shown above the lists and links `/sprint/review`
+- **proof:** e2e
+
+### Requirement: Tick done with undo
+Ticking a todo done on Today SHALL post the done state at once and show the undo toast "Done: <title>" with "Undo"; Undo SHALL set the todo back to To do. The done todo stays listed in its done state. (S8)
+
+#### Scenario: Ticking done offers undo
+- **WHEN** during a running sprint Rue ticks "Done: Water plants" on Today
+- **THEN** the row shows the done state, a `role="status"` toast reads "Done: Water plants" with an "Undo" button, and after reload the todo is done
+- **proof:** e2e
+
+#### Scenario: Undo returns the todo to To do
+- **WHEN** Rue ticks a todo done on Today and presses "Undo" in the toast
+- **THEN** the todo is To do again after reload and the toast is gone
+- **proof:** e2e
+
+### Requirement: Sync attention banner on Today
+While the sync state is "Re-login needed" or "Error", Today SHALL show a banner naming the state with its next step ("Proton sync needs you to log in again. Open sync to do it." / "Proton sync stopped with an error. Open sync to see what failed.") and linking `/sync`; it SHALL offer no dismiss control while the state holds. In Off, Up to date and Syncing no banner is shown. (S7)
+
+#### Scenario: Banner shows on attention states
+- **WHEN** the sync state is "Re-login needed" (fake exits 2) and `/` is opened, then the state is "Error" (missing binary)
+- **THEN** each time a banner names the state, links "Proton sync" at `/sync`, and has no dismiss button
+- **proof:** e2e
+
+#### Scenario: No banner when sync is fine or off
+- **WHEN** the sync state is Off, then Up to date, then Syncing and `/` is opened in each
+- **THEN** no sync banner is shown
 - **proof:** e2e
 

@@ -5,101 +5,46 @@
 	};
 </script>
 
+<!--
+	The fields of New aspect / Edit aspect: the name, the 8 colours, the 25 icons. Only the fields: the aspects page puts them in a sheet and
+	Welcome inside its own form next to the presets. A failed save keeps the entered values and draws an alert at the name.
+-->
 <script lang="ts">
-	import { ASPECT_COLORS, type AspectColor, type AspectIcon as AspectIconName } from '../../aspect-style';
-	import AspectIcon from '../ui/AspectIcon.svelte';
+	import { untrack } from 'svelte';
+	import type { AspectColor, AspectIcon as AspectIconName } from '../../aspect-style';
+	import Field from '../field/Field.svelte';
 	import ColorIconPicker from '../ui/ColorIconPicker.svelte';
 
-	// Only the fields: the welcome page puts them inside its own form next to the presets.
 	let {
 		name = '',
-		color = 'sage',
+		color = 'tangerine',
 		icon = 'star',
 		error
 	}: { name?: string; color?: AspectColor; icon?: AspectIconName; error?: string } = $props();
 
-	const uid = $props.id();
+	let typed = $state(untrack(() => name));
+	let chosenColor = $state<AspectColor>(untrack(() => color));
+	let chosenIcon = $state<AspectIconName>(untrack(() => icon));
+	$effect(() => {
+		typed = name;
+		chosenColor = color;
+		chosenIcon = icon;
+	});
 </script>
 
-<div class="form">
-	<div class="name" class:invalid={error}>
-		<span class="tile" style:background={ASPECT_COLORS[color].tint}>
-			<AspectIcon {icon} {color} />
-		</span>
-		<label class="visually-hidden" for="{uid}-name">Name</label>
-		<!-- svelte-ignore a11y_autofocus -->
-		<input
-			id="{uid}-name"
-			name="name"
-			value={name}
-			placeholder="Aspect name"
-			autocomplete="off"
-			autofocus
-			aria-invalid={error ? 'true' : undefined}
-			aria-describedby={error ? `${uid}-error` : undefined}
-		/>
-	</div>
-	{#if error}<p class="error" id="{uid}-error">{ASPECT_ERRORS[error] ?? error}</p>{/if}
-
-	<ColorIconPicker bind:color bind:icon />
+<div class="a-form">
+	<!-- svelte-ignore a11y_autofocus -->
+	<Field label="Aspect name" name="name" placeholder="Aspect name" autocomplete="off" autofocus data-user error={error ? (ASPECT_ERRORS[error] ?? error) : undefined} bind:value={typed} />
+	<ColorIconPicker bind:color={chosenColor} bind:icon={chosenIcon} />
 </div>
 
 <style>
-	.form {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-4);
-	}
-
-	.name {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		height: var(--row-height);
-		padding: 0 var(--space-2) 0 6px;
-		border: 1px solid var(--line);
-		border-radius: var(--radius-sm);
-		background: var(--surface);
-	}
-
-	.name:focus-within {
-		box-shadow: var(--ring-focus);
-	}
-
-	.name.invalid {
-		border-color: var(--ink);
-	}
-
-	.tile {
+	.a-form {
 		display: grid;
-		place-items: center;
-		width: 32px;
-		height: 32px;
-		flex: none;
-		border-radius: var(--radius-sm);
+		gap: var(--space-5);
+		min-inline-size: 0;
 	}
-
-	input:not([type]) {
-		flex: 1;
-		min-width: 0;
-		height: 100%;
-		border: 0;
-		background: none;
-		font-size: var(--text-md);
-	}
-
-	input:not([type]):focus-visible {
-		box-shadow: none;
-	}
-
-	input::placeholder {
-		color: var(--ink-3);
-	}
-
-	.error {
-		margin-top: calc(-1 * var(--space-2));
-		color: var(--ink);
-		font-size: var(--text-sm);
-		font-weight: var(--weight-medium);
+	.a-form :global(.field input) {
+		font-size: max(1rem, var(--type-body-size));
 	}
 </style>

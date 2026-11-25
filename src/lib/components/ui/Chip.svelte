@@ -28,31 +28,44 @@
 		padding: 0 var(--space-3) 0 10px;
 		border: 0;
 		border-radius: var(--radius-pill);
-		background: var(--sunk);
-		color: var(--ink-2);
-		font-size: var(--text-sm);
+		background: var(--surface-sunken);
+		color: var(--ink-secondary);
+		font-size: var(--type-label-size);
 		white-space: nowrap;
 		cursor: pointer;
-		transition: background-color var(--dur-fast) var(--ease-out);
+		transition: background-color var(--motion-quick) var(--ease-out);
 	}
 
-	.chip:hover {
-		background: var(--line);
+	.chip {
+		position: relative;
+	}
+
+	.chip::after {
+		content: '';
+		position: absolute;
+		inset-block: min(0px, calc((100% - var(--target)) / 2));
+		inset-inline: min(0px, calc((100% - var(--target)) / 2));
+	}
+
+	@media (hover: hover) and (pointer: fine) {
+		.chip:hover {
+			background: var(--hairline);
+		}
 	}
 
 	.chip[aria-pressed='true'] {
-		background: var(--chrome);
-		color: var(--on-chrome);
+		background: var(--surface-inverse);
+		color: var(--ink-on-inverse);
 	}
 
 	.late {
-		color: var(--overdue);
-		background: var(--overdue-soft);
+		color: var(--danger);
+		background: var(--danger-soft);
 	}
 
 	svg {
-		width: var(--icon-sm);
-		height: var(--icon-sm);
+		width: 16px;
+		height: 16px;
 		flex: none;
 		fill: none;
 		stroke: currentColor;

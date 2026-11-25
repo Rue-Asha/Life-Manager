@@ -1,4 +1,4 @@
-import { expect, test, reset, seed, setClock, todoRow, todoRows } from './helpers';
+import { expect, openNewTodo, test, reset, seed, setClock, todoRow, todoRows } from './helpers';
 
 // Wednesday 7 October 2026 in Berlin; its sprint week starts Monday 5 October.
 const NOW = '2026-10-07T10:00:00Z';
@@ -23,8 +23,7 @@ const PROJECTS = [
 
 async function openQuickAdd(page: import('@playwright/test').Page) {
 	await page.goto('/backlog');
-	await page.getByRole('button', { name: 'Add a todo' }).first().click();
-	return page.getByRole('form', { name: 'New todo' });
+	return openNewTodo(page);
 }
 
 test('Scenario: Quick add links a todo to a project', async ({ page, request }) => {
@@ -53,7 +52,7 @@ test('Scenario: Project field appears only for the IT aspect', async ({ page, re
 	await expect(form.getByLabel('Project')).toBeVisible();
 	await form.getByRole('button', { name: 'Cancel' }).click();
 
-	await page.getByRole('button', { name: 'Existing' }).click();
+	await page.getByRole('button', { name: 'Existing', exact: true }).click();
 	const editor = page.getByRole('form', { name: 'Edit todo' });
 	await expect(editor.getByLabel('Project')).toHaveCount(0);
 	await editor.getByLabel('Aspect').selectOption({ label: 'IT' });
@@ -77,7 +76,7 @@ test('Scenario: Project field lists projects that are not implemented', async ({
 	]);
 	await form.getByRole('button', { name: 'Cancel' }).click();
 
-	await page.getByRole('button', { name: 'Linked to done' }).click();
+	await page.getByRole('button', { name: 'Linked to done', exact: true }).click();
 	const editor = page.getByRole('form', { name: 'Edit todo' });
 	await expect(editor.getByLabel('Project').getByRole('option')).toHaveText([
 		'No project',

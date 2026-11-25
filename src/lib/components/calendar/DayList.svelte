@@ -1,214 +1,84 @@
-<script lang="ts" module>
-	import { ASPECT_COLORS } from '$lib/aspect-style';
-	import type { Aspect } from '$lib/types';
-	import type { CalendarEntry, DueTodo } from '$lib/server/calendar';
-
-	function aspectColor(aspectId: number, aspects: Aspect[]): string {
-		const aspect = aspects.find((a) => a.id === aspectId) ?? aspects[0];
-		return ASPECT_COLORS[aspect.color].fg;
-	}
-
-	export function entryColor(entry: CalendarEntry, aspects: Aspect[]): string {
-		if (entry.kind === 'exam') return ASPECT_COLORS[entry.color].fg;
-		return aspectColor(entry.aspectId, aspects);
-	}
-</script>
-
+<!--
+	The selected day's list (lifted from hifi/calendar/DayList.svelte): a solid card with its date on top; from 1024 px only the entries scroll
+	inside it, with a "More below" cue while more follows. A todo entry opens the todo editor, a projection links its rule, an exam its class.
+	Done entries stay listed in their done state; a day with only due todos shows the Due section and no empty text.
+-->
 <script lang="ts">
+	import { copy } from '$lib/copy';
 	import { dateLabel } from '$lib/components/todo/format';
+	import Icon from '$lib/components/shell/Icon.svelte';
+	import { vfade } from '$lib/components/shell/cue';
 	import { slotLabel } from '$lib/slot';
-	import type { Id, IsoDate } from '$lib/types';
+	import type { CalendarEntry, DueTodo } from '$lib/server/calendar';
+	import type { Aspect, Id, IsoDate } from '$lib/types';
 	import TodoEditor from '../todo/TodoEditor.svelte';
-	import { UI_ICONS } from '../ui/icons';
+	import './calendar.css';
 
-	let { day, entries, due, aspects }: { day: IsoDate; entries: CalendarEntry[]; due: DueTodo[]; aspects: Aspect[] } = $props();
+	let {
+		day,
+		entries,
+		due,
+		aspects,
+		uniAspectId
+	}: { day: IsoDate; entries: CalendarEntry[]; due: DueTodo[]; aspects: Aspect[]; uniAspectId: Id | null } = $props();
 
-	const aspectName = (id: Id) => aspects.find((a) => a.id === id)?.name ?? '';
+	const aspectName = (id: Id | null) => aspects.find((a) => a.id === id)?.name ?? 'Uni';
+	const aspectOf = (e: CalendarEntry) => aspectName(e.kind === 'exam' ? uniAspectId : e.aspectId);
 
 	let editing = $state<Id | null>(null);
+	const editTodo = $derived(entries.flatMap((e) => (e.kind === 'todo' && e.todo.id === editing ? [e.todo] : []))[0]);
 </script>
 
-{#snippet content(entry: CalendarEntry)}
-	<span class="title" class:done={entry.kind === 'todo' && entry.done}>{entry.title}</span>
-	<span class="meta num">
-		{slotLabel(entry.startTime, entry.endTime)}
-		{#if entry.kind === 'projection'}
-			<span class="tag">
-				<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.repeat} /></svg>Projected
-			</span>
-		{:else if entry.kind === 'exam'}
-			<span class="tag">Exam{entry.room ? ` · ${entry.room}` : ''}</span>
-		{/if}
+{#snippet body(e: CalendarEntry)}
+	{#if e.kind === 'todo'}
+		<span class="leading" aria-hidden="true"><span class="hc-tick" data-on={e.done ? '' : undefined}>{#if e.done}<Icon name="check" size={12} />{/if}</span></span>
+	{/if}
+	<span class="text">
+		<span class="title" class:hc-done={e.kind === 'todo' && e.done} data-user>{e.title}{#if e.kind === 'todo' && e.done}<span class="sr-only"> (done)</span>{/if}</span>
+		<span class="meta"><span role="time">{slotLabel(e.startTime, e.endTime)}</span> · {aspectOf(e)}</span>
+		{#if e.kind === 'projection'}<span class="hc-tag">Projected</span>{/if}
+		{#if e.kind === 'exam'}<span class="hc-tag" data-kind="exam">Exam{e.room ? ` · ${e.room}` : ''}</span>{/if}
 	</span>
+	{#if e.kind !== 'todo'}<span class="leading" aria-hidden="true"><Icon name="chevron-right" /></span>{/if}
 {/snippet}
 
-<section class="day" aria-labelledby="day-title">
-	<h2 id="day-title">{dateLabel(day)}</h2>
-	{#if due.length > 0}
-		<div class="due" role="group" aria-label="Due">
-			<h3>Due</h3>
-			<ul>
-				{#each due as t (t.id)}
-					<li style:--a={aspectColor(t.aspectId, aspects)}>
-						<svg class="flag" viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.flag} /></svg>
-						<span class="body">
-							<span class="title">{t.title}</span>
-							<span class="meta">{aspectName(t.aspectId)}</span>
-						</span>
+<section class="card hc-list" aria-labelledby="day-title">
+	<h2 class="ruled" id="day-title">{dateLabel(day)}</h2>
+	<div class="hc-scroll" use:vfade>
+		{#if due.length > 0}
+			<div role="group" aria-label="Due" class="hc-due-group">
+				<h3 class="hc-sub">Due</h3>
+				<ul class="hc-entries" role="list">
+					{#each due as t (t.id)}
+						<li class="row"><span class="main"><span class="text"><span class="title" data-user>{t.title}</span><span class="meta">{aspectName(t.aspectId)}</span></span></span></li>
+					{/each}
+				</ul>
+			</div>
+		{/if}
+
+		{#if entries.length > 0}
+			<ul class="hc-entries" role="list">
+				{#each entries as e, i (i)}
+					<li class="row interactive hc-entry" aria-label={e.title}>
+						{#if e.kind === 'todo'}
+							<button type="button" class="main" data-press onclick={() => (editing = e.todo.id)}>{@render body(e)}</button>
+						{:else if e.kind === 'projection'}
+							<a class="main" href="/recurring#rule-{e.ruleId}" data-press>{@render body(e)}</a>
+						{:else}
+							<a class="main" href="/uni/classes/{e.classId}" data-press>{@render body(e)}</a>
+						{/if}
 					</li>
 				{/each}
 			</ul>
-		</div>
-	{/if}
-	{#if entries.length === 0 && due.length === 0}
-		<p class="empty">Nothing planned</p>
-	{:else if entries.length > 0}
-		<ul>
-			{#each entries as entry, i (i)}
-				<li aria-label={entry.title} style:--a={entryColor(entry, aspects)}>
-					<i class="mark" class:ring={entry.kind === 'projection'}></i>
-					{#if entry.kind === 'todo'}
-						<button type="button" class="body" onclick={() => (editing = entry.todo.id)}>{@render content(entry)}</button>
-					{:else}
-						<a class="body" href={entry.kind === 'projection' ? `/recurring#rule-${entry.ruleId}` : `/uni/classes/${entry.classId}`}>
-							{@render content(entry)}
-						</a>
-					{/if}
-					{#if entry.kind === 'todo' && editing === entry.todo.id}
-						<div class="editor">
-							<TodoEditor todo={entry.todo} {aspects} open onclose={() => (editing = null)} />
-						</div>
-					{/if}
-				</li>
-			{/each}
-		</ul>
-	{/if}
+		{/if}
+
+		{#if entries.length === 0 && due.length === 0}
+			<div class="hc-empty"><h3 class="title">{copy.sprintViews.nothingPlanned}</h3></div>
+		{/if}
+	</div>
+	<p class="more-below" aria-hidden="true"><Icon name="chevron" size={14} />More below</p>
 </section>
 
-<style>
-	h2 {
-		margin-bottom: var(--space-3);
-		font-size: var(--text-lg);
-		font-weight: var(--weight-semibold);
-	}
-
-	h3 {
-		margin-bottom: var(--space-2);
-		color: var(--ink-3);
-		font-size: var(--text-sm);
-		font-weight: var(--weight-semibold);
-	}
-
-	.due {
-		margin-bottom: var(--space-4);
-	}
-
-	.flag {
-		flex: none;
-		margin-top: 3px;
-		color: var(--a);
-	}
-
-	ul {
-		margin: 0;
-		padding: 0;
-		list-style: none;
-		background: var(--surface);
-		border: 1px solid var(--line);
-		border-radius: var(--radius-group);
-	}
-
-	li {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: flex-start;
-		gap: var(--space-3);
-		padding: var(--space-3) var(--space-4);
-	}
-
-	li + li {
-		border-top: 1px solid var(--line);
-	}
-
-	.mark {
-		flex: none;
-		width: 10px;
-		height: 10px;
-		margin-top: 5px;
-		border-radius: var(--radius-pill);
-		background: var(--a);
-		box-sizing: border-box;
-	}
-
-	.mark.ring {
-		background: transparent;
-		border: 2px solid var(--a);
-	}
-
-	.body {
-		display: grid;
-		flex: 1;
-		padding: 0;
-		border: 0;
-		background: none;
-		color: inherit;
-		font: inherit;
-		text-align: left;
-		text-decoration: none;
-		cursor: pointer;
-		min-width: 0;
-		gap: 2px;
-	}
-
-	.body:hover .title {
-		text-decoration: underline;
-	}
-
-	.editor {
-		flex: 0 0 100%;
-		min-width: 0;
-	}
-
-	.title {
-		overflow-wrap: anywhere;
-	}
-
-	.title.done {
-		color: var(--ink-3);
-		text-decoration: line-through;
-	}
-
-	.meta {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: var(--space-2);
-		color: var(--ink-3);
-		font-size: var(--text-sm);
-	}
-
-	.tag {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--space-1);
-	}
-
-	svg {
-		width: 14px;
-		height: 14px;
-		fill: none;
-		stroke: currentColor;
-		stroke-width: 2;
-		stroke-linecap: round;
-		stroke-linejoin: round;
-	}
-
-	.empty {
-		padding: var(--space-6) var(--space-4);
-		border-radius: var(--radius-group);
-		background: var(--surface);
-		border: 1px solid var(--line);
-		color: var(--ink-3);
-		text-align: center;
-	}
-</style>
+{#if editTodo}
+	<TodoEditor todo={editTodo} {aspects} open onclose={() => (editing = null)} />
+{/if}

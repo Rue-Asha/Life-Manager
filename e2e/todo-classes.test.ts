@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { expect, test, reset, seed, setClock, todoRow, todoRows, type SeedInput } from './helpers';
+import { expect, openNewTodo, test, reset, seed, setClock, todoRow, todoRows, type SeedInput } from './helpers';
 
 test.beforeEach(async ({ request, page }) => {
 	await reset(request);
@@ -20,12 +20,11 @@ const UNI: SeedInput = {
 
 async function openQuickAdd(page: Page) {
 	await page.goto('/backlog');
-	await page.getByRole('button', { name: 'Add a todo' }).first().click();
-	return page.getByRole('form', { name: 'New todo' });
+	return openNewTodo(page);
 }
 
 async function openEditor(page: Page, title: string) {
-	await page.getByRole('button', { name: title }).click();
+	await page.getByRole('button', { name: title, exact: true }).click();
 	return page.getByRole('form', { name: 'Edit todo' });
 }
 
@@ -39,7 +38,6 @@ test('Scenario: Quick add links a todo to a class', async ({ page, request }) =>
 	await form.getByRole('button', { name: 'Add todo' }).click();
 	await expect(todoRow(page, 'Exercise sheet 4')).toBeVisible();
 
-	await page.getByRole('button', { name: 'Cancel' }).click();
 	const editor = await openEditor(page, 'Exercise sheet 4');
 	await expect(editor.getByLabel('Class')).toHaveValue(String(classes[0]));
 	await expect(editor.getByRole('group', { name: 'Type' }).getByRole('button', { name: 'EXC' })).toHaveAttribute('aria-pressed', 'true');
@@ -108,7 +106,6 @@ test('Scenario: Switching the aspect away drops class and type', async ({ page, 
 	const row = todoRow(page, 'Run a lap');
 	await expect(row).toBeVisible();
 	await expect(row.getByRole('link')).toHaveCount(0);
-	await page.getByRole('button', { name: 'Cancel' }).click();
 	const editor = await openEditor(page, 'Run a lap');
 	await editor.getByLabel('Aspect').selectOption({ label: 'Uni' });
 	await expect(editor.getByLabel('Class')).toHaveValue('');
@@ -137,13 +134,13 @@ test.describe('class badge', () => {
 		await page.goto('/backlog');
 		const backlogBadge = todoRow(page, 'Read chapter 2').getByRole('link', { name: 'Analysis' });
 		await expect(backlogBadge).toHaveText('Analysis · LEC');
-		await expect(backlogBadge.locator('svg')).toBeVisible();
+		await expect(backlogBadge.locator('svg').first()).toBeVisible();
 
 		for (const path of ['/', '/sprint']) {
 			await page.goto(path);
 			const badge = todoRow(page, 'Exercise sheet 4').getByRole('link', { name: 'Algorithms' });
 			await expect(badge).toHaveText('Algorithms · EXC');
-			await expect(badge.locator('svg')).toBeVisible();
+			await expect(badge.locator('svg').first()).toBeVisible();
 		}
 
 		await page.goto('/backlog');

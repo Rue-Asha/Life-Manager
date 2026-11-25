@@ -24,7 +24,7 @@ const cell = calendarCell;
 async function openCalendar(page: Page) {
 	await page.goto('/calendar');
 	await expect(page.getByRole('heading', { level: 1, name: 'Calendar' })).toBeVisible();
-	await expect(page.getByRole('complementary')).toBeAttached();
+	await expect(page.getByRole('region', { name: /^\w{3} \d+ \w{3}$/ })).toBeAttached();
 }
 
 test('Scenario: Planned todo travels to its day in the Week view', async ({ page, request }) => {
@@ -62,7 +62,8 @@ test('Scenario: Planned todo travels to its day in the Week view', async ({ page
 	);
 	const column = dayColumn(page, '2026-11-03');
 	await expect(todoRow(column, 'Dentist')).toHaveCount(1);
-	await expect(todoRow(column, 'Dentist')).toContainText('18:00–19:30');
+	// A week chip shows the start of the slot only.
+	await expect(todoRow(column, 'Dentist').getByRole('time')).toHaveText('18:00');
 });
 
 test('Scenario: Todo edited from the calendar leaves its day', async ({ page, request }) => {

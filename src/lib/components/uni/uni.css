@@ -1,0 +1,147 @@
+/* Uni and Class on the fingerprint, lifted from the signed hi-fi (hifi/uni and hifi/class, with the parts of hifi/project/parts.css and
+   hifi/shell/primitives.css they use). Fingerprint tokens only. The class and todo rows are the list-row look scoped to the cards. */
+
+/* A card that holds its own content (the layout card has no padding) */
+.card.u-panel { display: grid; gap: var(--space-4); align-content: start; padding: var(--space-5); min-inline-size: 0; }
+.u-panel > .card-head { align-items: center; }
+.u-stack { display: grid; gap: var(--space-2); min-inline-size: 0; }
+.u-stack-s { display: grid; gap: var(--space-1-5); min-inline-size: 0; }
+.u-cluster { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; min-inline-size: 0; }
+.u-cluster.end { justify-content: space-between; }
+.u-note { margin: 0; font-size: var(--type-caption-size); line-height: var(--type-caption-line); color: var(--ink-secondary); overflow-wrap: anywhere; }
+.u-tail { display: flex; flex-wrap: wrap; gap: var(--space-2); justify-content: flex-start; }
+.u-tail > .btn, .u-head-action > .btn { max-inline-size: 100%; }
+.u-head-action { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.u-clamp2 { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.u-late { color: var(--danger); font-weight: var(--weight-semibold); }
+
+/* ---------- Rows ---------- */
+.u-rows { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; min-inline-size: 0; }
+.u-row { container: row / inline-size; display: flex; align-items: center; gap: var(--space-1); min-block-size: max(var(--control-height), var(--target)); border-radius: var(--radius-panel); background: none; box-shadow: none; color: var(--ink); }
+.u-row ~ .u-row { box-shadow: var(--rule-above); border-start-start-radius: 0; border-start-end-radius: 0; }
+.u-row > .main { flex: 1; display: flex; align-items: flex-start; gap: var(--space-3); min-inline-size: 0; align-self: stretch; padding: var(--space-3) var(--space-2); border: 0; border-radius: inherit; background: none; color: inherit; font: inherit; text-align: start; text-decoration: none; cursor: pointer; }
+@media (hover: hover) { .u-row:has(> .main:hover) { background: var(--surface-hover); } }
+.u-row > .main:focus-visible { outline: var(--focus-width) solid var(--focus-ring); outline-offset: calc(-1 * var(--focus-width)); }
+.u-row .leading { display: grid; place-items: center; flex: none; }
+.u-row .text { display: grid; gap: var(--space-0-5); flex: 1; min-inline-size: 0; }
+.u-row .title { font-size: var(--type-title-size); line-height: var(--type-title-line); font-weight: var(--type-title-weight); overflow-wrap: anywhere; }
+.u-row .meta { font-size: var(--type-caption-size); line-height: var(--type-caption-line); color: var(--ink-secondary); overflow-wrap: anywhere; }
+.u-row .facts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-0-5) var(--space-3); }
+.u-row.static > .main { cursor: default; }
+@media (hover: hover) { .u-row.static:has(> .main:hover) { background: none; } }
+.u-row .trail { display: grid; place-items: center; flex: none; align-self: flex-start; }
+
+/* A small fact on a pill: the grade of a class */
+.u-tag {
+	display: inline-block;
+	vertical-align: top;
+	max-inline-size: 100%;
+	box-sizing: border-box;
+	min-block-size: var(--space-6);
+	padding-inline: var(--space-2-5);
+	border-radius: var(--radius-panel);
+	background: var(--surface-sunken);
+	font-size: var(--type-caption-size);
+	line-height: var(--space-6);
+	overflow-wrap: anywhere;
+}
+
+/* ---------- Class todo type (gate 5: letters, a glyph and the fill, never a hue) ---------- */
+.u-type { display: inline-flex; align-items: center; gap: var(--space-1); min-block-size: var(--space-6); padding-inline: var(--space-2) var(--space-2-5); border-radius: var(--radius-pill); font-size: var(--type-overline-size); line-height: 1; letter-spacing: var(--type-overline-tracking); font-weight: var(--weight-bold); text-decoration: none; white-space: nowrap; }
+.u-type svg { flex: none; }
+.u-type[data-type="LEC"] { background: var(--surface-sunken); color: var(--ink); }
+.u-type[data-type="EXC"] { background: var(--surface-raised); box-shadow: var(--ring-control); color: var(--ink); }
+.u-type[data-type="OTH"] { padding-inline: var(--space-1) var(--space-2); color: var(--ink-secondary); font-weight: var(--weight-semibold); }
+.u-type abbr { text-decoration: none; cursor: inherit; }
+.u-type.bare { background: none; box-shadow: none; padding-inline: 0; color: inherit; font-size: var(--type-label-size); font-weight: var(--type-label-weight); letter-spacing: 0; }
+
+/* ---------- Key-value rows (details of a class) ---------- */
+.u-kv { display: grid; gap: 0; margin: 0; }
+.u-kv > div { display: grid; grid-template-columns: minmax(5rem, 7rem) minmax(0, 1fr); gap: var(--space-3); align-items: baseline; min-block-size: var(--target-touch); padding-block: var(--space-2); align-content: center; }
+.u-kv > div + div { box-shadow: var(--rule-above); }
+.u-kv dt { font-size: var(--type-body-s-size); line-height: var(--type-body-s-line); color: var(--ink-secondary); }
+.u-kv dd { margin: 0; min-inline-size: 0; overflow-wrap: anywhere; font-variant-numeric: var(--numeric-figures); }
+.u-kv dd.u-cluster { gap: var(--space-1) var(--space-3); }
+.u-ext { display: inline-flex; align-items: center; min-block-size: var(--target-touch); color: var(--ink); text-decoration: underline; text-underline-offset: 0.25em; text-decoration-thickness: var(--stroke-hairline); overflow-wrap: anywhere; }
+@media (hover: hover) { .u-ext:hover { text-decoration-thickness: var(--stroke-strong); } }
+
+
+/* ---------- Picks: radios drawn as chips; the chosen one is charcoal, with a check so it is never colour alone ---------- */
+.u-fieldset { display: grid; gap: var(--space-2); margin: 0; padding: 0; border: 0; min-inline-size: 0; }
+.u-fieldset > legend { padding: 0; margin-block-end: var(--space-2); font-size: var(--type-label-size); font-weight: var(--type-label-weight); color: var(--ink); }
+.u-picks { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: 0; padding: 0; border: 0; min-inline-size: 0; }
+.u-pick { position: relative; display: inline-flex; min-inline-size: 0; max-inline-size: 100%; }
+.u-pick > input { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.u-pick > span {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-1-5);
+	max-inline-size: 100%;
+	min-block-size: max(var(--control-height-xs), var(--target));
+	min-inline-size: var(--target-touch);
+	justify-content: center;
+	padding-inline: var(--space-3-5);
+	border-radius: var(--radius-pill);
+	background: var(--surface-raised);
+	box-shadow: var(--ring-control);
+	color: var(--ink);
+	font-size: var(--type-label-size);
+	font-weight: var(--type-label-weight);
+	overflow-wrap: anywhere;
+	transition: background-color var(--motion-quick) var(--ease-out), color var(--motion-quick) var(--ease-out);
+}
+.u-pick > span > svg { display: none; flex: none; }
+.u-pick > input:checked + span { background: var(--surface-inverse); color: var(--ink-on-inverse); box-shadow: none; }
+.u-pick > input:checked + span > svg { display: block; }
+.u-pick > input:checked + span .u-type { color: inherit; }
+.u-pick > input:focus-visible + span { outline: var(--focus-width) solid var(--focus-ring); outline-offset: var(--focus-offset); }
+@media (hover: hover) { .u-pick > input:not(:checked):not(:disabled):hover + span { background: var(--surface-sunken); } }
+
+/* A radio list on the row look: the chosen row is charcoal like the current thing everywhere else */
+.u-opt { position: relative; display: flex; align-items: center; min-block-size: max(var(--control-height), var(--target)); border-radius: var(--radius-panel); background: var(--surface-glass-strong); box-shadow: var(--shadow-rim); color: var(--ink); }
+.u-opt > input { position: absolute; inset: 0; z-index: 1; inline-size: 100%; block-size: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.u-opt > .main { flex: 1; display: flex; align-items: center; gap: var(--space-3); min-inline-size: 0; padding: var(--space-3) var(--space-4); cursor: pointer; }
+.u-opt .text { flex: 1; min-inline-size: 0; font-size: var(--type-title-size); line-height: var(--type-title-line); font-weight: var(--type-title-weight); }
+.u-opt .check { visibility: hidden; display: grid; place-items: center; flex: none; }
+.u-opt:has(input:checked) { background: var(--surface-inverse); box-shadow: none; color: var(--ink-on-inverse); }
+.u-opt:has(input:checked) .check { visibility: visible; }
+.u-opt:has(input:focus-visible) { outline: var(--focus-width) solid var(--focus-ring); outline-offset: var(--focus-offset); }
+@media (hover: hover) { .u-opt:not(:has(input:checked)):hover { background: var(--surface-hover); } }
+
+/* An info notice: neutral, not danger (the archived class) */
+.u-banner { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4); border-radius: var(--radius-panel); background: var(--surface-raised); box-shadow: var(--ring-control); color: var(--ink); }
+.u-banner > .mark { flex: none; color: var(--ink-secondary); }
+.u-banner > p { flex: 1; min-inline-size: 0; margin: 0; font-size: var(--type-body-s-size); overflow-wrap: anywhere; }
+
+/* ---------- Detail screens ---------- */
+/* The stage photo fades out over a longer run behind a screen with a context card */
+@media (min-width: 768px) { .frame:has(.u-split) { --stage-fade: calc(var(--space-12) * 5); } }
+/* The key-facts card is display-only on the class page; phones leave it out */
+@media (max-width: 767px) { .screen-facts.wide-only { display: none; } }
+/* A breadcrumb link keeps a touch target */
+.u-lead .kicker a { display: inline-flex; align-items: center; min-block-size: var(--target-touch); padding-inline: var(--space-2); margin-inline: calc(-1 * var(--space-2)); }
+.u-lead h1:not(.open) { padding-block-end: 0; margin-block-end: 0; }
+.u-lead h1 { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; overflow-wrap: anywhere; hyphens: auto; min-inline-size: 0; }
+
+.u-title-row { display: flex; align-items: flex-start; gap: var(--space-3); min-inline-size: 0; max-inline-size: 100%; }
+.u-title-row .nav-tile { inline-size: var(--space-10); block-size: var(--space-10); margin-block-start: calc((var(--type-display-xl-size) * var(--type-display-xl-line) - var(--space-10)) / 2); }
+.u-title-row > .long-title { flex: 1; }
+.u-title-trail { flex: none; margin-block-start: calc((var(--type-display-xl-size) * var(--type-display-xl-line) - var(--target-touch)) / 2); }
+@media (max-width: 767px) {
+	.u-title-row { gap: var(--space-2); }
+	.u-title-row .nav-tile { margin-block-start: calc((var(--type-display-xl-size-compact) * var(--type-display-xl-line) - var(--space-10)) / 2); }
+	.u-title-trail { margin-block-start: calc((var(--type-display-xl-size-compact) * var(--type-display-xl-line) - var(--target-touch)) / 2); margin-inline-end: calc(-1 * var(--space-3)); }
+}
+
+/* ---------- Main column plus the side panel ---------- */
+.u-split { display: grid; gap: var(--space-4); align-items: start; min-inline-size: 0; }
+.u-split > .u-main { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); min-inline-size: 0; }
+.u-split > .u-side { display: grid; gap: var(--space-4); align-content: start; padding: var(--space-5); min-inline-size: 0; }
+.u-side > h2 { margin: 0; }
+@media (min-width: 1280px) {
+	.u-split { grid-template-columns: minmax(0, 1fr) 20rem; }
+	.u-split > .u-side { position: sticky; inset-block-start: var(--space-4); }
+}
+.u-rule { inline-size: 100%; margin: 0; border: 0; block-size: var(--stroke-hairline); background: var(--hairline); }
+.u-aspect-line { margin: 0; overflow-wrap: anywhere; }
+

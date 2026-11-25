@@ -43,12 +43,17 @@ async function seedProject(
 }
 
 const heading = (page: Page) => page.getByRole('heading', { level: 1 });
-const pill = (page: Page) => page.getByRole('button', { name: /^(Backlog|Active|In progress|Paused|Implemented)$/ });
+const pill = (page: Page) => page.getByRole('button', { name: /\. Set status$/ });
+const facts = (page: Page) => page.getByRole('list', { name: 'Linked todos' });
+const deleteProject = async (page: Page) => {
+	await page.getByRole('button', { name: 'Project actions' }).click();
+	await page.getByRole('menuitem', { name: 'Delete project' }).click();
+};
 const meta = (page: Page) => page.getByRole('group', { name: 'Project details' });
 const notesRegion = (page: Page) => page.getByRole('region', { name: 'Notes', exact: true });
 const detailsRail = (page: Page) => page.getByRole('complementary', { name: 'Details', exact: true, includeHidden: true });
 
-test('Scenario: Metadata sits in the rail at 1280', async ({ page, request }) => {
+test('Scenario: Details sit beside the main column at 1280', async ({ page, request }) => {
 	const id = await seedProject(request);
 	for (const width of [1280, 1600]) {
 		await page.setViewportSize({ width, height: 900 });
@@ -63,28 +68,38 @@ test('Scenario: Metadata sits in the rail at 1280', async ({ page, request }) =>
 		await expect(railMeta).toContainText('Created');
 		await expect(railMeta).toContainText('Updated');
 		await expect(meta(page)).toHaveCount(1);
+		const main = (await notesRegion(page).boundingBox())!;
+		expect((await rail.boundingBox())!.x, `${width}px`).toBeGreaterThan(main.x + main.width);
 	}
 });
 
-test('Scenario: Metadata wraps under the title below 1280', async ({ page, request }) => {
+test('Scenario: Details are a closed disclosure below 1280', async ({ page, request }) => {
 	const id = await seedProject(request);
 	for (const width of [1100, 375]) {
 		await page.setViewportSize({ width, height: 900 });
 		await page.goto(`/projects/${id}`);
 
-		await expect(detailsRail(page)).toHaveCount(0);
-		await expect(page.getByRole('button', { name: 'Details', exact: true, includeHidden: true })).toHaveCount(0);
+		await expect(detailsRail(page)).toBeHidden();
+		const toggle = page.getByRole('button', { name: 'Details', exact: true });
+		await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+		await expect(meta(page)).toHaveCount(0);
+		expect((await toggle.boundingBox())!.y, 'above the notes').toBeLessThan((await notesRegion(page).boundingBox())!.y);
+
+		await toggle.click();
+		await expect(toggle).toHaveAttribute('aria-expanded', 'true');
 		const row = meta(page);
 		await expect(row).toBeVisible();
 		await expect(row).toContainText('life-manager');
 		await expect(row).toContainText('SvelteKit');
 		await expect(row).toContainText('SQLite');
-		await expect(row).toContainText('Created');
-		await expect(row).toContainText('Updated');
-		const title = await heading(page).boundingBox();
-		const rowBox = await row.boundingBox();
-		expect(rowBox!.y).toBeGreaterThan(title!.y + title!.height - 1);
-		expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+		if (width === 1100) {
+			await expect(row.getByText('Created', { exact: true })).toBeVisible();
+			await expect(row.getByText('Updated', { exact: true })).toBeVisible();
+		} else {
+			await expect(row.getByText('Created', { exact: true })).toBeHidden();
+			await expect(row.getByText('Updated', { exact: true })).toBeHidden();
+		}
+		expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `${width}px`).toBe(true);
 	}
 });
 
@@ -175,6 +190,7 @@ test('Scenario: Long notes are not truncated', async ({ page, request }) => {
 	await page.setViewportSize({ width: 375, height: 700 });
 	await page.goto(`/projects/${id}`);
 
+	await notesRegion(page).getByRole('button', { name: 'Show more' }).click();
 	await page.getByText('Line 200', { exact: true }).scrollIntoViewIfNeeded();
 	await expect(page.getByText('Line 200', { exact: true })).toBeInViewport();
 	const own = await notesRegion(page).getByRole('group', { name: 'Rendered notes' }).evaluate((body) => ({
@@ -189,7 +205,7 @@ const OPEN_TODOS: NonNullable<SeedInput['todos']> = [
 	{ title: 'Build the page', aspect: 1, project: 0 }
 ];
 
-const menuItems = (page: Page) => page.getByRole('menuitem');
+const menuItems = (page: Page) => page.getByRole('menuitemradio');
 const confirmDialog = (page: Page) => page.getByRole('dialog');
 
 test('Scenario: Status pill offers the five states', async ({ page, request }) => {
@@ -218,10 +234,10 @@ test('Scenario: Implemented with open todos asks for confirmation', async ({ pag
 	await confirmDialog(page).getByRole('button', { name: 'Mark as implemented' }).click();
 
 	await expect(pill(page)).toContainText('Implemented');
-	await expect(meta(page)).toContainText('2 open');
+	await expect(facts(page)).toContainText(/2\s*Open/);
 	await page.reload();
 	await expect(pill(page)).toContainText('Implemented');
-	await expect(meta(page)).toContainText('2 open');
+	await expect(facts(page)).toContainText(/2\s*Open/);
 });
 
 test('Scenario: Cancelling the implemented warning changes nothing', async ({ page, request }) => {
@@ -266,13 +282,13 @@ test('Scenario: Deleting a project asks for confirmation', async ({ page, reques
 	const id = await seedProject(request, { todos });
 	await page.goto(`/projects/${id}`);
 
-	await page.getByRole('button', { name: 'Delete project' }).click();
+	await deleteProject(page);
 	await expect(confirmDialog(page)).toContainText('3 linked todos will be unlinked');
 	await confirmDialog(page).getByRole('button', { name: 'Cancel' }).click();
 	await expect(confirmDialog(page)).toBeHidden();
 	await expect(heading(page)).toHaveText('Life Manager');
 
-	await page.getByRole('button', { name: 'Delete project' }).click();
+	await deleteProject(page);
 	await confirmDialog(page).getByRole('button', { name: 'Delete project' }).click();
 	await expect(page).toHaveURL(/\/projects$/);
 
@@ -298,7 +314,7 @@ test('Scenario: Done group starts collapsed', async ({ page, request }) => {
 	await expect(rows('Planned')).toHaveText([/Build the overview/]);
 
 	const done = page.getByRole('group', { name: 'Done', exact: true });
-	const toggle = done.getByRole('button', { name: /Done/ });
+	const toggle = done.getByRole('button', { name: /^Done/ });
 	await expect(toggle).toContainText('2');
 	await expect(toggle).toHaveAttribute('aria-expanded', 'false');
 	await expect(rows('Done')).toHaveCount(0);
@@ -334,4 +350,20 @@ test('Scenario: Card opens the project detail', async ({ page, request }) => {
 	await expect(page.getByRole('strong').filter({ hasText: 'notes' })).toBeVisible();
 	await expect(todoRows(page.getByRole('group', { name: 'Open', exact: true }))).toHaveCount(1);
 	await expect(page.getByRole('link', { name: /rue-asha\/life-manager/ }).first()).toHaveAttribute('target', '_blank');
+});
+
+test('Scenario: Linked todo rows name no project and keep their actions', async ({ page, request }) => {
+	const id = await seedProject(request, { todos: [{ title: 'Wire the router', aspect: 1, project: 0 }] });
+	await page.goto(`/projects/${id}`);
+	const row = todoRows(page.getByRole('group', { name: 'Open' })).filter({ hasText: 'Wire the router' });
+	await expect(row).toHaveCount(1);
+	await expect(row.getByRole('link', { name: PROJECT.name })).toHaveCount(0);
+	await row.getByRole('button', { name: 'More actions: Wire the router' }).click();
+	await expect(page.getByRole('menuitem', { name: 'Plan a day' })).toBeVisible();
+});
+
+test('Scenario: Projects kicker names the section, not the chosen aspect', async ({ page, request }) => {
+	await seed(request, { aspects: [{ name: 'Work', color: 'sky', icon: 'briefcase' }], itAspect: 0, projects: [{ name: 'One', status: 'active' }] });
+	await page.goto('/projects');
+	await expect(page.locator('.screen-lead .kicker')).toHaveText(/Life\s*IT/);
 });

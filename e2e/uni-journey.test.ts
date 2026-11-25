@@ -1,5 +1,6 @@
 import { expect, test, reset, seed, setClock, todoRow, todoRows } from './helpers';
 import { sprintList } from './sprint-locators';
+import { chooseDay } from './row-locators';
 
 // Wednesday 7 October 2026 in Berlin; the active sprint runs Monday 5 to Sunday 11 October.
 const NOW = '2026-10-07T10:00:00Z';
@@ -46,7 +47,7 @@ test('Scenario: Class card opens the class detail', async ({ page, request }) =>
 	await page.getByRole('link', { name: /Analysis II/ }).click();
 	await expect(page).toHaveURL(new RegExp(`/uni/classes/${classes[0]}$`));
 	await expect(page.getByRole('heading', { level: 1, name: 'Analysis II' })).toBeVisible();
-	const meta = page.getByRole('complementary', { name: 'Details' });
+	const meta = page.getByRole('region', { name: 'Details', exact: true });
 	await expect(meta).toBeVisible();
 	await expect(meta).toContainText('Prof. Kühn');
 	await expect(meta).toContainText('H 2.013');
@@ -70,12 +71,10 @@ test("Scenario: Class todo moves through the class's groups", async ({ page, req
 	};
 
 	await detail();
-	await page.getByRole('button', { name: 'Add a todo' }).click();
-	const form = page.getByRole('form', { name: 'New todo' });
-	await expect(form.getByLabel('Class')).toHaveValue(String(classes[0]));
-	await form.getByRole('group', { name: 'Type' }).getByRole('button', { name: 'EXC' }).click();
-	await form.getByLabel('Title').fill('Exercise sheet 5');
-	await form.getByRole('button', { name: 'Add todo' }).click();
+	const form = page.getByRole('form', { name: 'Add todo' });
+	await form.getByRole('radio', { name: 'EXC' }).check();
+	await form.getByLabel('New todo title').fill('Exercise sheet 5');
+	await form.getByRole('button', { name: 'Add', exact: true }).click();
 	await expect(group('Open')).toHaveText([/Exercise sheet 5/]);
 	await expect(group('Planned')).toHaveCount(0);
 
@@ -89,7 +88,7 @@ test("Scenario: Class todo moves through the class's groups", async ({ page, req
 	await expect(page.getByRole('heading', { level: 1, name: 'Sprint' })).toBeVisible();
 	const sprintRow = todoRow(sprintList(page), 'Exercise sheet 5');
 	await expect(sprintRow.getByRole('link', { name: /Analysis II/ })).toContainText('Analysis II');
-	await sprintRow.getByLabel('Day').selectOption({ label: 'Wed 7' });
+	await chooseDay(page, sprintRow, 'Wed 7');
 
 	await detail();
 	await expect(group('Planned')).toHaveText([/Exercise sheet 5/]);

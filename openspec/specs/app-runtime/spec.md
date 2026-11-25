@@ -4,10 +4,10 @@
 TBD - created by archiving change build-life-manager. Update Purpose after archive.
 ## Requirements
 ### Requirement: Harness commands
-The repo SHALL provide `npm run proof` (typecheck, build, unit tests), `npm run proof:full` (proof plus
+The repo SHALL provide `npm run proof` (the fingerprint guards `check-slop` and `check-drift`, typecheck, build, unit tests), `npm run proof:full` (proof plus
 e2e against the Node build), `npm run package` (build and write the release tarball, see
 release-artifact) and `npm run dev`. Both proof commands MUST exit non-zero on failure and
-print the name of every passed test. When `E2E_APP_DIR` is set, the e2e suite SHALL start the Node build
+print the name of every passed test. Unit tests run from `src/**` and `scripts/**`. When `E2E_APP_DIR` is set, the e2e suite SHALL start the Node build
 from that directory instead of the working tree, so the same suite can test an unpacked artifact. (S1)
 
 #### Scenario: Unit suite opens node:sqlite
@@ -31,6 +31,11 @@ from that directory instead of the working tree, so the same suite can test an u
 - **THEN** the server is started from that directory, not from the repo's `build/`
 - **AND** `/` answers with status 200
 - **proof:** e2e ("Scenario: Built app serves a page in e2e", run with `E2E_APP_DIR` in CI)
+
+#### Scenario: Unit tests under scripts run in proof
+- **WHEN** `npm run proof` runs
+- **THEN** the tests in `scripts/*.test.ts` are listed as passed next to those under `src/`
+- **proof:** unit
 
 ### Requirement: Environment configuration
 `node build` SHALL read the port from `PORT` and the SQLite file from `DATABASE_PATH`, and the Proton sync settings from

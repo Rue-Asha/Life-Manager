@@ -1,7 +1,6 @@
 import { expect, test, fake, protonOn, protonPass, reset, seed, setClock } from './helpers';
 
 const NOW = '2026-10-12T08:00:00Z';
-const LISTS = ['Today', 'Sprint', 'Calendar', 'Backlog', 'Recurring', 'Projects', 'Uni', 'Aspects'];
 
 test.beforeEach(async ({ request }) => {
 	await reset(request);
@@ -12,58 +11,50 @@ test.afterAll(async ({ request }) => {
 	await setClock(request, null);
 });
 
-test('Scenario: Sync link in the sidebar and the home list', async ({ page, request }) => {
+test('Scenario: Sync link in the top bar menu and the More hub', async ({ page, request }) => {
 	await seed(request, { aspects: [{ name: 'Health' }, { name: 'Home' }] });
 
 	await page.setViewportSize({ width: 1280, height: 800 });
 	await page.goto('/');
-	const sidebar = page.getByRole('navigation', { name: 'Main' });
-	const names = await sidebar
-		.getByRole('link')
-		.filter({ hasNotText: 'Life Manager' })
-		.evaluateAll((els) => els.map((el) => el.textContent!.replace(/\d+$/, '').trim()));
-	expect(names).toEqual([...LISTS, 'Health', 'Home', 'Proton sync']);
-	const link = sidebar.getByRole('link', { name: /^Proton sync/ });
-	const lastAspect = sidebar.getByRole('link', { name: 'Home', exact: true });
-	const after = await lastAspect.evaluate(
-		(a, b) => !!(a.compareDocumentPosition(b!) & Node.DOCUMENT_POSITION_FOLLOWING),
-		await link.elementHandle()
-	);
-	expect(after).toBe(true);
+	const bar = page.getByRole('navigation', { name: 'Main' });
+	await bar.getByRole('button', { name: /^More/ }).click();
+	const menu = page.getByRole('menu', { name: 'More' });
+	await expect(menu.getByRole('menuitem')).toHaveText([/^\s*Aspects/, /^\s*Health/, /^\s*Home/, /^\s*Projects/, /^\s*Uni/, /^\s*Recurring/, /^\s*Proton sync/]);
 
 	await page.setViewportSize({ width: 375, height: 812 });
 	await page.goto('/menu');
-	const lists = page.getByRole('navigation', { name: 'Lists' });
-	await expect(lists.getByRole('link')).toHaveCount(8);
-	await expect(lists.getByRole('link', { name: /^Proton sync/ })).toHaveCount(0);
-	const home = page.getByRole('main').getByRole('link', { name: /^Proton sync/ });
-	await expect(home).toHaveText('Proton sync');
-	const [listsBox, homeBox] = [await lists.boundingBox(), await home.boundingBox()];
-	expect(homeBox!.y).toBeGreaterThanOrEqual(listsBox!.y + listsBox!.height);
+	const lists = page.getByRole('main').getByRole('list', { name: 'Lists' });
+	await expect(lists.getByRole('link')).toHaveText([/^\s*Projects/, /^\s*Uni/, /^\s*Recurring/, /^\s*Proton sync/]);
+	await expect(page.getByRole('main').getByRole('list', { name: 'Aspects' }).getByRole('link', { name: /^Proton sync/ })).toHaveCount(0);
 
 	await page.setViewportSize({ width: 1280, height: 800 });
 	await page.goto('/');
-	await link.click();
+	await bar.getByRole('button', { name: /^More/ }).click();
+	await menu.getByRole('menuitem', { name: /^Proton sync/ }).click();
 	await expect(page).toHaveURL(/\/sync$/);
 	await expect(page.getByRole('heading', { name: 'Proton sync' })).toBeVisible();
-	await expect(sidebar.locator('[aria-current="page"]')).toHaveCount(1);
-	await expect(link).toHaveAttribute('aria-current', 'page');
+	await bar.getByRole('button', { name: /^More/ }).click();
+	await expect(menu.locator('[aria-current="page"]')).toHaveCount(1);
+	await expect(menu.getByRole('menuitem', { name: /^Proton sync/ })).toHaveAttribute('aria-current', 'page');
+	await expect(bar.locator('[aria-current="page"]')).toHaveCount(1);
 });
 
 test('Scenario: Sync link warns on re-login needed or error', async ({ page, request }) => {
 	await seed(request, { aspects: [{ name: 'Health' }], todos: [{ title: 'Stretch', day: '2026-10-12' }] });
-	const sidebarLink = page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: /^Proton sync/ });
-	const homeLink = page.getByRole('main').getByRole('link', { name: /^Proton sync/ });
+	const bar = page.getByRole('navigation', { name: 'Main' });
+	const menuLink = page.getByRole('menuitem', { name: /^Proton sync/ });
+	const hubRow = page.getByRole('main').getByRole('listitem').filter({ has: page.getByRole('link', { name: /^Proton sync/ }) });
 	const visit = async (marked: boolean) => {
 		await page.setViewportSize({ width: 1280, height: 800 });
 		await page.goto('/');
-		await expect(sidebarLink).toBeVisible();
-		await expect(sidebarLink.getByRole('img', { name: 'Needs attention' })).toHaveCount(marked ? 1 : 0);
+		await bar.getByRole('button', { name: /^More/ }).click();
+		await expect(menuLink).toBeVisible();
+		await expect(menuLink.getByRole('img', { name: 'Needs attention' })).toHaveCount(marked ? 1 : 0);
+		await page.keyboard.press('Escape');
 		await page.setViewportSize({ width: 375, height: 812 });
 		await page.goto('/menu');
-		await expect(homeLink).toBeVisible();
-		await expect(homeLink.getByRole('img', { name: 'Needs attention' })).toHaveCount(marked ? 1 : 0);
-		if (marked) await expect(homeLink.getByLabel('Needs attention')).toHaveCount(1);
+		await expect(hubRow).toBeVisible();
+		await expect(hubRow.getByRole('img', { name: 'Needs attention' })).toHaveCount(marked ? 1 : 0);
 	};
 
 	await protonOn(request);

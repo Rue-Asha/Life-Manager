@@ -60,7 +60,7 @@ test('rule can be edited and deleted after confirming', async ({ page, request }
 	const form = page.getByRole('dialog', { name: 'Edit rule' });
 	await expect(form.getByLabel('Title')).toHaveValue('Gym');
 	await expect(form.getByRole('checkbox', { name: 'Monday' })).toBeChecked();
-	await expect(form.getByRole('radio', { name: 'P2' })).toBeChecked();
+	await expect(form.getByLabel('Priority')).toHaveValue('2');
 	await expect(form.getByRole('textbox', { name: 'Checklist item 2' })).toHaveValue('Towel');
 
 	await form.getByLabel('Title').fill('Run');
@@ -85,7 +85,7 @@ test('rule can be edited and deleted after confirming', async ({ page, request }
 	await page.getByRole('dialog', { name: 'Edit rule' }).getByRole('button', { name: 'Delete rule' }).click();
 	await page.getByRole('dialog', { name: 'Delete “Run”?' }).getByRole('button', { name: 'Delete rule' }).click();
 	await expect(ruleRows(page)).toHaveCount(0);
-	await expect(page.getByText('No recurring rules yet.')).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'No recurring rules yet' })).toBeVisible();
 });
 
 test('Scenario: Rule with a time slot', async ({ page, request }) => {

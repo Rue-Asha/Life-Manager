@@ -1,18 +1,25 @@
+<!--
+	Backlog access: the docked rail from 1280 px, the body of the "Manage" sheet below it (same content, same buttons) and Plan's backlog column.
+	Grouped by aspect with the backlog count and the sprint progress, collapsible groups (remembered), a filter, "Add to sprint" per todo
+	(optimistic with `onadd`; the todo travels out), drag on hover + fine pointer. Lifted from the signed hi-fi (hifi/sprint/Rail.svelte).
+-->
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { flip } from 'svelte/animate';
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
-	import { page } from '$app/state';
+	import { ASPECT_COLORS } from '$lib/aspect-style';
 	import { draggableTodo, dropZone } from '$lib/dnd';
 	import { flipOpts, receive, send } from '$lib/motion';
-	import type { Aspect, AspectProgress, Id, IsoDate, Todo } from '$lib/types';
-	import TodoRow from '../todo/TodoRow.svelte';
+	import { copy } from '$lib/copy';
+	import type { Aspect, AspectProgress, Id, Todo } from '$lib/types';
+	import Field from '../field/Field.svelte';
+	import Icon from '../shell/Icon.svelte';
+	import { dayLabel } from '../todo/format';
 	import { submit, type ActionError } from '../todo/form';
-	import AspectIcon from '../ui/AspectIcon.svelte';
-	import ListGroup from '../ui/ListGroup.svelte';
-	import ProgressBar from '../ui/ProgressBar.svelte';
-	import { UI_ICONS } from '../ui/icons';
+	import Button from '../ui/Button.svelte';
+	import EmptyState from '../ui/EmptyState.svelte';
+	import './rail.css';
 
 	let {
 		backlog,
@@ -35,7 +42,7 @@
 	} = $props();
 
 	const STORAGE_KEY = 'lm:rail-collapsed';
-	const today = $derived(page.data.today as IsoDate);
+	const uid = $props.id();
 
 	let query = $state('');
 	let collapsed = $state<Id[]>([]);
@@ -80,7 +87,7 @@
 </script>
 
 <div
-	class="rail"
+	class="hs-rail-body"
 	role="group"
 	aria-label="Backlog todos"
 	use:dropZone={{
@@ -89,43 +96,43 @@
 	}}
 >
 	{#if backlog.length === 0}
-		<p class="empty">The backlog is empty. <a href="/backlog">Open Backlog</a></p>
+		<EmptyState heading="h3" title="The backlog is empty" body={copy.sprintViews.railEmptyBody} href="/backlog" actionLabel="Open backlog" />
 	{:else}
-		<input
-			class="filter"
-			type="search"
-			placeholder="Filter backlog"
-			aria-label="Filter backlog"
-			bind:value={query}
-		/>
+		<Field label="Filter backlog" type="search" placeholder="Filter backlog" bind:value={query} autocomplete="off" enterkeyhint="search" />
 		{#if groups.length === 0}
-			<p class="empty">No backlog todo matches</p>
+			<EmptyState heading="h3" title="No backlog todo matches" body={copy.sprintViews.railNoMatchBody}>
+				{#snippet action()}<Button variant="secondary" type="button" onclick={() => (query = '')}>{copy.sprintViews.clearFilter}</Button>{/snippet}
+			</EmptyState>
 		{/if}
-		{#each groups as { aspect, count, todos } (aspect.id)}
-			{@const shut = collapsed.includes(aspect.id)}
-			{@const sprint = progress[aspect.id]}
-			<section class="group" data-collapsed={String(shut)} aria-label="In backlog: {aspect.name}">
-				<h3>
-					<button type="button" class="toggle" aria-expanded={!shut} onclick={() => toggle(aspect.id)}>
-						<svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
-						<AspectIcon icon={aspect.icon} color={aspect.color} size="sm" />
-						<span class="name">{aspect.name}</span>
-					</button>
-					{#if sprint}<ProgressBar done={sprint.done} total={sprint.total} color={aspect.color} />{/if}
-					<span class="count num" aria-label="{count} in backlog">{count}</span>
-				</h3>
-				{#if !shut}
-					<ListGroup variant="outline">
+		<div class="hs-bl-groups">
+			{#each groups as { aspect, count, todos } (aspect.id)}
+				{@const shut = collapsed.includes(aspect.id)}
+				{@const sprint = progress[aspect.id]}
+				<section aria-label="In backlog: {aspect.name}" style:--aspect={ASPECT_COLORS[aspect.color].fg}>
+					<h3>
+						<button type="button" class="hs-bl-toggle" aria-expanded={!shut} aria-controls="{uid}-g{aspect.id}" data-press onclick={() => toggle(aspect.id)}>
+							<Icon name="chevron" size={16} />
+							<span class="hs-aspect"><i class="hs-asp" aria-hidden="true"></i><span data-user title={aspect.name}>{aspect.name}</span></span>
+							<span class="hs-bl-n" aria-label="{count} in backlog">{count}</span>
+							{#if sprint}<span class="hs-bl-p"><span class="sr-only">Sprint progress </span>{sprint.done} / {sprint.total}</span>{/if}
+						</button>
+					</h3>
+					<ul class="hs-bl-list" id="{uid}-g{aspect.id}" hidden={shut}>
 						{#each todos as todo (todo.id)}
-							<div
-								class="item"
-								role="presentation"
+							<li
+								class="hs-bl-row"
+								aria-label={todo.title}
 								in:receive={{ key: todo.id }}
 								out:send={{ key: todo.id }}
 								animate:flip={flipOpts()}
 								use:draggableTodo={{ id: todo.id, from: 'backlog', recurring: todo.recurring }}
 							>
-								<ul><TodoRow {todo} {aspect} {today} context="planning" /></ul>
+								<span class="hs-bl-text">
+									<span class="hs-bl-title" data-user title={todo.title}>{todo.title}</span>
+									<span class="sr-only">Status: To do</span>
+									<!-- Plain, as signed: the contract's backlog access flags no overdue todo (Today and the Backlog page do). -->
+									{#if todo.dueDate}<span class="hs-bl-due">Due {dayLabel(todo.dueDate)}</span>{/if}
+								</span>
 								{#if canAdd}
 									<!-- With `onadd` the page posts the add itself, so it can move the todo before the reload. -->
 									<form
@@ -139,190 +146,23 @@
 											: submit({ onerror: failed(todo.id), onsuccess: () => (failure = null) })}
 									>
 										<input type="hidden" name="id" value={todo.id} />
-										<button class="add" aria-label="{addLabel}: {todo.title}" title={addLabel}>
-											<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.plus} /></svg>
-										</button>
+										<Button class="hs-add" size="s" label="{addLabel}: {todo.title}"><Icon name="plus" size={16} />Add</Button>
 									</form>
 								{/if}
 								{#if failure?.id === todo.id}
-									<p class="error" role="alert">
+									<p class="hs-bl-error" role="alert">
 										{#if failure.error === 'review-required'}
-											The sprint needs its review first. <a href="/sprint/review">Review</a>
+											The sprint needs its review first. <a class="hs-link" href="/sprint/review">Review</a>
 										{:else}
 											That didn’t work. Reload and try again.
 										{/if}
 									</p>
 								{/if}
-							</div>
+							</li>
 						{/each}
-					</ListGroup>
-				{/if}
-			</section>
-		{/each}
+					</ul>
+				</section>
+			{/each}
+		</div>
 	{/if}
 </div>
-
-<style>
-	.rail {
-		min-height: 120px;
-		border-radius: var(--radius-md);
-		transition: background-color var(--dur-fast) var(--ease-out);
-	}
-
-	/* The drop slot is a hairline, not a filled target. */
-	.rail:global([data-over]) {
-		background: var(--accent-soft);
-		box-shadow: inset 0 0 0 1px var(--accent);
-	}
-
-	.filter {
-		width: 100%;
-		height: 36px;
-		margin-bottom: var(--space-5);
-		padding: 0 var(--space-3);
-		border: 1px solid var(--line);
-		border-radius: var(--radius-md);
-		background: var(--surface);
-		color: var(--ink);
-		font: inherit;
-		font-size: var(--text-sm);
-	}
-
-	.empty {
-		padding: var(--space-6) var(--space-4);
-		color: var(--ink-3);
-		text-align: center;
-	}
-
-	a {
-		color: var(--accent);
-		font-weight: var(--weight-medium);
-		text-decoration: none;
-	}
-
-	a:hover {
-		text-decoration: underline;
-	}
-
-	.group + .group {
-		margin-top: var(--space-5);
-	}
-
-	h3 {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		margin-bottom: var(--space-2);
-		padding: 0 var(--space-1);
-		font-size: var(--text-md);
-		font-weight: var(--weight-semibold);
-		line-height: var(--leading-snug);
-	}
-
-	.toggle {
-		display: flex;
-		flex: 1;
-		align-items: center;
-		gap: var(--space-2);
-		min-width: 0;
-		padding: 0;
-		border: 0;
-		background: none;
-		color: inherit;
-		font: inherit;
-		text-align: left;
-		cursor: pointer;
-	}
-
-	.name {
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
-	.chevron {
-		flex: none;
-		width: 14px;
-		height: 14px;
-		fill: none;
-		stroke: var(--ink-3);
-		stroke-width: 2;
-		stroke-linecap: round;
-		stroke-linejoin: round;
-		transition: transform var(--dur-fast) var(--ease-out);
-	}
-
-	[data-collapsed='true'] .chevron {
-		transform: rotate(-90deg);
-	}
-
-	.count {
-		color: var(--ink-3);
-		font-size: var(--text-sm);
-		font-weight: var(--weight-regular);
-	}
-
-	/* The add button sits inside the row's card, at its end. */
-	.item {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr) auto;
-		align-items: start;
-		gap: var(--space-1);
-		padding-right: var(--space-3);
-		border-radius: var(--radius-group);
-	}
-
-	.item:global([draggable='true']) {
-		cursor: grab;
-	}
-
-	.item:global([data-dragging]) {
-		background: var(--surface);
-		box-shadow: var(--shadow-float);
-	}
-
-	ul {
-		margin: 0;
-		padding: 0;
-		list-style: none;
-	}
-
-	form {
-		display: contents;
-	}
-
-	.add {
-		display: grid;
-		place-items: center;
-		width: 28px;
-		height: 28px;
-		margin-top: var(--space-2);
-		padding: 0;
-		border: 0;
-		border-radius: 8px;
-		background: var(--sunk);
-		color: var(--ink-2);
-		cursor: pointer;
-	}
-
-	.add:hover {
-		background: var(--accent-soft);
-		color: var(--accent-hover);
-	}
-
-	.add svg {
-		width: var(--icon-sm);
-		height: var(--icon-sm);
-		fill: none;
-		stroke: currentColor;
-		stroke-width: 2;
-		stroke-linecap: round;
-	}
-
-	.error {
-		grid-column: 1 / -1;
-		padding: 0 var(--space-4) var(--space-2);
-		color: var(--ink);
-		font-size: var(--text-sm);
-	}
-</style>

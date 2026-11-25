@@ -1,99 +1,56 @@
+<!--
+	A class todo's revised date in its meta line: ClassTag, "Not revised" / "Revised today" / "Revised 3 days ago", then "Mark revised today" (hidden once
+	revised today) and "Clear" (once revised). Posts to the class page's `revised` action; an empty date clears it. Without controls (`readonly`, an
+	archived class) only the type and the date are shown.
+-->
 <script lang="ts">
+	import { copy } from '$lib/copy';
+	import type { Snippet } from 'svelte';
 	import { enhance, type SubmitFunction } from '$app/forms';
-	import { UI_ICONS } from '../ui/icons';
 	import { revisedLabel } from '$lib/uni';
 	import type { IsoDate, Todo } from '$lib/types';
+	import Button from '../button/Button.svelte';
+	import Icon from '../shell/Icon.svelte';
+	import ClassTag from './ClassTag.svelte';
 
-	// Posts to the class page's `revised` action; an empty date clears it.
-	let { todo, today, readonly = false }: { todo: Todo; today: IsoDate; readonly?: boolean } = $props();
-
-	// Lucide "history" (ISC licence, https://lucide.dev).
-	const HISTORY = 'M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8 M3 3v5h5 M12 7v5l4 2';
+	let { todo, today, readonly = false, due }: { todo: Todo; today: IsoDate; readonly?: boolean; due?: Snippet } = $props();
 
 	const revisedToday = $derived(todo.revisedAt === today);
 	const submit: SubmitFunction = () => async ({ update }) => update({ reset: false });
 </script>
 
-<span class="rev" class:today={revisedToday}>
-	{#if todo.revisedAt}
-		<svg viewBox="0 0 24 24" aria-hidden="true"><path d={revisedToday ? UI_ICONS.check : HISTORY} /></svg>
-	{/if}{revisedLabel(todo.revisedAt, today)}
-</span>
+{#if todo.type}<ClassTag type={todo.type} />{/if}
+<span>{revisedLabel(todo.revisedAt, today)}</span>
+{@render due?.()}
 {#if !readonly}
-	{#if !revisedToday}
-		<form method="POST" action="?/revised" use:enhance={submit}>
-			<input type="hidden" name="todoId" value={todo.id} />
-			<input type="hidden" name="date" value={today} />
-			<button class="mark" aria-label="Revised today: {todo.title}">
-				<svg viewBox="0 0 24 24" aria-hidden="true"><path d={HISTORY} /></svg>Revised today
-			</button>
-		</form>
-	{/if}
-	{#if todo.revisedAt}
-		<form method="POST" action="?/revised" use:enhance={submit}>
-			<input type="hidden" name="todoId" value={todo.id} />
-			<input type="hidden" name="date" value="" />
-			<button class="clear" aria-label="Clear revised date: {todo.title}" title="Clear revised date">
-				<svg viewBox="0 0 24 24" aria-hidden="true"><path d={UI_ICONS.x} /></svg>
-			</button>
-		</form>
-	{/if}
+	<span class="rev">
+		{#if !revisedToday}
+			<form method="POST" action="?/revised" use:enhance={submit}>
+				<input type="hidden" name="todoId" value={todo.id} />
+				<input type="hidden" name="date" value={today} />
+				<Button size="s" type="submit" label={copy.revised.actionFor(todo.title)}><Icon name="check" size={16} />{copy.revised.action}</Button>
+			</form>
+		{/if}
+		{#if todo.revisedAt}
+			<form method="POST" action="?/revised" use:enhance={submit}>
+				<input type="hidden" name="todoId" value={todo.id} />
+				<input type="hidden" name="date" value="" />
+				<Button variant="quiet" size="s" type="submit" label={copy.revised.clearFor(todo.title)}><Icon name="close" size={16} />{copy.revised.clear}</Button>
+			</form>
+		{/if}
+	</span>
 {/if}
 
 <style>
+	.rev {
+		display: flex;
+		flex-basis: 100%;
+		flex-wrap: wrap;
+		gap: var(--space-2);
+		align-items: center;
+		margin-block-start: var(--space-1-5);
+	}
 	form {
 		display: contents;
-	}
-
-	svg {
-		width: var(--icon-sm);
-		height: var(--icon-sm);
-		flex: none;
-		fill: none;
-		stroke: currentColor;
-		stroke-width: 1.75;
-		stroke-linecap: round;
-		stroke-linejoin: round;
-	}
-
-	.rev {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--space-1);
-	}
-
-	.rev.today {
-		color: var(--accent);
-		font-weight: var(--weight-medium);
-	}
-
-	button {
-		display: inline-flex;
-		align-items: center;
-		gap: var(--space-1);
-		height: 24px;
-		border: 1px solid var(--line-strong);
-		border-radius: var(--radius-sm);
-		background: var(--surface);
-		color: var(--ink-2);
-		font-size: var(--text-sm);
-		cursor: pointer;
-	}
-
-	button:hover {
-		background: var(--hover);
-		color: var(--ink);
-	}
-
-	.mark {
-		padding: 0 var(--space-2);
-	}
-
-	.clear {
-		justify-content: center;
-		width: 24px;
-		padding: 0;
-		border-color: transparent;
-		background: none;
 	}
 </style>
