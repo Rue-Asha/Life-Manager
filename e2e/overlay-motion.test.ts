@@ -20,8 +20,9 @@ test.afterAll(async ({ request }) => {
 
 const statusButton = (page: Page) => todoRow(page, 'Stretch for ten minutes').getByRole('button', { name: /^Status: / });
 
-// Clicks inside the page; returns how many animations under `selector` ran, within how many frames the first one started, and their configured
-// timing (delay + duration, easing). Configured timing, not wall-clock time, so a loaded machine can't fail it.
+// Clicks inside the page; returns how many animations under `selector` ran, in which rendered frame after the click the first one started, and
+// their configured timing (delay + duration, easing). Animations are collected from their start events, not polled, and the start is counted in
+// frames of the page's own timeline, so a loaded machine that renders slowly (or runs a whole animation between two frames) can't fail it.
 function measure(trigger: Locator, within: string) {
 	return trigger.evaluate(async (el, selector) => {
 		const inside = (a: Animation) => {
@@ -29,30 +30,32 @@ function measure(trigger: Locator, within: string) {
 			const root = document.querySelector(selector);
 			return !!target && !!root && (target === root || root.contains(target as Node));
 		};
-		const clicked = performance.now();
+		const found = new Set<Animation>();
+		const collect = (e: Event) => {
+			for (const a of (e.target as Element).getAnimations({ subtree: true })) if (inside(a)) found.add(a);
+		};
+		document.addEventListener('animationstart', collect, true);
+		document.addEventListener('transitionrun', collect, true);
+		const frames: number[] = [];
 		(el as HTMLElement).click();
-		let running: Animation[] = [];
-		let frames = Infinity;
-		for (let i = 0; i < 20 && !running.length; i++) {
-			await new Promise((r) => requestAnimationFrame(r));
-			running = document.getAnimations().filter(inside);
-			if (running.length) frames = i + 1;
-		}
-		await new Promise((r) => requestAnimationFrame(r)); // a pending animation gets its start time on the next frame
-		// When the first animation began on the document timeline, measured from the click: independent of how late the polling noticed it.
-		const started = Math.min(Infinity, ...running.map((a) => Number(a.startTime ?? Infinity))) - clicked;
+		const give = performance.now() + 3000;
+		while (performance.now() < give && !found.size) frames.push(await new Promise<number>((r) => requestAnimationFrame(r)));
+		document.removeEventListener('animationstart', collect, true);
+		document.removeEventListener('transitionrun', collect, true);
+		const running = [...found];
+		await Promise.all(running.map((a) => a.finished.catch(() => null)));
+		// The frame in which the first animation got its start time on the document timeline, counted from the click.
+		const startTimes = running.map((a) => Number(a.startTime ?? Infinity));
+		const startedFrame = frames.filter((t) => t < Math.min(Infinity, ...startTimes)).length;
 		const timing = running.map((a) => a.effect!.getTiming());
 		// A CSS animation eases per keyframe, a transition on the effect.
 		const eased = (a: Animation, i: number) => (timing[i].easing !== 'linear' ? timing[i].easing : ((a.effect as KeyframeEffect).getKeyframes()[0]?.easing ?? 'linear'));
-		const easings = running.map(eased);
-		await Promise.all(running.map((a) => a.finished.catch(() => null)));
 		return {
 			count: running.length,
-			frames,
-			started,
+			startedFrame,
 			delay: Math.max(0, ...timing.map((t) => Number(t.delay ?? 0))),
 			total: Math.max(0, ...timing.map((t) => Number(t.delay ?? 0) + Number(t.duration ?? 0))),
-			easings
+			easings: running.map(eased)
 		};
 	}, within);
 }
@@ -64,9 +67,9 @@ test('Scenario: Menus and sheets open softly', async ({ page }) => {
 	await page.waitForFunction(() => document.getAnimations().length === 0);
 	const menu = await measure(statusButton(page), '[popover]:has([role="menu"][aria-label="Status"])');
 	expect(menu.count).toBeGreaterThan(0);
-	// Spec: an animation runs within 50 ms. It is configured without delay and began within 50 ms plus one frame (17 ms) of runner jitter.
+	// Spec: an animation runs within 50 ms. It is configured without delay and began within two frames of the click (33 ms at 60 Hz).
 	expect(menu.delay).toBe(0);
-	expect(menu.started).toBeLessThanOrEqual(50 + 17);
+	expect(menu.startedFrame).toBeLessThanOrEqual(2);
 	// 160 ms in, eased
 	expect(menu.total).toBeGreaterThan(0);
 	expect(menu.total).toBeLessThanOrEqual(160);
@@ -89,35 +92,40 @@ test('Scenario: Menus and sheets open softly', async ({ page }) => {
 
 test('Scenario: Reduced motion opens overlays without movement', async ({ page }) => {
 	await page.emulateMedia({ reducedMotion: 'reduce' });
-	// Clicks, then samples every frame for 600 ms (past the longest overlay animation), so an animation that finishes before a one-off read still counts.
+	// Clicks, then watches 600 ms (past the longest overlay animation) for every animation or transition that starts, from the start events, so
+	// one that begins and ends between two slow frames still counts.
 	const opensWithout = (trigger: Locator) =>
 		trigger.evaluate(async (el) => {
 			const seen = new Set<string>();
-			let frames = 0;
-			(el as HTMLElement).click();
-			const end = performance.now() + 600;
-			while (performance.now() < end) {
-				await new Promise((r) => requestAnimationFrame(r));
-				frames++;
-				for (const a of document.getAnimations()) {
+			const moves = ['transform', 'translate', 'scale', 'rotate'];
+			const collect = (e: Event) => {
+				if (e.type === 'transitionrun') {
+					const p = (e as TransitionEvent).propertyName;
+					if (moves.includes(p)) seen.add(p);
+				}
+				for (const a of (e.target as Element).getAnimations({ subtree: true })) {
 					for (const k of (a.effect as KeyframeEffect | null)?.getKeyframes() ?? []) {
-						for (const p of Object.keys(k)) if (['transform', 'translate', 'scale', 'rotate'].includes(p)) seen.add(p);
+						for (const p of Object.keys(k)) if (moves.includes(p)) seen.add(p);
 					}
 				}
-			}
-			return { frames, seen: [...seen] };
+			};
+			document.addEventListener('animationstart', collect, true);
+			document.addEventListener('transitionrun', collect, true);
+			(el as HTMLElement).click();
+			await new Promise((r) => setTimeout(r, 600));
+			document.removeEventListener('animationstart', collect, true);
+			document.removeEventListener('transitionrun', collect, true);
+			return { seen: [...seen] };
 		});
 
 	await page.setViewportSize({ width: 1280, height: 900 });
 	await page.goto('/sprint');
 	const menu = await opensWithout(statusButton(page));
-	expect(menu.frames).toBeGreaterThan(10);
 	expect(menu.seen).toEqual([]);
 	await expect(page.getByRole('menu', { name: 'Status' })).toBeVisible();
 	await page.keyboard.press('Escape');
 
 	const sheet = await opensWithout(todoRow(page, 'Stretch for ten minutes').getByRole('button', { name: 'Stretch for ten minutes', exact: true }));
-	expect(sheet.frames).toBeGreaterThan(10);
 	expect(sheet.seen).toEqual([]);
 	await expect(page.getByRole('dialog', { name: 'Edit todo' })).toBeVisible();
 });

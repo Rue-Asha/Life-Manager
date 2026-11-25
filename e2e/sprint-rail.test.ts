@@ -397,25 +397,36 @@ test.describe('touch phone', () => {
 	});
 });
 
-// Records when animations run, from a rAF loop, relative to the last pointerdown.
+// Records in which rendered frame after the last click the first animation got its start time on the document timeline: a count of frames
+// (100 ms is six at 60 Hz), not milliseconds, so a loaded machine that renders late can't make it look slow.
 async function watchAnimations(page: Page) {
 	await page.waitForFunction(() => document.getAnimations().length === 0);
 	await page.evaluate(() => {
-		const w = window as unknown as { __motion: { press: number; first: number | null; max: number } };
-		w.__motion = { press: 0, first: null, max: 0 };
-		document.addEventListener('pointerdown', () => ((w.__motion.press = performance.now()), (w.__motion.first = null)), true);
-		const tick = () => {
-			const running = document.getAnimations().length;
-			w.__motion.max = Math.max(w.__motion.max, running);
-			if (running > 0 && w.__motion.first === null) w.__motion.first = performance.now() - w.__motion.press;
+		const w = window as unknown as { __motion: { press: number; first: number | null; delay: number; max: number } };
+		w.__motion = { press: 0, first: null, delay: 0, max: 0 };
+		let pending: Animation[] = [];
+		let frames: number[] = [];
+		document.addEventListener('click', () => ((w.__motion.press = performance.now()), (w.__motion.first = null), (pending = []), (frames = [])), true);
+		const tick = (now: number) => {
+			if (w.__motion.press) frames.push(now);
+			const running = document.getAnimations();
+			w.__motion.max = Math.max(w.__motion.max, running.length);
+			if (w.__motion.first === null) {
+				if (!pending.length) pending = running;
+				const start = Math.min(Infinity, ...pending.map((a) => Number(a.startTime ?? Infinity)));
+				if (start !== Infinity) {
+					w.__motion.first = frames.filter((t) => t < start).length;
+					w.__motion.delay = Math.max(0, ...pending.map((a) => Number(a.effect?.getTiming().delay ?? 0)));
+				}
+			}
 			requestAnimationFrame(tick);
 		};
-		tick();
+		requestAnimationFrame(tick);
 	});
 }
 
 const motion = (page: Page) =>
-	page.evaluate(() => (window as unknown as { __motion: { first: number | null; max: number } }).__motion);
+	page.evaluate(() => (window as unknown as { __motion: { first: number | null; delay: number; max: number } }).__motion);
 
 test('Scenario: Moving a todo from the rail starts a move animation', async ({ page, request }) => {
 	await seedRunning(request, [
@@ -430,9 +441,11 @@ test('Scenario: Moving a todo from the rail starts a move animation', async ({ p
 
 	await page.getByRole('button', { name: 'Add to sprint: Book a physio appointment' }).click();
 	await page.waitForTimeout(400);
-	const { first } = await motion(page);
+	const { first, delay } = await motion(page);
 	expect(first).not.toBeNull();
-	expect(first!).toBeLessThanOrEqual(100);
+	// 100 ms at 60 Hz
+	expect(first!).toBeLessThanOrEqual(6);
+	expect(delay).toBe(0);
 	await expect(row(sprintList(page), 'Book a physio appointment')).toBeVisible({ timeout: 1 });
 	await expect(count).toHaveText('1', { timeout: 1 });
 });
