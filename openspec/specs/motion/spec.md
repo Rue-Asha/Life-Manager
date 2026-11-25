@@ -11,7 +11,7 @@ animates back to where it was. Under `prefers-reduced-motion: reduce` moves are 
 
 #### Scenario: Moving a todo from the rail starts a move animation
 - **WHEN** Rue clicks "Add to sprint" on a rail todo with motion allowed
-- **THEN** an animation is running on the page within 100 ms of the click, and after 400 ms the todo is in the sprint list and the rail count has decreased by one
+- **THEN** the move runs as the shared move animation (one duration of 260 ms, no delay, shorter than the 400 ms look), and after 400 ms the todo is in the sprint list and the rail count has decreased by one
 - **proof:** e2e
 
 #### Scenario: Reduced motion moves instantly

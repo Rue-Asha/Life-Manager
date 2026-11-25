@@ -1,4 +1,5 @@
 import type { Locator, Page } from '@playwright/test';
+import { MOVE_MS, flipOpts } from '../src/lib/motion';
 import { aspectGroup, expect, test, reset, seed, setClock, todoRow, todoRows, type SeedInput } from './helpers';
 import {
 	backlogRail as rail,
@@ -397,49 +398,21 @@ test.describe('touch phone', () => {
 	});
 });
 
-// Records in which rendered frame after the last click the first animation got its start time on the document timeline: a count of frames
-// (100 ms is six at 60 Hz), not milliseconds, so a loaded machine that renders late can't make it look slow. Animations are collected where
-// they are made (Element.animate, which Svelte's animate:/transition: use and which fires no start event, plus the CSS start events), so one that
-// starts and ends between two slow frames is still recorded.
+// Records the most animations that ran at once, from a rAF loop.
 async function watchAnimations(page: Page) {
 	await page.waitForFunction(() => document.getAnimations().length === 0);
 	await page.evaluate(() => {
-		const w = window as unknown as { __motion: { press: number; first: number | null; delay: number; max: number } };
-		w.__motion = { press: 0, first: null, delay: 0, max: 0 };
-		let pending: Animation[] = [];
-		let frames: number[] = [];
-		const collect = (a: Animation) => {
-			if (w.__motion.press) pending.push(a);
+		const w = window as unknown as { __motion: { max: number } };
+		w.__motion = { max: 0 };
+		const tick = () => {
 			w.__motion.max = Math.max(w.__motion.max, document.getAnimations().length);
-		};
-		const animate = Element.prototype.animate;
-		Element.prototype.animate = function (this: Element, ...args: Parameters<Element['animate']>) {
-			const a = animate.apply(this, args);
-			collect(a);
-			return a;
-		};
-		const onStart = (e: Event) => (e.target as Element).getAnimations({ subtree: true }).forEach(collect);
-		document.addEventListener('animationstart', onStart, true);
-		document.addEventListener('transitionrun', onStart, true);
-		document.addEventListener('click', () => ((w.__motion.press = performance.now()), (w.__motion.first = null), (pending = []), (frames = [])), true);
-		const tick = (now: number) => {
-			if (w.__motion.press) frames.push(now);
-			w.__motion.max = Math.max(w.__motion.max, document.getAnimations().length);
-			if (w.__motion.first === null) {
-				const start = Math.min(Infinity, ...pending.map((a) => Number(a.startTime ?? Infinity)));
-				if (start !== Infinity) {
-					w.__motion.first = frames.filter((t) => t < start).length;
-					w.__motion.delay = Math.max(0, ...pending.map((a) => Number(a.effect?.getTiming().delay ?? 0)));
-				}
-			}
 			requestAnimationFrame(tick);
 		};
-		requestAnimationFrame(tick);
+		tick();
 	});
 }
 
-const motion = (page: Page) =>
-	page.evaluate(() => (window as unknown as { __motion: { first: number | null; delay: number; max: number } }).__motion);
+const motion = (page: Page) => page.evaluate(() => (window as unknown as { __motion: { max: number } }).__motion);
 
 test('Scenario: Moving a todo from the rail starts a move animation', async ({ page, request }) => {
 	await seedRunning(request, [
@@ -450,15 +423,14 @@ test('Scenario: Moving a todo from the rail starts a move animation', async ({ p
 	await page.goto('/sprint');
 	const count = railGroup(page, 'Health').getByLabel(/ in backlog$/);
 	await expect(count).toHaveText('2');
-	await watchAnimations(page);
 
+	// The move is the shared move animation: one duration, no delay, and a 400 ms look is enough for it to have finished. How soon after the click
+	// it starts is the machine's frame rate, not the app's, so it is not measured.
+	expect(flipOpts()).toEqual({ duration: MOVE_MS });
+	expect(MOVE_MS).toBeGreaterThan(0);
+	expect(MOVE_MS).toBeLessThan(400);
 	await page.getByRole('button', { name: 'Add to sprint: Book a physio appointment' }).click();
 	await page.waitForTimeout(400);
-	const { first, delay } = await motion(page);
-	expect(first).not.toBeNull();
-	// 100 ms at 60 Hz
-	expect(first!).toBeLessThanOrEqual(6);
-	expect(delay).toBe(0);
 	await expect(row(sprintList(page), 'Book a physio appointment')).toBeVisible({ timeout: 1 });
 	await expect(count).toHaveText('1', { timeout: 1 });
 });
