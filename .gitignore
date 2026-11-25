@@ -12,3 +12,8 @@ test-results/
 playwright-report/
 data/
 /dist
+
+# graphify scratch (per-run labels, dated snapshots, hook sessions)
+graphify-out/.graphify_labels.pending.json
+graphify-out/20*/
+graphify-out/cache/hook_sessions/
