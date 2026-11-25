@@ -35,6 +35,8 @@ async function switchView(page: Page, name: string, view: string) {
 }
 
 test('Done-when journey', async ({ page, request }) => {
+	// One test for the whole product: about 17 s alone, so the 30 s default is under 2x of headroom on a loaded runner.
+	test.setTimeout(90_000);
 	await reset(request);
 	await setClock(request, MONDAY);
 
