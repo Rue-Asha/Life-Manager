@@ -34,6 +34,12 @@ function measure(trigger: Locator, within: string) {
 		const collect = (e: Event) => {
 			for (const a of (e.target as Element).getAnimations({ subtree: true })) if (inside(a)) found.add(a);
 		};
+		const animate = Element.prototype.animate;
+		Element.prototype.animate = function (this: Element, ...args: Parameters<Element['animate']>) {
+			const a = animate.apply(this, args);
+			queueMicrotask(() => inside(a) && found.add(a));
+			return a;
+		};
 		document.addEventListener('animationstart', collect, true);
 		document.addEventListener('transitionrun', collect, true);
 		const frames: number[] = [];
@@ -42,6 +48,7 @@ function measure(trigger: Locator, within: string) {
 		while (performance.now() < give && !found.size) frames.push(await new Promise<number>((r) => requestAnimationFrame(r)));
 		document.removeEventListener('animationstart', collect, true);
 		document.removeEventListener('transitionrun', collect, true);
+		Element.prototype.animate = animate;
 		const running = [...found];
 		await Promise.all(running.map((a) => a.finished.catch(() => null)));
 		// The frame in which the first animation got its start time on the document timeline, counted from the click.
@@ -109,12 +116,19 @@ test('Scenario: Reduced motion opens overlays without movement', async ({ page }
 					}
 				}
 			};
+			const animate = Element.prototype.animate;
+			Element.prototype.animate = function (this: Element, ...args: Parameters<Element['animate']>) {
+				const a = animate.apply(this, args);
+				for (const k of (a.effect as KeyframeEffect).getKeyframes()) for (const p of Object.keys(k)) if (moves.includes(p)) seen.add(p);
+				return a;
+			};
 			document.addEventListener('animationstart', collect, true);
 			document.addEventListener('transitionrun', collect, true);
 			(el as HTMLElement).click();
 			await new Promise((r) => setTimeout(r, 600));
 			document.removeEventListener('animationstart', collect, true);
 			document.removeEventListener('transitionrun', collect, true);
+			Element.prototype.animate = animate;
 			return { seen: [...seen] };
 		});
 

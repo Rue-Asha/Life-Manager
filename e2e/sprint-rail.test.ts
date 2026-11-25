@@ -398,7 +398,9 @@ test.describe('touch phone', () => {
 });
 
 // Records in which rendered frame after the last click the first animation got its start time on the document timeline: a count of frames
-// (100 ms is six at 60 Hz), not milliseconds, so a loaded machine that renders late can't make it look slow.
+// (100 ms is six at 60 Hz), not milliseconds, so a loaded machine that renders late can't make it look slow. Animations are collected where
+// they are made (Element.animate, which Svelte's animate:/transition: use and which fires no start event, plus the CSS start events), so one that
+// starts and ends between two slow frames is still recorded.
 async function watchAnimations(page: Page) {
 	await page.waitForFunction(() => document.getAnimations().length === 0);
 	await page.evaluate(() => {
@@ -406,13 +408,24 @@ async function watchAnimations(page: Page) {
 		w.__motion = { press: 0, first: null, delay: 0, max: 0 };
 		let pending: Animation[] = [];
 		let frames: number[] = [];
+		const collect = (a: Animation) => {
+			if (w.__motion.press) pending.push(a);
+			w.__motion.max = Math.max(w.__motion.max, document.getAnimations().length);
+		};
+		const animate = Element.prototype.animate;
+		Element.prototype.animate = function (this: Element, ...args: Parameters<Element['animate']>) {
+			const a = animate.apply(this, args);
+			collect(a);
+			return a;
+		};
+		const onStart = (e: Event) => (e.target as Element).getAnimations({ subtree: true }).forEach(collect);
+		document.addEventListener('animationstart', onStart, true);
+		document.addEventListener('transitionrun', onStart, true);
 		document.addEventListener('click', () => ((w.__motion.press = performance.now()), (w.__motion.first = null), (pending = []), (frames = [])), true);
 		const tick = (now: number) => {
 			if (w.__motion.press) frames.push(now);
-			const running = document.getAnimations();
-			w.__motion.max = Math.max(w.__motion.max, running.length);
+			w.__motion.max = Math.max(w.__motion.max, document.getAnimations().length);
 			if (w.__motion.first === null) {
-				if (!pending.length) pending = running;
 				const start = Math.min(Infinity, ...pending.map((a) => Number(a.startTime ?? Infinity)));
 				if (start !== Infinity) {
 					w.__motion.first = frames.filter((t) => t < start).length;
